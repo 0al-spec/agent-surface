@@ -44,6 +44,12 @@ However, it follows similar principles of openness and community participation.
 This proposal defines **Agent Surface Protocol**, a user-mediated delegation
 model for connecting user-owned agents to web applications and SaaS products.
 
+Agent Surface Protocol can be understood as the missing protocol substrate for
+safe **Bring Your Own Agent (BYOA)**. BYOA describes the user expectation: a
+person should be able to bring a preferred local, enterprise, or hosted agent
+into an application context. Agent Surface Protocol defines the security and
+interoperability machinery that makes that expectation practical.
+
 The central idea is not that an application "gets an agent". The user remains
 the principal. The application publishes a typed **Agent Surface** describing
 the resources, actions, events, scopes, risk labels, approval requirements,
@@ -126,6 +132,11 @@ difficult to produce without custom integration.
 Agent Surface Protocol introduces a safer frame:
 
 ```text
+BYOA is the model.
+Agent Surface is the protocol.
+Agent Grant is the authority.
+Agent Passport is the evidence.
+
 App exposes affordances.
 User delegates an agent.
 Runtime mediates and enforces.
@@ -139,7 +150,8 @@ publish a civilized surface and enforce grants on its side.
 
 ## Goals
 
-- Define a protocol layer for user-mediated app-to-agent delegation.
+- Define a protocol layer for safe Bring Your Own Agent (BYOA) in application
+  contexts.
 - Treat the user as the principal and the agent as a delegated worker.
 - Make **Grant**, not token, the primary authorization object.
 - Let applications publish typed resources, actions, events, schemas, scopes,
