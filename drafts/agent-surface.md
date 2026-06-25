@@ -48,8 +48,8 @@ The central idea is not that an application "gets an agent". The user remains
 the principal. The application publishes a typed **Agent Surface** describing
 the resources, actions, events, scopes, risk labels, approval requirements,
 schemas, idempotency rules, receipts, endpoints, and revocation semantics it
-supports. The user chooses a local or remote agent they own. A runtime such as
-SpecNode verifies the agent's Agent Passport, obtains a scoped **Agent Grant**,
+supports. The user chooses a local or remote agent they own. An application
+runtime verifies the agent's Agent Passport, obtains a scoped **Agent Grant**,
 enforces local policy, supervises the agent, and mediates all application
 actions.
 
@@ -91,7 +91,7 @@ The following sections are **informative**:
 - Conceptual Architecture
 - Protocol Layers
 - Capability Matching
-- SpecNode MVP Mapping
+- Application MVP Mapping
 - Example End-to-End Flow
 - Open Questions
 - References
@@ -117,11 +117,11 @@ but the application rarely receives machine-verifiable evidence of which agent
 acted, under which delegation, against which policy, and why a write was allowed.
 
 Raw-token API automation is powerful but unsafe. A token is a transport
-artifact, not a delegation model. If an agent receives a broad GitHub, Jira,
-Slack, Linear, Notion, or CRM token, the application may be unable to distinguish
-the user from the user's agent, the runtime may be unable to constrain the
-agent's behavior after token release, and receipts become difficult to produce
-without custom integration.
+artifact, not a delegation model. If an agent receives a broad source-control,
+issue-tracker, chat, docs, or CRM token, the application may be unable to
+distinguish the user from the user's agent, the runtime may be unable to
+constrain the agent's behavior after token release, and receipts become
+difficult to produce without custom integration.
 
 Agent Surface Protocol introduces a safer frame:
 
@@ -192,9 +192,15 @@ selects, or authorizes an agent.
 
 ### Application
 
-The website, SaaS product, desktop app backend, or service that exposes a bounded
-environment in which agents may operate. The application is also usually the
-resource server for app data and actions.
+The product or software system that exposes a bounded environment in which
+agents may operate. An application may be a website, SaaS product, desktop app
+backend, local bridge, control plane, browser extension, reference
+implementation, or service that publishes an Agent Surface and enforces
+app-side authorization.
+
+This draft uses **Application** as the neutral term for concrete
+implementations. Product-specific names belong in implementation documents, not
+in the protocol role model.
 
 ### Agent Surface
 
@@ -225,7 +231,12 @@ application does not own or silently choose it.
 ### Runtime
 
 The local or user-controlled system that hosts, launches, supervises, or mediates
-the user's agent. In SpecNode, this is the local runtime and bridge.
+the user's agent. A runtime may be embedded in an application, delivered as a
+companion bridge or daemon, provided by an operating system service, implemented
+by a browser extension, or hosted in a user-controlled environment.
+
+When the runtime is part of a concrete application implementation, this draft
+refers to it as an **application runtime**.
 
 This proposal separates two runtime responsibilities:
 
@@ -436,9 +447,9 @@ and coding agents, including local and remote agent scenarios:
 
 <https://agentclientprotocol.com/protocol/v1/overview>
 
-ACP can be an Agent Adapter Protocol below SpecNode. Agent Surface Protocol does
-not replace ACP; it defines how a user grants a user-owned agent authority inside
-an application context.
+ACP can be an Agent Adapter Protocol below an application runtime. Agent Surface
+Protocol does not replace ACP; it defines how a user grants a user-owned agent
+authority inside an application context.
 
 ### OAuth
 
@@ -509,7 +520,7 @@ Application Control Plane
         ^
         | outbound WSS / HTTPS from runtime
         v
-SpecNode Runtime
+Application Runtime
   - pairs with app/account
   - verifies Agent Passport
   - stores grants
@@ -521,8 +532,8 @@ SpecNode Runtime
         | adapter boundary
         v
 User-Owned Agent
-  - Codex CLI
-  - Claude Code
+  - local CLI agent
+  - hosted coding agent
   - ACP agent
   - MCP-backed workflow
   - custom command
@@ -574,10 +585,11 @@ The user-mediated authorization lifecycle:
 
 ### 3. Runtime Bridge Protocol
 
-The runtime-to-control-plane channel. SpecNode currently sketches an early form:
+The runtime-to-control-plane channel. A conforming application MAY expose this
+kind of channel using typed session and approval messages such as:
 
-- `node.hello`
-- `node.accepted`
+- `runtime.hello`
+- `runtime.accepted`
 - `session.start`
 - `session.event`
 - `session.cancel`
@@ -633,7 +645,7 @@ Cache-Control: max-age=300
 
 ```json
 {
-  "protocol": "specnode-agent-surface/0.1",
+  "protocol": "agent-surface/0.1",
   "app_id": "com.example.project-tool",
   "issuer": "https://example.com",
   "surface_version": "2026-06-25",
@@ -687,13 +699,13 @@ surface discoverable.
 
 ```json
 {
-  "protocol": "specnode-agent-surface/0.1",
+  "protocol": "agent-surface/0.1",
   "app_id": "com.example.project-tool",
   "issuer": "https://example.com",
   "surface_version": "2026-06-25",
   "surface_url": "https://example.com/.well-known/agent-surface.json",
   "compatibility": {
-    "min_runtime": "specnode-runtime/0.1",
+    "min_runtime": "application-runtime/0.1",
     "schema_dialect": "https://json-schema.org/draft/2020-12/schema"
   },
   "auth": {
@@ -984,22 +996,22 @@ surface, scopes, and caveats.
     "user": "user_abc"
   },
   "delegate": {
-    "runtime": "specnode_runtime_456",
-    "agent": "codex_local_789",
-    "passport_ref": "agent-passport://codex-local",
+    "runtime": "application_runtime_456",
+    "agent": "local_agent_789",
+    "passport_ref": "agent-passport://local-agent",
     "passport_hash": "sha256:..."
   },
   "resource_server": {
-    "app_id": "github.com",
-    "issuer": "https://github.com",
-    "surface_version": "github-agent-surface/0.1"
+    "app_id": "code.example.com",
+    "issuer": "https://code.example.com",
+    "surface_version": "code-review-agent-surface/0.1"
   },
   "scopes": [
     "pull_request.read",
     "pull_request.comment"
   ],
   "constraints": {
-    "repositories": ["SoundBlaster/SpecNode"],
+    "repositories": ["example-org/example-repo"],
     "pull_requests": [13],
     "expires_at": "2026-06-25T20:00:00Z",
     "write_approval": "required",
@@ -1188,16 +1200,16 @@ Once a grant exists, an application or runtime may start a session.
   "payload": {
     "session_id": "sess_456",
     "grant_id": "grant_123",
-    "agent_id": "codex_local_789",
+    "agent_id": "local_agent_789",
     "surface": {
-      "app_id": "github.com",
-      "surface_version": "github-agent-surface/0.1"
+      "app_id": "code.example.com",
+      "surface_version": "code-review-agent-surface/0.1"
     },
     "task": {
       "kind": "pull_request.review",
       "goal": "Review PR #13 and propose a concise review comment.",
       "inputs": {
-        "repository": "SoundBlaster/SpecNode",
+        "repository": "example-org/example-repo",
         "pull_request": 13
       }
     }
@@ -1233,9 +1245,9 @@ Content-Type: application/json
     "action_id": "comment.create",
     "idempotency_key": "idem_01HX7DS8AC6G9",
     "input": {
-      "repository": "SoundBlaster/SpecNode",
+      "repository": "example-org/example-repo",
       "pull_request": 13,
-      "body": "Fixed in 67126b3: WireSink now resolves the live socket and preserves admitted-session routing."
+      "body": "The proposed review comment text."
     }
   }
 }
@@ -1272,7 +1284,7 @@ Example proof shape:
     "resource": {
       "type": "comment",
       "id": "comment_789",
-      "url": "https://github.com/SoundBlaster/SpecNode/pull/13#discussion_r..."
+      "url": "https://code.example.com/example-org/example-repo/pull/13#discussion_r..."
     },
     "receipt_id": "receipt_abc"
   }
@@ -1333,11 +1345,11 @@ redactions.
   "session_id": "sess_456",
   "action_id": "comment.create",
   "actor_agent": {
-    "agent_id": "codex_local_789",
+    "agent_id": "local_agent_789",
     "passport_hash": "sha256:..."
   },
   "runtime": {
-    "runtime_id": "specnode_runtime_456"
+    "runtime_id": "application_runtime_456"
   },
   "subject": {
     "user": "user_abc"
@@ -1365,13 +1377,13 @@ deduplicated under a grant.
   "grant_id": "grant_123",
   "session_id": "sess_456",
   "action_id": "comment.create",
-  "app_id": "github.com",
-  "surface_version": "github-agent-surface/0.1",
+  "app_id": "code.example.com",
+  "surface_version": "code-review-agent-surface/0.1",
   "runtime": {
-    "runtime_id": "specnode_runtime_456"
+    "runtime_id": "application_runtime_456"
   },
   "actor_agent": {
-    "agent_id": "codex_local_789",
+    "agent_id": "local_agent_789",
     "passport_hash": "sha256:..."
   },
   "subject": {
@@ -1474,10 +1486,10 @@ Surface manifests SHOULD include:
 
 ```json
 {
-  "protocol": "specnode-agent-surface/0.1",
+  "protocol": "agent-surface/0.1",
   "surface_version": "2026-06-25",
   "compatibility": {
-    "min_runtime": "specnode-runtime/0.1",
+    "min_runtime": "application-runtime/0.1",
     "schema_dialect": "https://json-schema.org/draft/2020-12/schema"
   }
 }
@@ -1674,9 +1686,9 @@ An application conforms to the Receipt-Producing profile when it:
   idempotency key
 - records denied or failed high-risk actions
 
-### SpecNode-Compatible Runtime
+### Application Runtime Profile
 
-A runtime conforms to the SpecNode-Compatible profile when it:
+An application runtime conforms to this profile when it:
 
 - discovers and validates Agent Surface Manifests
 - verifies Agent Passport evidence before delegation
@@ -1698,12 +1710,12 @@ An adapter conforms to this draft when it:
 - handles denials and approval waits
 - preserves session and grant identifiers in audit context
 
-## SpecNode MVP Mapping
+## Application MVP Mapping
 
-The current SpecNode draft direction sketches pieces of the runtime bridge:
+An application implementation can start with a small runtime bridge:
 
-- outbound WebSocket from node to control plane
-- `node.hello`
+- outbound WebSocket from runtime to control plane
+- `runtime.hello`
 - typed `session.start`
 - normalized `session.event`
 - local policy evaluation
@@ -1727,14 +1739,14 @@ To support Agent Surface Protocol, the next slices should be:
 
 ```text
 1. App publishes /.well-known/agent-surface.json.
-2. SpecNode runtime discovers and validates the surface.
-3. User chooses "Connect my local Codex agent".
-4. Runtime verifies the Codex Agent Passport.
+2. Application runtime discovers and validates the surface.
+3. User chooses "Connect my local agent".
+4. Runtime verifies the selected agent's Agent Passport.
 5. Runtime shows consent:
-   - app: github.com
-   - agent: codex-local
+   - app: code.example.com
+   - agent: local-agent
    - scopes: pull_request.read, pull_request.comment
-   - repository: SoundBlaster/SpecNode
+   - repository: example-org/example-repo
    - duration: 2 hours
    - writes: require approval
 6. User approves.
