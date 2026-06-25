@@ -447,10 +447,22 @@ connecting LLM applications to external data sources and tools:
 
 <https://modelcontextprotocol.io/specification/2025-06-18>
 
-MCP can be used under or alongside Agent Surface Protocol. For example, an
-application might expose a resource/action surface that is implemented internally
-using MCP servers. Agent Surface Protocol focuses on user-mediated delegation,
-app-side grant enforcement, risk labels, approval semantics, and receipts.
+MCP is primarily a context and tool integration protocol for agents and LLM
+applications. It helps an agent reach external data sources and tools, including
+data and operations that live inside applications, so the agent can enrich its
+working context and call available tools.
+
+That is different from admitting a user-owned agent into an application authority
+model. MCP servers, direct CLI integrations, and direct API integrations can be
+useful substrates below an agent or runtime, but they do not by themselves define
+an app-native delegation contract, user-approved Agent Grants, app-side grant
+enforcement, risk labels, approval semantics, revocation semantics, or portable
+receipts.
+
+Agent Surface Protocol focuses on that missing layer: how an application exposes
+a typed surface for safe BYOA, how the user delegates a specific agent through a
+scoped grant, and how both runtime-side and app-side enforcement remain
+auditable.
 
 ### Agent Client Protocol
 
