@@ -42,7 +42,8 @@ However, it follows similar principles of openness and community participation.
 ## Abstract
 
 This proposal defines **Agent Surface Protocol**, a user-mediated delegation
-model for connecting user-owned agents to web applications and SaaS products.
+model for connecting user-owned agents to application contexts, including web
+applications and SaaS products.
 
 Agent Surface Protocol can be understood as the missing protocol substrate for
 safe **Bring Your Own Agent (BYOA)**. BYOA describes the user expectation: a

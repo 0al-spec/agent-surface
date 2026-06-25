@@ -2,7 +2,7 @@
 
 This repository hosts the draft specification for **Agent Surface Protocol**:
 a user-mediated delegation protocol for safely connecting user-owned agents to
-web applications and SaaS products.
+application contexts, including web applications and SaaS products.
 
 The protocol is built around a simple authority model:
 
