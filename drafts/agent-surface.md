@@ -1792,7 +1792,7 @@ To support Agent Surface Protocol, the next slices should be:
 - JSON Schema Draft 2020-12:
   <https://json-schema.org/draft/2020-12>
 - YAML 1.2.2:
-  <https://yaml.org/spec/1.2.2/>
+  <https://github.com/yaml/yaml-spec/blob/main/spec/1.2.2/spec.md>
 - DID Core:
   <https://www.w3.org/TR/did-core/>
 - Verifiable Credentials Data Model 2.0:

@@ -22,7 +22,7 @@ portable receipts.
 
 ## Drafts
 
-- [Agent Surface Protocol RFC](https://github.com/0al-spec/agent-surface/blob/main/drafts/agent-surface.md)
+- [Agent Surface Protocol RFC](drafts/agent-surface.md)
 
 ## Core Concepts
 
