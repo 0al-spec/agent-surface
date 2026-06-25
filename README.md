@@ -63,7 +63,7 @@ agent-surface/
     workflows/docs.yml       Markdown and RFC checks.
   drafts/                  Source RFCs written in Markdown.
   LICENSE                  MIT license for repository source code.
-  LICENSE-CC-BY-4.0        CC BY 4.0 license for specifications and documents.
+  LICENSE-CC-BY-4.0        CC BY 4.0 summary for specifications and documents.
   CONTRIBUTING.md          Contribution guidelines.
 ```
 
