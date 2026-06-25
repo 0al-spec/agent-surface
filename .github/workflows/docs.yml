@@ -66,7 +66,6 @@ jobs:
             --no-progress
             --accept 200,204,206,301,302,303,307,308,429
             --timeout 20
-            --exclude-mail
             './**/*.md'
           fail: true
         env:
