@@ -459,16 +459,35 @@ an app-native delegation contract, user-approved Agent Grants, app-side grant
 enforcement, risk labels, approval semantics, revocation semantics, or portable
 receipts.
 
-MCP also does not establish the relationship graph between User, Application,
-and Agent. A tool call can move data or invoke an operation, but it does not tell
-the application which user delegated which agent, which Agent Passport evidence
-was evaluated, which grant caveats apply, which party approved a risky action,
-or which receipts link the result back to the delegation.
+More importantly, MCP makes agents more capable, but it does not by itself make
+ordinary applications agentic. In an MCP-only integration, the application often
+remains a data source or tool provider reached from the outside:
 
-Agent Surface Protocol focuses on that missing layer: how an application exposes
-a typed surface for safe BYOA, how the user delegates a specific agent through a
-scoped grant, and how both runtime-side and app-side enforcement remain
-auditable.
+```text
+MCP-only:
+User <-> Application <- Agent <-> User
+```
+
+Agent Surface Protocol is the application augmentation layer. It gives an
+ordinary application a typed way to accept a user-owned agent as a delegated
+participant in application workflows:
+
+```text
+ASP:
+User <-> Application <-> Agent <-> User
+```
+
+At the product level, this collapses into a simpler user experience:
+
+```text
+User <-> AI-App
+```
+
+In this framing, the agent is not merely extracting application data to enrich
+its own context. The application itself becomes AI-augmented: it exposes typed
+affordances, receives user-authorized agent participation, and can render,
+approve, constrain, revoke, and receipt agent work as part of the application
+experience.
 
 ### Agent Client Protocol
 
