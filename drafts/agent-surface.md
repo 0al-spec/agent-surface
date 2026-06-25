@@ -459,6 +459,12 @@ an app-native delegation contract, user-approved Agent Grants, app-side grant
 enforcement, risk labels, approval semantics, revocation semantics, or portable
 receipts.
 
+MCP also does not establish the relationship graph between User, Application,
+and Agent. A tool call can move data or invoke an operation, but it does not tell
+the application which user delegated which agent, which Agent Passport evidence
+was evaluated, which grant caveats apply, which party approved a risky action,
+or which receipts link the result back to the delegation.
+
 Agent Surface Protocol focuses on that missing layer: how an application exposes
 a typed surface for safe BYOA, how the user delegates a specific agent through a
 scoped grant, and how both runtime-side and app-side enforcement remain
