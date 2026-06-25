@@ -17,8 +17,7 @@ community for discussion, feedback, critique, and suggestions for improvement.
 This document is a work in progress and is not yet a finalized standard.
 Distribution of this memo is unlimited.
 
-Comments should be submitted as GitHub issues in the original repository hosting
-this RFC.
+Submit comments as GitHub issues in the original repository hosting this RFC.
 
 ## Copyright Notice and Licensing
 
@@ -47,7 +46,7 @@ applications and SaaS products.
 
 Agent Surface Protocol can be understood as the missing protocol substrate for
 safe **Bring Your Own Agent (BYOA)**. BYOA describes the user expectation: a
-person should be able to bring a preferred local, enterprise, or hosted agent
+person can bring a preferred local, enterprise, or hosted agent
 into an application context. Agent Surface Protocol defines the security and
 interoperability machinery that makes that expectation practical.
 
@@ -119,14 +118,14 @@ Both approaches have structural problems.
 
 Computer-use automation is brittle. It depends on pixels, layout, timing,
 browser state, accessibility labels, and undocumented UI behavior. It is hard to
-authorize precisely and hard to audit semantically. The user may see the result,
+authorize precisely and hard to audit semantically. The user can see the result,
 but the application rarely receives machine-verifiable evidence of which agent
 acted, under which delegation, against which policy, and why a write was allowed.
 
 Raw-token API automation is powerful but unsafe. A token is a transport
 artifact, not a delegation model. If an agent receives a broad source-control,
-issue-tracker, chat, docs, or CRM token, the application may be unable to
-distinguish the user from the user's agent, the runtime may be unable to
+issue-tracker, chat, docs, or CRM token, the application can be unable to
+distinguish the user from the user's agent, the runtime can be unable to
 constrain the agent's behavior after token release, and receipts become
 difficult to produce without custom integration.
 
@@ -206,7 +205,7 @@ selects, or authorizes an agent.
 ### Application
 
 The product or software system that exposes a bounded environment in which
-agents may operate. An application may be a website, SaaS product, desktop app
+agents can operate. An application can be a website, SaaS product, desktop app
 backend, local bridge, control plane, browser extension, reference
 implementation, or service that publishes an Agent Surface and enforces
 app-side authorization.
@@ -237,14 +236,14 @@ The manifest describes the Agent Surface in a machine-readable format.
 
 ### User-Owned Agent
 
-An agent selected by the user. It may run locally, in a company-controlled
+An agent selected by the user. It can run locally, in a company-controlled
 environment, or in a remote service. The important property is that the
 application does not own or silently choose it.
 
 ### Runtime
 
 The local or user-controlled system that hosts, launches, supervises, or mediates
-the user's agent. A runtime may be embedded in an application, delivered as a
+the user's agent. A runtime can be embedded in an application, delivered as a
 companion bridge or daemon, provided by an operating system service, implemented
 by a browser extension, or hosted in a user-controlled environment.
 
@@ -257,7 +256,7 @@ This proposal separates two runtime responsibilities:
 - **Policy Enforcement Point**: stores grants, applies local policy, obtains
   approvals, mediates actions, writes audit logs, and blocks disallowed behavior.
 
-One process may implement both roles, but the distinction matters for security
+One process can implement both roles, but the distinction matters for security
 analysis.
 
 ### Agent Passport
@@ -279,7 +278,7 @@ A user-approved, app-scoped, policy-bound delegation object.
 
 The grant is the semantic authorization. Tokens, cookies, JWTs, capability URLs,
 sender-constrained credentials, or signed objects are transport representations.
-A grant should be temporary, constrained, auditable, revocable, and bound to the
+A grant SHOULD be temporary, constrained, auditable, revocable, and bound to the
 user, application, runtime, agent, and passport evidence.
 
 ### Grant Credential
@@ -345,8 +344,8 @@ This proposal distinguishes:
 
 ### User Is the Principal
 
-The user chooses whether to delegate work to an agent. The app may expose a
-surface and request consent, but it must not silently select an agent or claim
+The user chooses whether to delegate work to an agent. The app MAY expose a
+surface and request consent, but it MUST NOT silently select an agent or claim
 that a user's agent acts on behalf of the app.
 
 ### App Exposes, Runtime Mediates, Agent Executes
@@ -378,9 +377,9 @@ This user allowed this runtime-agent-passport tuple to perform these typed
 actions in this app context under these constraints until this expiration.
 ```
 
-Implementations may represent a grant as an opaque token, OAuth access token,
+Implementations MAY represent a grant as an opaque token, OAuth access token,
 sender-constrained token, signed object, macaroon-like capability, or server-side
-grant identifier. The protocol model should still describe it as a grant.
+grant identifier. The protocol model SHOULD still describe it as a grant.
 
 ### Grant Identifier Is Not Authority
 
@@ -398,15 +397,15 @@ Runtime policy is necessary but not sufficient.
 
 The runtime protects the user. The app protects its resources.
 
-An application must verify grant authority for every action. It must not accept a
+An application MUST verify grant authority for every action. It MUST NOT accept a
 runtime's self-assertion that a grant exists without an app-verifiable token,
 signed delegation object, introspection result, or equivalent authorization
 mechanism.
 
 ### Agent Does Not Receive Raw Authority
 
-Where practical, the agent should not receive the grant secret, OAuth access
-token, cookie, session key, or broad application credential. The agent should
+Where practical, the agent SHOULD NOT receive the grant secret, OAuth access
+token, cookie, session key, or broad application credential. The agent SHOULD
 request typed actions from the runtime:
 
 ```text
@@ -418,24 +417,24 @@ redaction before sending anything to the app.
 
 ### Proposal Mode Is the Default
 
-The first safe interaction mode should be:
+The first safe interaction mode SHOULD be:
 
 ```text
 read -> draft/propose -> human or app approval -> write -> receipt
 ```
 
 Direct writes without approval can exist for mature grants and low-risk actions,
-but the protocol should make proposal flows first-class.
+but the protocol SHOULD make proposal flows first-class.
 
 ### Every Write Is Idempotent
 
-Any action with side effects must support idempotency. Retries, network
-reconnects, agent loops, and duplicate messages must not create ten comments, ten
+Any action with side effects MUST support idempotency. Retries, network
+reconnects, agent loops, and duplicate messages MUST NOT create ten comments, ten
 branches, ten refund requests, or ten approvals.
 
 ### Receipts Are First-Class
 
-Audit logs are useful, but action receipts are portable. A receipt should be
+Audit logs are useful, but action receipts are portable. A receipt SHOULD be
 created for every successful side-effecting action and for important denied or
 failed actions.
 
@@ -478,7 +477,7 @@ Relevant standards:
 - OAuth 2.0 Token Exchange: <https://www.rfc-editor.org/rfc/rfc8693>
 - OAuth 2.0 Resource Indicators: <https://www.rfc-editor.org/rfc/rfc8707>
 
-Agent Surface Protocol should use the term **grant** for the semantic object,
+Agent Surface Protocol uses the term **grant** for the semantic object,
 even when an OAuth access token is the transport representation.
 
 If OAuth is used, `agent_delegation` MAY be represented as an OAuth extension
@@ -510,7 +509,7 @@ But the passport itself does not authorize application actions.
 
 ### DID and Verifiable Credentials
 
-Decentralized Identifiers and Verifiable Credentials may be useful for future
+Decentralized Identifiers and Verifiable Credentials can be useful for future
 signed grants, issuer trust, and portable delegation proofs:
 
 - DID Core: <https://www.w3.org/TR/did-core/>
@@ -552,12 +551,12 @@ User-Owned Agent
   - custom command
 ```
 
-The browser may interact with the application control plane. It does not need to
+The browser can interact with the application control plane. It does not need to
 connect directly to the local runtime.
 
 ## Protocol Layers
 
-Agent Surface Protocol should be specified as four separable layers.
+Agent Surface Protocol is specified as four separable layers.
 
 ### 1. Agent Surface Manifest
 
@@ -609,8 +608,8 @@ kind of channel using typed session and approval messages such as:
 - `approval.required`
 - `approval.resolved`
 
-This layer is transport and session orchestration. It should not absorb all
-Agent Surface semantics.
+This layer is transport and session orchestration. It is not intended to absorb
+all Agent Surface semantics.
 
 ### 4. Agent Adapter Protocol
 
@@ -822,7 +821,7 @@ surface discoverable.
 
 ### Resources
 
-Resources describe data the agent may read, reference, or attach to an action.
+Resources describe data the agent MAY read, reference, or attach to an action.
 
 Each resource SHOULD include:
 
@@ -925,8 +924,8 @@ This allows early adopters to become agent-native without allowing direct writes
 
 Events let applications notify runtimes and agents about app context changes.
 
-Events SHOULD be scoped. A grant that permits `pull_request.read` may receive
-`pull_request.updated`, but should not receive unrelated financial, HR, or admin
+Events SHOULD be scoped. A grant that permits `pull_request.read` MAY receive
+`pull_request.updated`, but SHOULD NOT receive unrelated financial, HR, or admin
 events.
 
 Example:
@@ -964,10 +963,10 @@ Actions SHOULD declare an approval mode:
 
 | Approval | Meaning |
 | --- | --- |
-| `none` | Runtime may execute if grant and policy allow. |
-| `runtime` | Runtime must obtain local user approval before sending the action. |
-| `app` | App must obtain or verify app-side approval before committing. |
-| `user_or_app` | Either a runtime approval or app-side approval may satisfy the requirement, depending on grant caveats. |
+| `none` | Runtime MAY execute if grant and policy allow. |
+| `runtime` | Runtime MUST obtain local user approval before sending the action. |
+| `app` | App MUST obtain or verify app-side approval before committing. |
+| `user_or_app` | Either a runtime approval or app-side approval MAY satisfy the requirement, depending on grant caveats. |
 | `runtime_and_app` | Both runtime-side and app-side approval are required. |
 
 Approval records SHOULD be linked into receipts.
@@ -992,8 +991,9 @@ If the same key is reused with different normalized input, the application SHOUL
 return an idempotency conflict error.
 
 Applications SHOULD define the input normalization procedure per action, or use
-the declared input schema with a canonical JSON profile. A future draft should
-define canonicalization requirements for signed receipts and signed grants.
+the declared input schema with a canonical JSON profile. A future draft is
+expected to define canonicalization requirements for signed receipts and signed
+grants.
 
 ## Agent Grant
 
@@ -1069,7 +1069,7 @@ Runtime calls app with grant credential
 App verifies every call
 ```
 
-This is the recommended MVP model because it fits existing OAuth/resource-server
+This is the RECOMMENDED MVP model because it fits existing OAuth/resource-server
 deployments.
 
 Pros:
@@ -1095,12 +1095,12 @@ Pros:
 
 Cons:
 
-- The app may not know which agent actually acted.
+- The app can fail to know which agent actually acted.
 - Weaker app-side audit unless receipts include runtime-attested metadata.
 
 #### Model C: Signed Delegation Object
 
-The grant is a signed object with caveats. It may be signed by the app, user,
+The grant is a signed object with caveats. It MAY be signed by the app, user,
 runtime, enterprise authority, or some combination.
 
 Pros:
@@ -1116,7 +1116,7 @@ Cons:
 
 ### Grant Credentials and Proof
 
-An Agent Grant may be represented or proven by one of several mechanisms:
+An Agent Grant MAY be represented or proven by one of several mechanisms:
 
 - bearer grant token
 - sender-constrained token
@@ -1127,9 +1127,9 @@ An Agent Grant may be represented or proven by one of several mechanisms:
 - signed delegation object
 - macaroon-like caveated capability
 
-A future draft should define required proof profiles. The MVP profile MAY use
-app-issued bearer grant credentials, but production deployments SHOULD prefer
-sender-constrained credentials where practical.
+A future draft is expected to define required proof profiles. The MVP profile
+MAY use app-issued bearer grant credentials, but production deployments SHOULD
+prefer sender-constrained credentials where practical.
 
 ### Grant Verification
 
@@ -1161,7 +1161,7 @@ Runtimes SHOULD verify:
 ## Capability Matching
 
 Capability matching is an advisory process used by the runtime to help the user
-choose a compatible agent. It must not invert authority.
+choose a compatible agent. It does not invert authority.
 
 Incorrect framing:
 
@@ -1199,13 +1199,13 @@ Matching outputs:
 - risk summary
 - expected sandbox constraints
 
-The matching result should be shown to the user before grant issuance.
+The matching result is shown to the user before grant issuance.
 
 ## Sessions and Actions
 
 ### Session Start
 
-Once a grant exists, an application or runtime may start a session.
+Once a grant exists, an application or runtime MAY start a session.
 
 ```json
 {
@@ -1317,7 +1317,7 @@ App -> comment.create
 Runtime/App -> receipt
 ```
 
-This is the recommended default for early integrations.
+This is the RECOMMENDED default for early integrations.
 
 ## Receipts
 
@@ -1421,12 +1421,12 @@ deduplicated under a grant.
 }
 ```
 
-Receipts MAY be signed by the app, runtime, or both. A future draft should define
-canonicalization and signature profiles.
+Receipts MAY be signed by the app, runtime, or both. A future draft is expected
+to define canonicalization and signature profiles.
 
 ## Revocation Semantics
 
-The protocol must define what happens when authority changes.
+The protocol MUST define what happens when authority changes.
 
 ### Grant Revoked
 
@@ -1511,12 +1511,12 @@ Surface manifests SHOULD include:
 Compatibility rules:
 
 - Removing an action is a breaking change for grants that include that action.
-- Tightening a schema may be a breaking change.
+- Tightening a schema can be a breaking change.
 - Adding optional fields is non-breaking.
 - Adding a new action is non-breaking.
-- Changing risk labels to a higher risk class may require grant renewal.
-- Changing receipt requirements may require grant renewal.
-- Changing endpoint semantics may require grant renewal.
+- Changing risk labels to a higher risk class can require grant renewal.
+- Changing receipt requirements can require grant renewal.
+- Changing endpoint semantics can require grant renewal.
 
 Applications SHOULD keep old surface versions available long enough for active
 grants to expire naturally.
@@ -1539,14 +1539,14 @@ This draft assumes several possible adversarial or failure modes:
 - forged or misleading receipts
 
 Agent is untrusted by default. Runtime is trusted by the user only within local
-policy bounds, but the app must verify app-side authorization. App is trusted for
+policy bounds, but the app MUST verify app-side authorization. App is trusted for
 its own resources, but not for the user's local machine. Passport is evidence,
 not authority. Grant is authority only within caveats.
 
 ### Confused Deputy
 
-The runtime may accidentally use a grant for the wrong agent, user, workspace, or
-application. Grants should bind user, app, runtime, agent, and passport hash.
+The runtime can accidentally use a grant for the wrong agent, user, workspace, or
+application. Grants SHOULD bind user, app, runtime, agent, and passport hash.
 
 ### Raw Token Leakage
 
@@ -1562,7 +1562,7 @@ the agent.
 
 ### Malicious or Compromised Runtime
 
-Applications must not trust runtime claims blindly. Every app action must be
+Applications MUST NOT trust runtime claims blindly. Every app action MUST be
 authorized by app-verifiable grant state.
 
 Mitigations:
@@ -1578,7 +1578,7 @@ Mitigations:
 
 ### Malicious or Compromised Agent
 
-Agents may hallucinate, loop, ignore instructions, leak data, or attempt
+Agents can hallucinate, loop, ignore instructions, leak data, or attempt
 unauthorized actions.
 
 Mitigations:
@@ -1595,7 +1595,7 @@ Mitigations:
 
 ### Malicious or Compromised Application
 
-An application may request excessive scopes, misleading consent, or dangerous
+An application can request excessive scopes, misleading consent, or dangerous
 actions.
 
 Mitigations:
@@ -1608,7 +1608,7 @@ Mitigations:
 
 ### Stolen Grant Credential
 
-A grant credential may be stolen from runtime storage, logs, memory, or network
+A grant credential can be stolen from runtime storage, logs, memory, or network
 traffic.
 
 Mitigations:
@@ -1625,27 +1625,27 @@ Mitigations:
 
 ### Prompt Injection
 
-App data and repository content are untrusted input. Agents should not interpret
+App data and repository content are untrusted input. Agents SHOULD NOT interpret
 application content as authority to escalate scopes, reveal secrets, or bypass
 policy.
 
-Runtime and app policies should treat model output as untrusted until validated.
+Runtime and app policies SHOULD treat model output as untrusted until validated.
 
 ### Replay and Duplicate Actions
 
 Idempotency keys, timestamps, nonce binding, and grant expiration reduce replay
-risk. Side-effecting actions must be idempotent.
+risk. Side-effecting actions MUST be idempotent.
 
 ### Surface Downgrade
 
-A malicious network or compromised app path may present an older, less safe
-surface version. Runtimes should pin issuer, app id, and minimum accepted
+A malicious network or compromised app path can present an older, less safe
+surface version. Runtimes SHOULD pin issuer, app id, and minimum accepted
 protocol versions where possible.
 
 ### Receipt Forgery
 
-Receipts should be hash-linked to normalized inputs and outputs. Future drafts
-should define signing and canonicalization profiles.
+Receipts SHOULD be hash-linked to normalized inputs and outputs. Future drafts
+are expected to define signing and canonicalization profiles.
 
 ## Privacy Considerations
 
@@ -1657,9 +1657,9 @@ Agent Surface Protocol can reveal sensitive metadata:
 - which tasks the user asks agents to perform
 - which approvals were accepted or denied
 
-Applications should request only the metadata needed for authorization and audit.
-Runtimes should minimize agent and passport disclosure when possible. Receipts
-should support pseudonymous user references where legal and operationally
+Applications SHOULD request only the metadata needed for authorization and audit.
+Runtimes SHOULD minimize agent and passport disclosure when possible. Receipts
+SHOULD support pseudonymous user references where legal and operationally
 appropriate.
 
 ## Conformance
@@ -1735,7 +1735,7 @@ An application implementation can start with a small runtime bridge:
 - local approvals
 - agent adapter boundary
 
-To support Agent Surface Protocol, the next slices should be:
+To support Agent Surface Protocol, the next slices are:
 
 1. Add `AgentSurfaceManifest` TypeScript types and JSON examples.
 2. Add `AgentGrant` TypeScript types and validation helpers.
@@ -1777,22 +1777,22 @@ To support Agent Surface Protocol, the next slices should be:
 
 ## Open Questions
 
-- Should the first MVP use app-issued grants only, or also support
+- Does the first MVP use app-issued grants only, or also support
   runtime-held grants for compatibility with existing OAuth APIs?
 - What is the minimal Agent Passport verification profile required before a
-  runtime may request an Agent Grant?
-- Should grant binding require runtime attestation, or is a registered runtime id
+  runtime can request an Agent Grant?
+- Does grant binding require runtime attestation, or is a registered runtime id
   enough for early implementations?
-- Should receipts be signed in the first version, or only hash-linked and
+- Are receipts signed in the first version, or only hash-linked and
   locally stored?
-- Which JSON canonicalization profile should be used for signed grants and
+- Which JSON canonicalization profile is used for signed grants and
   receipts?
-- Should `/.well-known/agent-surface.json` be public, authenticated, or both
+- Is `/.well-known/agent-surface.json` public, authenticated, or both
   depending on app tenancy?
 - What is the minimal sender-constrained grant credential profile?
-- How should users compare two agents with overlapping Agent Passport
+- How do users compare two agents with overlapping Agent Passport
   capabilities during grant consent?
-- What should happen to active sessions when an app changes surface versions?
+- What happens to active sessions when an app changes surface versions?
 
 ## References
 
@@ -1833,7 +1833,7 @@ An API token answers:
 Can this bearer call this endpoint?
 ```
 
-An Agent Grant should answer:
+An Agent Grant answers:
 
 ```text
 Which user delegated which agent, running through which runtime, verified by
