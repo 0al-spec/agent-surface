@@ -509,18 +509,18 @@ application, wrapped by ASP as the application-facing augmentation layer. In
 Hypercode structural notation, with `.hcs` values and contracts omitted:
 
 ```hypercode
-Application#AI-App
-  UserInterface#User
-  AgentSurface#ASP
-    Resources#ApplicationResources
-    Actions#ApplicationActions
-    Grants#AgentGrant
-    Approvals#ApprovalPolicy
-    Receipts#ActionReceipt
-    AgentAdapter#ACP
-      Client#ApplicationRuntime
-      Agent#UserOwnedAgent
-      Session#AgentSession
+AIApplication
+  UserInterface
+  AgentSurfaceProtocolLayer
+    ApplicationResources
+    ApplicationActions
+    AgentGrantRegistry
+    ApprovalPolicy
+    ActionReceiptLog
+    ACPAgentAdapter
+      ApplicationRuntimeClient
+      UserOwnedAgent
+      AgentSession
 ```
 
 In that shape, ACP standardizes the operational conversation between the
