@@ -506,26 +506,21 @@ Application-owned surfaces, grants, approvals, and receipts.
 
 The practical composition is not "ASP or ACP". ACP can sit inside an
 application, wrapped by ASP as the application-facing augmentation layer. In
-Hypercode-style notation:
+Hypercode structural notation, with `.hcs` values and contracts omitted:
 
-```hcs
-application AI_App {
-  user_interface User
-
-  agent_surface ASP {
-    resources ApplicationResources
-    actions ApplicationActions
-    grants AgentGrant
-    approvals ApprovalPolicy
-    receipts ActionReceipt
-
-    adapter ACP {
-      client ApplicationRuntime
-      agent UserOwnedAgent
-      session AgentSession
-    }
-  }
-}
+```hypercode
+Application#AI-App
+  UserInterface#User
+  AgentSurface#ASP
+    Resources#ApplicationResources
+    Actions#ApplicationActions
+    Grants#AgentGrant
+    Approvals#ApprovalPolicy
+    Receipts#ActionReceipt
+    AgentAdapter#ACP
+      Client#ApplicationRuntime
+      Agent#UserOwnedAgent
+      Session#AgentSession
 ```
 
 In that shape, ACP standardizes the operational conversation between the
@@ -539,7 +534,11 @@ ACP:
 ApplicationRuntime <-> Agent
 
 ASP around ACP:
-User <-> Application { ASP { ACP <-> Agent } }
+User <-> Application
+          |
+          +-- ASP layer
+              |
+              +-- ACP adapter <-> Agent
 
 Product view:
 User <-> AI-App
