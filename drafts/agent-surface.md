@@ -261,9 +261,10 @@ analysis.
 
 ### Agent Passport
 
-Agent Passport is identity and capability evidence for an agent. It can describe
-the agent, its declared capabilities, resource requirements, security policies,
-integrity hashes, lifecycle, issuer, and signature.
+[Agent Passport](https://github.com/0al-spec/agent-passport) is identity and
+capability evidence for an agent. It can describe the agent, its declared
+capabilities, resource requirements, security policies, integrity hashes,
+lifecycle, issuer, and signature.
 
 An Agent Passport does **not** by itself grant authority inside an application.
 It answers "what is this agent and what has been attested about it?" A grant
@@ -573,8 +574,8 @@ Implementations MAY also use existing OAuth flows, including:
 
 ### Agent Passport
 
-Agent Passport provides agent identity, capability, policy, lifecycle, signature,
-and integrity evidence.
+[Agent Passport](https://github.com/0al-spec/agent-passport) provides agent
+identity, capability, policy, lifecycle, signature, and integrity evidence.
 
 Agent Surface Protocol consumes Agent Passport evidence during grant issuance and
 runtime mediation:

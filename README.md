@@ -38,8 +38,9 @@ portable receipts.
 - **Runtime**: the policy enforcement point that hosts or supervises the user's
   agent, verifies Agent Passport evidence, stores grants, mediates actions,
   obtains approvals, and emits receipts.
-- **Agent Passport**: identity and capability evidence for an agent. Passport is
-  evidence, not authority; application authority comes from a grant.
+- **Agent Passport**: [identity and capability evidence][agent-passport] for an
+  agent. Passport is evidence, not authority; application authority comes from a
+  grant.
 
 ## Relationship to Other Protocols
 
@@ -81,3 +82,5 @@ shape, grant lifecycle, receipt semantics, and MVP boundaries.
 - Source code and tooling, if added later, are licensed under the MIT License.
 
 See [LICENSE](./LICENSE) and [LICENSE-CC-BY-4.0](./LICENSE-CC-BY-4.0).
+
+[agent-passport]: https://github.com/0al-spec/agent-passport
