@@ -500,6 +500,51 @@ ACP can be an Agent Adapter Protocol below an application runtime. Agent Surface
 Protocol does not replace ACP; it defines how a user grants a user-owned agent
 authority inside an application context.
 
+Where ACP places environment management, user interaction, and resource access
+under the Client role, ASP makes those responsibilities explicit as
+Application-owned surfaces, grants, approvals, and receipts.
+
+The practical composition is not "ASP or ACP". ACP can sit inside an
+application, wrapped by ASP as the application-facing augmentation layer. In
+Hypercode-style notation:
+
+```hcs
+application AI_App {
+  user_interface User
+
+  agent_surface ASP {
+    resources ApplicationResources
+    actions ApplicationActions
+    grants AgentGrant
+    approvals ApprovalPolicy
+    receipts ActionReceipt
+
+    adapter ACP {
+      client ApplicationRuntime
+      agent UserOwnedAgent
+      session AgentSession
+    }
+  }
+}
+```
+
+In that shape, ACP standardizes the operational conversation between the
+application runtime and the agent. ASP defines the application shell around that
+conversation: what the application exposes, what the user delegates, what the
+agent can do inside the product, and how the product presents, approves,
+constrains, revokes, and receipts agent participation.
+
+```text
+ACP:
+ApplicationRuntime <-> Agent
+
+ASP around ACP:
+User <-> Application { ASP { ACP <-> Agent } }
+
+Product view:
+User <-> AI-App
+```
+
 ### OAuth
 
 OAuth 2.0 remains a practical substrate for consent, authorization codes, scopes,
