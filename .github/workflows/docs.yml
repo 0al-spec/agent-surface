@@ -1,0 +1,72 @@
+name: Docs
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  markdown:
+    name: Markdown and RFC checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check required RFC draft
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s drafts/agent-surface.md
+          grep -q '^# Agent Surface Protocol Specification' drafts/agent-surface.md
+
+      - name: Check Markdown hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          files_found=0
+          failed=0
+          while IFS= read -r file; do
+            files_found=1
+
+            if grep -n $'\r' "${file}"; then
+              echo "::error file=${file}::CRLF line endings are not allowed"
+              failed=1
+            fi
+
+            if grep -n '[[:blank:]]$' "${file}"; then
+              echo "::error file=${file}::Trailing whitespace is not allowed"
+              failed=1
+            fi
+
+            if [[ -s "${file}" && -n "$(tail -c 1 "${file}")" ]]; then
+              echo "::error file=${file}::File must end with a newline"
+              failed=1
+            fi
+          done < <(git ls-files '*.md')
+
+          if [[ "${files_found}" -eq 0 ]]; then
+            echo "No Markdown files found." >&2
+            exit 1
+          fi
+
+          exit "${failed}"
+
+      - name: Check Markdown links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --accept 200,204,206,301,302,303,307,308,429
+            --timeout 20
+            './**/*.md'
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
