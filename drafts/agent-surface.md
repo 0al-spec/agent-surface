@@ -73,6 +73,7 @@ with a typed, scoped, auditable, revocable, app-verifiable delegation layer.
 
 Unless otherwise stated, the following sections are **normative**:
 
+- Conventions
 - Terminology
 - Design Principles
 - Agent Surface Manifest
@@ -93,6 +94,8 @@ The following sections are **informative**:
 
 - Abstract
 - Motivation
+- Goals
+- Non-Goals
 - Relationship to Existing Protocols
 - Conceptual Architecture
 - Protocol Layers
@@ -188,9 +191,9 @@ publish a civilized surface and enforce grants on its side.
 
 ## Conventions
 
-The key words "MUST", "MUST NOT", "SHOULD", "SHOULD NOT", and "MAY" in this
-document are to be interpreted in the RFC 2119 and RFC 8174 sense when, and only
-when, they appear in all capitals.
+The key words "MUST", "MUST NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", and
+"MAY" in this document are to be interpreted in the RFC 2119 and RFC 8174 sense
+when, and only when, they appear in all capitals.
 
 This is not an IETF document. The keywords are used to make interoperability and
 security expectations explicit for future implementers.
@@ -728,7 +731,7 @@ https://tenant.example.com/.well-known/agent-surface.json
 If the manifest contains sensitive tenant-specific affordances, it MUST require
 ordinary authenticated app access.
 
-The manifest SHOULD be served with:
+The manifest MUST be served over HTTPS and SHOULD be served with:
 
 ```http
 Content-Type: application/json
@@ -940,6 +943,7 @@ Each action SHOULD include:
 - `output_schema`
 - `side_effect`
 - `execution`
+- optional `capability_hint`
 - `idempotency` for side-effecting actions
 - `receipt` for side-effecting actions
 
@@ -970,6 +974,13 @@ proposal-only actions.
 
 A proposal-only action is a typed action whose output is a draft, suggestion,
 patch, review body, or other non-committed artifact.
+
+A proposal-only action declares `side_effect: false` because it does not
+commit domain-visible changes. However, when the application persists
+proposals as drafts — as the proposal flow in this draft assumes — repeated
+proposal requests can still accumulate duplicate drafts under retries and
+agent loops. Applications that persist proposals SHOULD accept idempotency
+keys for proposal actions and deduplicate stored drafts accordingly.
 
 Example:
 
@@ -1020,6 +1031,13 @@ Example:
 }
 ```
 
+Grant constraints filter events the same way they filter actions: a grant
+constrained to one repository SHOULD NOT receive events about other
+repositories, even when the event scope matches.
+
+Event delivery semantics — transport, ordering, acknowledgement, and replay —
+are not defined in this draft; see Open Questions.
+
 ## Risk Taxonomy
 
 Every action SHOULD have a standard risk label. Runtimes can map risk labels to
@@ -1035,6 +1053,17 @@ local policy defaults.
 | `financial_side_effect` | Charges, refunds, purchases, invoices, payroll. | Always require explicit approval. |
 | `destructive` | Deletes, closes, revokes, disables, or irreversibly changes state. | Deny by default or require step-up approval. |
 | `privileged` | Changes permissions, secrets, tokens, admin settings, or access policy. | Deny by default. |
+
+Risk labels are ordered by increasing severity from `read` to `privileged`.
+The labels are not mutually exclusive properties of an action: a single action
+can plausibly be described by several of them. When more than one label
+applies, the action MUST carry the most severe applicable label. For example,
+`invoice.refund.request` is both a mutation and a financial operation; it MUST
+be labeled `financial_side_effect`, not `write`.
+
+The `risk` label and the `side_effect` flag MUST be consistent: an action
+labeled `write` or a more severe label MUST declare `side_effect: true`, and
+an action labeled `read` MUST declare `side_effect: false`.
 
 Applications MAY define extension risk labels, but they SHOULD map them to the
 standard labels for runtime interoperability.
@@ -1052,6 +1081,18 @@ Actions SHOULD declare an approval mode:
 | `runtime_and_app` | Both runtime-side and app-side approval are required. |
 
 Approval records SHOULD be linked into receipts.
+
+The `runtime` and `user_or_app` modes allow a runtime-side approval to satisfy
+the requirement. In those modes the application is accepting the runtime's
+assertion that a local user approval occurred. To keep this compatible with
+the rule that an application MUST NOT accept a runtime's self-assertion of
+authority, that acceptance MUST be an explicit grant caveat presented to the
+user at consent time, not a silent default. Action requests that rely on a
+runtime-side approval SHOULD carry an approval reference (for example an
+`approval_ref` identifier, or in future profiles a signed approval object) so
+the approval can be linked into receipts and audited. Applications that do not
+want to accept runtime approval assertions MUST declare `app` or
+`runtime_and_app` for the affected actions.
 
 ## Idempotency
 
@@ -1071,6 +1112,14 @@ same normalized input do not repeat the side effect.
 
 If the same key is reused with different normalized input, the application SHOULD
 return an idempotency conflict error.
+
+Idempotency keys are scoped to the grant and action: the application MUST
+treat a request as a duplicate only when the same key is presented under the
+same `grant_id` and `action_id`. On a duplicate request, the application
+SHOULD return the original result and receipt reference rather than an error,
+so a retrying runtime can converge on the outcome of the first attempt.
+Applications SHOULD retain idempotency state at least for the remaining
+lifetime of the grant and SHOULD document their retention window.
 
 Applications SHOULD define the input normalization procedure per action, or use
 the declared input schema with a canonical JSON profile. A future draft is
@@ -1099,7 +1148,7 @@ surface, scopes, and caveats.
   "resource_server": {
     "app_id": "code.example.com",
     "issuer": "https://code.example.com",
-    "surface_version": "code-review-agent-surface/0.1"
+    "surface_version": "2026-06-25"
   },
   "scopes": [
     "pull_request.read",
@@ -1119,6 +1168,17 @@ surface, scopes, and caveats.
   }
 }
 ```
+
+Numeric caveats need defined accounting. In this draft, `max_actions` counts
+side-effecting action requests accepted by the application under the grant.
+Reads and denied requests do not consume the budget, and neither do idempotent
+replays: a retry deduplicated under a previously accepted idempotency key
+MUST NOT consume the budget again, or lost responses and transport retries
+could exhaust a grant without producing new side effects. `max_cost_usd` is
+advisory in the MVP profile: the runtime SHOULD meter agent-side cost against
+it, and applications MAY additionally meter app-side cost where actions carry
+a price. When a budget caveat is exhausted, further matching requests MUST be
+rejected with `limit_exceeded`.
 
 ### Grant Lifecycle
 
@@ -1153,6 +1213,12 @@ App verifies every call
 
 This is the RECOMMENDED MVP model because it fits existing OAuth/resource-server
 deployments.
+
+Because this draft does not require browser-to-localhost communication, the
+consent flow SHOULD support a completion mode that does not depend on a
+loopback redirect — for example an OAuth device-authorization-style exchange
+or an app-mediated pairing code that the runtime polls or receives over its
+outbound channel.
 
 Pros:
 
@@ -1298,7 +1364,7 @@ Once a grant exists, an application or runtime MAY start a session.
     "agent_id": "local_agent_789",
     "surface": {
       "app_id": "code.example.com",
-      "surface_version": "code-review-agent-surface/0.1"
+      "surface_version": "2026-06-25"
     },
     "task": {
       "kind": "pull_request.review",
@@ -1320,6 +1386,17 @@ the app only if grant and policy allow it.
 The action request MUST be authorized by the HTTP authorization layer or an
 equivalent proof. The `grant_id` inside the body is a correlation identifier, not
 a credential.
+
+The application MUST also verify that the supplied `session_id` belongs to the
+presented grant. Otherwise a valid grant credential could be replayed against
+sessions created under other grants, corrupting session accounting and receipt
+linkage.
+
+If both the `Idempotency-Key` header and the body `idempotency_key` field are
+present, they MUST match, and the application MUST reject a mismatch as
+`schema_invalid`. Accepting a mismatched request and picking either value
+would let app-side deduplication and runtime receipts refer to different
+idempotency identifiers.
 
 Example:
 
@@ -1473,7 +1550,7 @@ deduplicated under a grant.
   "session_id": "sess_456",
   "action_id": "comment.create",
   "app_id": "code.example.com",
-  "surface_version": "code-review-agent-surface/0.1",
+  "surface_version": "2026-06-25",
   "runtime": {
     "runtime_id": "application_runtime_456"
   },
@@ -1506,9 +1583,19 @@ deduplicated under a grant.
 Receipts MAY be signed by the app, runtime, or both. A future draft is expected
 to define canonicalization and signature profiles.
 
+How the application obtains the `runtime_receipt_hash` value for the `links`
+field — for example, in the action request itself or through a later
+submission to the receipt endpoint — is not defined in this draft; see Open
+Questions.
+
 ## Revocation Semantics
 
 The protocol MUST define what happens when authority changes.
+
+Revocation MUST be possible from both sides. Applications SHOULD give users an
+in-app view of active agent grants — comparable to OAuth application
+management pages — where a grant can be inspected and revoked without going
+through the runtime.
 
 ### Grant Revoked
 
@@ -1519,6 +1606,10 @@ If a grant is revoked:
 - active sessions SHOULD be cancelled or downgraded to read-only according to
   app policy
 - receipt generation SHOULD record the revocation event
+- the event channel SHOULD deliver `grant.revoked` as a final event before the
+  app closes the subscription; delivery of this one event MUST NOT itself
+  require an active grant, or the runtime could never learn about the
+  revocation through the event channel
 
 ### Runtime Disconnected
 
@@ -1571,6 +1662,14 @@ Agent Surface Protocol SHOULD define structured errors:
 | `runtime_untrusted` | Runtime binding or attestation is not accepted. |
 | `surface_incompatible` | Runtime does not support the surface version. |
 | `proposal_required` | The app only supports proposal mode for this action or grant. |
+| `session_invalid` | Session is unknown, ended, or not associated with the presented grant. |
+| `action_unknown` | Action id is not part of the surface version the grant was issued against. |
+| `limit_exceeded` | A grant budget caveat such as `max_actions` or `max_cost_usd` is exhausted. |
+| `rate_limited` | The request was throttled independently of grant caveats. |
+
+Errors SHOULD be returned in a structured envelope containing at least the
+error code, a human-readable description, and a retryability indication.
+Mapping error codes to HTTP status codes is left to a future draft.
 
 Errors SHOULD be safe to show to users and precise enough for runtime policy
 debugging.
@@ -1590,9 +1689,14 @@ Surface manifests SHOULD include:
 }
 ```
 
+The `surface_version` value is an opaque identifier. Runtimes MUST compare
+surface versions for exact equality; this draft defines no ordering between
+surface versions.
+
 Compatibility rules:
 
-- Removing an action is a breaking change for grants that include that action.
+- Removing an action is a breaking change for grants whose scopes cover that
+  action.
 - Tightening a schema can be a breaking change.
 - Adding optional fields is non-breaking.
 - Adding a new action is non-breaking.
@@ -1658,6 +1762,21 @@ Mitigations:
 - app-side receipts
 - anomaly detection
 
+### App-Embedded Runtime
+
+The Terminology section allows a runtime to be embedded in an application.
+That deployment collapses the two trust domains this protocol otherwise
+separates: the component that is supposed to protect the user is operated by
+the party the user is being protected from. An app-embedded runtime can
+satisfy the wire protocol while voiding the "runtime protects the user"
+guarantee — its policy checks, approvals, and runtime receipts are all
+app-controlled.
+
+When the runtime is app-operated, the user's protection reduces to app-side
+consent and app receipts. Runtimes SHOULD disclose their operator during
+consent, and enterprise policy MAY require user-controlled or third-party
+runtimes for high-risk scopes.
+
 ### Malicious or Compromised Agent
 
 Agents can hallucinate, loop, ignore instructions, leak data, or attempt
@@ -1712,6 +1831,12 @@ application content as authority to escalate scopes, reveal secrets, or bypass
 policy.
 
 Runtime and app policies SHOULD treat model output as untrusted until validated.
+
+Session task descriptions, resource payloads, and event payloads are
+app-authored input to the agent and can carry injected instructions. The
+runtime SHOULD present the session task to the user at session start or
+consent time, and MUST NOT allow app-delivered content to widen grant scope,
+weaken approval requirements, or alter local policy.
 
 ### Replay and Duplicate Actions
 
@@ -1875,6 +2000,15 @@ To support Agent Surface Protocol, the next slices are:
 - How do users compare two agents with overlapping Agent Passport
   capabilities during grant consent?
 - What happens to active sessions when an app changes surface versions?
+- What transport, ordering, acknowledgement, and replay semantics do event
+  subscriptions use?
+- How does the application obtain the runtime receipt hash that an app receipt
+  links to?
+- How is `max_cost_usd` metered when runtime-side inference cost and app-side
+  action cost diverge, and which side is authoritative?
+- How are runtime-side approvals proven to the application beyond an
+  `approval_ref` identifier — signed approval objects, step-up verification,
+  or app-rendered approval UI?
 
 ## References
 
