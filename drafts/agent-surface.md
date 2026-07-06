@@ -1170,8 +1170,11 @@ surface, scopes, and caveats.
 ```
 
 Numeric caveats need defined accounting. In this draft, `max_actions` counts
-side-effecting action requests accepted by the application under the grant;
-reads and denied requests do not consume the budget. `max_cost_usd` is
+side-effecting action requests accepted by the application under the grant.
+Reads and denied requests do not consume the budget, and neither do idempotent
+replays: a retry deduplicated under a previously accepted idempotency key
+MUST NOT consume the budget again, or lost responses and transport retries
+could exhaust a grant without producing new side effects. `max_cost_usd` is
 advisory in the MVP profile: the runtime SHOULD meter agent-side cost against
 it, and applications MAY additionally meter app-side cost where actions carry
 a price. When a budget caveat is exhausted, further matching requests MUST be
@@ -1390,8 +1393,10 @@ sessions created under other grants, corrupting session accounting and receipt
 linkage.
 
 If both the `Idempotency-Key` header and the body `idempotency_key` field are
-present, they MUST match; the application SHOULD reject a mismatch as
-`schema_invalid`.
+present, they MUST match, and the application MUST reject a mismatch as
+`schema_invalid`. Accepting a mismatched request and picking either value
+would let app-side deduplication and runtime receipts refer to different
+idempotency identifiers.
 
 Example:
 
