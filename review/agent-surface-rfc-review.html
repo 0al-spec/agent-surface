@@ -1798,6 +1798,7 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
   #asp-review-019f48fb {
     --asp-rail-gap: 40px;
     --asp-card-gap: 14px;
+    position: relative;
     width: 100%;
     color: var(--foreground);
     background: transparent;
@@ -1832,9 +1833,12 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    width: 100%;
-    max-width: 1660px;
-    margin: 0 auto 18px;
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: max(0px, calc((100% - 1660px) / 2));
+    z-index: 4;
+    width: auto;
+    margin: 0;
   }
 
   #asp-review-019f48fb .asp-review-position {
@@ -2120,6 +2124,13 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
   }
 
   @media (max-width: 1179px) {
+    #asp-review-019f48fb .asp-review-navigation {
+      position: static;
+      width: 100%;
+      max-width: 1660px;
+      margin: 0 auto 18px;
+    }
+
     #asp-review-019f48fb .asp-review-stage {
       display: block;
     }
