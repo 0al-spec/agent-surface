@@ -102,6 +102,25 @@ a:focus-visible {
   border-radius: var(--radius-sm);
 }
 
+.btn {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--foreground);
+  background: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
@@ -127,6 +146,11 @@ ol {
     <span class="asp-priority-key" data-priority="P2"><span class="asp-priority-mark"></span><strong>P2</strong> профиль / adoption <span data-priority-count="P2"></span></span>
     <span class="asp-priority-key" data-priority="P3"><span class="asp-priority-mark"></span><strong>P3</strong> follow-up <span data-priority-count="P3"></span></span>
   </div>
+  <nav class="asp-review-navigation" aria-label="Навигация по комментариям">
+    <button class="btn" type="button" data-review-prev>← Предыдущая</button>
+    <span class="asp-review-position" data-review-position aria-live="polite">— / 60</span>
+    <button class="btn" type="button" data-review-next>Следующая →</button>
+  </nav>
   <div class="asp-review-stage" data-review-stage>
     <article class="asp-rfc" data-rfc-document aria-label="Agent Surface Protocol RFC">
       <h1 id="agent-surface-protocol-specification" data-asp-heading="Agent Surface Protocol Specification">Agent Surface Protocol Specification</h1>
@@ -1803,6 +1827,23 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
     font-size: var(--font-size-small);
   }
 
+  #asp-review-019f48fb .asp-review-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 1660px;
+    margin: 0 auto 18px;
+  }
+
+  #asp-review-019f48fb .asp-review-position {
+    min-width: 6ch;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-small);
+    text-align: center;
+  }
+
   #asp-review-019f48fb .asp-priority-key,
   #asp-review-019f48fb .asp-priority-label,
   #asp-review-019f48fb .asp-comment-flags {
@@ -2110,6 +2151,9 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
   const stage = root.querySelector("[data-review-stage]");
   const documentColumn = root.querySelector("[data-rfc-document]");
   const svg = root.querySelector("[data-review-threads]");
+  const previousButton = root.querySelector("[data-review-prev]");
+  const nextButton = root.querySelector("[data-review-next]");
+  const reviewPosition = root.querySelector("[data-review-position]");
   const rails = {
     left: root.querySelector('[data-review-rail="left"]'),
     right: root.querySelector('[data-review-rail="right"]')
@@ -2196,6 +2240,7 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
     for (const group of svg.querySelectorAll(".asp-thread-group")) {
       group.classList.toggle("is-active", group.dataset.reviewId === activeReview);
     }
+    updateNavigation();
   }
 
   function clearActive(id, force = false) {
@@ -2213,6 +2258,7 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
     for (const group of svg.querySelectorAll(".asp-thread-group")) {
       group.classList.remove("is-active");
     }
+    updateNavigation();
   }
 
   function togglePinned(id) {
@@ -2223,6 +2269,27 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
       return;
     }
     setActive(reviewId, true);
+  }
+
+  function updateNavigation() {
+    const currentId = pinnedReview ?? activeReview;
+    const index = reviews.findIndex((review) => String(review.id) === currentId);
+    reviewPosition.textContent = index < 0 ? `— / ${reviews.length}` : `#${String(reviews[index].id).padStart(2, "0")} / ${reviews.length}`;
+  }
+
+  function navigateReviews(direction) {
+    const currentId = pinnedReview ?? activeReview;
+    const currentIndex = reviews.findIndex((review) => String(review.id) === currentId);
+    const nextIndex = currentIndex < 0
+      ? (direction > 0 ? 0 : reviews.length - 1)
+      : (currentIndex + direction + reviews.length) % reviews.length;
+    const review = reviews[nextIndex];
+    setActive(review.id, true);
+    document.getElementById(review.anchorIds[0])?.scrollIntoView({
+      block: "center",
+      inline: "nearest",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+    });
   }
 
   function enterNarrowMode() {
@@ -2388,6 +2455,9 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
     createCard(review);
   }
 
+  previousButton.addEventListener("click", () => navigateReviews(-1));
+  nextButton.addEventListener("click", () => navigateReviews(1));
+
   const priorityCounts = reviews.reduce((counts, review) => {
     counts[review.priority] = (counts[review.priority] ?? 0) + 1;
     return counts;
@@ -2395,6 +2465,7 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
   for (const counter of root.querySelectorAll("[data-priority-count]")) {
     counter.textContent = `(${priorityCounts[counter.dataset.priorityCount] ?? 0})`;
   }
+  updateNavigation();
 
   const resizeObserver = new ResizeObserver(scheduleLayout);
   resizeObserver.observe(root);
