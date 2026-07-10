@@ -2035,30 +2035,35 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
     fill: none;
     stroke: var(--border);
     stroke-width: 1.25;
-    opacity: 0.62;
+    opacity: 0;
     vector-effect: non-scaling-stroke;
   }
 
   #asp-review-019f48fb .asp-thread-secondary {
-    opacity: 0.34;
+    opacity: 0;
   }
 
   #asp-review-019f48fb .asp-thread-endpoint {
     fill: var(--background);
     stroke: var(--border);
     stroke-width: 1.25;
+    opacity: 0;
     vector-effect: non-scaling-stroke;
   }
 
   #asp-review-019f48fb[data-active-review] .asp-thread,
   #asp-review-019f48fb[data-active-review] .asp-thread-endpoint {
-    opacity: 0.08;
+    opacity: 0;
   }
 
   #asp-review-019f48fb .asp-thread-group.is-active .asp-thread {
     stroke: var(--viz-series-1);
     stroke-width: 2;
     opacity: 1;
+  }
+
+  #asp-review-019f48fb .asp-thread-group.is-active .asp-thread-secondary {
+    opacity: 0.55;
   }
 
   #asp-review-019f48fb .asp-thread-group.is-active .asp-thread-endpoint {
