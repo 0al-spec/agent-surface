@@ -1941,6 +1941,7 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
     position: absolute;
     inset-inline: 0;
     overflow: visible;
+    cursor: pointer;
   }
 
   #asp-review-019f48fb .asp-comment-meta {
@@ -2151,15 +2152,21 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
       <p class="asp-comment-rationale"><strong>Сейчас:</strong> ${escapeHtml(review.rationale)}</p>
       <div class="asp-comment-links">${review.anchorIds.length} ${review.anchorIds.length === 1 ? "связь" : "связи"}</div>
     `;
-    card.addEventListener("pointerenter", () => setActive(review.id));
-    card.addEventListener("pointerleave", () => clearActive(review.id));
-    card.addEventListener("focusin", () => setActive(review.id));
+    card.addEventListener("pointerenter", () => {
+      if (!pinnedReview) setActive(review.id);
+    });
+    card.addEventListener("pointerleave", () => {
+      if (!pinnedReview) clearActive(review.id);
+    });
+    card.addEventListener("focusin", () => {
+      if (!pinnedReview) setActive(review.id);
+    });
     card.addEventListener("focusout", (event) => {
       if (!card.contains(event.relatedTarget)) clearActive(review.id);
     });
-    card.querySelector("a").addEventListener("click", (event) => {
-      event.preventDefault();
-      setActive(review.id, true);
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("a")) event.preventDefault();
+      togglePinned(review.id);
     });
     cards.set(String(review.id), card);
     return card;
@@ -2201,6 +2208,16 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
     for (const group of svg.querySelectorAll(".asp-thread-group")) {
       group.classList.remove("is-active");
     }
+  }
+
+  function togglePinned(id) {
+    const reviewId = String(id);
+    if (pinnedReview === reviewId) {
+      pinnedReview = null;
+      clearActive(reviewId, true);
+      return;
+    }
+    setActive(reviewId, true);
   }
 
   function enterNarrowMode() {
