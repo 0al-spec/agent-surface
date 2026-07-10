@@ -1,0 +1,720 @@
+<div id="asp-review-019f48fb" class="asp-review">
+  <div class="asp-priority-legend" aria-label="Приоритеты доработок">
+    <span class="asp-priority-key" data-priority="P0"><span class="asp-priority-mark"></span><strong>P0</strong> блокер <span data-priority-count="P0"></span></span>
+    <span class="asp-priority-key" data-priority="P1"><span class="asp-priority-mark"></span><strong>P1</strong> ядро vNext <span data-priority-count="P1"></span></span>
+    <span class="asp-priority-key" data-priority="P2"><span class="asp-priority-mark"></span><strong>P2</strong> профиль / adoption <span data-priority-count="P2"></span></span>
+    <span class="asp-priority-key" data-priority="P3"><span class="asp-priority-mark"></span><strong>P3</strong> follow-up <span data-priority-count="P3"></span></span>
+  </div>
+  <nav class="asp-review-navigation" aria-label="Навигация по комментариям">
+    <button class="btn" type="button" data-review-prev>← Предыдущая</button>
+    <span class="asp-review-position" data-review-position aria-live="polite">— / 60</span>
+    <button class="btn" type="button" data-review-next>Следующая →</button>
+  </nav>
+  <div class="asp-review-stage" data-review-stage>
+    <article class="asp-rfc" data-rfc-document aria-label="Agent Surface Protocol RFC">
+      <!--__RFC_HTML__-->
+    </article>
+    <aside class="asp-rail asp-rail-left" data-review-rail="left" aria-label="Комментарии слева"></aside>
+    <aside class="asp-rail asp-rail-right" data-review-rail="right" aria-label="Комментарии справа"></aside>
+    <svg class="asp-threads" data-review-threads aria-hidden="true"></svg>
+  </div>
+</div>
+
+<style>
+  #asp-review-019f48fb {
+    --asp-rail-gap: 40px;
+    --asp-card-gap: 14px;
+    position: relative;
+    width: 100%;
+    color: var(--foreground);
+    background: transparent;
+  }
+
+  #asp-review-019f48fb .asp-review-stage {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(250px, 1fr) minmax(620px, 780px) minmax(250px, 1fr);
+    grid-template-areas: "left rfc right";
+    gap: var(--asp-rail-gap);
+    width: 100%;
+    max-width: 1660px;
+    margin-inline: auto;
+    align-items: start;
+  }
+
+  #asp-review-019f48fb .asp-priority-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+    width: 100%;
+    max-width: 1660px;
+    margin: 0 auto 18px;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-small);
+  }
+
+  #asp-review-019f48fb .asp-review-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    position: fixed;
+    inset-block-start: 16px;
+    inset-inline-end: max(16px, calc((100% - 1660px) / 2));
+    z-index: 4;
+    width: auto;
+    margin: 0;
+  }
+
+  #asp-review-019f48fb .asp-review-position {
+    min-width: 6ch;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-small);
+    text-align: center;
+  }
+
+  #asp-review-019f48fb .asp-priority-key,
+  #asp-review-019f48fb .asp-priority-label,
+  #asp-review-019f48fb .asp-comment-flags {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  #asp-review-019f48fb .asp-priority-key,
+  #asp-review-019f48fb .asp-priority-label {
+    gap: 5px;
+  }
+
+  #asp-review-019f48fb .asp-comment-flags {
+    gap: 10px;
+  }
+
+  #asp-review-019f48fb .asp-priority-mark {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 2px;
+    background: var(--muted-foreground);
+  }
+
+  #asp-review-019f48fb [data-priority="P0"] .asp-priority-mark {
+    background: var(--destructive);
+  }
+
+  #asp-review-019f48fb [data-priority="P1"] .asp-priority-mark {
+    background: var(--viz-series-2);
+  }
+
+  #asp-review-019f48fb [data-priority="P2"] .asp-priority-mark {
+    background: var(--viz-series-1);
+  }
+
+  #asp-review-019f48fb .asp-rfc {
+    grid-area: rfc;
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    padding-inline: 32px;
+    border-inline: 1px solid var(--border);
+    line-height: 1.65;
+  }
+
+  #asp-review-019f48fb .asp-rfc > :first-child {
+    margin-top: 0;
+  }
+
+  #asp-review-019f48fb .asp-rfc h1,
+  #asp-review-019f48fb .asp-rfc h2,
+  #asp-review-019f48fb .asp-rfc h3,
+  #asp-review-019f48fb .asp-rfc h4 {
+    position: relative;
+    scroll-margin-top: 16px;
+  }
+
+  #asp-review-019f48fb .asp-rfc h2 {
+    margin-top: 44px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  #asp-review-019f48fb .asp-rfc h3 {
+    margin-top: 30px;
+  }
+
+  #asp-review-019f48fb .asp-rfc p,
+  #asp-review-019f48fb .asp-rfc li {
+    max-width: 76ch;
+  }
+
+  #asp-review-019f48fb .asp-rfc pre {
+    max-width: 100%;
+    padding: 14px;
+    overflow-x: auto;
+    border-radius: var(--radius-xl);
+    color: var(--foreground);
+    background: var(--muted);
+  }
+
+  #asp-review-019f48fb .asp-rfc code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  #asp-review-019f48fb .asp-rfc :not(pre) > code {
+    padding: 1px 4px;
+    border-radius: var(--radius-sm);
+    background: var(--muted);
+  }
+
+  #asp-review-019f48fb .asp-rfc blockquote {
+    margin-inline: 0;
+    padding-inline-start: 16px;
+    border-inline-start: 2px solid var(--border);
+    color: var(--muted-foreground);
+  }
+
+  #asp-review-019f48fb .asp-rfc table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  #asp-review-019f48fb .asp-rfc th,
+  #asp-review-019f48fb .asp-rfc td {
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  #asp-review-019f48fb .asp-rfc .asp-anchor-active {
+    background: color-mix(in srgb, var(--viz-series-1) 12%, transparent);
+    outline: 2px solid color-mix(in srgb, var(--viz-series-1) 55%, transparent);
+    outline-offset: 5px;
+    border-radius: var(--radius-sm);
+  }
+
+  #asp-review-019f48fb .asp-rail {
+    position: relative;
+    z-index: 3;
+    min-width: 0;
+    min-height: 100%;
+  }
+
+  #asp-review-019f48fb .asp-rail-left {
+    grid-area: left;
+  }
+
+  #asp-review-019f48fb .asp-rail-right {
+    grid-area: right;
+  }
+
+  #asp-review-019f48fb .asp-comment {
+    position: absolute;
+    inset-inline: 0;
+    overflow: visible;
+    cursor: pointer;
+  }
+
+  #asp-review-019f48fb .asp-comment-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+    color: var(--muted-foreground);
+  }
+
+  #asp-review-019f48fb .asp-comment-id,
+  #asp-review-019f48fb .asp-priority-label,
+  #asp-review-019f48fb .asp-comment-status,
+  #asp-review-019f48fb .asp-comment-links {
+    font-size: var(--font-size-small);
+  }
+
+  #asp-review-019f48fb .asp-comment-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  #asp-review-019f48fb .asp-status-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  #asp-review-019f48fb .asp-comment[data-status="missing"] .asp-status-dot {
+    background: var(--viz-series-1);
+  }
+
+  #asp-review-019f48fb .asp-comment[data-status="partial"] .asp-status-dot {
+    background: var(--viz-series-2);
+  }
+
+  #asp-review-019f48fb .asp-comment[data-status="present"] .asp-status-dot {
+    background: var(--viz-series-3);
+  }
+
+  #asp-review-019f48fb .asp-comment-title {
+    display: inline-block;
+    color: var(--card-foreground);
+    font-weight: 500;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  #asp-review-019f48fb .asp-comment-category {
+    margin-top: 4px;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-small);
+  }
+
+  #asp-review-019f48fb .asp-comment-description,
+  #asp-review-019f48fb .asp-comment-rationale {
+    margin-block: 8px 0;
+  }
+
+  #asp-review-019f48fb .asp-comment-rationale {
+    padding-inline-start: 9px;
+    border-inline-start: 2px solid var(--border);
+    color: color-mix(in srgb, var(--card-foreground) 72%, transparent);
+  }
+
+  #asp-review-019f48fb .asp-comment-links {
+    margin-top: 9px;
+    color: var(--muted-foreground);
+  }
+
+  #asp-review-019f48fb .asp-comment.is-active {
+    outline: 2px solid var(--viz-series-1);
+    outline-offset: 2px;
+  }
+
+  #asp-review-019f48fb .asp-threads {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  #asp-review-019f48fb .asp-thread {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 1.25;
+    opacity: 0;
+    vector-effect: non-scaling-stroke;
+  }
+
+  #asp-review-019f48fb .asp-thread-secondary {
+    opacity: 0;
+  }
+
+  #asp-review-019f48fb .asp-thread-endpoint {
+    fill: var(--background);
+    stroke: var(--border);
+    stroke-width: 1.25;
+    opacity: 0;
+    vector-effect: non-scaling-stroke;
+  }
+
+  #asp-review-019f48fb[data-active-review] .asp-thread,
+  #asp-review-019f48fb[data-active-review] .asp-thread-endpoint {
+    opacity: 0;
+  }
+
+  #asp-review-019f48fb .asp-thread-group.is-active .asp-thread {
+    stroke: var(--viz-series-1);
+    stroke-width: 2;
+    opacity: 1;
+  }
+
+  #asp-review-019f48fb .asp-thread-group.is-active .asp-thread-secondary {
+    opacity: 0.55;
+  }
+
+  #asp-review-019f48fb .asp-thread-group.is-active .asp-thread-endpoint {
+    fill: var(--viz-series-1);
+    stroke: var(--viz-series-1);
+    opacity: 1;
+  }
+
+  #asp-review-019f48fb .asp-comment.is-inline {
+    position: relative;
+    inset: auto;
+    margin-block: 12px 18px;
+  }
+
+  @media (max-width: 1179px) {
+    #asp-review-019f48fb .asp-review-navigation {
+      position: static;
+      width: 100%;
+      max-width: 1660px;
+      margin: 0 auto 18px;
+    }
+
+    #asp-review-019f48fb .asp-review-stage {
+      display: block;
+    }
+
+    #asp-review-019f48fb .asp-rfc {
+      padding-inline: 8px;
+      border-inline: 0;
+    }
+
+    #asp-review-019f48fb .asp-rail,
+    #asp-review-019f48fb .asp-threads {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #asp-review-019f48fb * {
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
+
+<script>
+(() => {
+  const root = document.getElementById("asp-review-019f48fb");
+  if (!root) return;
+
+  const reviews = /*__REVIEW_DATA__*/;
+  const stage = root.querySelector("[data-review-stage]");
+  const documentColumn = root.querySelector("[data-rfc-document]");
+  const svg = root.querySelector("[data-review-threads]");
+  const previousButton = root.querySelector("[data-review-prev]");
+  const nextButton = root.querySelector("[data-review-next]");
+  const reviewPosition = root.querySelector("[data-review-position]");
+  const rails = {
+    left: root.querySelector('[data-review-rail="left"]'),
+    right: root.querySelector('[data-review-rail="right"]')
+  };
+  const statusLabels = {
+    missing: "Пробел",
+    partial: "Частично",
+    present: "Уже есть"
+  };
+  let narrow = null;
+  let activeReview = null;
+  let pinnedReview = null;
+  let scheduled = 0;
+
+  const escapeHtml = (value) => String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+  const byId = new Map(reviews.map((review) => [String(review.id), review]));
+  const cards = new Map();
+
+  function createCard(review) {
+    const card = document.createElement("article");
+    card.className = "card asp-comment";
+    card.id = `review-${review.id}`;
+    card.dataset.reviewId = review.id;
+    card.dataset.status = review.status;
+    card.dataset.priority = review.priority;
+    card.dataset.side = review.side;
+    const primaryId = review.anchorIds[0];
+    card.innerHTML = `
+      <div class="asp-comment-meta">
+        <span class="asp-comment-id">#${String(review.id).padStart(2, "0")}</span>
+        <span class="asp-comment-flags">
+          <span class="asp-priority-label" data-priority="${escapeHtml(review.priority)}"><span class="asp-priority-mark"></span><strong>${escapeHtml(review.priority)}</strong></span>
+          <span class="asp-comment-status"><span class="asp-status-dot"></span>${statusLabels[review.status]}</span>
+        </span>
+      </div>
+      <a class="asp-comment-title" href="#${escapeHtml(primaryId)}">${escapeHtml(review.title)}</a>
+      <div class="asp-comment-category">${escapeHtml(review.category)}</div>
+      <p class="asp-comment-description">${escapeHtml(review.description)}</p>
+      <p class="asp-comment-rationale"><strong>Сейчас:</strong> ${escapeHtml(review.rationale)}</p>
+      <div class="asp-comment-links">${review.anchorIds.length} ${review.anchorIds.length === 1 ? "связь" : "связи"}</div>
+    `;
+    card.addEventListener("pointerenter", () => {
+      if (!pinnedReview) setActive(review.id);
+    });
+    card.addEventListener("pointerleave", () => {
+      if (!pinnedReview) clearActive(review.id);
+    });
+    card.addEventListener("focusin", () => {
+      if (!pinnedReview) setActive(review.id);
+    });
+    card.addEventListener("focusout", (event) => {
+      if (!card.contains(event.relatedTarget)) clearActive(review.id);
+    });
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("a")) event.preventDefault();
+      togglePinned(review.id);
+    });
+    cards.set(String(review.id), card);
+    return card;
+  }
+
+  function setActive(id, persist = false) {
+    activeReview = String(id);
+    if (persist) pinnedReview = activeReview;
+    root.dataset.activeReview = activeReview;
+    for (const [cardId, card] of cards) {
+      card.classList.toggle("is-active", cardId === activeReview);
+    }
+    for (const heading of documentColumn.querySelectorAll(".asp-anchor-active")) {
+      heading.classList.remove("asp-anchor-active");
+    }
+    const review = byId.get(activeReview);
+    if (review) {
+      for (const anchorId of review.anchorIds) {
+        document.getElementById(anchorId)?.classList.add("asp-anchor-active");
+      }
+    }
+    for (const group of svg.querySelectorAll(".asp-thread-group")) {
+      group.classList.toggle("is-active", group.dataset.reviewId === activeReview);
+    }
+    updateNavigation();
+  }
+
+  function clearActive(id, force = false) {
+    if (activeReview !== String(id)) return;
+    if (!force && pinnedReview) {
+      setActive(pinnedReview);
+      return;
+    }
+    activeReview = null;
+    root.removeAttribute("data-active-review");
+    for (const card of cards.values()) card.classList.remove("is-active");
+    for (const heading of documentColumn.querySelectorAll(".asp-anchor-active")) {
+      heading.classList.remove("asp-anchor-active");
+    }
+    for (const group of svg.querySelectorAll(".asp-thread-group")) {
+      group.classList.remove("is-active");
+    }
+    updateNavigation();
+  }
+
+  function togglePinned(id) {
+    const reviewId = String(id);
+    if (pinnedReview === reviewId) {
+      pinnedReview = null;
+      clearActive(reviewId, true);
+      return;
+    }
+    setActive(reviewId, true);
+  }
+
+  function updateNavigation() {
+    const currentId = pinnedReview ?? activeReview;
+    const index = reviews.findIndex((review) => String(review.id) === currentId);
+    reviewPosition.textContent = index < 0 ? `— / ${reviews.length}` : `#${String(reviews[index].id).padStart(2, "0")} / ${reviews.length}`;
+  }
+
+  function navigateReviews(direction) {
+    const currentId = pinnedReview ?? activeReview;
+    const currentIndex = reviews.findIndex((review) => String(review.id) === currentId);
+    const nextIndex = currentIndex < 0
+      ? (direction > 0 ? 0 : reviews.length - 1)
+      : (currentIndex + direction + reviews.length) % reviews.length;
+    const review = reviews[nextIndex];
+    setActive(review.id, true);
+    document.getElementById(review.anchorIds[0])?.scrollIntoView({
+      block: "center",
+      inline: "nearest",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+    });
+  }
+
+  function enterNarrowMode() {
+    if (narrow === true) return;
+    narrow = true;
+    svg.replaceChildren();
+    const grouped = new Map();
+    for (const review of reviews) {
+      const anchorId = review.anchorIds[0];
+      if (!grouped.has(anchorId)) grouped.set(anchorId, []);
+      grouped.get(anchorId).push(review);
+    }
+    for (const [anchorId, anchorReviews] of grouped) {
+      const anchor = document.getElementById(anchorId);
+      if (!anchor) continue;
+      let insertionPoint = anchor;
+      for (const review of anchorReviews) {
+        const card = cards.get(String(review.id));
+        card.classList.add("is-inline");
+        insertionPoint.insertAdjacentElement("afterend", card);
+        insertionPoint = card;
+      }
+    }
+    stage.style.minHeight = "";
+  }
+
+  function solveRail(items, stageHeight, gap = 14, padding = 0) {
+    items.sort((a, b) => a.preferredTop - b.preferredTop || a.id - b.id);
+    let packedHeight = 0;
+    items.forEach((item, index) => {
+      item.offset = packedHeight;
+      packedHeight += item.height + (index === items.length - 1 ? 0 : gap);
+    });
+    stageHeight = Math.max(stageHeight, packedHeight + 2 * padding);
+    const blocks = [];
+    items.forEach((item, index) => {
+      blocks.push({ first: index, last: index, weight: 1, weightedSum: item.preferredTop - item.offset });
+      while (blocks.length > 1) {
+        const right = blocks[blocks.length - 1];
+        const left = blocks[blocks.length - 2];
+        if (left.weightedSum / left.weight <= right.weightedSum / right.weight) break;
+        blocks.splice(-2, 2, {
+          first: left.first,
+          last: right.last,
+          weight: left.weight + right.weight,
+          weightedSum: left.weightedSum + right.weightedSum
+        });
+      }
+    });
+    const maxX = Math.max(padding, stageHeight - padding - packedHeight);
+    for (const block of blocks) {
+      const x = Math.max(padding, Math.min(maxX, block.weightedSum / block.weight));
+      for (let index = block.first; index <= block.last; index += 1) {
+        items[index].top = Math.round(x + items[index].offset);
+      }
+    }
+    return { items, stageHeight };
+  }
+
+  function enterWideMode() {
+    if (narrow !== false) {
+      narrow = false;
+      for (const review of reviews) {
+        const card = cards.get(String(review.id));
+        card.classList.remove("is-inline");
+        rails[review.side].append(card);
+      }
+    }
+
+    stage.style.minHeight = `${documentColumn.offsetHeight}px`;
+    const stageRect = stage.getBoundingClientRect();
+    const railItems = { left: [], right: [] };
+    for (const review of reviews) {
+      const anchor = document.getElementById(review.anchorIds[0]);
+      const card = cards.get(String(review.id));
+      if (!anchor || !card) continue;
+      const anchorRect = anchor.getBoundingClientRect();
+      const height = card.offsetHeight;
+      railItems[review.side].push({
+        id: review.id,
+        card,
+        height,
+        preferredTop: anchorRect.top - stageRect.top + Math.min(anchorRect.height / 2, 18) - height / 2
+      });
+    }
+
+    const baseHeight = Math.max(documentColumn.offsetHeight, 1);
+    const left = solveRail(railItems.left, baseHeight);
+    const right = solveRail(railItems.right, baseHeight);
+    const solvedHeight = Math.max(baseHeight, left.stageHeight, right.stageHeight);
+    stage.style.minHeight = `${solvedHeight}px`;
+    for (const item of [...left.items, ...right.items]) {
+      item.card.style.top = `${item.top}px`;
+    }
+    requestAnimationFrame(drawThreads);
+  }
+
+  function svgElement(name, attributes) {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+    return element;
+  }
+
+  function drawThreads() {
+    if (narrow) return;
+    const stageRect = stage.getBoundingClientRect();
+    const documentRect = documentColumn.getBoundingClientRect();
+    svg.setAttribute("viewBox", `0 0 ${stageRect.width} ${stageRect.height}`);
+    svg.replaceChildren();
+
+    for (const review of reviews) {
+      const card = cards.get(String(review.id));
+      if (!card) continue;
+      const cardRect = card.getBoundingClientRect();
+      const group = svgElement("g", { class: "asp-thread-group", "data-review-id": review.id });
+      const startX = review.side === "left"
+        ? cardRect.right - stageRect.left
+        : cardRect.left - stageRect.left;
+      const startYBase = cardRect.top - stageRect.top + Math.min(42, cardRect.height / 2);
+      const laneX = review.side === "left"
+        ? documentRect.left - stageRect.left - 14
+        : documentRect.right - stageRect.left + 14;
+
+      review.anchorIds.forEach((anchorId, index) => {
+        const anchor = document.getElementById(anchorId);
+        if (!anchor) return;
+        const anchorRect = anchor.getBoundingClientRect();
+        const endX = review.side === "left"
+          ? documentRect.left - stageRect.left
+          : documentRect.right - stageRect.left;
+        const endY = anchorRect.top - stageRect.top + Math.min(anchorRect.height / 2, 18);
+        const startY = startYBase + index * 5;
+        const path = svgElement("path", {
+          class: `asp-thread${index === 0 ? "" : " asp-thread-secondary"}`,
+          d: `M ${startX} ${startY} C ${laneX} ${startY}, ${laneX} ${endY}, ${endX} ${endY}`
+        });
+        const dot = svgElement("circle", {
+          class: "asp-thread-endpoint",
+          cx: endX,
+          cy: endY,
+          r: index === 0 ? 3 : 2.25
+        });
+        group.append(path, dot);
+      });
+      if (activeReview === String(review.id)) group.classList.add("is-active");
+      svg.append(group);
+    }
+  }
+
+  function layout() {
+    scheduled = 0;
+    if (root.clientWidth < 1180) enterNarrowMode();
+    else enterWideMode();
+  }
+
+  function scheduleLayout() {
+    if (scheduled) cancelAnimationFrame(scheduled);
+    scheduled = requestAnimationFrame(layout);
+  }
+
+  for (const review of reviews) {
+    review.anchorIds = review.anchors.map((heading) => heading.anchorId);
+    createCard(review);
+  }
+
+  previousButton.addEventListener("click", () => navigateReviews(-1));
+  nextButton.addEventListener("click", () => navigateReviews(1));
+
+  const priorityCounts = reviews.reduce((counts, review) => {
+    counts[review.priority] = (counts[review.priority] ?? 0) + 1;
+    return counts;
+  }, {});
+  for (const counter of root.querySelectorAll("[data-priority-count]")) {
+    counter.textContent = `(${priorityCounts[counter.dataset.priorityCount] ?? 0})`;
+  }
+  updateNavigation();
+
+  const resizeObserver = new ResizeObserver(scheduleLayout);
+  resizeObserver.observe(root);
+  resizeObserver.observe(documentColumn);
+  window.addEventListener("load", scheduleLayout, { once: true });
+  window.addEventListener("resize", scheduleLayout);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      pinnedReview = null;
+      clearActive(activeReview, true);
+    }
+  });
+  scheduleLayout();
+})();
+</script>
