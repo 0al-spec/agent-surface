@@ -2123,7 +2123,7 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
     margin-block: 12px 18px;
   }
 
-  @media (max-width: 1179px) {
+  @media (max-width: 1231px) {
     #asp-review-019f48fb .asp-review-navigation {
       position: static;
       width: 100%;
@@ -2319,6 +2319,7 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
       let insertionPoint = anchor;
       for (const review of anchorReviews) {
         const card = cards.get(String(review.id));
+        card.style.removeProperty("top");
         card.classList.add("is-inline");
         insertionPoint.insertAdjacentElement("afterend", card);
         insertionPoint = card;
@@ -2452,7 +2453,7 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
 
   function layout() {
     scheduled = 0;
-    if (root.clientWidth < 1180) enterNarrowMode();
+    if (root.clientWidth < 1200) enterNarrowMode();
     else enterWideMode();
   }
 
