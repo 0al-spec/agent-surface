@@ -24,8 +24,8 @@
           "anchorId": "application-runtime-profile"
         }
       ],
-      "status": "partial",
-      "rationale": "Модель mediation описана многократно, но абсолютный Reference Monitor invariant ослаблен формулировками SHOULD и «where practical».",
+      "status": "present",
+      "rationale": "RFC теперь определяет runtime как reference monitor: каждое agent-initiated действие к Agent Surface проходит через runtime, а app-side verification остаётся обязательной.",
       "priority": "P0"
     },
     {
@@ -52,8 +52,8 @@
           "anchorId": "grant-verification"
         }
       ],
-      "status": "partial",
-      "rationale": "Tuple и проверяемые bindings перечислены, но wire-level способ доказательства runtime/agent/passport binding не определён.",
+      "status": "present",
+      "rationale": "RFC требует app-verifiable binding grant credential к grant, audience, runtime, agent и passport hash; introspection и session profiles не могут подменяться runtime assertion.",
       "priority": "P0"
     },
     {
@@ -78,10 +78,14 @@
         {
           "heading": "Stolen Grant Credential",
           "anchorId": "stolen-grant-credential"
+        },
+        {
+          "heading": "Proof-Bound Grant-Enforcing Application",
+          "anchorId": "proof-bound-grant-enforcing-application"
         }
       ],
-      "status": "partial",
-      "rationale": "DPoP, mTLS и sender-constrained tokens названы и рекомендованы, но обязательный interoperable proof profile отложен.",
+      "status": "present",
+      "rationale": "Proof-Bound Credential и Proof-Bound Grant-Enforcing profiles требуют per-request possession proof; DPoP, mTLS и server-session проверки имеют отдельную корректную replay semantics.",
       "priority": "P0"
     },
     {
@@ -108,8 +112,8 @@
           "anchorId": "agent-adapter"
         }
       ],
-      "status": "partial",
-      "rationale": "Raw credentials должны избегаться, но их выдача не оформлена как отдельная default-deny privileged capability.",
+      "status": "present",
+      "rationale": "Raw credential release — default-deny capability `credential.release`; выдаётся только новый attenuated credential для non-Agent-Surface audience, который app обязана отклонять на Surface endpoints.",
       "priority": "P0"
     },
     {
@@ -124,6 +128,10 @@
           "anchorId": "runtime"
         },
         {
+          "heading": "Subdelegation",
+          "anchorId": "subdelegation"
+        },
+        {
           "heading": "Model Context Protocol",
           "anchorId": "model-context-protocol"
         },
@@ -136,8 +144,8 @@
           "anchorId": "malicious-or-compromised-agent"
         }
       ],
-      "status": "missing",
-      "rationale": "Субагенты, remote models и MCP adapters упоминаются как компоненты, но перенос или запрет authority через них не определён.",
+      "status": "present",
+      "rationale": "Компоненты без отдельного grant проходят parent runtime; отдельно granted child runtime использует собственный binding и direct app route, с parent linkage, attenuation и cascade revocation.",
       "priority": "P0"
     },
     {
@@ -1062,7 +1070,7 @@
       "description": "определить, что secrets, tokens, cookies и private credentials не попадают в agent-visible context без отдельного privileged grant.",
       "category": "Privacy / data exposure",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
           "heading": "Agent Does Not Receive Raw Authority",
@@ -1081,7 +1089,7 @@
           "anchorId": "privacy-considerations"
         }
       ],
-      "rationale": "Default no-secrets boundary есть, но отсутствует явная privileged capability для исключений и agent-visible context.",
+      "rationale": "Secrets и credentials остаются вне agent-visible context; `credential.release` допускает только новый attenuated non-Surface credential с обязательным rejection на Agent Surface endpoints.",
       "priority": "P0"
     },
     {
@@ -1594,4 +1602,3 @@
     }
   ]
 }
-
