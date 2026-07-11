@@ -1,0 +1,2499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Agent Surface Protocol — Interactive RFC Review</title>
+<style>:root {
+  color-scheme: light dark;
+  --background: light-dark(rgb(250 250 248), rgb(22 23 24));
+  --foreground: light-dark(rgb(28 30 32), rgb(244 245 246));
+  --card: light-dark(rgb(237 238 235), rgb(36 37 38));
+  --card-foreground: var(--foreground);
+  --muted: light-dark(rgb(232 233 230), rgb(48 49 50));
+  --muted-foreground: light-dark(rgb(91 94 97), rgb(167 170 173));
+  --border: light-dark(rgb(28 30 32 / 14%), rgb(244 245 246 / 14%));
+  --primary: light-dark(rgb(23 105 176), rgb(126 191 248));
+  --destructive: light-dark(rgb(190 51 42), rgb(248 111 101));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(183 91 29), rgb(239 155 91));
+  --viz-series-3: light-dark(rgb(46 137 77), rgb(112 204 140));
+  --font-size-base: 14px;
+  --font-size-small: 12px;
+  --radius-sm: 5px;
+  --radius-xl: 10px;
+  --radius-2xl: 14px;
+  background: var(--background);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 0;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: var(--font-size-base);
+}
+
+body {
+  padding: 16px;
+}
+
+#widget {
+  width: 100%;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: calc(var(--font-size-base) * 1.72);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: calc(var(--font-size-base) * 1.43);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+h3,
+h4 {
+  font-size: calc(var(--font-size-base) * 1.28);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+strong,
+th {
+  font-weight: 600;
+}
+
+a {
+  color: var(--primary);
+  text-underline-offset: 3px;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.btn {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--foreground);
+  background: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+ul,
+ol {
+  padding-inline-start: 26px;
+}
+
+@media (max-width: 560px) {
+  body {
+    padding: 8px;
+  }
+}
+</style>
+</head>
+<body>
+<main id="widget">
+<div id="asp-review-019f48fb" class="asp-review">
+  <div class="asp-priority-legend" aria-label="Приоритеты доработок">
+    <span class="asp-priority-key" data-priority="P0"><span class="asp-priority-mark"></span><strong>P0</strong> блокер <span data-priority-count="P0"></span></span>
+    <span class="asp-priority-key" data-priority="P1"><span class="asp-priority-mark"></span><strong>P1</strong> ядро vNext <span data-priority-count="P1"></span></span>
+    <span class="asp-priority-key" data-priority="P2"><span class="asp-priority-mark"></span><strong>P2</strong> профиль / adoption <span data-priority-count="P2"></span></span>
+    <span class="asp-priority-key" data-priority="P3"><span class="asp-priority-mark"></span><strong>P3</strong> follow-up <span data-priority-count="P3"></span></span>
+  </div>
+  <nav class="asp-review-navigation" aria-label="Навигация по комментариям">
+    <button class="btn" type="button" data-review-prev>← Предыдущая</button>
+    <span class="asp-review-position" data-review-position aria-live="polite">— / 60</span>
+    <button class="btn" type="button" data-review-next>Следующая →</button>
+  </nav>
+  <div class="asp-review-stage" data-review-stage>
+    <article class="asp-rfc" data-rfc-document aria-label="Agent Surface Protocol RFC">
+      <h1 id="agent-surface-protocol-specification" data-asp-heading="Agent Surface Protocol Specification">Agent Surface Protocol Specification</h1>
+<p>Request for Comments</p>
+<h2 id="authors-contact-information" data-asp-heading="Authors' Contact Information">Authors' Contact Information</h2>
+<ul>
+<li>Egor Merkushev</li>
+<li>Organization: Individual</li>
+<li>Email: gorkaedeep@gmail.com</li>
+<li>Published: 25 June 2026</li>
+</ul>
+<h2 id="status-of-this-memo" data-asp-heading="Status of this Memo">Status of this Memo</h2>
+<p>This document is an <strong>Experimental</strong> Request for Comments. It represents a draft
+proposal for an Agent Surface Protocol specification and is submitted to the
+community for discussion, feedback, critique, and suggestions for improvement.
+This document is a work in progress and is not yet a finalized standard.
+Distribution of this memo is unlimited.</p>
+<p>Submit comments as GitHub issues in the original repository hosting this RFC.</p>
+<h2 id="copyright-notice-and-licensing" data-asp-heading="Copyright Notice and Licensing">Copyright Notice and Licensing</h2>
+<p>Copyright (c) 2026 0AL -- Zero-trust Agents Layer.</p>
+<p>This document is released under the Creative Commons Attribution 4.0
+International License (CC BY 4.0). You are free to copy, distribute, and modify
+this specification, even for commercial purposes, provided that attribution is
+given to the original author(s).</p>
+<p>To contribute to this document, please submit an issue or pull request to the
+original GitHub repository:</p>
+<pre><code class="language-text">https://github.com/0al-spec/agent-surface
+</code></pre>
+<p>This is not an IETF document and is not subject to BCP 78 or the IETF Trust.
+However, it follows similar principles of openness and community participation.</p>
+<h2 id="abstract" data-asp-heading="Abstract">Abstract</h2>
+<p>This proposal defines <strong>Agent Surface Protocol</strong>, a user-mediated delegation
+model for connecting user-owned agents to application contexts, including web
+applications and SaaS products.</p>
+<p>Agent Surface Protocol can be understood as the missing protocol substrate for
+safe <strong>Bring Your Own Agent (BYOA)</strong>. BYOA describes the user expectation: a
+person can bring a preferred local, enterprise, or hosted agent
+into an application context. Agent Surface Protocol defines the security and
+interoperability machinery that makes that expectation practical.</p>
+<p>The central idea is not that an application &quot;gets an agent&quot;. The user remains
+the principal. The application publishes a typed <strong>Agent Surface</strong> describing
+the resources, actions, events, scopes, risk labels, approval requirements,
+schemas, idempotency rules, receipts, endpoints, and revocation semantics it
+supports. The user chooses a local or remote agent they own. An application
+runtime verifies the agent's Agent Passport, obtains a scoped <strong>Agent Grant</strong>,
+enforces local policy, supervises the agent, and mediates all application
+actions.</p>
+<p>The goal is to replace brittle &quot;computer use&quot; automation patterns:</p>
+<ul>
+<li>screenshot interpretation</li>
+<li>mouse and keyboard control</li>
+<li>accessibility-tree scraping</li>
+<li>private API scraping</li>
+<li>raw user API tokens handed to agents</li>
+</ul>
+<p>with a typed, scoped, auditable, revocable, app-verifiable delegation layer.</p>
+<h2 id="normative-and-informative-sections" data-asp-heading="Normative and Informative Sections">Normative and Informative Sections</h2>
+<p>Unless otherwise stated, the following sections are <strong>normative</strong>:</p>
+<ul>
+<li>Terminology</li>
+<li>Design Principles</li>
+<li>Agent Surface Manifest</li>
+<li>Risk Taxonomy</li>
+<li>Approval Semantics</li>
+<li>Idempotency</li>
+<li>Agent Grant</li>
+<li>Sessions and Actions</li>
+<li>Receipts</li>
+<li>Revocation Semantics</li>
+<li>Error Model</li>
+<li>Versioning and Compatibility</li>
+<li>Security Considerations</li>
+<li>Privacy Considerations</li>
+<li>Conformance</li>
+</ul>
+<p>The following sections are <strong>informative</strong>:</p>
+<ul>
+<li>Abstract</li>
+<li>Motivation</li>
+<li>Relationship to Existing Protocols</li>
+<li>Conceptual Architecture</li>
+<li>Protocol Layers</li>
+<li>Capability Matching</li>
+<li>Application MVP Mapping</li>
+<li>Example End-to-End Flow</li>
+<li>Open Questions</li>
+<li>References</li>
+<li>Appendices</li>
+</ul>
+<h2 id="motivation" data-asp-heading="Motivation">Motivation</h2>
+<p>Modern agents need to work inside applications. Today, they often do this in one
+of two fragile ways:</p>
+<ol>
+<li>They operate the user interface by observing screenshots, clicking controls,
+and reading accessibility trees.</li>
+<li>They receive a user's broad API token and call ordinary application APIs
+directly, often without an agent-specific contract, local policy mediation,
+idempotency, or portable receipts.</li>
+</ol>
+<p>Both approaches have structural problems.</p>
+<p>Computer-use automation is brittle. It depends on pixels, layout, timing,
+browser state, accessibility labels, and undocumented UI behavior. It is hard to
+authorize precisely and hard to audit semantically. The user can see the result,
+but the application rarely receives machine-verifiable evidence of which agent
+acted, under which delegation, against which policy, and why a write was allowed.</p>
+<p>Raw-token API automation is powerful but unsafe. A token is a transport
+artifact, not a delegation model. If an agent receives a broad source-control,
+issue-tracker, chat, docs, or CRM token, the application can be unable to
+distinguish the user from the user's agent, the runtime can be unable to
+constrain the agent's behavior after token release, and receipts become
+difficult to produce without custom integration.</p>
+<p>Agent Surface Protocol introduces a safer frame:</p>
+<pre><code class="language-text">BYOA is the model.
+Agent Surface is the protocol.
+Agent Grant is the authority.
+Agent Passport is the evidence.
+
+App exposes affordances.
+User delegates an agent.
+Runtime mediates and enforces.
+App verifies authorization.
+Agent acts only through typed, scoped actions.
+</code></pre>
+<p>The application becomes <strong>agent-native</strong>, but not <strong>agent-owned</strong>. It does not
+need to build, host, pay for, or control the user's agent. It only needs to
+publish a civilized surface and enforce grants on its side.</p>
+<h2 id="goals" data-asp-heading="Goals">Goals</h2>
+<ul>
+<li>
+<p>Define a protocol layer for safe Bring Your Own Agent (BYOA) in application
+contexts.</p>
+</li>
+<li>
+<p>Treat the user as the principal and the agent as a delegated worker.</p>
+</li>
+<li>
+<p>Make <strong>Grant</strong>, not token, the primary authorization object.</p>
+</li>
+<li>
+<p>Let applications publish typed resources, actions, events, schemas, scopes,
+risk labels, idempotency rules, approval hints, receipt requirements, and
+wire-level endpoints.</p>
+</li>
+<li>
+<p>Let runtimes verify Agent Passports before an agent can receive delegated work.</p>
+</li>
+<li>
+<p>Require both runtime-side and app-side enforcement.</p>
+</li>
+<li>
+<p>Avoid direct application credentials in agent processes where practical.</p>
+</li>
+<li>
+<p>Make proposal-first workflows the default safety posture:</p>
+<pre><code class="language-text">read -&gt; propose -&gt; approve -&gt; write -&gt; receipt
+</code></pre>
+</li>
+<li>
+<p>Fit alongside existing agent standards instead of replacing them:</p>
+<ul>
+<li>MCP can remain a tool/resource transport.</li>
+<li>ACP can remain an agent/client transport.</li>
+<li>OAuth can remain a consent and authorization substrate.</li>
+<li>Agent Passport can remain identity and capability evidence.</li>
+</ul>
+</li>
+</ul>
+<h2 id="non-goals" data-asp-heading="Non-Goals">Non-Goals</h2>
+<ul>
+<li>Do not define another general-purpose agent framework.</li>
+<li>Do not replace MCP, ACP, OAuth, DID, Verifiable Credentials, JSON Schema, or
+existing application APIs.</li>
+<li>Do not require applications to trust local runtimes blindly.</li>
+<li>Do not require agents to receive raw user credentials.</li>
+<li>Do not require browser-to-localhost communication.</li>
+<li>Do not require every app action to be autonomous; proposal mode is valid and
+preferred for early adoption.</li>
+<li>Do not standardize every possible human approval UI.</li>
+<li>Do not specify a single cryptographic trust-store model in this draft.</li>
+<li>Do not require signed grants or signed receipts in the MVP profile.</li>
+</ul>
+<h2 id="conventions" data-asp-heading="Conventions">Conventions</h2>
+<p>The key words &quot;MUST&quot;, &quot;MUST NOT&quot;, &quot;SHOULD&quot;, &quot;SHOULD NOT&quot;, and &quot;MAY&quot; in this
+document are to be interpreted in the RFC 2119 and RFC 8174 sense when, and only
+when, they appear in all capitals.</p>
+<p>This is not an IETF document. The keywords are used to make interoperability and
+security expectations explicit for future implementers.</p>
+<h2 id="terminology" data-asp-heading="Terminology">Terminology</h2>
+<h3 id="user" data-asp-heading="User">User</h3>
+<p>The human principal who owns or controls an account in an application and owns,
+selects, or authorizes an agent.</p>
+<h3 id="application" data-asp-heading="Application">Application</h3>
+<p>The product or software system that exposes a bounded environment in which
+agents can operate. An application can be a website, SaaS product, desktop app
+backend, local bridge, control plane, browser extension, reference
+implementation, or service that publishes an Agent Surface and enforces
+app-side authorization.</p>
+<p>This draft uses <strong>Application</strong> as the neutral term for concrete
+implementations. Product-specific names belong in implementation documents, not
+in the protocol role model.</p>
+<h3 id="agent-surface" data-asp-heading="Agent Surface">Agent Surface</h3>
+<p>The machine-readable map of application affordances available for agent
+delegation. A surface includes resources, actions, events, schemas, scopes, risk
+labels, approval hints, idempotency rules, audit semantics, versioning, endpoints,
+and revocation semantics.</p>
+<p>The surface is not merely an API endpoint list. It is an application contract for
+safe delegated agent behavior.</p>
+<h3 id="agent-surface-manifest" data-asp-heading="Agent Surface Manifest">Agent Surface Manifest</h3>
+<p>A discoverable document, typically published at a well-known URL such as:</p>
+<pre><code class="language-text">/.well-known/agent-surface.json
+</code></pre>
+<p>The manifest describes the Agent Surface in a machine-readable format.</p>
+<h3 id="user-owned-agent" data-asp-heading="User-Owned Agent">User-Owned Agent</h3>
+<p>An agent selected by the user. It can run locally, in a company-controlled
+environment, or in a remote service. The important property is that the
+application does not own or silently choose it.</p>
+<h3 id="runtime" data-asp-heading="Runtime">Runtime</h3>
+<p>The local or user-controlled system that hosts, launches, supervises, or mediates
+the user's agent. A runtime can be embedded in an application, delivered as a
+companion bridge or daemon, provided by an operating system service, implemented
+by a browser extension, or hosted in a user-controlled environment.</p>
+<p>When the runtime is part of a concrete application implementation, this draft
+refers to it as an <strong>application runtime</strong>.</p>
+<p>This proposal separates two runtime responsibilities:</p>
+<ul>
+<li><strong>Agent Host</strong>: starts or connects to agents, adapters, and tools.</li>
+<li><strong>Policy Enforcement Point</strong>: stores grants, applies local policy, obtains
+approvals, mediates actions, writes audit logs, and blocks disallowed behavior.</li>
+</ul>
+<p>One process can implement both roles, but the distinction matters for security
+analysis.</p>
+<h3 id="agent-passport" data-asp-heading="Agent Passport">Agent Passport</h3>
+<p><a href="https://github.com/0al-spec/agent-passport">Agent Passport</a> is identity and
+capability evidence for an agent. It can describe the agent, its declared
+capabilities, resource requirements, security policies, integrity hashes,
+lifecycle, issuer, and signature.</p>
+<p>An Agent Passport does <strong>not</strong> by itself grant authority inside an application.
+It answers &quot;what is this agent and what has been attested about it?&quot; A grant
+answers &quot;what has this user allowed this runtime-agent-passport tuple to do in
+this application context?&quot;</p>
+<p>Passport is evidence, not authority.</p>
+<h3 id="agent-grant" data-asp-heading="Agent Grant">Agent Grant</h3>
+<p>A user-approved, app-scoped, policy-bound delegation object.</p>
+<p>The grant is the semantic authorization. Tokens, cookies, JWTs, capability URLs,
+sender-constrained credentials, or signed objects are transport representations.
+A grant SHOULD be temporary, constrained, auditable, revocable, and bound to the
+user, application, runtime, agent, and passport evidence.</p>
+<h3 id="grant-credential" data-asp-heading="Grant Credential">Grant Credential</h3>
+<p>A concrete credential or proof used to represent or prove an Agent Grant on the
+wire. Examples include opaque bearer tokens, sender-constrained tokens, DPoP
+proofs, mTLS-bound tokens, JWTs, macaroon-like capabilities, signed delegation
+objects, or app-side server sessions.</p>
+<p>A <code>grant_id</code> is an identifier. It is not, by itself, authority.</p>
+<h3 id="capability-lease" data-asp-heading="Capability Lease">Capability Lease</h3>
+<p>An informal term for a time-limited, attenuated grant. A capability lease grants
+only specific capabilities, under caveats such as duration, resource bounds,
+approval requirements, max actions, or max spend.</p>
+<h3 id="action" data-asp-heading="Action">Action</h3>
+<p>A typed operation exposed by an Agent Surface. Examples:</p>
+<ul>
+<li><code>comment.propose</code></li>
+<li><code>comment.create</code></li>
+<li><code>pull_request.review.submit</code></li>
+<li><code>task.assign</code></li>
+<li><code>invoice.refund.request</code></li>
+</ul>
+<h3 id="resource" data-asp-heading="Resource">Resource</h3>
+<p>A typed object or collection exposed by an Agent Surface. Examples:</p>
+<ul>
+<li><code>pull_request</code></li>
+<li><code>issue</code></li>
+<li><code>task</code></li>
+<li><code>document</code></li>
+<li><code>invoice</code></li>
+</ul>
+<h3 id="event" data-asp-heading="Event">Event</h3>
+<p>A typed notification exposed by an Agent Surface or runtime. Examples:</p>
+<ul>
+<li><code>review.requested</code></li>
+<li><code>ci.failed</code></li>
+<li><code>task.created</code></li>
+<li><code>grant.revoked</code></li>
+</ul>
+<h3 id="receipt" data-asp-heading="Receipt">Receipt</h3>
+<p>Portable evidence that an action occurred, including the grant, session, agent,
+passport hash, input hash, output hash, approval, timestamp, and result.</p>
+<p>Receipts can be stored locally, in the application, in enterprise audit systems,
+or in a provenance graph.</p>
+<p>This proposal distinguishes:</p>
+<ul>
+<li><strong>Runtime Receipt</strong>: evidence observed and produced by the runtime, such as
+agent intent, policy evaluation, and local user approval.</li>
+<li><strong>App Receipt</strong>: evidence produced by the application that a mutation was
+actually performed or denied under a grant.</li>
+</ul>
+<h2 id="design-principles" data-asp-heading="Design Principles">Design Principles</h2>
+<h3 id="user-is-the-principal" data-asp-heading="User Is the Principal">User Is the Principal</h3>
+<p>The user chooses whether to delegate work to an agent. The app MAY expose a
+surface and request consent, but it MUST NOT silently select an agent or claim
+that a user's agent acts on behalf of the app.</p>
+<h3 id="app-exposes-runtime-mediates-agent-executes" data-asp-heading="App Exposes, Runtime Mediates, Agent Executes">App Exposes, Runtime Mediates, Agent Executes</h3>
+<p>The application exposes typed affordances. The runtime mediates access to those
+affordances. The agent executes delegated work through the runtime.</p>
+<pre><code class="language-text">User
+  -&gt; authorizes grant
+Runtime / Policy Enforcement Point
+  -&gt; verifies Agent Passport
+  -&gt; supervises User-Owned Agent
+Agent
+  -&gt; requests typed actions
+Runtime
+  -&gt; enforces local policy and grant caveats
+Application
+  -&gt; enforces app-side grant scopes
+</code></pre>
+<h3 id="grant-is-more-important-than-token" data-asp-heading="Grant Is More Important Than Token">Grant Is More Important Than Token</h3>
+<p>A token is a bearer mechanism, proof key, or API credential. A grant is the
+semantic delegation:</p>
+<pre><code class="language-text">This user allowed this runtime-agent-passport tuple to perform these typed
+actions in this app context under these constraints until this expiration.
+</code></pre>
+<p>Implementations MAY represent a grant as an opaque token, OAuth access token,
+sender-constrained token, signed object, macaroon-like capability, or server-side
+grant identifier. The protocol model SHOULD still describe it as a grant.</p>
+<h3 id="grant-identifier-is-not-authority" data-asp-heading="Grant Identifier Is Not Authority">Grant Identifier Is Not Authority</h3>
+<p>Applications MUST NOT authorize an action based only on a client-supplied
+<code>grant_id</code>.</p>
+<p>A request that includes <code>grant_id</code> MUST also be authorized by an app-verifiable
+grant credential, server-side grant state, signed delegation object,
+introspection result, sender-constrained proof, or equivalent authorization
+mechanism.</p>
+<h3 id="app-side-enforcement-is-mandatory" data-asp-heading="App-Side Enforcement Is Mandatory">App-Side Enforcement Is Mandatory</h3>
+<p>Runtime policy is necessary but not sufficient.</p>
+<p>The runtime protects the user. The app protects its resources.</p>
+<p>An application MUST verify grant authority for every action. It MUST NOT accept a
+runtime's self-assertion that a grant exists without an app-verifiable token,
+signed delegation object, introspection result, or equivalent authorization
+mechanism.</p>
+<h3 id="agent-does-not-receive-raw-authority" data-asp-heading="Agent Does Not Receive Raw Authority">Agent Does Not Receive Raw Authority</h3>
+<p>Where practical, the agent SHOULD NOT receive the grant secret, OAuth access
+token, cookie, session key, or broad application credential. The agent SHOULD
+request typed actions from the runtime:</p>
+<pre><code class="language-text">Agent -&gt; Runtime -&gt; App Agent Surface
+</code></pre>
+<p>The runtime can then enforce local policy, approvals, idempotency, auditing, and
+redaction before sending anything to the app.</p>
+<h3 id="proposal-mode-is-the-default" data-asp-heading="Proposal Mode Is the Default">Proposal Mode Is the Default</h3>
+<p>The first safe interaction mode SHOULD be:</p>
+<pre><code class="language-text">read -&gt; draft/propose -&gt; human or app approval -&gt; write -&gt; receipt
+</code></pre>
+<p>Direct writes without approval can exist for mature grants and low-risk actions,
+but the protocol SHOULD make proposal flows first-class.</p>
+<h3 id="every-write-is-idempotent" data-asp-heading="Every Write Is Idempotent">Every Write Is Idempotent</h3>
+<p>Any action with side effects MUST support idempotency. Retries, network
+reconnects, agent loops, and duplicate messages MUST NOT create ten comments, ten
+branches, ten refund requests, or ten approvals.</p>
+<h3 id="receipts-are-first-class" data-asp-heading="Receipts Are First-Class">Receipts Are First-Class</h3>
+<p>Audit logs are useful, but action receipts are portable. A receipt SHOULD be
+created for every successful side-effecting action and for important denied or
+failed actions.</p>
+<h2 id="relationship-to-existing-protocols" data-asp-heading="Relationship to Existing Protocols">Relationship to Existing Protocols</h2>
+<h3 id="model-context-protocol" data-asp-heading="Model Context Protocol">Model Context Protocol</h3>
+<p>The Model Context Protocol specification describes an open protocol for
+connecting LLM applications to external data sources and tools:</p>
+<p><a href="https://modelcontextprotocol.io/specification/2025-06-18">https://modelcontextprotocol.io/specification/2025-06-18</a></p>
+<p>MCP is primarily a context and tool integration protocol for agents and LLM
+applications. It helps an agent reach external data sources and tools, including
+data and operations that live inside applications, so the agent can enrich its
+working context and call available tools.</p>
+<p>That is different from admitting a user-owned agent into an application authority
+model. MCP servers, direct CLI integrations, and direct API integrations can be
+useful substrates below an agent or runtime, but they do not by themselves define
+an app-native delegation contract, user-approved Agent Grants, app-side grant
+enforcement, risk labels, approval semantics, revocation semantics, or portable
+receipts.</p>
+<p>More importantly, MCP makes agents more capable, but it does not by itself make
+ordinary applications agentic. In an MCP-only integration, the application often
+remains a data source or tool provider reached from the outside:</p>
+<pre><code class="language-text">MCP-only:
+User &lt;-&gt; Application &lt;- Agent &lt;-&gt; User
+</code></pre>
+<p>Agent Surface Protocol is the application augmentation layer. It gives an
+ordinary application a typed way to accept a user-owned agent as a delegated
+participant in application workflows:</p>
+<pre><code class="language-text">ASP:
+User &lt;-&gt; Application &lt;-&gt; Agent &lt;-&gt; User
+</code></pre>
+<p>At the product level, this collapses into a simpler user experience:</p>
+<pre><code class="language-text">User &lt;-&gt; AI-App
+</code></pre>
+<p>In this framing, the agent is not merely extracting application data to enrich
+its own context. The application itself becomes AI-augmented: it exposes typed
+affordances, receives user-authorized agent participation, and can render,
+approve, constrain, revoke, and receipt agent work as part of the application
+experience.</p>
+<h3 id="agent-client-protocol" data-asp-heading="Agent Client Protocol">Agent Client Protocol</h3>
+<p>Agent Client Protocol focuses on communication between clients such as editors
+and coding agents, including local and remote agent scenarios:</p>
+<p><a href="https://agentclientprotocol.com/protocol/v1/overview">https://agentclientprotocol.com/protocol/v1/overview</a></p>
+<p>ACP can be an Agent Adapter Protocol below an application runtime. Agent Surface
+Protocol does not replace ACP; it defines how a user grants a user-owned agent
+authority inside an application context.</p>
+<p>Where ACP places environment management, user interaction, and resource access
+under the Client role, ASP makes those responsibilities explicit as
+Application-owned surfaces, grants, approvals, and receipts.</p>
+<p>The practical composition is not &quot;ASP or ACP&quot;. ACP can sit inside an
+application, wrapped by ASP as the application-facing augmentation layer. In
+Hypercode structural notation, with <code>.hcs</code> values and contracts omitted:</p>
+<pre><code class="language-hypercode">AIApplication
+  UserInterface
+  AgentSurfaceProtocolLayer
+    ApplicationResources
+    ApplicationActions
+    AgentGrantRegistry
+    ApprovalPolicy
+    ActionReceiptLog
+    ACPAgentAdapter
+      ApplicationRuntimeClient
+      UserOwnedAgent
+      AgentSession
+</code></pre>
+<p>In that shape, ACP standardizes the operational conversation between the
+application runtime and the agent. ASP defines the application shell around that
+conversation: what the application exposes, what the user delegates, what the
+agent can do inside the product, and how the product presents, approves,
+constrains, revokes, and receipts agent participation.</p>
+<pre><code class="language-text">ACP:
+ApplicationRuntime &lt;-&gt; Agent
+
+ASP around ACP:
+User &lt;-&gt; Application
+          |
+          +-- ASP layer
+              |
+              +-- ACP adapter &lt;-&gt; Agent
+
+Product view:
+User &lt;-&gt; AI-App
+</code></pre>
+<h3 id="oauth" data-asp-heading="OAuth">OAuth</h3>
+<p>OAuth 2.0 remains a practical substrate for consent, authorization codes, scopes,
+refresh, revocation, token introspection, token exchange, and resource
+indicators.</p>
+<p>Relevant standards:</p>
+<ul>
+<li>OAuth 2.0: <a href="https://www.rfc-editor.org/rfc/rfc6749">https://www.rfc-editor.org/rfc/rfc6749</a></li>
+<li>OAuth 2.0 Token Revocation: <a href="https://www.rfc-editor.org/rfc/rfc7009">https://www.rfc-editor.org/rfc/rfc7009</a></li>
+<li>OAuth 2.0 Token Introspection: <a href="https://www.rfc-editor.org/rfc/rfc7662">https://www.rfc-editor.org/rfc/rfc7662</a></li>
+<li>OAuth 2.0 Token Exchange: <a href="https://www.rfc-editor.org/rfc/rfc8693">https://www.rfc-editor.org/rfc/rfc8693</a></li>
+<li>OAuth 2.0 Resource Indicators: <a href="https://www.rfc-editor.org/rfc/rfc8707">https://www.rfc-editor.org/rfc/rfc8707</a></li>
+</ul>
+<p>Agent Surface Protocol uses the term <strong>grant</strong> for the semantic object,
+even when an OAuth access token is the transport representation.</p>
+<p>If OAuth is used, <code>agent_delegation</code> MAY be represented as an OAuth extension
+grant type. <code>agent_delegation</code> is not a standard OAuth grant type in this draft.</p>
+<p>Implementations MAY also use existing OAuth flows, including:</p>
+<ul>
+<li>Authorization Code with PKCE and additional agent delegation parameters.</li>
+<li>OAuth Token Exchange to exchange a user-authorized credential for an
+agent-scoped grant credential.</li>
+<li>Resource Indicators to constrain the resource server or app surface.</li>
+</ul>
+<h3 id="agent-passport-2" data-asp-heading="Agent Passport">Agent Passport</h3>
+<p><a href="https://github.com/0al-spec/agent-passport">Agent Passport</a> provides agent
+identity, capability, policy, lifecycle, signature, and integrity evidence.</p>
+<p>Agent Surface Protocol consumes Agent Passport evidence during grant issuance and
+runtime mediation:</p>
+<ul>
+<li>Is this agent known?</li>
+<li>Who issued or signed its passport?</li>
+<li>What capabilities does it declare?</li>
+<li>What runtime or resource constraints does it require?</li>
+<li>Has the passport expired or been revoked?</li>
+<li>Does the passport hash match the executable agent?</li>
+</ul>
+<p>But the passport itself does not authorize application actions.</p>
+<h3 id="did-and-verifiable-credentials" data-asp-heading="DID and Verifiable Credentials">DID and Verifiable Credentials</h3>
+<p>Decentralized Identifiers and Verifiable Credentials can be useful for future
+signed grants, issuer trust, and portable delegation proofs:</p>
+<ul>
+<li>DID Core: <a href="https://www.w3.org/TR/did-core/">https://www.w3.org/TR/did-core/</a></li>
+<li>Verifiable Credentials Data Model: <a href="https://www.w3.org/TR/vc-data-model-2.0/">https://www.w3.org/TR/vc-data-model-2.0/</a></li>
+</ul>
+<p>This draft does not require DID or VC for the MVP.</p>
+<h2 id="conceptual-architecture" data-asp-heading="Conceptual Architecture">Conceptual Architecture</h2>
+<pre><code class="language-text">Browser / App UI
+        |
+        | HTTPS / SSE / WebSocket
+        v
+Application Control Plane
+  - publishes Agent Surface Manifest
+  - issues or validates Agent Grants
+  - enforces app-side scopes
+  - emits app events
+        ^
+        | outbound WSS / HTTPS from runtime
+        v
+Application Runtime
+  - pairs with app/account
+  - verifies Agent Passport
+  - stores grants
+  - applies local policy
+  - obtains local approvals
+  - supervises agent adapters
+  - writes audit log and receipts
+        |
+        | adapter boundary
+        v
+User-Owned Agent
+  - local CLI agent
+  - hosted coding agent
+  - ACP agent
+  - MCP-backed workflow
+  - custom command
+</code></pre>
+<p>The browser can interact with the application control plane. It does not need to
+connect directly to the local runtime.</p>
+<h2 id="protocol-layers" data-asp-heading="Protocol Layers">Protocol Layers</h2>
+<p>Agent Surface Protocol is specified as four separable layers.</p>
+<h3 id="1-agent-surface-manifest" data-asp-heading="1. Agent Surface Manifest">1. Agent Surface Manifest</h3>
+<p>The application-published affordance contract:</p>
+<ul>
+<li>app identity</li>
+<li>surface version</li>
+<li>resources</li>
+<li>actions</li>
+<li>events</li>
+<li>scopes</li>
+<li>JSON Schemas</li>
+<li>risk labels</li>
+<li>approval hints</li>
+<li>idempotency requirements</li>
+<li>receipt requirements</li>
+<li>auth endpoints</li>
+<li>action endpoints</li>
+<li>event endpoints</li>
+<li>receipt endpoints</li>
+<li>revocation endpoints</li>
+</ul>
+<h3 id="2-agent-grant-protocol" data-asp-heading="2. Agent Grant Protocol">2. Agent Grant Protocol</h3>
+<p>The user-mediated authorization lifecycle:</p>
+<ul>
+<li>grant request</li>
+<li>consent presentation</li>
+<li>runtime binding</li>
+<li>agent binding</li>
+<li>passport binding</li>
+<li>scope constraints</li>
+<li>expiration</li>
+<li>refresh</li>
+<li>revocation</li>
+<li>introspection</li>
+<li>receipt linkage</li>
+</ul>
+<h3 id="3-runtime-bridge-protocol" data-asp-heading="3. Runtime Bridge Protocol">3. Runtime Bridge Protocol</h3>
+<p>The runtime-to-control-plane channel. A conforming application MAY expose this
+kind of channel using typed session and approval messages such as:</p>
+<ul>
+<li><code>runtime.hello</code></li>
+<li><code>runtime.accepted</code></li>
+<li><code>session.start</code></li>
+<li><code>session.event</code></li>
+<li><code>session.cancel</code></li>
+<li><code>approval.required</code></li>
+<li><code>approval.resolved</code></li>
+</ul>
+<p>This layer is transport and session orchestration. It is not intended to absorb
+all Agent Surface semantics.</p>
+<h3 id="4-agent-adapter-protocol" data-asp-heading="4. Agent Adapter Protocol">4. Agent Adapter Protocol</h3>
+<p>The runtime-to-agent integration layer:</p>
+<ul>
+<li><code>custom-command</code></li>
+<li><code>codex-cli</code></li>
+<li><code>claude-code</code></li>
+<li><code>acp-stdio</code></li>
+<li><code>mcp-client</code></li>
+<li><code>mcp-server</code></li>
+</ul>
+<p>The adapter layer turns a concrete agent into a runtime-mediated worker.</p>
+<h2 id="agent-surface-manifest-2" data-asp-heading="Agent Surface Manifest">Agent Surface Manifest</h2>
+<h3 id="discovery" data-asp-heading="Discovery">Discovery</h3>
+<p>Applications SHOULD publish a manifest at:</p>
+<pre><code class="language-text">https://example.com/.well-known/agent-surface.json
+</code></pre>
+<p>For multi-tenant SaaS systems, the public well-known manifest SHOULD describe
+tenant-independent capabilities. Tenant-specific surfaces MAY be discovered
+through authenticated application metadata or through tenant-specific origins,
+such as:</p>
+<pre><code class="language-text">https://tenant.example.com/.well-known/agent-surface.json
+</code></pre>
+<p>If the manifest contains sensitive tenant-specific affordances, it MUST require
+ordinary authenticated app access.</p>
+<p>The manifest SHOULD be served with:</p>
+<pre><code class="language-http">Content-Type: application/json
+Cache-Control: max-age=300
+</code></pre>
+<h3 id="required-top-level-fields" data-asp-heading="Required Top-Level Fields">Required Top-Level Fields</h3>
+<pre><code class="language-json">{
+  &quot;protocol&quot;: &quot;agent-surface/0.1&quot;,
+  &quot;app_id&quot;: &quot;com.example.project-tool&quot;,
+  &quot;issuer&quot;: &quot;https://example.com&quot;,
+  &quot;surface_version&quot;: &quot;2026-06-25&quot;,
+  &quot;surface_url&quot;: &quot;https://example.com/.well-known/agent-surface.json&quot;,
+  &quot;auth&quot;: {},
+  &quot;agent_api&quot;: {},
+  &quot;scopes&quot;: [],
+  &quot;resources&quot;: [],
+  &quot;actions&quot;: [],
+  &quot;events&quot;: [],
+  &quot;audit&quot;: {},
+  &quot;revocation&quot;: {}
+}
+</code></pre>
+<h3 id="endpoints" data-asp-heading="Endpoints">Endpoints</h3>
+<p>The manifest MUST declare enough endpoint information for a runtime to obtain or
+validate a grant and invoke typed actions.</p>
+<p>This draft separates OAuth-style authorization endpoints from application action
+endpoints.</p>
+<p>Example:</p>
+<pre><code class="language-json">{
+  &quot;auth&quot;: {
+    &quot;type&quot;: &quot;oauth2&quot;,
+    &quot;authorization_url&quot;: &quot;https://example.com/oauth/authorize&quot;,
+    &quot;token_url&quot;: &quot;https://example.com/oauth/token&quot;,
+    &quot;introspection_url&quot;: &quot;https://example.com/oauth/introspect&quot;,
+    &quot;revocation_url&quot;: &quot;https://example.com/oauth/revoke&quot;
+  },
+  &quot;agent_api&quot;: {
+    &quot;grant_request_url&quot;: &quot;https://example.com/agent-grants/request&quot;,
+    &quot;grant_introspection_url&quot;: &quot;https://example.com/agent-grants/introspect&quot;,
+    &quot;grant_revocation_url&quot;: &quot;https://example.com/agent-grants/revoke&quot;,
+    &quot;action_url&quot;: &quot;https://example.com/agent-actions&quot;,
+    &quot;event_subscription_url&quot;: &quot;https://example.com/agent-events&quot;,
+    &quot;receipt_url&quot;: &quot;https://example.com/agent-receipts&quot;
+  }
+}
+</code></pre>
+<p>Implementations MAY collapse these endpoints when the application already has
+equivalent OAuth or API infrastructure, but the manifest MUST make the wire-level
+surface discoverable.</p>
+<h3 id="example-manifest" data-asp-heading="Example Manifest">Example Manifest</h3>
+<pre><code class="language-json">{
+  &quot;protocol&quot;: &quot;agent-surface/0.1&quot;,
+  &quot;app_id&quot;: &quot;com.example.project-tool&quot;,
+  &quot;issuer&quot;: &quot;https://example.com&quot;,
+  &quot;surface_version&quot;: &quot;2026-06-25&quot;,
+  &quot;surface_url&quot;: &quot;https://example.com/.well-known/agent-surface.json&quot;,
+  &quot;compatibility&quot;: {
+    &quot;min_runtime&quot;: &quot;application-runtime/0.1&quot;,
+    &quot;schema_dialect&quot;: &quot;https://json-schema.org/draft/2020-12/schema&quot;
+  },
+  &quot;auth&quot;: {
+    &quot;type&quot;: &quot;oauth2&quot;,
+    &quot;authorization_url&quot;: &quot;https://example.com/oauth/authorize&quot;,
+    &quot;token_url&quot;: &quot;https://example.com/oauth/token&quot;,
+    &quot;introspection_url&quot;: &quot;https://example.com/oauth/introspect&quot;,
+    &quot;revocation_url&quot;: &quot;https://example.com/oauth/revoke&quot;,
+    &quot;grant_types&quot;: [&quot;agent_delegation&quot;],
+    &quot;token_binding&quot;: [&quot;runtime&quot;, &quot;agent_passport_hash&quot;],
+    &quot;pkce_required&quot;: true
+  },
+  &quot;agent_api&quot;: {
+    &quot;grant_request_url&quot;: &quot;https://example.com/agent-grants/request&quot;,
+    &quot;grant_introspection_url&quot;: &quot;https://example.com/agent-grants/introspect&quot;,
+    &quot;grant_revocation_url&quot;: &quot;https://example.com/agent-grants/revoke&quot;,
+    &quot;action_url&quot;: &quot;https://example.com/agent-actions&quot;,
+    &quot;event_subscription_url&quot;: &quot;https://example.com/agent-events&quot;,
+    &quot;receipt_url&quot;: &quot;https://example.com/agent-receipts&quot;
+  },
+  &quot;scopes&quot;: [
+    {
+      &quot;id&quot;: &quot;tasks.read&quot;,
+      &quot;description&quot;: &quot;Read tasks visible to the user.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;comments.propose&quot;,
+      &quot;description&quot;: &quot;Prepare comments without committing them.&quot;
+    },
+    {
+      &quot;id&quot;: &quot;comments.write&quot;,
+      &quot;description&quot;: &quot;Create comments in the application.&quot;
+    }
+  ],
+  &quot;resources&quot;: [
+    {
+      &quot;id&quot;: &quot;task&quot;,
+      &quot;read_scope&quot;: &quot;tasks.read&quot;,
+      &quot;schema&quot;: &quot;https://example.com/schemas/task.schema.json&quot;
+    }
+  ],
+  &quot;actions&quot;: [
+    {
+      &quot;id&quot;: &quot;comment.propose&quot;,
+      &quot;scope&quot;: &quot;comments.propose&quot;,
+      &quot;risk&quot;: &quot;propose&quot;,
+      &quot;side_effect&quot;: false,
+      &quot;approval&quot;: &quot;none&quot;,
+      &quot;execution&quot;: {
+        &quot;mode&quot;: &quot;direct&quot;
+      },
+      &quot;input_schema&quot;: &quot;https://example.com/schemas/comment-propose.input.schema.json&quot;,
+      &quot;output_schema&quot;: &quot;https://example.com/schemas/comment-propose.output.schema.json&quot;
+    },
+    {
+      &quot;id&quot;: &quot;comment.create&quot;,
+      &quot;scope&quot;: &quot;comments.write&quot;,
+      &quot;risk&quot;: &quot;write&quot;,
+      &quot;side_effect&quot;: true,
+      &quot;approval&quot;: &quot;user_or_app&quot;,
+      &quot;idempotency&quot;: &quot;required&quot;,
+      &quot;execution&quot;: {
+        &quot;mode&quot;: &quot;write&quot;,
+        &quot;proposal_action&quot;: &quot;comment.propose&quot;
+      },
+      &quot;input_schema&quot;: &quot;https://example.com/schemas/comment-create.input.schema.json&quot;,
+      &quot;output_schema&quot;: &quot;https://example.com/schemas/comment-create.output.schema.json&quot;,
+      &quot;receipt&quot;: &quot;required&quot;
+    }
+  ],
+  &quot;events&quot;: [
+    {
+      &quot;id&quot;: &quot;task.created&quot;,
+      &quot;scope&quot;: &quot;tasks.read&quot;,
+      &quot;schema&quot;: &quot;https://example.com/schemas/task-created.event.schema.json&quot;
+    },
+    {
+      &quot;id&quot;: &quot;review.requested&quot;,
+      &quot;scope&quot;: &quot;tasks.read&quot;,
+      &quot;schema&quot;: &quot;https://example.com/schemas/review-requested.event.schema.json&quot;
+    }
+  ],
+  &quot;audit&quot;: {
+    &quot;receipt_schema&quot;: &quot;https://example.com/schemas/action-receipt.schema.json&quot;,
+    &quot;required_fields&quot;: [
+      &quot;grant_id&quot;,
+      &quot;session_id&quot;,
+      &quot;action_id&quot;,
+      &quot;actor_agent&quot;,
+      &quot;user&quot;,
+      &quot;timestamp&quot;,
+      &quot;result&quot;
+    ]
+  },
+  &quot;revocation&quot;: {
+    &quot;grant_revocation_url&quot;: &quot;https://example.com/agent-grants/revoke&quot;,
+    &quot;event&quot;: &quot;grant.revoked&quot;
+  }
+}
+</code></pre>
+<h3 id="resources" data-asp-heading="Resources">Resources</h3>
+<p>Resources describe data the agent MAY read, reference, or attach to an action.</p>
+<p>Each resource SHOULD include:</p>
+<ul>
+<li><code>id</code></li>
+<li><code>read_scope</code></li>
+<li><code>schema</code></li>
+<li>optional <code>query_actions</code></li>
+<li>optional <code>redaction_policy</code></li>
+<li>optional <code>retention_policy</code></li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;pull_request&quot;,
+  &quot;read_scope&quot;: &quot;pull_request.read&quot;,
+  &quot;schema&quot;: &quot;https://github.example/schemas/pull-request.schema.json&quot;,
+  &quot;query_actions&quot;: [&quot;pull_request.get&quot;, &quot;pull_request.list_files&quot;],
+  &quot;redaction_policy&quot;: &quot;repository-visible-fields-only&quot;
+}
+</code></pre>
+<h3 id="actions" data-asp-heading="Actions">Actions</h3>
+<p>Actions are typed operations the app allows agents to request through a runtime.</p>
+<p>Each action SHOULD include:</p>
+<ul>
+<li><code>id</code></li>
+<li><code>scope</code></li>
+<li><code>risk</code></li>
+<li><code>approval</code></li>
+<li><code>input_schema</code></li>
+<li><code>output_schema</code></li>
+<li><code>side_effect</code></li>
+<li><code>execution</code></li>
+<li><code>idempotency</code> for side-effecting actions</li>
+<li><code>receipt</code> for side-effecting actions</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;pull_request.review.submit&quot;,
+  &quot;scope&quot;: &quot;pull_request.review.write&quot;,
+  &quot;risk&quot;: &quot;write&quot;,
+  &quot;side_effect&quot;: true,
+  &quot;approval&quot;: &quot;user_or_app&quot;,
+  &quot;idempotency&quot;: &quot;required&quot;,
+  &quot;execution&quot;: {
+    &quot;mode&quot;: &quot;write&quot;,
+    &quot;proposal_action&quot;: &quot;pull_request.review.propose&quot;
+  },
+  &quot;input_schema&quot;: &quot;https://example.com/schemas/pr-review-submit.input.schema.json&quot;,
+  &quot;output_schema&quot;: &quot;https://example.com/schemas/pr-review-submit.output.schema.json&quot;,
+  &quot;receipt&quot;: &quot;required&quot;
+}
+</code></pre>
+<h3 id="proposal-only-support" data-asp-heading="Proposal-Only Support">Proposal-Only Support</h3>
+<p>Applications that are not ready to allow direct agent writes SHOULD expose
+proposal-only actions.</p>
+<p>A proposal-only action is a typed action whose output is a draft, suggestion,
+patch, review body, or other non-committed artifact.</p>
+<p>Example:</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;pull_request.review.propose&quot;,
+  &quot;scope&quot;: &quot;pull_request.review.propose&quot;,
+  &quot;risk&quot;: &quot;propose&quot;,
+  &quot;side_effect&quot;: false,
+  &quot;approval&quot;: &quot;none&quot;,
+  &quot;execution&quot;: {
+    &quot;mode&quot;: &quot;proposal_only&quot;
+  },
+  &quot;input_schema&quot;: &quot;https://example.com/schemas/pr-review-propose.input.schema.json&quot;,
+  &quot;output_schema&quot;: &quot;https://example.com/schemas/pr-review-propose.output.schema.json&quot;
+}
+</code></pre>
+<p>If a write action depends on a proposal, it SHOULD reference the proposal action:</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;pull_request.review.submit&quot;,
+  &quot;execution&quot;: {
+    &quot;mode&quot;: &quot;write&quot;,
+    &quot;proposal_action&quot;: &quot;pull_request.review.propose&quot;
+  }
+}
+</code></pre>
+<p>This allows early adopters to become agent-native without allowing direct writes.</p>
+<h3 id="events" data-asp-heading="Events">Events</h3>
+<p>Events let applications notify runtimes and agents about app context changes.</p>
+<p>Events SHOULD be scoped. A grant that permits <code>pull_request.read</code> MAY receive
+<code>pull_request.updated</code>, but SHOULD NOT receive unrelated financial, HR, or admin
+events.</p>
+<p>Example:</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;ci.failed&quot;,
+  &quot;scope&quot;: &quot;pull_request.read&quot;,
+  &quot;schema&quot;: &quot;https://example.com/schemas/ci-failed.event.schema.json&quot;
+}
+</code></pre>
+<h2 id="risk-taxonomy" data-asp-heading="Risk Taxonomy">Risk Taxonomy</h2>
+<p>Every action SHOULD have a standard risk label. Runtimes can map risk labels to
+local policy defaults.</p>
+<p>| Risk | Meaning | Suggested Default |
+| --- | --- | --- |
+| <code>read</code> | Reads data visible under the grant. | Allow if scope permits. |
+| <code>propose</code> | Produces a draft, suggestion, or patch without committing it. | Allow and audit. |
+| <code>write</code> | Mutates app state. | Ask or require app approval. |
+| <code>public_side_effect</code> | Publishes, sends, or exposes user-visible or public content. | Ask; often require app-side confirmation. |
+| <code>external_side_effect</code> | Sends data or causes effects outside the app boundary. | Ask; often deny by default. |
+| <code>financial_side_effect</code> | Charges, refunds, purchases, invoices, payroll. | Always require explicit approval. |
+| <code>destructive</code> | Deletes, closes, revokes, disables, or irreversibly changes state. | Deny by default or require step-up approval. |
+| <code>privileged</code> | Changes permissions, secrets, tokens, admin settings, or access policy. | Deny by default. |</p>
+<p>Applications MAY define extension risk labels, but they SHOULD map them to the
+standard labels for runtime interoperability.</p>
+<h2 id="approval-semantics" data-asp-heading="Approval Semantics">Approval Semantics</h2>
+<p>Actions SHOULD declare an approval mode:</p>
+<p>| Approval | Meaning |
+| --- | --- |
+| <code>none</code> | Runtime MAY execute if grant and policy allow. |
+| <code>runtime</code> | Runtime MUST obtain local user approval before sending the action. |
+| <code>app</code> | App MUST obtain or verify app-side approval before committing. |
+| <code>user_or_app</code> | Either a runtime approval or app-side approval MAY satisfy the requirement, depending on grant caveats. |
+| <code>runtime_and_app</code> | Both runtime-side and app-side approval are required. |</p>
+<p>Approval records SHOULD be linked into receipts.</p>
+<h2 id="idempotency" data-asp-heading="Idempotency">Idempotency</h2>
+<p>Every side-effecting action MUST support idempotency.</p>
+<p>Action requests SHOULD include:</p>
+<pre><code class="language-json">{
+  &quot;idempotency_key&quot;: &quot;idem_01HX...&quot;,
+  &quot;action_id&quot;: &quot;comment.create&quot;
+}
+</code></pre>
+<p>The application MUST ensure repeated requests with the same idempotency key and
+same normalized input do not repeat the side effect.</p>
+<p>If the same key is reused with different normalized input, the application SHOULD
+return an idempotency conflict error.</p>
+<p>Applications SHOULD define the input normalization procedure per action, or use
+the declared input schema with a canonical JSON profile. A future draft is
+expected to define canonicalization requirements for signed receipts and signed
+grants.</p>
+<h2 id="agent-grant-2" data-asp-heading="Agent Grant">Agent Grant</h2>
+<h3 id="grant-object" data-asp-heading="Grant Object">Grant Object</h3>
+<p>An Agent Grant binds a user, runtime, agent, passport evidence, application,
+surface, scopes, and caveats.</p>
+<pre><code class="language-json">{
+  &quot;grant_id&quot;: &quot;grant_123&quot;,
+  &quot;subject&quot;: {
+    &quot;user&quot;: &quot;user_abc&quot;
+  },
+  &quot;delegate&quot;: {
+    &quot;runtime&quot;: &quot;application_runtime_456&quot;,
+    &quot;agent&quot;: &quot;local_agent_789&quot;,
+    &quot;passport_ref&quot;: &quot;agent-passport://local-agent&quot;,
+    &quot;passport_hash&quot;: &quot;sha256:...&quot;
+  },
+  &quot;resource_server&quot;: {
+    &quot;app_id&quot;: &quot;code.example.com&quot;,
+    &quot;issuer&quot;: &quot;https://code.example.com&quot;,
+    &quot;surface_version&quot;: &quot;code-review-agent-surface/0.1&quot;
+  },
+  &quot;scopes&quot;: [
+    &quot;pull_request.read&quot;,
+    &quot;pull_request.comment&quot;
+  ],
+  &quot;constraints&quot;: {
+    &quot;repositories&quot;: [&quot;example-org/example-repo&quot;],
+    &quot;pull_requests&quot;: [13],
+    &quot;expires_at&quot;: &quot;2026-06-25T20:00:00Z&quot;,
+    &quot;write_approval&quot;: &quot;required&quot;,
+    &quot;max_actions&quot;: 20,
+    &quot;max_cost_usd&quot;: 5
+  },
+  &quot;audit&quot;: {
+    &quot;local_receipt&quot;: &quot;required&quot;,
+    &quot;app_receipt&quot;: &quot;required&quot;
+  }
+}
+</code></pre>
+<h3 id="grant-lifecycle" data-asp-heading="Grant Lifecycle">Grant Lifecycle</h3>
+<pre><code class="language-text">discover surface
+  -&gt; verify manifest
+  -&gt; choose agent
+  -&gt; verify Agent Passport
+  -&gt; request grant
+  -&gt; user consent
+  -&gt; issue grant
+  -&gt; store grant in runtime
+  -&gt; start session
+  -&gt; mediate actions
+  -&gt; issue receipts
+  -&gt; expire / revoke / renew
+</code></pre>
+<h3 id="grant-issuance-models" data-asp-heading="Grant Issuance Models">Grant Issuance Models</h3>
+<h4 id="model-a-app-issued-grant" data-asp-heading="Model A: App-Issued Grant">Model A: App-Issued Grant</h4>
+<p>The application issues a grant after user consent.</p>
+<pre><code class="language-text">Runtime redirects user to app OAuth / consent
+App issues agent grant
+Runtime stores grant
+Runtime calls app with grant credential
+App verifies every call
+</code></pre>
+<p>This is the RECOMMENDED MVP model because it fits existing OAuth/resource-server
+deployments.</p>
+<p>Pros:</p>
+<ul>
+<li>Easy for applications to enforce.</li>
+<li>Works with existing consent and scope infrastructure.</li>
+<li>Does not require a new global trust authority.</li>
+</ul>
+<p>Cons:</p>
+<ul>
+<li>The app learns runtime and agent metadata.</li>
+<li>Each app needs to implement agent grant issuance.</li>
+</ul>
+<h4 id="model-b-runtime-held-grant-plus-app-token" data-asp-heading="Model B: Runtime-Held Grant Plus App Token">Model B: Runtime-Held Grant Plus App Token</h4>
+<p>The app issues a scoped token to the runtime. The runtime locally binds that
+token to an agent, passport, and policy.</p>
+<p>Pros:</p>
+<ul>
+<li>Simpler for early app integrations.</li>
+<li>Can work with existing OAuth tokens.</li>
+</ul>
+<p>Cons:</p>
+<ul>
+<li>The app can fail to know which agent actually acted.</li>
+<li>Weaker app-side audit unless receipts include runtime-attested metadata.</li>
+</ul>
+<h4 id="model-c-signed-delegation-object" data-asp-heading="Model C: Signed Delegation Object">Model C: Signed Delegation Object</h4>
+<p>The grant is a signed object with caveats. It MAY be signed by the app, user,
+runtime, enterprise authority, or some combination.</p>
+<p>Pros:</p>
+<ul>
+<li>Portable and cryptographically strong.</li>
+<li>Can support offline verification and third-party audit.</li>
+</ul>
+<p>Cons:</p>
+<ul>
+<li>Requires canonicalization, trust stores, signing profiles, revocation
+semantics, and stronger interop work.</li>
+<li>Too large for the first MVP.</li>
+</ul>
+<h3 id="grant-credentials-and-proof" data-asp-heading="Grant Credentials and Proof">Grant Credentials and Proof</h3>
+<p>An Agent Grant MAY be represented or proven by one of several mechanisms:</p>
+<ul>
+<li>bearer grant token</li>
+<li>sender-constrained token</li>
+<li>DPoP-bound token</li>
+<li>mTLS-bound token</li>
+<li>app-side server session binding</li>
+<li>token introspection result</li>
+<li>signed delegation object</li>
+<li>macaroon-like caveated capability</li>
+</ul>
+<p>A future draft is expected to define required proof profiles. The MVP profile
+MAY use app-issued bearer grant credentials, but production deployments SHOULD
+prefer sender-constrained credentials where practical.</p>
+<h3 id="grant-verification" data-asp-heading="Grant Verification">Grant Verification</h3>
+<p>Applications SHOULD verify every action against grant state:</p>
+<ul>
+<li>grant exists and is active</li>
+<li>grant credential or proof is valid</li>
+<li>grant is bound to the user</li>
+<li>grant is bound to the runtime when binding is required</li>
+<li>grant is bound to the agent/passport hash when binding is required</li>
+<li>scope permits the action</li>
+<li>resource constraints permit the target object</li>
+<li>expiration has not passed</li>
+<li>action count and cost bounds have not been exceeded</li>
+<li>approval caveats are satisfied</li>
+<li>idempotency key is valid</li>
+</ul>
+<p>Runtimes SHOULD verify:</p>
+<ul>
+<li>grant is active</li>
+<li>local user has not revoked the app, runtime, or agent</li>
+<li>Agent Passport is valid</li>
+<li>requested action is compatible with the Agent Passport capability set</li>
+<li>local policy allows the action</li>
+<li>local approval is present when required</li>
+<li>action input matches the declared schema</li>
+<li>secrets and credentials are not exposed to the agent</li>
+</ul>
+<h2 id="capability-matching" data-asp-heading="Capability Matching">Capability Matching</h2>
+<p>Capability matching is an advisory process used by the runtime to help the user
+choose a compatible agent. It does not invert authority.</p>
+<p>Incorrect framing:</p>
+<pre><code class="language-text">The app needs an agent with capability X, so the runtime picks one.
+</code></pre>
+<p>Correct framing:</p>
+<pre><code class="language-text">The app exposes actions X/Y/Z.
+The user wants to delegate work in that app.
+The runtime compares app requirements with passports of user-owned agents.
+The user authorizes a specific runtime-agent-passport tuple through a grant.
+</code></pre>
+<p>Matching inputs:</p>
+<ul>
+<li>action <code>capability_hint</code></li>
+<li>action schemas</li>
+<li>required scopes</li>
+<li>risk labels</li>
+<li>Agent Passport capabilities</li>
+<li>Agent Passport security policy</li>
+<li>local runtime adapter availability</li>
+<li>user preferences</li>
+<li>enterprise policy</li>
+</ul>
+<p>Matching outputs:</p>
+<ul>
+<li>compatible agents</li>
+<li>missing capabilities</li>
+<li>required scopes</li>
+<li>required approvals</li>
+<li>risk summary</li>
+<li>expected sandbox constraints</li>
+</ul>
+<p>The matching result is shown to the user before grant issuance.</p>
+<h2 id="sessions-and-actions" data-asp-heading="Sessions and Actions">Sessions and Actions</h2>
+<h3 id="session-start" data-asp-heading="Session Start">Session Start</h3>
+<p>Once a grant exists, an application or runtime MAY start a session.</p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;session.start&quot;,
+  &quot;payload&quot;: {
+    &quot;session_id&quot;: &quot;sess_456&quot;,
+    &quot;grant_id&quot;: &quot;grant_123&quot;,
+    &quot;agent_id&quot;: &quot;local_agent_789&quot;,
+    &quot;surface&quot;: {
+      &quot;app_id&quot;: &quot;code.example.com&quot;,
+      &quot;surface_version&quot;: &quot;code-review-agent-surface/0.1&quot;
+    },
+    &quot;task&quot;: {
+      &quot;kind&quot;: &quot;pull_request.review&quot;,
+      &quot;goal&quot;: &quot;Review PR #13 and propose a concise review comment.&quot;,
+      &quot;inputs&quot;: {
+        &quot;repository&quot;: &quot;example-org/example-repo&quot;,
+        &quot;pull_request&quot;: 13
+      }
+    }
+  }
+}
+</code></pre>
+<h3 id="action-request" data-asp-heading="Action Request">Action Request</h3>
+<p>The agent requests an action through the runtime. The runtime sends the action to
+the app only if grant and policy allow it.</p>
+<p>The action request MUST be authorized by the HTTP authorization layer or an
+equivalent proof. The <code>grant_id</code> inside the body is a correlation identifier, not
+a credential.</p>
+<p>Example:</p>
+<pre><code class="language-http">POST /agent-actions HTTP/1.1
+Host: example.com
+Authorization: Bearer &lt;grant-credential&gt;
+Idempotency-Key: idem_01HX7DS8AC6G9
+Content-Type: application/json
+</code></pre>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;action.request&quot;,
+  &quot;payload&quot;: {
+    &quot;session_id&quot;: &quot;sess_456&quot;,
+    &quot;grant_id&quot;: &quot;grant_123&quot;,
+    &quot;action_id&quot;: &quot;comment.create&quot;,
+    &quot;idempotency_key&quot;: &quot;idem_01HX7DS8AC6G9&quot;,
+    &quot;input&quot;: {
+      &quot;repository&quot;: &quot;example-org/example-repo&quot;,
+      &quot;pull_request&quot;: 13,
+      &quot;body&quot;: &quot;The proposed review comment text.&quot;
+    }
+  }
+}
+</code></pre>
+<p>If the runtime uses a signed proof instead of a bearer grant credential, the
+request SHOULD carry proof material in a standard authorization header or an
+explicit <code>proof</code> field.</p>
+<p>Example proof shape:</p>
+<pre><code class="language-json">{
+  &quot;proof&quot;: {
+    &quot;type&quot;: &quot;dpop+jwt&quot;,
+    &quot;jti&quot;: &quot;proof_123&quot;,
+    &quot;iat&quot;: 1782400000,
+    &quot;signature&quot;: &quot;...&quot;
+  }
+}
+</code></pre>
+<h3 id="action-response" data-asp-heading="Action Response">Action Response</h3>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;action.result&quot;,
+  &quot;payload&quot;: {
+    &quot;session_id&quot;: &quot;sess_456&quot;,
+    &quot;grant_id&quot;: &quot;grant_123&quot;,
+    &quot;action_id&quot;: &quot;comment.create&quot;,
+    &quot;idempotency_key&quot;: &quot;idem_01HX7DS8AC6G9&quot;,
+    &quot;result&quot;: &quot;success&quot;,
+    &quot;resource&quot;: {
+      &quot;type&quot;: &quot;comment&quot;,
+      &quot;id&quot;: &quot;comment_789&quot;,
+      &quot;url&quot;: &quot;https://code.example.com/example-org/example-repo/pull/13#discussion_r...&quot;
+    },
+    &quot;receipt_id&quot;: &quot;receipt_abc&quot;
+  }
+}
+</code></pre>
+<h3 id="proposal-flow" data-asp-heading="Proposal Flow">Proposal Flow</h3>
+<p>Proposal mode separates drafting from committing.</p>
+<pre><code class="language-text">Agent -&gt; comment.propose
+Runtime -&gt; local policy check
+App -&gt; stores draft/proposal
+User/App -&gt; approves
+App -&gt; comment.create
+Runtime/App -&gt; receipt
+</code></pre>
+<p>This is the RECOMMENDED default for early integrations.</p>
+<h2 id="receipts" data-asp-heading="Receipts">Receipts</h2>
+<h3 id="receipt-requirements" data-asp-heading="Receipt Requirements">Receipt Requirements</h3>
+<p>Receipts SHOULD include:</p>
+<ul>
+<li>receipt id</li>
+<li>receipt type</li>
+<li>grant id</li>
+<li>session id</li>
+<li>action id</li>
+<li>app id</li>
+<li>user id or stable pseudonymous user reference</li>
+<li>runtime id</li>
+<li>agent id</li>
+<li>Agent Passport hash</li>
+<li>surface version</li>
+<li>input hash</li>
+<li>output hash</li>
+<li>approval reference</li>
+<li>idempotency key</li>
+<li>timestamp</li>
+<li>result</li>
+<li>error classification when failed</li>
+</ul>
+<h3 id="runtime-receipt" data-asp-heading="Runtime Receipt">Runtime Receipt</h3>
+<p>A runtime receipt records what the runtime observed and enforced, such as agent
+intent, local policy decisions, local approvals, denials, and runtime-side
+redactions.</p>
+<pre><code class="language-json">{
+  &quot;receipt_id&quot;: &quot;receipt_runtime_abc&quot;,
+  &quot;receipt_type&quot;: &quot;runtime&quot;,
+  &quot;grant_id&quot;: &quot;grant_123&quot;,
+  &quot;session_id&quot;: &quot;sess_456&quot;,
+  &quot;action_id&quot;: &quot;comment.create&quot;,
+  &quot;actor_agent&quot;: {
+    &quot;agent_id&quot;: &quot;local_agent_789&quot;,
+    &quot;passport_hash&quot;: &quot;sha256:...&quot;
+  },
+  &quot;runtime&quot;: {
+    &quot;runtime_id&quot;: &quot;application_runtime_456&quot;
+  },
+  &quot;subject&quot;: {
+    &quot;user&quot;: &quot;user_abc&quot;
+  },
+  &quot;idempotency_key&quot;: &quot;idem_01HX7DS8AC6G9&quot;,
+  &quot;input_hash&quot;: &quot;sha256:...&quot;,
+  &quot;approved_by&quot;: {
+    &quot;type&quot;: &quot;runtime_user_approval&quot;,
+    &quot;approval_id&quot;: &quot;appr_123&quot;
+  },
+  &quot;timestamp&quot;: &quot;2026-06-25T16:30:00Z&quot;,
+  &quot;result&quot;: &quot;forwarded_to_app&quot;
+}
+</code></pre>
+<h3 id="app-receipt" data-asp-heading="App Receipt">App Receipt</h3>
+<p>An app receipt records what the application actually committed, denied, or
+deduplicated under a grant.</p>
+<pre><code class="language-json">{
+  &quot;receipt_id&quot;: &quot;receipt_app_abc&quot;,
+  &quot;receipt_type&quot;: &quot;app&quot;,
+  &quot;grant_id&quot;: &quot;grant_123&quot;,
+  &quot;session_id&quot;: &quot;sess_456&quot;,
+  &quot;action_id&quot;: &quot;comment.create&quot;,
+  &quot;app_id&quot;: &quot;code.example.com&quot;,
+  &quot;surface_version&quot;: &quot;code-review-agent-surface/0.1&quot;,
+  &quot;runtime&quot;: {
+    &quot;runtime_id&quot;: &quot;application_runtime_456&quot;
+  },
+  &quot;actor_agent&quot;: {
+    &quot;agent_id&quot;: &quot;local_agent_789&quot;,
+    &quot;passport_hash&quot;: &quot;sha256:...&quot;
+  },
+  &quot;subject&quot;: {
+    &quot;user&quot;: &quot;user_abc&quot;
+  },
+  &quot;idempotency_key&quot;: &quot;idem_01HX7DS8AC6G9&quot;,
+  &quot;input_hash&quot;: &quot;sha256:...&quot;,
+  &quot;output_hash&quot;: &quot;sha256:...&quot;,
+  &quot;approved_by&quot;: {
+    &quot;type&quot;: &quot;runtime_user_approval&quot;,
+    &quot;approval_id&quot;: &quot;appr_123&quot;
+  },
+  &quot;resource&quot;: {
+    &quot;type&quot;: &quot;comment&quot;,
+    &quot;id&quot;: &quot;comment_789&quot;
+  },
+  &quot;timestamp&quot;: &quot;2026-06-25T16:30:00Z&quot;,
+  &quot;result&quot;: &quot;success&quot;,
+  &quot;links&quot;: {
+    &quot;runtime_receipt_hash&quot;: &quot;sha256:...&quot;
+  }
+}
+</code></pre>
+<p>Receipts MAY be signed by the app, runtime, or both. A future draft is expected
+to define canonicalization and signature profiles.</p>
+<h2 id="revocation-semantics" data-asp-heading="Revocation Semantics">Revocation Semantics</h2>
+<p>The protocol MUST define what happens when authority changes.</p>
+<h3 id="grant-revoked" data-asp-heading="Grant Revoked">Grant Revoked</h3>
+<p>If a grant is revoked:</p>
+<ul>
+<li>runtime MUST stop initiating new actions under that grant</li>
+<li>app MUST reject new actions under that grant</li>
+<li>active sessions SHOULD be cancelled or downgraded to read-only according to
+app policy</li>
+<li>receipt generation SHOULD record the revocation event</li>
+</ul>
+<h3 id="runtime-disconnected" data-asp-heading="Runtime Disconnected">Runtime Disconnected</h3>
+<p>If the runtime disconnects:</p>
+<ul>
+<li>app SHOULD mark active runtime-mediated sessions as interrupted</li>
+<li>app MUST NOT treat pending runtime approvals as approved</li>
+<li>app MAY allow resumable sessions when the same runtime reconnects</li>
+</ul>
+<h3 id="agent-passport-revoked-or-expired" data-asp-heading="Agent Passport Revoked or Expired">Agent Passport Revoked or Expired</h3>
+<p>If an Agent Passport is revoked or expired:</p>
+<ul>
+<li>runtime MUST stop launching that agent for new sessions</li>
+<li>runtime SHOULD cancel or pause active sessions unless policy explicitly allows
+completion</li>
+<li>grants bound to the passport SHOULD be suspended or require re-consent</li>
+</ul>
+<h3 id="surface-version-changed" data-asp-heading="Surface Version Changed">Surface Version Changed</h3>
+<p>If the Agent Surface changes incompatibly:</p>
+<ul>
+<li>app SHOULD publish a new <code>surface_version</code></li>
+<li>runtime SHOULD re-fetch and re-validate schemas</li>
+<li>grants bound to incompatible actions SHOULD require renewal</li>
+</ul>
+<h3 id="user-session-expired" data-asp-heading="User Session Expired">User Session Expired</h3>
+<p>If the user's ordinary app session expires, app policy decides whether existing
+agent grants continue. High-risk grants SHOULD expire with or before the user
+session unless explicitly configured otherwise.</p>
+<h2 id="error-model" data-asp-heading="Error Model">Error Model</h2>
+<p>Agent Surface Protocol SHOULD define structured errors:</p>
+<p>| Error | Meaning |
+| --- | --- |
+| <code>grant_missing</code> | No grant was supplied or found. |
+| <code>grant_expired</code> | Grant has expired. |
+| <code>grant_revoked</code> | Grant was revoked. |
+| <code>grant_proof_invalid</code> | Grant credential or proof is missing, invalid, or not bound correctly. |
+| <code>scope_denied</code> | Grant scope does not permit the action. |
+| <code>resource_denied</code> | Grant constraints do not permit the target resource. |
+| <code>approval_required</code> | Required approval is absent. |
+| <code>schema_invalid</code> | Input or output does not match the declared schema. |
+| <code>idempotency_conflict</code> | Idempotency key was reused with different input. |
+| <code>risk_denied</code> | Local or app policy denied the risk class. |
+| <code>passport_invalid</code> | Agent Passport is missing, expired, revoked, or invalid. |
+| <code>runtime_untrusted</code> | Runtime binding or attestation is not accepted. |
+| <code>surface_incompatible</code> | Runtime does not support the surface version. |
+| <code>proposal_required</code> | The app only supports proposal mode for this action or grant. |</p>
+<p>Errors SHOULD be safe to show to users and precise enough for runtime policy
+debugging.</p>
+<h2 id="versioning-and-compatibility" data-asp-heading="Versioning and Compatibility">Versioning and Compatibility</h2>
+<p>Surface manifests SHOULD include:</p>
+<pre><code class="language-json">{
+  &quot;protocol&quot;: &quot;agent-surface/0.1&quot;,
+  &quot;surface_version&quot;: &quot;2026-06-25&quot;,
+  &quot;compatibility&quot;: {
+    &quot;min_runtime&quot;: &quot;application-runtime/0.1&quot;,
+    &quot;schema_dialect&quot;: &quot;https://json-schema.org/draft/2020-12/schema&quot;
+  }
+}
+</code></pre>
+<p>Compatibility rules:</p>
+<ul>
+<li>Removing an action is a breaking change for grants that include that action.</li>
+<li>Tightening a schema can be a breaking change.</li>
+<li>Adding optional fields is non-breaking.</li>
+<li>Adding a new action is non-breaking.</li>
+<li>Changing risk labels to a higher risk class can require grant renewal.</li>
+<li>Changing receipt requirements can require grant renewal.</li>
+<li>Changing endpoint semantics can require grant renewal.</li>
+</ul>
+<p>Applications SHOULD keep old surface versions available long enough for active
+grants to expire naturally.</p>
+<h2 id="security-considerations" data-asp-heading="Security Considerations">Security Considerations</h2>
+<h3 id="threat-model-summary" data-asp-heading="Threat Model Summary">Threat Model Summary</h3>
+<p>This draft assumes several possible adversarial or failure modes:</p>
+<ul>
+<li>malicious or compromised agent</li>
+<li>malicious or compromised runtime</li>
+<li>malicious or compromised application</li>
+<li>compromised app user session</li>
+<li>prompt-injected app content</li>
+<li>stolen grant credential</li>
+<li>replaying network attacker</li>
+<li>confused-deputy runtime</li>
+<li>stale or downgraded surface manifest</li>
+<li>forged or misleading receipts</li>
+</ul>
+<p>Agent is untrusted by default. Runtime is trusted by the user only within local
+policy bounds, but the app MUST verify app-side authorization. App is trusted for
+its own resources, but not for the user's local machine. Passport is evidence,
+not authority. Grant is authority only within caveats.</p>
+<h3 id="confused-deputy" data-asp-heading="Confused Deputy">Confused Deputy</h3>
+<p>The runtime can accidentally use a grant for the wrong agent, user, workspace, or
+application. Grants SHOULD bind user, app, runtime, agent, and passport hash.</p>
+<h3 id="raw-token-leakage" data-asp-heading="Raw Token Leakage">Raw Token Leakage</h3>
+<p>If an agent process receives raw app tokens, the runtime loses mediation control.
+The preferred architecture is:</p>
+<pre><code class="language-text">Agent -&gt; Runtime -&gt; App
+</code></pre>
+<p>The runtime holds or obtains credentials and exposes only typed action results to
+the agent.</p>
+<h3 id="malicious-or-compromised-runtime" data-asp-heading="Malicious or Compromised Runtime">Malicious or Compromised Runtime</h3>
+<p>Applications MUST NOT trust runtime claims blindly. Every app action MUST be
+authorized by app-verifiable grant state.</p>
+<p>Mitigations:</p>
+<ul>
+<li>app-issued grants</li>
+<li>token introspection</li>
+<li>runtime binding</li>
+<li>passport hash binding</li>
+<li>sender-constrained grant credentials</li>
+<li>action-scoped grants</li>
+<li>app-side receipts</li>
+<li>anomaly detection</li>
+</ul>
+<h3 id="malicious-or-compromised-agent" data-asp-heading="Malicious or Compromised Agent">Malicious or Compromised Agent</h3>
+<p>Agents can hallucinate, loop, ignore instructions, leak data, or attempt
+unauthorized actions.</p>
+<p>Mitigations:</p>
+<ul>
+<li>no direct credentials in agent process</li>
+<li>schema validation</li>
+<li>risk-based approval</li>
+<li>action count limits</li>
+<li>cost limits</li>
+<li>sandboxing</li>
+<li>local audit log</li>
+<li>Agent Passport verification</li>
+<li>proposal mode</li>
+</ul>
+<h3 id="malicious-or-compromised-application" data-asp-heading="Malicious or Compromised Application">Malicious or Compromised Application</h3>
+<p>An application can request excessive scopes, misleading consent, or dangerous
+actions.</p>
+<p>Mitigations:</p>
+<ul>
+<li>runtime presents grant details clearly</li>
+<li>local policy can deny high-risk surfaces</li>
+<li>user can revoke app grants locally</li>
+<li>app manifest can be pinned or allowlisted</li>
+<li>enterprise policy can restrict issuers</li>
+</ul>
+<h3 id="stolen-grant-credential" data-asp-heading="Stolen Grant Credential">Stolen Grant Credential</h3>
+<p>A grant credential can be stolen from runtime storage, logs, memory, or network
+traffic.</p>
+<p>Mitigations:</p>
+<ul>
+<li>short-lived grants</li>
+<li>sender-constrained tokens</li>
+<li>DPoP or mTLS binding where practical</li>
+<li>token introspection</li>
+<li>revocation</li>
+<li>action count limits</li>
+<li>resource constraints</li>
+<li>anomaly detection</li>
+<li>no tokens in URLs</li>
+</ul>
+<h3 id="prompt-injection" data-asp-heading="Prompt Injection">Prompt Injection</h3>
+<p>App data and repository content are untrusted input. Agents SHOULD NOT interpret
+application content as authority to escalate scopes, reveal secrets, or bypass
+policy.</p>
+<p>Runtime and app policies SHOULD treat model output as untrusted until validated.</p>
+<h3 id="replay-and-duplicate-actions" data-asp-heading="Replay and Duplicate Actions">Replay and Duplicate Actions</h3>
+<p>Idempotency keys, timestamps, nonce binding, and grant expiration reduce replay
+risk. Side-effecting actions MUST be idempotent.</p>
+<h3 id="surface-downgrade" data-asp-heading="Surface Downgrade">Surface Downgrade</h3>
+<p>A malicious network or compromised app path can present an older, less safe
+surface version. Runtimes SHOULD pin issuer, app id, and minimum accepted
+protocol versions where possible.</p>
+<h3 id="receipt-forgery" data-asp-heading="Receipt Forgery">Receipt Forgery</h3>
+<p>Receipts SHOULD be hash-linked to normalized inputs and outputs. Future drafts
+are expected to define signing and canonicalization profiles.</p>
+<h2 id="privacy-considerations" data-asp-heading="Privacy Considerations">Privacy Considerations</h2>
+<p>Agent Surface Protocol can reveal sensitive metadata:</p>
+<ul>
+<li>which agents the user owns</li>
+<li>which runtime the user runs</li>
+<li>which app resources the user delegates</li>
+<li>which tasks the user asks agents to perform</li>
+<li>which approvals were accepted or denied</li>
+</ul>
+<p>Applications SHOULD request only the metadata needed for authorization and audit.
+Runtimes SHOULD minimize agent and passport disclosure when possible. Receipts
+SHOULD support pseudonymous user references where legal and operationally
+appropriate.</p>
+<h2 id="conformance" data-asp-heading="Conformance">Conformance</h2>
+<p>This draft defines conformance profiles instead of a single all-or-nothing
+profile.</p>
+<h3 id="surface-only-application" data-asp-heading="Surface-Only Application">Surface-Only Application</h3>
+<p>An application conforms to the Surface-Only profile when it:</p>
+<ul>
+<li>publishes an Agent Surface Manifest</li>
+<li>declares actions, resources, events, scopes, and schemas</li>
+<li>declares risk labels for actions</li>
+<li>declares endpoints or explicitly marks the surface as proposal/documentation
+only</li>
+<li>provides proposal-mode actions or read-only resources</li>
+</ul>
+<h3 id="grant-enforcing-application" data-asp-heading="Grant-Enforcing Application">Grant-Enforcing Application</h3>
+<p>An application conforms to the Grant-Enforcing profile when it:</p>
+<ul>
+<li>satisfies the Surface-Only profile</li>
+<li>issues, validates, or introspects Agent Grants</li>
+<li>validates grant state for every action</li>
+<li>treats <code>grant_id</code> as an identifier, not authority</li>
+<li>supports idempotency for side-effecting actions</li>
+<li>supports grant revocation</li>
+</ul>
+<h3 id="receipt-producing-application" data-asp-heading="Receipt-Producing Application">Receipt-Producing Application</h3>
+<p>An application conforms to the Receipt-Producing profile when it:</p>
+<ul>
+<li>satisfies the Grant-Enforcing profile</li>
+<li>emits app receipts for required side-effecting actions</li>
+<li>links receipts to grant id, session id, action id, agent id, runtime id, and
+idempotency key</li>
+<li>records denied or failed high-risk actions</li>
+</ul>
+<h3 id="application-runtime-profile" data-asp-heading="Application Runtime Profile">Application Runtime Profile</h3>
+<p>An application runtime conforms to this profile when it:</p>
+<ul>
+<li>discovers and validates Agent Surface Manifests</li>
+<li>verifies Agent Passport evidence before delegation</li>
+<li>obtains explicit user consent before storing a grant</li>
+<li>mediates agent actions instead of exposing raw authority</li>
+<li>enforces local policy and approval rules</li>
+<li>validates action input against schemas before sending to the app</li>
+<li>records local audit events and runtime receipts</li>
+<li>stops actions when grants are revoked or expired</li>
+</ul>
+<h3 id="agent-adapter" data-asp-heading="Agent Adapter">Agent Adapter</h3>
+<p>An adapter conforms to this draft when it:</p>
+<ul>
+<li>runs under runtime supervision</li>
+<li>does not require raw app credentials</li>
+<li>requests app actions through runtime APIs</li>
+<li>emits typed events</li>
+<li>handles denials and approval waits</li>
+<li>preserves session and grant identifiers in audit context</li>
+</ul>
+<h2 id="application-mvp-mapping" data-asp-heading="Application MVP Mapping">Application MVP Mapping</h2>
+<p>An application implementation can start with a small runtime bridge:</p>
+<ul>
+<li>outbound WebSocket from runtime to control plane</li>
+<li><code>runtime.hello</code></li>
+<li>typed <code>session.start</code></li>
+<li>normalized <code>session.event</code></li>
+<li>local policy evaluation</li>
+<li>local approvals</li>
+<li>agent adapter boundary</li>
+</ul>
+<p>To support Agent Surface Protocol, the next slices are:</p>
+<ol>
+<li>Add <code>AgentSurfaceManifest</code> TypeScript types and JSON examples.</li>
+<li>Add <code>AgentGrant</code> TypeScript types and validation helpers.</li>
+<li>Add surface discovery to the demo control plane.</li>
+<li>Add a grant consent screen in the demo browser UI.</li>
+<li>Bind session start to a grant id.</li>
+<li>Add <code>action.request</code> and <code>action.result</code> events.</li>
+<li>Split <code>comment.propose</code> from <code>comment.create</code> in the demo.</li>
+<li>Require idempotency keys for write actions.</li>
+<li>Produce local runtime receipts and app-visible receipts.</li>
+<li>Integrate Agent Passport verification as an admission precondition.</li>
+</ol>
+<h2 id="example-end-to-end-flow" data-asp-heading="Example End-to-End Flow">Example End-to-End Flow</h2>
+<pre><code class="language-text">1. App publishes /.well-known/agent-surface.json.
+2. Application runtime discovers and validates the surface.
+3. User chooses &quot;Connect my local agent&quot;.
+4. Runtime verifies the selected agent's Agent Passport.
+5. Runtime shows consent:
+   - app: code.example.com
+   - agent: local-agent
+   - scopes: pull_request.read, pull_request.comment
+   - repository: example-org/example-repo
+   - duration: 2 hours
+   - writes: require approval
+6. User approves.
+7. App issues grant_123 and a grant credential.
+8. Runtime stores grant_123 and the grant credential.
+9. App starts a pull-request review session.
+10. Agent reads typed PR context through runtime-mediated resources.
+11. Agent proposes a review comment.
+12. User or app approves the write.
+13. Runtime sends comment.create with an idempotency key and grant credential.
+14. App verifies grant and writes the comment.
+15. Runtime and app issue linked receipts.
+16. User revokes grant or grant expires.
+</code></pre>
+<h2 id="open-questions" data-asp-heading="Open Questions">Open Questions</h2>
+<ul>
+<li>Does the first MVP use app-issued grants only, or also support
+runtime-held grants for compatibility with existing OAuth APIs?</li>
+<li>What is the minimal Agent Passport verification profile required before a
+runtime can request an Agent Grant?</li>
+<li>Does grant binding require runtime attestation, or is a registered runtime id
+enough for early implementations?</li>
+<li>Are receipts signed in the first version, or only hash-linked and
+locally stored?</li>
+<li>Which JSON canonicalization profile is used for signed grants and
+receipts?</li>
+<li>Is <code>/.well-known/agent-surface.json</code> public, authenticated, or both
+depending on app tenancy?</li>
+<li>What is the minimal sender-constrained grant credential profile?</li>
+<li>How do users compare two agents with overlapping Agent Passport
+capabilities during grant consent?</li>
+<li>What happens to active sessions when an app changes surface versions?</li>
+</ul>
+<h2 id="references" data-asp-heading="References">References</h2>
+<ul>
+<li>Model Context Protocol Specification:
+<a href="https://modelcontextprotocol.io/specification/2025-06-18">https://modelcontextprotocol.io/specification/2025-06-18</a></li>
+<li>Agent Client Protocol Overview:
+<a href="https://agentclientprotocol.com/protocol/v1/overview">https://agentclientprotocol.com/protocol/v1/overview</a></li>
+<li>OAuth 2.0:
+<a href="https://www.rfc-editor.org/rfc/rfc6749">https://www.rfc-editor.org/rfc/rfc6749</a></li>
+<li>OAuth 2.0 Token Revocation:
+<a href="https://www.rfc-editor.org/rfc/rfc7009">https://www.rfc-editor.org/rfc/rfc7009</a></li>
+<li>OAuth 2.0 Token Introspection:
+<a href="https://www.rfc-editor.org/rfc/rfc7662">https://www.rfc-editor.org/rfc/rfc7662</a></li>
+<li>OAuth 2.0 Token Exchange:
+<a href="https://www.rfc-editor.org/rfc/rfc8693">https://www.rfc-editor.org/rfc/rfc8693</a></li>
+<li>OAuth 2.0 Resource Indicators:
+<a href="https://www.rfc-editor.org/rfc/rfc8707">https://www.rfc-editor.org/rfc/rfc8707</a></li>
+<li>Key words for use in RFCs to Indicate Requirement Levels:
+<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a></li>
+<li>Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words:
+<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a></li>
+<li>JSON Schema Draft 2020-12:
+<a href="https://json-schema.org/draft/2020-12">https://json-schema.org/draft/2020-12</a></li>
+<li>YAML 1.2.2:
+<a href="https://github.com/yaml/yaml-spec/blob/main/spec/1.2.2/spec.md">https://github.com/yaml/yaml-spec/blob/main/spec/1.2.2/spec.md</a></li>
+<li>DID Core:
+<a href="https://www.w3.org/TR/did-core/">https://www.w3.org/TR/did-core/</a></li>
+<li>Verifiable Credentials Data Model 2.0:
+<a href="https://www.w3.org/TR/vc-data-model-2.0/">https://www.w3.org/TR/vc-data-model-2.0/</a></li>
+<li>Agent Passport draft repository:
+<a href="https://github.com/0al-spec/agent-passport">https://github.com/0al-spec/agent-passport</a></li>
+</ul>
+<h2 id="appendix-a-why-this-is-not-just-an-api-token" data-asp-heading="Appendix A: Why This Is Not Just an API Token">Appendix A: Why This Is Not Just an API Token</h2>
+<p>An API token answers:</p>
+<pre><code class="language-text">Can this bearer call this endpoint?
+</code></pre>
+<p>An Agent Grant answers:</p>
+<pre><code class="language-text">Which user delegated which agent, running through which runtime, verified by
+which passport evidence, to perform which typed app actions, against which
+resources, under which caveats, until when, with which approval and receipt
+requirements?
+</code></pre>
+<p>The second question is the actual security and product problem.</p>
+<h2 id="appendix-b-why-this-is-not-just-computer-use" data-asp-heading="Appendix B: Why This Is Not Just Computer Use">Appendix B: Why This Is Not Just Computer Use</h2>
+<p>Computer use automates a UI from the outside. It is useful when no better
+surface exists.</p>
+<p>Agent Surface Protocol asks applications to expose an agent-native surface:</p>
+<ul>
+<li>typed reads</li>
+<li>typed proposals</li>
+<li>typed writes</li>
+<li>typed events</li>
+<li>scopes</li>
+<li>schemas</li>
+<li>approvals</li>
+<li>idempotency</li>
+<li>receipts</li>
+<li>revocation</li>
+</ul>
+<p>The app remains in control of its resource model, and the user remains in control
+of agent delegation.</p>
+<h2 id="appendix-c-product-positioning" data-asp-heading="Appendix C: Product Positioning">Appendix C: Product Positioning</h2>
+<p>Short form:</p>
+<pre><code class="language-text">Agent Surface Protocol lets users safely bring their own agents to apps.
+</code></pre>
+<p>Long form:</p>
+<pre><code class="language-text">Agent Surface Protocol is a user-mediated delegation protocol for connecting
+user-owned agents to application-defined, app-enforced, typed action surfaces
+through a policy-enforcing runtime.
+</code></pre>
+<p>Comparison:</p>
+<pre><code class="language-text">MCP exposes tools.
+ACP connects clients to agents.
+OAuth delegates access.
+Agent Passport proves agent identity and capabilities.
+Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
+</code></pre>
+
+    </article>
+    <aside class="asp-rail asp-rail-left" data-review-rail="left" aria-label="Комментарии слева"></aside>
+    <aside class="asp-rail asp-rail-right" data-review-rail="right" aria-label="Комментарии справа"></aside>
+    <svg class="asp-threads" data-review-threads aria-hidden="true"></svg>
+  </div>
+</div>
+
+<style>
+  #asp-review-019f48fb {
+    --asp-rail-gap: 40px;
+    --asp-card-gap: 14px;
+    position: relative;
+    width: 100%;
+    color: var(--foreground);
+    background: transparent;
+  }
+
+  #asp-review-019f48fb .asp-review-stage {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(250px, 1fr) minmax(620px, 780px) minmax(250px, 1fr);
+    grid-template-areas: "left rfc right";
+    gap: var(--asp-rail-gap);
+    width: 100%;
+    max-width: 1660px;
+    margin-inline: auto;
+    align-items: start;
+  }
+
+  #asp-review-019f48fb .asp-priority-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+    width: 100%;
+    max-width: 1660px;
+    margin: 0 auto 18px;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-small);
+  }
+
+  #asp-review-019f48fb .asp-review-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    position: fixed;
+    inset-block-start: 16px;
+    inset-inline-end: max(16px, calc((100% - 1660px) / 2));
+    z-index: 4;
+    width: auto;
+    margin: 0;
+  }
+
+  #asp-review-019f48fb .asp-review-position {
+    min-width: 6ch;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-small);
+    text-align: center;
+  }
+
+  #asp-review-019f48fb .asp-priority-key,
+  #asp-review-019f48fb .asp-priority-label,
+  #asp-review-019f48fb .asp-comment-flags {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  #asp-review-019f48fb .asp-priority-key,
+  #asp-review-019f48fb .asp-priority-label {
+    gap: 5px;
+  }
+
+  #asp-review-019f48fb .asp-comment-flags {
+    gap: 10px;
+  }
+
+  #asp-review-019f48fb .asp-priority-mark {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 2px;
+    background: var(--muted-foreground);
+  }
+
+  #asp-review-019f48fb [data-priority="P0"] .asp-priority-mark {
+    background: var(--destructive);
+  }
+
+  #asp-review-019f48fb [data-priority="P1"] .asp-priority-mark {
+    background: var(--viz-series-2);
+  }
+
+  #asp-review-019f48fb [data-priority="P2"] .asp-priority-mark {
+    background: var(--viz-series-1);
+  }
+
+  #asp-review-019f48fb .asp-rfc {
+    grid-area: rfc;
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    padding-inline: 32px;
+    border-inline: 1px solid var(--border);
+    line-height: 1.65;
+  }
+
+  #asp-review-019f48fb .asp-rfc > :first-child {
+    margin-top: 0;
+  }
+
+  #asp-review-019f48fb .asp-rfc h1,
+  #asp-review-019f48fb .asp-rfc h2,
+  #asp-review-019f48fb .asp-rfc h3,
+  #asp-review-019f48fb .asp-rfc h4 {
+    position: relative;
+    scroll-margin-top: 16px;
+  }
+
+  #asp-review-019f48fb .asp-rfc h2 {
+    margin-top: 44px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  #asp-review-019f48fb .asp-rfc h3 {
+    margin-top: 30px;
+  }
+
+  #asp-review-019f48fb .asp-rfc p,
+  #asp-review-019f48fb .asp-rfc li {
+    max-width: 76ch;
+  }
+
+  #asp-review-019f48fb .asp-rfc pre {
+    max-width: 100%;
+    padding: 14px;
+    overflow-x: auto;
+    border-radius: var(--radius-xl);
+    color: var(--foreground);
+    background: var(--muted);
+  }
+
+  #asp-review-019f48fb .asp-rfc code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  #asp-review-019f48fb .asp-rfc :not(pre) > code {
+    padding: 1px 4px;
+    border-radius: var(--radius-sm);
+    background: var(--muted);
+  }
+
+  #asp-review-019f48fb .asp-rfc blockquote {
+    margin-inline: 0;
+    padding-inline-start: 16px;
+    border-inline-start: 2px solid var(--border);
+    color: var(--muted-foreground);
+  }
+
+  #asp-review-019f48fb .asp-rfc table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  #asp-review-019f48fb .asp-rfc th,
+  #asp-review-019f48fb .asp-rfc td {
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  #asp-review-019f48fb .asp-rfc .asp-anchor-active {
+    background: color-mix(in srgb, var(--viz-series-1) 12%, transparent);
+    outline: 2px solid color-mix(in srgb, var(--viz-series-1) 55%, transparent);
+    outline-offset: 5px;
+    border-radius: var(--radius-sm);
+  }
+
+  #asp-review-019f48fb .asp-rail {
+    position: relative;
+    z-index: 3;
+    min-width: 0;
+    min-height: 100%;
+  }
+
+  #asp-review-019f48fb .asp-rail-left {
+    grid-area: left;
+  }
+
+  #asp-review-019f48fb .asp-rail-right {
+    grid-area: right;
+  }
+
+  #asp-review-019f48fb .asp-comment {
+    position: absolute;
+    inset-inline: 0;
+    overflow: visible;
+    cursor: pointer;
+  }
+
+  #asp-review-019f48fb .asp-comment-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+    color: var(--muted-foreground);
+  }
+
+  #asp-review-019f48fb .asp-comment-id,
+  #asp-review-019f48fb .asp-priority-label,
+  #asp-review-019f48fb .asp-comment-status,
+  #asp-review-019f48fb .asp-comment-links {
+    font-size: var(--font-size-small);
+  }
+
+  #asp-review-019f48fb .asp-comment-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  #asp-review-019f48fb .asp-status-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  #asp-review-019f48fb .asp-comment[data-status="missing"] .asp-status-dot {
+    background: var(--viz-series-1);
+  }
+
+  #asp-review-019f48fb .asp-comment[data-status="partial"] .asp-status-dot {
+    background: var(--viz-series-2);
+  }
+
+  #asp-review-019f48fb .asp-comment[data-status="present"] .asp-status-dot {
+    background: var(--viz-series-3);
+  }
+
+  #asp-review-019f48fb .asp-comment-title {
+    display: inline-block;
+    color: var(--card-foreground);
+    font-weight: 500;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  #asp-review-019f48fb .asp-comment-category {
+    margin-top: 4px;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-small);
+  }
+
+  #asp-review-019f48fb .asp-comment-description,
+  #asp-review-019f48fb .asp-comment-rationale {
+    margin-block: 8px 0;
+  }
+
+  #asp-review-019f48fb .asp-comment-rationale {
+    padding-inline-start: 9px;
+    border-inline-start: 2px solid var(--border);
+    color: color-mix(in srgb, var(--card-foreground) 72%, transparent);
+  }
+
+  #asp-review-019f48fb .asp-comment-links {
+    margin-top: 9px;
+    color: var(--muted-foreground);
+  }
+
+  #asp-review-019f48fb .asp-comment.is-active {
+    outline: 2px solid var(--viz-series-1);
+    outline-offset: 2px;
+  }
+
+  #asp-review-019f48fb .asp-threads {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  #asp-review-019f48fb .asp-thread {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 1.25;
+    opacity: 0;
+    vector-effect: non-scaling-stroke;
+  }
+
+  #asp-review-019f48fb .asp-thread-secondary {
+    opacity: 0;
+  }
+
+  #asp-review-019f48fb .asp-thread-endpoint {
+    fill: var(--background);
+    stroke: var(--border);
+    stroke-width: 1.25;
+    opacity: 0;
+    vector-effect: non-scaling-stroke;
+  }
+
+  #asp-review-019f48fb[data-active-review] .asp-thread,
+  #asp-review-019f48fb[data-active-review] .asp-thread-endpoint {
+    opacity: 0;
+  }
+
+  #asp-review-019f48fb .asp-thread-group.is-active .asp-thread {
+    stroke: var(--viz-series-1);
+    stroke-width: 2;
+    opacity: 1;
+  }
+
+  #asp-review-019f48fb .asp-thread-group.is-active .asp-thread-secondary {
+    opacity: 0.55;
+  }
+
+  #asp-review-019f48fb .asp-thread-group.is-active .asp-thread-endpoint {
+    fill: var(--viz-series-1);
+    stroke: var(--viz-series-1);
+    opacity: 1;
+  }
+
+  #asp-review-019f48fb .asp-comment.is-inline {
+    position: relative;
+    inset: auto;
+    margin-block: 12px 18px;
+  }
+
+  @media (max-width: 1231px) {
+    #asp-review-019f48fb .asp-review-navigation {
+      position: static;
+      width: 100%;
+      max-width: 1660px;
+      margin: 0 auto 18px;
+    }
+
+    #asp-review-019f48fb .asp-review-stage {
+      display: block;
+    }
+
+    #asp-review-019f48fb .asp-rfc {
+      padding-inline: 8px;
+      border-inline: 0;
+    }
+
+    #asp-review-019f48fb .asp-rail,
+    #asp-review-019f48fb .asp-threads {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #asp-review-019f48fb * {
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
+
+<script>
+(() => {
+  const root = document.getElementById("asp-review-019f48fb");
+  if (!root) return;
+
+  const reviews = [{"id":1,"title":"Reference Monitor Invariants","description":"явно зафиксировать, что все app-действия агента должны проходить через runtime, а агент не получает прямую authority по умолчанию.","category":"Security / authority boundary","side":"left","anchors":[{"heading":"Abstract","anchorId":"abstract"},{"heading":"App Exposes, Runtime Mediates, Agent Executes","anchorId":"app-exposes-runtime-mediates-agent-executes"},{"heading":"Agent Does Not Receive Raw Authority","anchorId":"agent-does-not-receive-raw-authority"},{"heading":"Application Runtime Profile","anchorId":"application-runtime-profile"}],"status":"partial","rationale":"Модель mediation описана многократно, но абсолютный Reference Monitor invariant ослаблен формулировками SHOULD и «where practical».","priority":"P0"},{"id":2,"title":"Grant Credential Binding","description":"описать, чем именно runtime доказывает app, что grant принадлежит конкретному runtime/agent/passport tuple.","category":"Security / authority boundary","side":"right","anchors":[{"heading":"Agent Grant","anchorId":"agent-grant-2"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Grant Verification","anchorId":"grant-verification"}],"status":"partial","rationale":"Tuple и проверяемые bindings перечислены, но wire-level способ доказательства runtime/agent/passport binding не определён.","priority":"P0"},{"id":3,"title":"Sender-Constrained Grants","description":"поддержать DPoP, mTLS, workload identity или аналог, чтобы украденный bearer-token не давал полномочий сам по себе.","category":"Security / authority boundary","side":"left","anchors":[{"heading":"Grant Credential","anchorId":"grant-credential"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Action Request","anchorId":"action-request"},{"heading":"Stolen Grant Credential","anchorId":"stolen-grant-credential"}],"status":"partial","rationale":"DPoP, mTLS и sender-constrained tokens названы и рекомендованы, но обязательный interoperable proof profile отложен.","priority":"P0"},{"id":4,"title":"Credential Release Policy","description":"сделать выдачу raw app token агенту отдельной privileged capability, запрещённой по умолчанию.","category":"Security / authority boundary","side":"right","anchors":[{"heading":"Agent Does Not Receive Raw Authority","anchorId":"agent-does-not-receive-raw-authority"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Raw Token Leakage","anchorId":"raw-token-leakage"},{"heading":"Agent Adapter","anchorId":"agent-adapter"}],"status":"partial","rationale":"Raw credentials должны избегаться, но их выдача не оформлена как отдельная default-deny privileged capability.","priority":"P0"},{"id":5,"title":"Subdelegation Rules","description":"явно описать, может ли агент вызывать субагентов, remote models, MCP servers или другие runtimes.","category":"Security / authority boundary","side":"left","anchors":[{"heading":"Runtime","anchorId":"runtime"},{"heading":"Model Context Protocol","anchorId":"model-context-protocol"},{"heading":"4. Agent Adapter Protocol","anchorId":"4-agent-adapter-protocol"},{"heading":"Malicious or Compromised Agent","anchorId":"malicious-or-compromised-agent"}],"status":"missing","rationale":"Субагенты, remote models и MCP adapters упоминаются как компоненты, но перенос или запрет authority через них не определён.","priority":"P0"},{"id":6,"title":"App-Side Enforcement Requirements","description":"закрепить, что app обязана проверять grant на каждое действие, а не доверять runtime assertion.","category":"Security / authority boundary","side":"right","anchors":[{"heading":"App-Side Enforcement Is Mandatory","anchorId":"app-side-enforcement-is-mandatory"},{"heading":"Model A: App-Issued Grant","anchorId":"model-a-app-issued-grant"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Malicious or Compromised Runtime","anchorId":"malicious-or-compromised-runtime"}],"status":"present","rationale":"Спецификация уже требует app-verifiable authorization для каждого действия и запрещает доверять одному runtime assertion.","priority":"P3"},{"id":7,"title":"OAuth RAR Profile","description":"описать Agent Grant как профиль OAuth Rich Authorization Requests через `authorization_details`.","category":"Grant / OAuth / authorization model","side":"left","anchors":[{"heading":"OAuth","anchorId":"oauth"},{"heading":"Agent Grant","anchorId":"agent-grant-2"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Grant Issuance Models","anchorId":"grant-issuance-models"}],"status":"missing","rationale":"OAuth используется как substrate, но RFC 9396 и отображение Agent Grant в authorization_details отсутствуют.","priority":"P2"},{"id":8,"title":"OAuth Token Exchange Profile","description":"добавить путь, где user/app session обменивается на constrained agent grant token.","category":"Grant / OAuth / authorization model","side":"right","anchors":[{"heading":"OAuth","anchorId":"oauth"},{"heading":"Grant Issuance Models","anchorId":"grant-issuance-models"},{"heading":"Model A: App-Issued Grant","anchorId":"model-a-app-issued-grant"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"}],"status":"partial","rationale":"Token Exchange разрешён и RFC 8693 указан, но request/response parameters, token types и binding semantics не профилированы.","priority":"P2"},{"id":9,"title":"Grant Proof vs Grant ID","description":"явно сказать, что `grant_id` — это идентификатор, а не authority без credential/proof.","category":"Grant / OAuth / authorization model","side":"left","anchors":[{"heading":"Grant Credential","anchorId":"grant-credential"},{"heading":"Grant Identifier Is Not Authority","anchorId":"grant-identifier-is-not-authority"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Action Request","anchorId":"action-request"}],"status":"present","rationale":"Текст прямо и нормативно определяет grant_id как correlation identifier, а не authority.","priority":"P3"},{"id":10,"title":"Grant Hash","description":"добавить канонический `grant_hash`, чтобы receipts и audit ссылались на конкретное содержимое grant.","category":"Grant / OAuth / authorization model","side":"right","anchors":[{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Receipt Forgery","anchorId":"receipt-forgery"}],"status":"missing","rationale":"Receipts содержат grant_id, но canonical grant_hash и ссылка на точное содержимое grant отсутствуют.","priority":"P1"},{"id":11,"title":"Grant Introspection Contract","description":"определить минимальный ответ introspection endpoint: active, scopes, constraints, runtime, agent, passport hash, expiry.","category":"Grant / OAuth / authorization model","side":"left","anchors":[{"heading":"OAuth","anchorId":"oauth"},{"heading":"Endpoints","anchorId":"endpoints"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Grant Verification","anchorId":"grant-verification"}],"status":"partial","rationale":"Introspection endpoint и RFC 7662 предусмотрены, но минимальная ASP response schema не задана.","priority":"P1"},{"id":12,"title":"Grant Revocation Events","description":"стандартизировать событие `grant.revoked` и поведение runtime/app при его получении.","category":"Grant / OAuth / authorization model","side":"right","anchors":[{"heading":"Event","anchorId":"event"},{"heading":"Events","anchorId":"events"},{"heading":"Revocation Semantics","anchorId":"revocation-semantics"},{"heading":"Grant Revoked","anchorId":"grant-revoked"}],"status":"partial","rationale":"Имя события и последствия revocation присутствуют, но payload, authenticity, delivery и обработка именно полученного события не стандартизированы.","priority":"P1"},{"id":13,"title":"Wire-Level Endpoints","description":"добавить в manifest явные URLs для action requests, grant request/introspection/revocation, events и receipts.","category":"Agent Surface Manifest","side":"left","anchors":[{"heading":"Agent Surface Manifest","anchorId":"agent-surface-manifest-2"},{"heading":"Endpoints","anchorId":"endpoints"},{"heading":"Example Manifest","anchorId":"example-manifest"},{"heading":"Discovery","anchorId":"discovery"}],"status":"present","rationale":"Manifest уже объявляет grant request/introspection/revocation, actions, events и receipts URLs.","priority":"P3"},{"id":14,"title":"Surface Hash","description":"добавить `surface_hash`, чтобы runtime и receipts ссылались не только на версию, но и на точный surface contract.","category":"Agent Surface Manifest","side":"right","anchors":[{"heading":"Required Top-Level Fields","anchorId":"required-top-level-fields"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Surface Downgrade","anchorId":"surface-downgrade"}],"status":"missing","rationale":"Связь выполняется только через surface_version; canonical surface_hash в manifest, grant и receipts отсутствует.","priority":"P1"},{"id":15,"title":"Surface Version Compatibility Rules","description":"формализовать, какие изменения surface breaking, а какие non-breaking.","category":"Agent Surface Manifest","side":"left","anchors":[{"heading":"Surface Version Changed","anchorId":"surface-version-changed"},{"heading":"Versioning and Compatibility","anchorId":"versioning-and-compatibility"}],"status":"present","rationale":"Breaking и non-breaking изменения уже классифицированы, включая schema, actions, risks, receipts и endpoint semantics.","priority":"P3"},{"id":16,"title":"Agent Surface Is Not Full API","description":"подчеркнуть, что surface — curated affordance layer, а не зеркало всего public/private API приложения.","category":"Agent Surface Manifest","side":"right","anchors":[{"heading":"Non-Goals","anchorId":"non-goals"},{"heading":"Agent Surface","anchorId":"agent-surface"},{"heading":"Model Context Protocol","anchorId":"model-context-protocol"},{"heading":"Application MVP Mapping","anchorId":"application-mvp-mapping"}],"status":"partial","rationale":"Surface отделён от API endpoint list и не заменяет existing APIs, но curated/selective exposure и запрет зеркалирования API не сформулированы явно.","priority":"P2"},{"id":17,"title":"OpenAPI / AsyncAPI Extensions","description":"разрешить генерировать Agent Surface из существующих API specs через `x-agent-surface` аннотации.","category":"Agent Surface Manifest","side":"left","anchors":[{"heading":"Agent Surface Manifest","anchorId":"agent-surface-manifest-2"},{"heading":"Resources","anchorId":"resources"},{"heading":"Actions","anchorId":"actions"},{"heading":"Events","anchorId":"events"}],"status":"missing","rationale":"JSON Schema URLs поддерживаются, но import/generation и x-agent-surface annotations для OpenAPI/AsyncAPI отсутствуют.","priority":"P3"},{"id":18,"title":"Proposal-Only Surface Mode","description":"дать app способ объявить, что агенты могут только предлагать изменения, но не делать writes напрямую.","category":"Agent Surface Manifest","side":"right","anchors":[{"heading":"Proposal Mode Is the Default","anchorId":"proposal-mode-is-the-default"},{"heading":"Proposal-Only Support","anchorId":"proposal-only-support"},{"heading":"Proposal Flow","anchorId":"proposal-flow"},{"heading":"Surface-Only Application","anchorId":"surface-only-application"}],"status":"partial","rationale":"Proposal-only actions полностью описаны, но нет формального top-level surface mode, запрещающего все direct writes.","priority":"P1"},{"id":19,"title":"Action Execution Modes","description":"добавить стандартные modes: `read`, `dry_run`, `propose`, `reserve`, `commit`, `compensate`, `revert`.","category":"Action semantics","side":"left","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Proposal-Only Support","anchorId":"proposal-only-support"},{"heading":"Risk Taxonomy","anchorId":"risk-taxonomy"},{"heading":"Proposal Flow","anchorId":"proposal-flow"}],"status":"partial","rationale":"Есть direct, write и proposal_only, но единая stateful модель read/dry_run/reserve/commit/compensate/revert отсутствует.","priority":"P1"},{"id":20,"title":"Effect Model","description":"дополнить risk taxonomy описанием эффекта: public/private, reversible/irreversible, internal/external, financial/security/deployment/etc.","category":"Action semantics","side":"right","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Risk Taxonomy","anchorId":"risk-taxonomy"},{"heading":"Approval Semantics","anchorId":"approval-semantics"},{"heading":"Security Considerations","anchorId":"security-considerations"}],"status":"partial","rationale":"Risk labels покрывают часть эффектов, но независимые dimensions visibility, reversibility, boundary и effect domain не моделируются.","priority":"P1"},{"id":21,"title":"Idempotency Normalization","description":"определить, как нормализуется input для проверки повторного idempotency key.","category":"Action semantics","side":"left","anchors":[{"heading":"Every Write Is Idempotent","anchorId":"every-write-is-idempotent"},{"heading":"Idempotency","anchorId":"idempotency"},{"heading":"Replay and Duplicate Actions","anchorId":"replay-and-duplicate-actions"}],"status":"partial","rationale":"Требование normalization есть, но canonical algorithm/profile оставлен приложению или будущему draft.","priority":"P1"},{"id":22,"title":"Preconditions and Effects Schemas","description":"дать actions схемы для preconditions и expected effects, чтобы runtime мог показать impact до commit.","category":"Action semantics","side":"right","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Action Request","anchorId":"action-request"},{"heading":"Action Response","anchorId":"action-response"},{"heading":"Proposal Flow","anchorId":"proposal-flow"}],"status":"missing","rationale":"Action model содержит input/output schemas, но не preconditions_schema, expected_effects_schema или impact preview.","priority":"P1"},{"id":23,"title":"Resource Lease / Reservation","description":"добавить lease model для задач, tickets, branch names и других ресурсов, чтобы несколько агентов не делали одно и то же.","category":"Action semantics","side":"left","anchors":[{"heading":"Capability Lease","anchorId":"capability-lease"},{"heading":"Resources","anchorId":"resources"},{"heading":"Actions","anchorId":"actions"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"}],"status":"missing","rationale":"Capability Lease относится к authorization grant; protocol-level reservation конкретных ресурсов и conflict semantics отсутствуют.","priority":"P2"},{"id":24,"title":"Compensation Semantics","description":"описать, какие действия можно откатить и какой action является компенсацией.","category":"Action semantics","side":"right","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Risk Taxonomy","anchorId":"risk-taxonomy"},{"heading":"Proposal Flow","anchorId":"proposal-flow"},{"heading":"Receipts","anchorId":"receipts"}],"status":"missing","rationale":"Reversibility частично отражена риском destructive, но compensation/revert action linkage и гарантии отката не определены.","priority":"P1"},{"id":25,"title":"CloudEvents Binding","description":"сделать app events совместимыми с CloudEvents или определить эквивалентный envelope.","category":"Events / sessions / AHP","side":"left","anchors":[{"heading":"Event","anchorId":"event"},{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Events","anchorId":"events"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"}],"status":"missing","rationale":"ASP определяет typed events со schema и scope, но CloudEvents envelope или эквивалентный canonical envelope отсутствует.","priority":"P2"},{"id":26,"title":"Event Delivery Semantics","description":"описать at-least-once delivery, ordering, replay cursor, retention, ack и backpressure.","category":"Events / sessions / AHP","side":"right","anchors":[{"heading":"Conceptual Architecture","anchorId":"conceptual-architecture"},{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Events","anchorId":"events"},{"heading":"Runtime Disconnected","anchorId":"runtime-disconnected"}],"status":"missing","rationale":"Transport hints присутствуют, но delivery guarantee, ordering, cursor, replay, retention, ack и backpressure не определены.","priority":"P1"},{"id":27,"title":"ASP-over-AHP Binding","description":"описать профиль, где AHP несёт session/UI state, а ASP-объекты остаются authority для grants/actions/receipts.","category":"Events / sessions / AHP","side":"left","anchors":[{"heading":"Agent Client Protocol","anchorId":"agent-client-protocol"},{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"},{"heading":"Receipts","anchorId":"receipts"}],"status":"missing","rationale":"Разделение transport и ASP semantics уже намечено для ACP/runtime bridge, но AHP binding нигде не определён.","priority":"P2"},{"id":28,"title":"Session Ownership Model","description":"уточнить, кто может стартовать, наблюдать, отменять и возобновлять session: user, app, runtime или agent.","category":"Events / sessions / AHP","side":"right","anchors":[{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Session Start","anchorId":"session-start"},{"heading":"Runtime Disconnected","anchorId":"runtime-disconnected"},{"heading":"User Session Expired","anchorId":"user-session-expired"}],"status":"partial","rationale":"App или runtime MAY start session, а cancel/resume упомянуты, но права start/observe/cancel/resume по ролям не формализованы.","priority":"P1"},{"id":29,"title":"Human Elicitation Events","description":"добавить не только approve/deny, но и clarify, choose option, edit proposal, redline diff, step-up auth.","category":"Events / sessions / AHP","side":"left","anchors":[{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Approval Semantics","anchorId":"approval-semantics"},{"heading":"Proposal Flow","anchorId":"proposal-flow"},{"heading":"Error Model","anchorId":"error-model"}],"status":"partial","rationale":"Есть approval required/resolved, но clarify, options, edit/redline и step-up auth message types отсутствуют.","priority":"P2"},{"id":30,"title":"Runtime Receipt vs App Receipt","description":"разделить receipt от runtime о запросе/approval и receipt от app о фактической мутации ресурса.","category":"Receipts / audit / provenance","side":"right","anchors":[{"heading":"Receipt","anchorId":"receipt"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"}],"status":"present","rationale":"Два типа receipts уже явно разделены по observed intent/policy и фактически committed/denied app mutation и связаны хешем.","priority":"P3"},{"id":31,"title":"Approval Receipt","description":"сделать approval/denial отдельным receipt, который можно связать с последующим write.","category":"Receipts / audit / provenance","side":"left","status":"partial","anchors":[{"heading":"Approval Semantics","anchorId":"approval-semantics"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"}],"rationale":"Approval уже связан с action receipt, но отдельного receipt type для approve/deny нет.","priority":"P1"},{"id":32,"title":"Receipt Hash Chain","description":"добавить `parent_receipt_hash`, `trace_id`, `surface_hash`, `grant_hash`, `policy_decision_hash`.","category":"Receipts / audit / provenance","side":"right","status":"partial","anchors":[{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Receipt Forgery","anchorId":"receipt-forgery"}],"rationale":"Есть связь app receipt с runtime receipt и hash входов/выходов, но нет общей цепочки и требуемых hash/trace полей.","priority":"P1"},{"id":33,"title":"Receipt Signing Profile","description":"оставить MVP unsigned, но заранее определить будущий профиль canonicalization + signatures.","category":"Receipts / audit / provenance","side":"left","status":"partial","anchors":[{"heading":"Receipts","anchorId":"receipts"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Receipt Forgery","anchorId":"receipt-forgery"},{"heading":"Open Questions","anchorId":"open-questions"}],"rationale":"Подпись и canonicalization отложены на future draft; профиль и алгоритмы не определены.","priority":"P2"},{"id":34,"title":"Denied Action Receipts","description":"логировать не только успешные writes, но и важные deny/fail decisions.","category":"Receipts / audit / provenance","side":"right","status":"present","anchors":[{"heading":"Receipts Are First-Class","anchorId":"receipts-are-first-class"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"}],"rationale":"Требование уже закреплено как design principle, app semantics и conformance requirement.","priority":"P2"},{"id":35,"title":"Policy Decision Object","description":"стандартизировать объяснимый объект `policy.decision` с reason code, matched rules и safe-to-show текстом.","category":"Receipts / audit / provenance","side":"left","status":"partial","anchors":[{"heading":"Approval Semantics","anchorId":"approval-semantics"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Error Model","anchorId":"error-model"}],"rationale":"Policy decisions упомянуты, но нет типизированного policy.decision с codes, matched rules и safe text.","priority":"P1"},{"id":36,"title":"Data Exposure Contract","description":"для каждого resource/action описывать, какие классы данных агент увидит и какие redaction/retention правила применяются.","category":"Privacy / data exposure","side":"right","status":"partial","anchors":[{"heading":"Resources","anchorId":"resources"},{"heading":"Actions","anchorId":"actions"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Для resources есть redaction и retention hooks, но нет классов данных и per-action exposure contract.","priority":"P0"},{"id":37,"title":"Agent Training Use Policy","description":"явно указывать, можно ли agent/provider использовать данные для обучения или только для transient processing.","category":"Privacy / data exposure","side":"left","status":"missing","anchors":[{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Training, model improvement и transient-only processing в RFC не рассматриваются.","priority":"P2"},{"id":38,"title":"Remote Agent Restrictions","description":"различать local, enterprise-managed и remote user-selected agents с разными data exposure defaults.","category":"Privacy / data exposure","side":"right","status":"partial","anchors":[{"heading":"User-Owned Agent","anchorId":"user-owned-agent"},{"heading":"Runtime","anchorId":"runtime"},{"heading":"Malicious or Compromised Application","anchorId":"malicious-or-compromised-application"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Deployment locations перечислены, но для local, managed и remote agents не заданы разные exposure defaults.","priority":"P2"},{"id":39,"title":"Pseudonymous Receipts","description":"разрешить receipts со стабильными псевдонимами пользователя вместо раскрытия реального user id.","category":"Privacy / data exposure","side":"left","status":"present","anchors":[{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Stable pseudonymous user references уже явно разрешены в receipts и privacy requirements.","priority":"P2"},{"id":40,"title":"Secrets Boundary","description":"определить, что secrets, tokens, cookies и private credentials не попадают в agent-visible context без отдельного privileged grant.","category":"Privacy / data exposure","side":"right","status":"partial","anchors":[{"heading":"Agent Does Not Receive Raw Authority","anchorId":"agent-does-not-receive-raw-authority"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Raw Token Leakage","anchorId":"raw-token-leakage"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Default no-secrets boundary есть, но отсутствует явная privileged capability для исключений и agent-visible context.","priority":"P0"},{"id":41,"title":"Runtime Identity Classes","description":"описать `registered_device`, `spiffe`, `oidc_workload`, `hardware_attested`, `enterprise_managed`.","category":"Runtime / Agent Passport / identity","side":"left","status":"missing","anchors":[{"heading":"Runtime","anchorId":"runtime"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Error Model","anchorId":"error-model"},{"heading":"Open Questions","anchorId":"open-questions"}],"rationale":"Runtime описан концептуально, но registered_device, SPIFFE, OIDC workload и другие identity classes отсутствуют.","priority":"P2"},{"id":42,"title":"Minimal Agent Passport Profile","description":"определить минимальный набор passport fields, достаточный для grant issuance.","category":"Runtime / Agent Passport / identity","side":"right","status":"missing","anchors":[{"heading":"Agent Passport","anchorId":"agent-passport"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Application Runtime Profile","anchorId":"application-runtime-profile"},{"heading":"Open Questions","anchorId":"open-questions"}],"rationale":"Набор обязательных passport fields не определён и прямо оставлен open question.","priority":"P0"},{"id":43,"title":"Passport Revocation Handling","description":"уточнить, что происходит с grants и active sessions при истечении или отзыве паспорта.","category":"Runtime / Agent Passport / identity","side":"left","status":"present","anchors":[{"heading":"Agent Passport Revoked or Expired","anchorId":"agent-passport-revoked-or-expired"},{"heading":"Grant Revoked","anchorId":"grant-revoked"},{"heading":"Grant Verification","anchorId":"grant-verification"}],"rationale":"RFC уже задаёт поведение для новых запусков, active sessions и связанных grants.","priority":"P1"},{"id":44,"title":"Capability Matching Output","description":"стандартизировать результат matching: compatible agents, missing capabilities, risks, required scopes, required approvals.","category":"Runtime / Agent Passport / identity","side":"right","status":"partial","anchors":[{"heading":"Capability Matching","anchorId":"capability-matching"}],"rationale":"Все требуемые смысловые outputs перечислены, но нет нормативного wire object или schema.","priority":"P2"},{"id":45,"title":"Runtime Attestation Optional Profile","description":"добавить future profile для подтверждения integrity runtime, но не требовать его в MVP.","category":"Runtime / Agent Passport / identity","side":"left","status":"partial","anchors":[{"heading":"Malicious or Compromised Runtime","anchorId":"malicious-or-compromised-runtime"},{"heading":"Error Model","anchorId":"error-model"},{"heading":"Open Questions","anchorId":"open-questions"}],"rationale":"Attestation предусмотрена как возможность и open question, но optional profile и MVP boundary не описаны.","priority":"P2"},{"id":46,"title":"Consent Preview","description":"runtime должен показывать пользователю понятное резюме grant: app, agent, scopes, resources, duration, writes, data exposure.","category":"UX / consent","side":"right","status":"partial","anchors":[{"heading":"Grant Lifecycle","anchorId":"grant-lifecycle"},{"heading":"Capability Matching","anchorId":"capability-matching"},{"heading":"Malicious or Compromised Application","anchorId":"malicious-or-compromised-application"},{"heading":"Example End-to-End Flow","anchorId":"example-end-to-end-flow"}],"rationale":"Есть хороший пример consent summary, но нет полного нормативного contract, особенно для data exposure.","priority":"P0"},{"id":47,"title":"Impact Simulation","description":"consent screen может показывать примеры allowed и denied действий для снижения consent fatigue.","category":"UX / consent","side":"left","status":"missing","anchors":[{"heading":"Capability Matching","anchorId":"capability-matching"},{"heading":"Example End-to-End Flow","anchorId":"example-end-to-end-flow"}],"rationale":"Consent flow не показывает simulated allowed/denied examples или прогноз impact.","priority":"P3"},{"id":48,"title":"Risk Explanation UI Hints","description":"manifest может включать human-readable risk summaries для actions.","category":"UX / consent","side":"right","status":"partial","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Risk Taxonomy","anchorId":"risk-taxonomy"},{"heading":"Capability Matching","anchorId":"capability-matching"}],"rationale":"Machine-readable risk labels и matching summary есть, human-readable manifest hints отсутствуют.","priority":"P2"},{"id":49,"title":"Default Proposal-First UX","description":"пользовательский flow должен сначала позволять agent propose, а не write.","category":"UX / consent","side":"left","status":"present","anchors":[{"heading":"Proposal Mode Is the Default","anchorId":"proposal-mode-is-the-default"},{"heading":"Proposal-Only Support","anchorId":"proposal-only-support"},{"heading":"Proposal Flow","anchorId":"proposal-flow"}],"rationale":"Proposal-first уже закреплён как design principle и RECOMMENDED integration flow.","priority":"P1"},{"id":50,"title":"Revocation UX Contract","description":"определить, где пользователь видит активные grants и как быстро может их отозвать.","category":"UX / consent","side":"right","status":"partial","anchors":[{"heading":"Endpoints","anchorId":"endpoints"},{"heading":"Revocation Semantics","anchorId":"revocation-semantics"},{"heading":"Grant Revoked","anchorId":"grant-revoked"},{"heading":"Malicious or Compromised Application","anchorId":"malicious-or-compromised-application"}],"rationale":"Protocol plumbing и post-revocation behavior есть, но active-grants UI и latency expectation не определены.","priority":"P1"},{"id":51,"title":"Budget Caveats","description":"добавить в grant constraints лимиты по cost, tokens, runtime seconds, tool calls, write actions и parallel sessions.","category":"Economics / limits / operations","side":"left","status":"partial","anchors":[{"heading":"Capability Lease","anchorId":"capability-lease"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Malicious or Compromised Agent","anchorId":"malicious-or-compromised-agent"}],"rationale":"Action и cost budgets есть; token, runtime, tool-call, write и parallel-session limits отсутствуют.","priority":"P1"},{"id":52,"title":"Budget Events","description":"стандартизировать `budget.warning`, `budget.exceeded`, `session.paused_budget`.","category":"Economics / limits / operations","side":"right","status":"missing","anchors":[{"heading":"Events","anchorId":"events"},{"heading":"Grant Revoked","anchorId":"grant-revoked"}],"rationale":"Event mechanism существует, но budget.warning, budget.exceeded и session.paused_budget не определены.","priority":"P2"},{"id":53,"title":"Rate Limits and Quotas","description":"surface должен объявлять ограничения на actions/events, чтобы runtime мог планировать нагрузку.","category":"Economics / limits / operations","side":"left","status":"missing","anchors":[{"heading":"Required Top-Level Fields","anchorId":"required-top-level-fields"},{"heading":"Actions","anchorId":"actions"},{"heading":"Events","anchorId":"events"}],"rationale":"Manifest не имеет rate-limit или quota declarations для actions и event delivery.","priority":"P2"},{"id":54,"title":"Runaway Loop Protection","description":"runtime должен иметь обязательные guards на повторяющиеся действия, retries и event-triggered loops.","category":"Economics / limits / operations","side":"right","status":"partial","anchors":[{"heading":"Every Write Is Idempotent","anchorId":"every-write-is-idempotent"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Malicious or Compromised Agent","anchorId":"malicious-or-compromised-agent"},{"heading":"Replay and Duplicate Actions","anchorId":"replay-and-duplicate-actions"}],"rationale":"Idempotency и общие limits снижают ущерб, но обязательных repeat/retry/event-loop guards нет.","priority":"P0"},{"id":55,"title":"Observability Fields","description":"добавить trace/span/session ids, чтобы ASP действия связывались с app logs, runtime logs и receipts.","category":"Economics / limits / operations","side":"left","status":"partial","anchors":[{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"},{"heading":"Action Request","anchorId":"action-request"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Agent Adapter","anchorId":"agent-adapter"}],"rationale":"Session correlation присутствует, но trace_id, span_id и сквозная observability semantics отсутствуют.","priority":"P2"},{"id":56,"title":"Conformance Profiles","description":"разделить conformance на Surface Publisher, Grant Issuer, Action Executor, Receipt Producer, Runtime Mediator и Agent Adapter.","category":"Conformance / tooling / adoption","side":"right","status":"partial","anchors":[{"heading":"Conformance","anchorId":"conformance"},{"heading":"Grant-Enforcing Application","anchorId":"grant-enforcing-application"},{"heading":"Application Runtime Profile","anchorId":"application-runtime-profile"},{"heading":"Agent Adapter","anchorId":"agent-adapter"}],"rationale":"Role profiles уже есть, но Grant Issuer и Action Executor объединены, а именование ролей не унифицировано.","priority":"P2"},{"id":57,"title":"ASP Manifest Linter","description":"сделать tooling, который проверяет missing schemas, missing risk labels, missing idempotency и inconsistent scopes.","category":"Conformance / tooling / adoption","side":"left","status":"missing","anchors":[{"heading":"Required Top-Level Fields","anchorId":"required-top-level-fields"},{"heading":"Resources","anchorId":"resources"},{"heading":"Actions","anchorId":"actions"},{"heading":"Surface-Only Application","anchorId":"surface-only-application"}],"rationale":"Проверяемые требования существуют, но linter, ruleset и diagnostics contract отсутствуют.","priority":"P3"},{"id":58,"title":"Mock App / Mock Runtime","description":"дать reference fixtures для тестирования приложений и runtimes без реального агента.","category":"Conformance / tooling / adoption","side":"right","status":"missing","anchors":[{"heading":"Conceptual Architecture","anchorId":"conceptual-architecture"},{"heading":"Application MVP Mapping","anchorId":"application-mvp-mapping"},{"heading":"Example End-to-End Flow","anchorId":"example-end-to-end-flow"}],"rationale":"Есть architecture и implementation roadmap, но reference fixtures или mock implementations не заявлены.","priority":"P3"},{"id":59,"title":"Replay Tool","description":"добавить формат, позволяющий воспроизвести session/events/receipts для debugging и audit.","category":"Conformance / tooling / adoption","side":"left","status":"missing","anchors":[{"heading":"Events","anchorId":"events"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"},{"heading":"Receipts","anchorId":"receipts"},{"heading":"Application MVP Mapping","anchorId":"application-mvp-mapping"}],"rationale":"Session/event/receipt primitives есть, но portable replay bundle format и tool отсутствуют.","priority":"P3"},{"id":60,"title":"Interop Test Suite","description":"подготовить набор обязательных тестов для grant verification, idempotency conflicts, revocation, receipts и denied actions.","category":"Conformance / tooling / adoption","side":"right","status":"missing","anchors":[{"heading":"Idempotency","anchorId":"idempotency"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Revocation Semantics","anchorId":"revocation-semantics"},{"heading":"Conformance","anchorId":"conformance"}],"rationale":"Нормативные области для тестов определены, но обязательных test cases и interop suite нет.","priority":"P2"}];
+  const stage = root.querySelector("[data-review-stage]");
+  const documentColumn = root.querySelector("[data-rfc-document]");
+  const svg = root.querySelector("[data-review-threads]");
+  const previousButton = root.querySelector("[data-review-prev]");
+  const nextButton = root.querySelector("[data-review-next]");
+  const reviewPosition = root.querySelector("[data-review-position]");
+  const rails = {
+    left: root.querySelector('[data-review-rail="left"]'),
+    right: root.querySelector('[data-review-rail="right"]')
+  };
+  const statusLabels = {
+    missing: "Пробел",
+    partial: "Частично",
+    present: "Уже есть"
+  };
+  let narrow = null;
+  let activeReview = null;
+  let pinnedReview = null;
+  let scheduled = 0;
+
+  const escapeHtml = (value) => String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+  const byId = new Map(reviews.map((review) => [String(review.id), review]));
+  const cards = new Map();
+
+  function createCard(review) {
+    const card = document.createElement("article");
+    card.className = "card asp-comment";
+    card.id = `review-${review.id}`;
+    card.dataset.reviewId = review.id;
+    card.dataset.status = review.status;
+    card.dataset.priority = review.priority;
+    card.dataset.side = review.side;
+    const primaryId = review.anchorIds[0];
+    card.innerHTML = `
+      <div class="asp-comment-meta">
+        <span class="asp-comment-id">#${String(review.id).padStart(2, "0")}</span>
+        <span class="asp-comment-flags">
+          <span class="asp-priority-label" data-priority="${escapeHtml(review.priority)}"><span class="asp-priority-mark"></span><strong>${escapeHtml(review.priority)}</strong></span>
+          <span class="asp-comment-status"><span class="asp-status-dot"></span>${statusLabels[review.status]}</span>
+        </span>
+      </div>
+      <a class="asp-comment-title" href="#${escapeHtml(primaryId)}">${escapeHtml(review.title)}</a>
+      <div class="asp-comment-category">${escapeHtml(review.category)}</div>
+      <p class="asp-comment-description">${escapeHtml(review.description)}</p>
+      <p class="asp-comment-rationale"><strong>Сейчас:</strong> ${escapeHtml(review.rationale)}</p>
+      <div class="asp-comment-links">${review.anchorIds.length} ${review.anchorIds.length === 1 ? "связь" : "связи"}</div>
+    `;
+    card.addEventListener("pointerenter", () => {
+      if (!pinnedReview) setActive(review.id);
+    });
+    card.addEventListener("pointerleave", () => {
+      if (!pinnedReview) clearActive(review.id);
+    });
+    card.addEventListener("focusin", () => {
+      if (!pinnedReview) setActive(review.id);
+    });
+    card.addEventListener("focusout", (event) => {
+      if (!card.contains(event.relatedTarget)) clearActive(review.id);
+    });
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("a")) event.preventDefault();
+      togglePinned(review.id);
+    });
+    cards.set(String(review.id), card);
+    return card;
+  }
+
+  function setActive(id, persist = false) {
+    activeReview = String(id);
+    if (persist) pinnedReview = activeReview;
+    root.dataset.activeReview = activeReview;
+    for (const [cardId, card] of cards) {
+      card.classList.toggle("is-active", cardId === activeReview);
+    }
+    for (const heading of documentColumn.querySelectorAll(".asp-anchor-active")) {
+      heading.classList.remove("asp-anchor-active");
+    }
+    const review = byId.get(activeReview);
+    if (review) {
+      for (const anchorId of review.anchorIds) {
+        document.getElementById(anchorId)?.classList.add("asp-anchor-active");
+      }
+    }
+    for (const group of svg.querySelectorAll(".asp-thread-group")) {
+      group.classList.toggle("is-active", group.dataset.reviewId === activeReview);
+    }
+    updateNavigation();
+  }
+
+  function clearActive(id, force = false) {
+    if (activeReview !== String(id)) return;
+    if (!force && pinnedReview) {
+      setActive(pinnedReview);
+      return;
+    }
+    activeReview = null;
+    root.removeAttribute("data-active-review");
+    for (const card of cards.values()) card.classList.remove("is-active");
+    for (const heading of documentColumn.querySelectorAll(".asp-anchor-active")) {
+      heading.classList.remove("asp-anchor-active");
+    }
+    for (const group of svg.querySelectorAll(".asp-thread-group")) {
+      group.classList.remove("is-active");
+    }
+    updateNavigation();
+  }
+
+  function togglePinned(id) {
+    const reviewId = String(id);
+    if (pinnedReview === reviewId) {
+      pinnedReview = null;
+      clearActive(reviewId, true);
+      return;
+    }
+    setActive(reviewId, true);
+  }
+
+  function updateNavigation() {
+    const currentId = pinnedReview ?? activeReview;
+    const index = reviews.findIndex((review) => String(review.id) === currentId);
+    reviewPosition.textContent = index < 0 ? `— / ${reviews.length}` : `#${String(reviews[index].id).padStart(2, "0")} / ${reviews.length}`;
+  }
+
+  function navigateReviews(direction) {
+    const currentId = pinnedReview ?? activeReview;
+    const currentIndex = reviews.findIndex((review) => String(review.id) === currentId);
+    const nextIndex = currentIndex < 0
+      ? (direction > 0 ? 0 : reviews.length - 1)
+      : (currentIndex + direction + reviews.length) % reviews.length;
+    const review = reviews[nextIndex];
+    setActive(review.id, true);
+    document.getElementById(review.anchorIds[0])?.scrollIntoView({
+      block: "center",
+      inline: "nearest",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+    });
+  }
+
+  function enterNarrowMode() {
+    if (narrow === true) return;
+    narrow = true;
+    svg.replaceChildren();
+    const grouped = new Map();
+    for (const review of reviews) {
+      const anchorId = review.anchorIds[0];
+      if (!grouped.has(anchorId)) grouped.set(anchorId, []);
+      grouped.get(anchorId).push(review);
+    }
+    for (const [anchorId, anchorReviews] of grouped) {
+      const anchor = document.getElementById(anchorId);
+      if (!anchor) continue;
+      let insertionPoint = anchor;
+      for (const review of anchorReviews) {
+        const card = cards.get(String(review.id));
+        card.style.removeProperty("top");
+        card.classList.add("is-inline");
+        insertionPoint.insertAdjacentElement("afterend", card);
+        insertionPoint = card;
+      }
+    }
+    stage.style.minHeight = "";
+  }
+
+  function solveRail(items, stageHeight, gap = 14, padding = 0) {
+    items.sort((a, b) => a.preferredTop - b.preferredTop || a.id - b.id);
+    let packedHeight = 0;
+    items.forEach((item, index) => {
+      item.offset = packedHeight;
+      packedHeight += item.height + (index === items.length - 1 ? 0 : gap);
+    });
+    stageHeight = Math.max(stageHeight, packedHeight + 2 * padding);
+    const blocks = [];
+    items.forEach((item, index) => {
+      blocks.push({ first: index, last: index, weight: 1, weightedSum: item.preferredTop - item.offset });
+      while (blocks.length > 1) {
+        const right = blocks[blocks.length - 1];
+        const left = blocks[blocks.length - 2];
+        if (left.weightedSum / left.weight <= right.weightedSum / right.weight) break;
+        blocks.splice(-2, 2, {
+          first: left.first,
+          last: right.last,
+          weight: left.weight + right.weight,
+          weightedSum: left.weightedSum + right.weightedSum
+        });
+      }
+    });
+    const maxX = Math.max(padding, stageHeight - padding - packedHeight);
+    for (const block of blocks) {
+      const x = Math.max(padding, Math.min(maxX, block.weightedSum / block.weight));
+      for (let index = block.first; index <= block.last; index += 1) {
+        items[index].top = Math.round(x + items[index].offset);
+      }
+    }
+    return { items, stageHeight };
+  }
+
+  function enterWideMode() {
+    if (narrow !== false) {
+      narrow = false;
+      for (const review of reviews) {
+        const card = cards.get(String(review.id));
+        card.classList.remove("is-inline");
+        rails[review.side].append(card);
+      }
+    }
+
+    stage.style.minHeight = `${documentColumn.offsetHeight}px`;
+    const stageRect = stage.getBoundingClientRect();
+    const railItems = { left: [], right: [] };
+    for (const review of reviews) {
+      const anchor = document.getElementById(review.anchorIds[0]);
+      const card = cards.get(String(review.id));
+      if (!anchor || !card) continue;
+      const anchorRect = anchor.getBoundingClientRect();
+      const height = card.offsetHeight;
+      railItems[review.side].push({
+        id: review.id,
+        card,
+        height,
+        preferredTop: anchorRect.top - stageRect.top + Math.min(anchorRect.height / 2, 18) - height / 2
+      });
+    }
+
+    const baseHeight = Math.max(documentColumn.offsetHeight, 1);
+    const left = solveRail(railItems.left, baseHeight);
+    const right = solveRail(railItems.right, baseHeight);
+    const solvedHeight = Math.max(baseHeight, left.stageHeight, right.stageHeight);
+    stage.style.minHeight = `${solvedHeight}px`;
+    for (const item of [...left.items, ...right.items]) {
+      item.card.style.top = `${item.top}px`;
+    }
+    requestAnimationFrame(drawThreads);
+  }
+
+  function svgElement(name, attributes) {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+    return element;
+  }
+
+  function drawThreads() {
+    if (narrow) return;
+    const stageRect = stage.getBoundingClientRect();
+    const documentRect = documentColumn.getBoundingClientRect();
+    svg.setAttribute("viewBox", `0 0 ${stageRect.width} ${stageRect.height}`);
+    svg.replaceChildren();
+
+    for (const review of reviews) {
+      const card = cards.get(String(review.id));
+      if (!card) continue;
+      const cardRect = card.getBoundingClientRect();
+      const group = svgElement("g", { class: "asp-thread-group", "data-review-id": review.id });
+      const startX = review.side === "left"
+        ? cardRect.right - stageRect.left
+        : cardRect.left - stageRect.left;
+      const startYBase = cardRect.top - stageRect.top + Math.min(42, cardRect.height / 2);
+      const laneX = review.side === "left"
+        ? documentRect.left - stageRect.left - 14
+        : documentRect.right - stageRect.left + 14;
+
+      review.anchorIds.forEach((anchorId, index) => {
+        const anchor = document.getElementById(anchorId);
+        if (!anchor) return;
+        const anchorRect = anchor.getBoundingClientRect();
+        const endX = review.side === "left"
+          ? documentRect.left - stageRect.left
+          : documentRect.right - stageRect.left;
+        const endY = anchorRect.top - stageRect.top + Math.min(anchorRect.height / 2, 18);
+        const startY = startYBase + index * 5;
+        const path = svgElement("path", {
+          class: `asp-thread${index === 0 ? "" : " asp-thread-secondary"}`,
+          d: `M ${startX} ${startY} C ${laneX} ${startY}, ${laneX} ${endY}, ${endX} ${endY}`
+        });
+        const dot = svgElement("circle", {
+          class: "asp-thread-endpoint",
+          cx: endX,
+          cy: endY,
+          r: index === 0 ? 3 : 2.25
+        });
+        group.append(path, dot);
+      });
+      if (activeReview === String(review.id)) group.classList.add("is-active");
+      svg.append(group);
+    }
+  }
+
+  function layout() {
+    scheduled = 0;
+    if (root.clientWidth < 1200) enterNarrowMode();
+    else enterWideMode();
+  }
+
+  function scheduleLayout() {
+    if (scheduled) cancelAnimationFrame(scheduled);
+    scheduled = requestAnimationFrame(layout);
+  }
+
+  for (const review of reviews) {
+    review.anchorIds = review.anchors.map((heading) => heading.anchorId);
+    createCard(review);
+  }
+
+  previousButton.addEventListener("click", () => navigateReviews(-1));
+  nextButton.addEventListener("click", () => navigateReviews(1));
+
+  const priorityCounts = reviews.reduce((counts, review) => {
+    counts[review.priority] = (counts[review.priority] ?? 0) + 1;
+    return counts;
+  }, {});
+  for (const counter of root.querySelectorAll("[data-priority-count]")) {
+    counter.textContent = `(${priorityCounts[counter.dataset.priorityCount] ?? 0})`;
+  }
+  updateNavigation();
+
+  const resizeObserver = new ResizeObserver(scheduleLayout);
+  resizeObserver.observe(root);
+  resizeObserver.observe(documentColumn);
+  window.addEventListener("load", scheduleLayout, { once: true });
+  window.addEventListener("resize", scheduleLayout);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      pinnedReview = null;
+      clearActive(activeReview, true);
+    }
+  });
+  scheduleLayout();
+})();
+</script>
+
+</main>
+</body>
+</html>
