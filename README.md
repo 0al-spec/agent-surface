@@ -61,12 +61,32 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
 agent-surface/
   .github/
     PULL_REQUEST_TEMPLATE.md
-    workflows/docs.yml       Markdown and RFC checks.
+    workflows/docs.yml       Markdown, RFC, and dashboard checks.
   drafts/                  Source RFCs written in Markdown.
+  review/                  Source data, template, and generated RFC review dashboard.
   LICENSE                  MIT license for repository source code.
   LICENSE-CC-BY-4.0        CC BY 4.0 summary for specifications and documents.
   CONTRIBUTING.md          Contribution guidelines.
 ```
+
+## Interactive RFC Review Dashboard
+
+The standalone [RFC review dashboard](review/agent-surface-rfc-review.html) is
+generated from the RFC, card data, and UI template. Do not edit the generated
+HTML directly.
+
+```sh
+python3 -m pip install -r review/requirements.txt
+make review-build
+make review-check
+```
+
+When the RFC changes, update the relevant cards in
+[`review/review-data.json`](review/review-data.json), rebuild the dashboard,
+and commit the RFC, review data, and generated HTML together. `review-check`
+validates card fields and priorities, verifies every linked heading still
+exists in the RFC, checks that the generated artifact is current, and parses
+the dashboard's inline JavaScript.
 
 ## Status
 

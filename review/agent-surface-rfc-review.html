@@ -210,6 +210,7 @@ actions.</p>
 <h2 id="normative-and-informative-sections" data-asp-heading="Normative and Informative Sections">Normative and Informative Sections</h2>
 <p>Unless otherwise stated, the following sections are <strong>normative</strong>:</p>
 <ul>
+<li>Conventions</li>
 <li>Terminology</li>
 <li>Design Principles</li>
 <li>Agent Surface Manifest</li>
@@ -230,6 +231,8 @@ actions.</p>
 <ul>
 <li>Abstract</li>
 <li>Motivation</li>
+<li>Goals</li>
+<li>Non-Goals</li>
 <li>Relationship to Existing Protocols</li>
 <li>Conceptual Architecture</li>
 <li>Protocol Layers</li>
@@ -333,9 +336,9 @@ preferred for early adoption.</li>
 <li>Do not require signed grants or signed receipts in the MVP profile.</li>
 </ul>
 <h2 id="conventions" data-asp-heading="Conventions">Conventions</h2>
-<p>The key words &quot;MUST&quot;, &quot;MUST NOT&quot;, &quot;SHOULD&quot;, &quot;SHOULD NOT&quot;, and &quot;MAY&quot; in this
-document are to be interpreted in the RFC 2119 and RFC 8174 sense when, and only
-when, they appear in all capitals.</p>
+<p>The key words &quot;MUST&quot;, &quot;MUST NOT&quot;, &quot;SHOULD&quot;, &quot;SHOULD NOT&quot;, &quot;RECOMMENDED&quot;, and
+&quot;MAY&quot; in this document are to be interpreted in the RFC 2119 and RFC 8174 sense
+when, and only when, they appear in all capitals.</p>
 <p>This is not an IETF document. The keywords are used to make interoperability and
 security expectations explicit for future implementers.</p>
 <h2 id="terminology" data-asp-heading="Terminology">Terminology</h2>
@@ -743,7 +746,7 @@ such as:</p>
 </code></pre>
 <p>If the manifest contains sensitive tenant-specific affordances, it MUST require
 ordinary authenticated app access.</p>
-<p>The manifest SHOULD be served with:</p>
+<p>The manifest MUST be served over HTTPS and SHOULD be served with:</p>
 <pre><code class="language-http">Content-Type: application/json
 Cache-Control: max-age=300
 </code></pre>
@@ -932,6 +935,7 @@ surface discoverable.</p>
 <li><code>output_schema</code></li>
 <li><code>side_effect</code></li>
 <li><code>execution</code></li>
+<li>optional <code>capability_hint</code></li>
 <li><code>idempotency</code> for side-effecting actions</li>
 <li><code>receipt</code> for side-effecting actions</li>
 </ul>
@@ -957,6 +961,12 @@ surface discoverable.</p>
 proposal-only actions.</p>
 <p>A proposal-only action is a typed action whose output is a draft, suggestion,
 patch, review body, or other non-committed artifact.</p>
+<p>A proposal-only action declares <code>side_effect: false</code> because it does not
+commit domain-visible changes. However, when the application persists
+proposals as drafts — as the proposal flow in this draft assumes — repeated
+proposal requests can still accumulate duplicate drafts under retries and
+agent loops. Applications that persist proposals SHOULD accept idempotency
+keys for proposal actions and deduplicate stored drafts accordingly.</p>
 <p>Example:</p>
 <pre><code class="language-json">{
   &quot;id&quot;: &quot;pull_request.review.propose&quot;,
@@ -993,6 +1003,11 @@ events.</p>
   &quot;schema&quot;: &quot;https://example.com/schemas/ci-failed.event.schema.json&quot;
 }
 </code></pre>
+<p>Grant constraints filter events the same way they filter actions: a grant
+constrained to one repository SHOULD NOT receive events about other
+repositories, even when the event scope matches.</p>
+<p>Event delivery semantics — transport, ordering, acknowledgement, and replay —
+are not defined in this draft; see Open Questions.</p>
 <h2 id="risk-taxonomy" data-asp-heading="Risk Taxonomy">Risk Taxonomy</h2>
 <p>Every action SHOULD have a standard risk label. Runtimes can map risk labels to
 local policy defaults.</p>
@@ -1006,6 +1021,15 @@ local policy defaults.</p>
 | <code>financial_side_effect</code> | Charges, refunds, purchases, invoices, payroll. | Always require explicit approval. |
 | <code>destructive</code> | Deletes, closes, revokes, disables, or irreversibly changes state. | Deny by default or require step-up approval. |
 | <code>privileged</code> | Changes permissions, secrets, tokens, admin settings, or access policy. | Deny by default. |</p>
+<p>Risk labels are ordered by increasing severity from <code>read</code> to <code>privileged</code>.
+The labels are not mutually exclusive properties of an action: a single action
+can plausibly be described by several of them. When more than one label
+applies, the action MUST carry the most severe applicable label. For example,
+<code>invoice.refund.request</code> is both a mutation and a financial operation; it MUST
+be labeled <code>financial_side_effect</code>, not <code>write</code>.</p>
+<p>The <code>risk</code> label and the <code>side_effect</code> flag MUST be consistent: an action
+labeled <code>write</code> or a more severe label MUST declare <code>side_effect: true</code>, and
+an action labeled <code>read</code> MUST declare <code>side_effect: false</code>.</p>
 <p>Applications MAY define extension risk labels, but they SHOULD map them to the
 standard labels for runtime interoperability.</p>
 <h2 id="approval-semantics" data-asp-heading="Approval Semantics">Approval Semantics</h2>
@@ -1018,6 +1042,17 @@ standard labels for runtime interoperability.</p>
 | <code>user_or_app</code> | Either a runtime approval or app-side approval MAY satisfy the requirement, depending on grant caveats. |
 | <code>runtime_and_app</code> | Both runtime-side and app-side approval are required. |</p>
 <p>Approval records SHOULD be linked into receipts.</p>
+<p>The <code>runtime</code> and <code>user_or_app</code> modes allow a runtime-side approval to satisfy
+the requirement. In those modes the application is accepting the runtime's
+assertion that a local user approval occurred. To keep this compatible with
+the rule that an application MUST NOT accept a runtime's self-assertion of
+authority, that acceptance MUST be an explicit grant caveat presented to the
+user at consent time, not a silent default. Action requests that rely on a
+runtime-side approval SHOULD carry an approval reference (for example an
+<code>approval_ref</code> identifier, or in future profiles a signed approval object) so
+the approval can be linked into receipts and audited. Applications that do not
+want to accept runtime approval assertions MUST declare <code>app</code> or
+<code>runtime_and_app</code> for the affected actions.</p>
 <h2 id="idempotency" data-asp-heading="Idempotency">Idempotency</h2>
 <p>Every side-effecting action MUST support idempotency.</p>
 <p>Action requests SHOULD include:</p>
@@ -1030,6 +1065,13 @@ standard labels for runtime interoperability.</p>
 same normalized input do not repeat the side effect.</p>
 <p>If the same key is reused with different normalized input, the application SHOULD
 return an idempotency conflict error.</p>
+<p>Idempotency keys are scoped to the grant and action: the application MUST
+treat a request as a duplicate only when the same key is presented under the
+same <code>grant_id</code> and <code>action_id</code>. On a duplicate request, the application
+SHOULD return the original result and receipt reference rather than an error,
+so a retrying runtime can converge on the outcome of the first attempt.
+Applications SHOULD retain idempotency state at least for the remaining
+lifetime of the grant and SHOULD document their retention window.</p>
 <p>Applications SHOULD define the input normalization procedure per action, or use
 the declared input schema with a canonical JSON profile. A future draft is
 expected to define canonicalization requirements for signed receipts and signed
@@ -1052,7 +1094,7 @@ surface, scopes, and caveats.</p>
   &quot;resource_server&quot;: {
     &quot;app_id&quot;: &quot;code.example.com&quot;,
     &quot;issuer&quot;: &quot;https://code.example.com&quot;,
-    &quot;surface_version&quot;: &quot;code-review-agent-surface/0.1&quot;
+    &quot;surface_version&quot;: &quot;2026-06-25&quot;
   },
   &quot;scopes&quot;: [
     &quot;pull_request.read&quot;,
@@ -1072,6 +1114,16 @@ surface, scopes, and caveats.</p>
   }
 }
 </code></pre>
+<p>Numeric caveats need defined accounting. In this draft, <code>max_actions</code> counts
+side-effecting action requests accepted by the application under the grant.
+Reads and denied requests do not consume the budget, and neither do idempotent
+replays: a retry deduplicated under a previously accepted idempotency key
+MUST NOT consume the budget again, or lost responses and transport retries
+could exhaust a grant without producing new side effects. <code>max_cost_usd</code> is
+advisory in the MVP profile: the runtime SHOULD meter agent-side cost against
+it, and applications MAY additionally meter app-side cost where actions carry
+a price. When a budget caveat is exhausted, further matching requests MUST be
+rejected with <code>limit_exceeded</code>.</p>
 <h3 id="grant-lifecycle" data-asp-heading="Grant Lifecycle">Grant Lifecycle</h3>
 <pre><code class="language-text">discover surface
   -&gt; verify manifest
@@ -1097,6 +1149,11 @@ App verifies every call
 </code></pre>
 <p>This is the RECOMMENDED MVP model because it fits existing OAuth/resource-server
 deployments.</p>
+<p>Because this draft does not require browser-to-localhost communication, the
+consent flow SHOULD support a completion mode that does not depend on a
+loopback redirect — for example an OAuth device-authorization-style exchange
+or an app-mediated pairing code that the runtime polls or receives over its
+outbound channel.</p>
 <p>Pros:</p>
 <ul>
 <li>Easy for applications to enforce.</li>
@@ -1221,7 +1278,7 @@ The user authorizes a specific runtime-agent-passport tuple through a grant.
     &quot;agent_id&quot;: &quot;local_agent_789&quot;,
     &quot;surface&quot;: {
       &quot;app_id&quot;: &quot;code.example.com&quot;,
-      &quot;surface_version&quot;: &quot;code-review-agent-surface/0.1&quot;
+      &quot;surface_version&quot;: &quot;2026-06-25&quot;
     },
     &quot;task&quot;: {
       &quot;kind&quot;: &quot;pull_request.review&quot;,
@@ -1240,6 +1297,15 @@ the app only if grant and policy allow it.</p>
 <p>The action request MUST be authorized by the HTTP authorization layer or an
 equivalent proof. The <code>grant_id</code> inside the body is a correlation identifier, not
 a credential.</p>
+<p>The application MUST also verify that the supplied <code>session_id</code> belongs to the
+presented grant. Otherwise a valid grant credential could be replayed against
+sessions created under other grants, corrupting session accounting and receipt
+linkage.</p>
+<p>If both the <code>Idempotency-Key</code> header and the body <code>idempotency_key</code> field are
+present, they MUST match, and the application MUST reject a mismatch as
+<code>schema_invalid</code>. Accepting a mismatched request and picking either value
+would let app-side deduplication and runtime receipts refer to different
+idempotency identifiers.</p>
 <p>Example:</p>
 <pre><code class="language-http">POST /agent-actions HTTP/1.1
 Host: example.com
@@ -1366,7 +1432,7 @@ deduplicated under a grant.</p>
   &quot;session_id&quot;: &quot;sess_456&quot;,
   &quot;action_id&quot;: &quot;comment.create&quot;,
   &quot;app_id&quot;: &quot;code.example.com&quot;,
-  &quot;surface_version&quot;: &quot;code-review-agent-surface/0.1&quot;,
+  &quot;surface_version&quot;: &quot;2026-06-25&quot;,
   &quot;runtime&quot;: {
     &quot;runtime_id&quot;: &quot;application_runtime_456&quot;
   },
@@ -1397,8 +1463,16 @@ deduplicated under a grant.</p>
 </code></pre>
 <p>Receipts MAY be signed by the app, runtime, or both. A future draft is expected
 to define canonicalization and signature profiles.</p>
+<p>How the application obtains the <code>runtime_receipt_hash</code> value for the <code>links</code>
+field — for example, in the action request itself or through a later
+submission to the receipt endpoint — is not defined in this draft; see Open
+Questions.</p>
 <h2 id="revocation-semantics" data-asp-heading="Revocation Semantics">Revocation Semantics</h2>
 <p>The protocol MUST define what happens when authority changes.</p>
+<p>Revocation MUST be possible from both sides. Applications SHOULD give users an
+in-app view of active agent grants — comparable to OAuth application
+management pages — where a grant can be inspected and revoked without going
+through the runtime.</p>
 <h3 id="grant-revoked" data-asp-heading="Grant Revoked">Grant Revoked</h3>
 <p>If a grant is revoked:</p>
 <ul>
@@ -1407,6 +1481,10 @@ to define canonicalization and signature profiles.</p>
 <li>active sessions SHOULD be cancelled or downgraded to read-only according to
 app policy</li>
 <li>receipt generation SHOULD record the revocation event</li>
+<li>the event channel SHOULD deliver <code>grant.revoked</code> as a final event before the
+app closes the subscription; delivery of this one event MUST NOT itself
+require an active grant, or the runtime could never learn about the
+revocation through the event channel</li>
 </ul>
 <h3 id="runtime-disconnected" data-asp-heading="Runtime Disconnected">Runtime Disconnected</h3>
 <p>If the runtime disconnects:</p>
@@ -1451,7 +1529,14 @@ session unless explicitly configured otherwise.</p>
 | <code>passport_invalid</code> | Agent Passport is missing, expired, revoked, or invalid. |
 | <code>runtime_untrusted</code> | Runtime binding or attestation is not accepted. |
 | <code>surface_incompatible</code> | Runtime does not support the surface version. |
-| <code>proposal_required</code> | The app only supports proposal mode for this action or grant. |</p>
+| <code>proposal_required</code> | The app only supports proposal mode for this action or grant. |
+| <code>session_invalid</code> | Session is unknown, ended, or not associated with the presented grant. |
+| <code>action_unknown</code> | Action id is not part of the surface version the grant was issued against. |
+| <code>limit_exceeded</code> | A grant budget caveat such as <code>max_actions</code> or <code>max_cost_usd</code> is exhausted. |
+| <code>rate_limited</code> | The request was throttled independently of grant caveats. |</p>
+<p>Errors SHOULD be returned in a structured envelope containing at least the
+error code, a human-readable description, and a retryability indication.
+Mapping error codes to HTTP status codes is left to a future draft.</p>
 <p>Errors SHOULD be safe to show to users and precise enough for runtime policy
 debugging.</p>
 <h2 id="versioning-and-compatibility" data-asp-heading="Versioning and Compatibility">Versioning and Compatibility</h2>
@@ -1465,9 +1550,13 @@ debugging.</p>
   }
 }
 </code></pre>
+<p>The <code>surface_version</code> value is an opaque identifier. Runtimes MUST compare
+surface versions for exact equality; this draft defines no ordering between
+surface versions.</p>
 <p>Compatibility rules:</p>
 <ul>
-<li>Removing an action is a breaking change for grants that include that action.</li>
+<li>Removing an action is a breaking change for grants whose scopes cover that
+action.</li>
 <li>Tightening a schema can be a breaking change.</li>
 <li>Adding optional fields is non-breaking.</li>
 <li>Adding a new action is non-breaking.</li>
@@ -1520,6 +1609,18 @@ authorized by app-verifiable grant state.</p>
 <li>app-side receipts</li>
 <li>anomaly detection</li>
 </ul>
+<h3 id="app-embedded-runtime" data-asp-heading="App-Embedded Runtime">App-Embedded Runtime</h3>
+<p>The Terminology section allows a runtime to be embedded in an application.
+That deployment collapses the two trust domains this protocol otherwise
+separates: the component that is supposed to protect the user is operated by
+the party the user is being protected from. An app-embedded runtime can
+satisfy the wire protocol while voiding the &quot;runtime protects the user&quot;
+guarantee — its policy checks, approvals, and runtime receipts are all
+app-controlled.</p>
+<p>When the runtime is app-operated, the user's protection reduces to app-side
+consent and app receipts. Runtimes SHOULD disclose their operator during
+consent, and enterprise policy MAY require user-controlled or third-party
+runtimes for high-risk scopes.</p>
 <h3 id="malicious-or-compromised-agent" data-asp-heading="Malicious or Compromised Agent">Malicious or Compromised Agent</h3>
 <p>Agents can hallucinate, loop, ignore instructions, leak data, or attempt
 unauthorized actions.</p>
@@ -1566,6 +1667,11 @@ traffic.</p>
 application content as authority to escalate scopes, reveal secrets, or bypass
 policy.</p>
 <p>Runtime and app policies SHOULD treat model output as untrusted until validated.</p>
+<p>Session task descriptions, resource payloads, and event payloads are
+app-authored input to the agent and can carry injected instructions. The
+runtime SHOULD present the session task to the user at session start or
+consent time, and MUST NOT allow app-delivered content to widen grant scope,
+weaken approval requirements, or alter local policy.</p>
 <h3 id="replay-and-duplicate-actions" data-asp-heading="Replay and Duplicate Actions">Replay and Duplicate Actions</h3>
 <p>Idempotency keys, timestamps, nonce binding, and grant expiration reduce replay
 risk. Side-effecting actions MUST be idempotent.</p>
@@ -1709,6 +1815,15 @@ depending on app tenancy?</li>
 <li>How do users compare two agents with overlapping Agent Passport
 capabilities during grant consent?</li>
 <li>What happens to active sessions when an app changes surface versions?</li>
+<li>What transport, ordering, acknowledgement, and replay semantics do event
+subscriptions use?</li>
+<li>How does the application obtain the runtime receipt hash that an app receipt
+links to?</li>
+<li>How is <code>max_cost_usd</code> metered when runtime-side inference cost and app-side
+action cost diverge, and which side is authoritative?</li>
+<li>How are runtime-side approvals proven to the application beyond an
+<code>approval_ref</code> identifier — signed approval objects, step-up verification,
+or app-rendered approval UI?</li>
 </ul>
 <h2 id="references" data-asp-heading="References">References</h2>
 <ul>

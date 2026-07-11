@@ -18,6 +18,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Check required RFC draft
         shell: bash
         run: |
@@ -25,6 +35,13 @@ jobs:
 
           test -s drafts/agent-surface.md
           grep -q '^# Agent Surface Protocol Specification' drafts/agent-surface.md
+
+      - name: Check RFC review dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --requirement review/requirements.txt
+          make review-check
 
       - name: Check Markdown hygiene
         shell: bash
