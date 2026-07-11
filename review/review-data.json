@@ -188,6 +188,14 @@
           "anchorId": "oauth"
         },
         {
+          "heading": "OAuth Grant Lifecycle Profile",
+          "anchorId": "oauth-grant-lifecycle-profile"
+        },
+        {
+          "heading": "Rich Authorization Request Profile",
+          "anchorId": "rich-authorization-request-profile"
+        },
+        {
           "heading": "Agent Grant",
           "anchorId": "agent-grant-2"
         },
@@ -200,8 +208,8 @@
           "anchorId": "grant-issuance-models"
         }
       ],
-      "status": "missing",
-      "rationale": "OAuth используется как substrate, но RFC 9396 и отображение Agent Grant в authorization_details отсутствуют.",
+      "status": "present",
+      "rationale": "RFC задаёт collision-resistant Agent Grant authorization-details type, обязательные поля, consent/subset semantics, ошибки RFC 9396 и возврат authoritative granted object.",
       "priority": "P2"
     },
     {
@@ -216,6 +224,10 @@
           "anchorId": "oauth"
         },
         {
+          "heading": "OAuth Token Exchange Profile",
+          "anchorId": "oauth-token-exchange-profile"
+        },
+        {
           "heading": "Grant Issuance Models",
           "anchorId": "grant-issuance-models"
         },
@@ -228,8 +240,8 @@
           "anchorId": "grant-credentials-and-proof"
         }
       ],
-      "status": "partial",
-      "rationale": "Token Exchange разрешён и RFC 8693 указан, но request/response parameters, token types и binding semantics не профилированы.",
+      "status": "present",
+      "rationale": "RFC профилирует RFC 8693 request/response, runtime/actor authentication, resource restriction, attenuation, proof binding и explicit derivation/revocation linkage.",
       "priority": "P2"
     },
     {
@@ -300,6 +312,10 @@
           "anchorId": "oauth"
         },
         {
+          "heading": "Grant Introspection Profile",
+          "anchorId": "grant-introspection-profile"
+        },
+        {
           "heading": "Endpoints",
           "anchorId": "endpoints"
         },
@@ -312,8 +328,8 @@
           "anchorId": "grant-verification"
         }
       ],
-      "status": "partial",
-      "rationale": "Introspection endpoint и RFC 7662 предусмотрены, но минимальная ASP response schema не задана.",
+      "status": "present",
+      "rationale": "RFC задаёт authenticated RFC 7662 request, privacy-preserving inactive response и минимальный active contract со scope, tuple, constraints, surface, expiry и credential binding.",
       "priority": "P1"
     },
     {
@@ -336,12 +352,16 @@
           "anchorId": "revocation-semantics"
         },
         {
+          "heading": "OAuth Grant Revocation Profile",
+          "anchorId": "oauth-grant-revocation-profile"
+        },
+        {
           "heading": "Grant Revoked",
           "anchorId": "grant-revoked"
         }
       ],
-      "status": "partial",
-      "rationale": "Имя события и последствия revocation присутствуют, но payload, authenticity, delivery и обработка именно полученного события не стандартизированы.",
+      "status": "present",
+      "rationale": "RFC определяет RFC 7009 grant transition, cascade revocation, authenticated `grant.revoked` envelope, reason codes, idempotent runtime processing и границу с общей event delivery model.",
       "priority": "P1"
     },
     {
