@@ -595,23 +595,38 @@ indicators.
 Relevant standards:
 
 - OAuth 2.0: <https://www.rfc-editor.org/rfc/rfc6749>
+- OAuth 2.0 Proof Key for Code Exchange:
+  <https://www.rfc-editor.org/rfc/rfc7636>
 - OAuth 2.0 Token Revocation: <https://www.rfc-editor.org/rfc/rfc7009>
 - OAuth 2.0 Token Introspection: <https://www.rfc-editor.org/rfc/rfc7662>
 - OAuth 2.0 Token Exchange: <https://www.rfc-editor.org/rfc/rfc8693>
 - OAuth 2.0 Resource Indicators: <https://www.rfc-editor.org/rfc/rfc8707>
+- OAuth 2.0 Rich Authorization Requests:
+  <https://www.rfc-editor.org/rfc/rfc9396>
+- OAuth 2.0 Pushed Authorization Requests:
+  <https://www.rfc-editor.org/rfc/rfc9126>
+- Best Current Practice for OAuth 2.0 Security:
+  <https://www.rfc-editor.org/rfc/rfc9700>
 
 Agent Surface Protocol uses the term **grant** for the semantic object,
 even when an OAuth access token is the transport representation.
 
-If OAuth is used, `agent_delegation` MAY be represented as an OAuth extension
-grant type. `agent_delegation` is not a standard OAuth grant type in this draft.
+The OAuth Grant Lifecycle Profile in this draft uses standard OAuth flows and
+extension parameters; it does not define an `agent_delegation` OAuth grant type.
+Implementations MAY use:
 
-Implementations MAY also use existing OAuth flows, including:
-
-- Authorization Code with PKCE and additional agent delegation parameters.
+- Authorization Code with PKCE and an Agent Grant
+  `authorization_details` object.
 - OAuth Token Exchange to exchange a user-authorized credential for an
   agent-scoped grant credential.
 - Resource Indicators to constrain the resource server or app surface.
+
+The collision-resistant authorization-details type identifier defined by this
+draft is:
+
+```text
+https://github.com/0al-spec/agent-surface/authorization-details/agent-grant
+```
 
 ### Agent Passport
 
@@ -849,7 +864,13 @@ surface discoverable.
     "token_url": "https://example.com/oauth/token",
     "introspection_url": "https://example.com/oauth/introspect",
     "revocation_url": "https://example.com/oauth/revoke",
-    "grant_types": ["agent_delegation"],
+    "grant_types_supported": [
+      "authorization_code",
+      "urn:ietf:params:oauth:grant-type:token-exchange"
+    ],
+    "authorization_details_types_supported": [
+      "https://github.com/0al-spec/agent-surface/authorization-details/agent-grant"
+    ],
     "token_binding": ["runtime", "agent_passport_hash"],
     "pkce_required": true
   },
@@ -1073,6 +1094,10 @@ Grant constraints filter events the same way they filter actions: a grant
 constrained to one repository SHOULD NOT receive events about other
 repositories, even when the event scope matches.
 
+`grant.revoked` is an application control event rather than an event authorized
+by the revoked grant. Its payload, authentication, and processing requirements
+are defined in the OAuth Grant Revocation Profile.
+
 Event delivery semantics — transport, ordering, acknowledgement, and replay —
 are not defined in this draft; see Open Questions.
 
@@ -1234,14 +1259,14 @@ discover surface
   -> verify manifest
   -> choose agent
   -> verify Agent Passport
-  -> request grant
+  -> request grant with authorization_details
   -> user consent
-  -> issue grant
+  -> issue or exchange Grant Credential
   -> store grant in runtime
   -> start session
-  -> mediate actions
+  -> introspect / verify and mediate actions
   -> issue receipts
-  -> expire / revoke / renew
+  -> expire / revoke / notify / renew
 ```
 
 ### Grant Issuance Models
@@ -1311,6 +1336,355 @@ Cons:
 - Requires canonicalization, trust stores, signing profiles, revocation
   semantics, and stronger interop work.
 - Too large for the first MVP.
+
+### OAuth Grant Lifecycle Profile
+
+This profile maps an Agent Grant onto OAuth Rich Authorization Requests, Token
+Exchange, Token Introspection, and Token Revocation. It applies when the Agent
+Surface Manifest declares OAuth endpoints and the Agent Grant authorization
+details type defined by this draft.
+
+The authorization server and resource server MAY be operated by the same
+application, but they retain their OAuth roles. The authorization server issues
+and manages Grant Credentials. The application action endpoint is the resource
+server and continues to enforce the semantic Agent Grant for every action.
+
+#### Rich Authorization Request Profile
+
+An Agent Grant authorization request MUST use the RFC 9396
+`authorization_details` parameter with an object whose `type` is:
+
+```text
+https://github.com/0al-spec/agent-surface/authorization-details/agent-grant
+```
+
+The authorization server metadata MUST list this value in
+`authorization_details_types_supported`. The Agent Surface Manifest `auth`
+object MUST mirror that value and the standard `grant_types_supported` values
+used by the deployment; conflicting metadata makes the OAuth profile invalid.
+
+Example, shown decoded from its form-encoded authorization request parameter:
+
+```json
+[
+  {
+    "type": "https://github.com/0al-spec/agent-surface/authorization-details/agent-grant",
+    "locations": ["https://code.example.com/agent-actions"],
+    "actions": ["pull_request.get", "comment.create"],
+    "app_id": "code.example.com",
+    "surface_version": "2026-06-25",
+    "delegate": {
+      "runtime_id": "application_runtime_456",
+      "agent_id": "local_agent_789",
+      "passport_hash": "sha256:..."
+    },
+    "scopes": ["pull_request.read", "pull_request.comment"],
+    "resources": {
+      "repositories": ["example-org/example-repo"],
+      "pull_requests": [13]
+    },
+    "constraints": {
+      "expires_at": "2026-06-25T20:00:00Z",
+      "write_approval": "required",
+      "max_actions": 20
+    },
+    "credential_profile": "proof_bound",
+    "receipts": {
+      "runtime": "required",
+      "app": "required"
+    }
+  }
+]
+```
+
+The Agent Grant authorization details type has the following contract:
+
+- `type`, `app_id`, `surface_version`, `delegate`, `scopes`, `constraints`, and
+  `credential_profile` are REQUIRED.
+- `delegate` MUST contain `runtime_id`, `agent_id`, and `passport_hash`.
+- `constraints` MUST contain `expires_at`; other fields use the semantics of the
+  Agent Grant object.
+- `credential_profile` MUST be `compatibility_bearer` or `proof_bound` and maps
+  to the credential profiles defined in this draft.
+- RFC 9396 common fields `locations` and `actions` MAY restrict the request to
+  published action endpoints and Agent Surface action identifiers.
+- `resources` and `receipts` MAY carry the corresponding Agent Grant resource
+  constraints and receipt requirements.
+- `grant_id`, `subject`, and `credential_binding` MUST NOT be supplied by the
+  client in an authorization request; they are authorization-server output.
+- The request MUST NOT supply `subject.user` or another asserted user identity;
+  the authorization server derives the subject from its authenticated user
+  session or, at the token endpoint, from the validated `subject_token`.
+
+The authorization server MUST reject unknown fields, unknown action or scope
+values, a mismatched `app_id` or `surface_version`, an unverified passport hash,
+or constraints that are invalid for the published surface. It MUST use the RFC
+9396 `invalid_authorization_details` error for malformed or unsupported Agent
+Grant authorization details.
+
+Authorization Code use of this profile MUST use PKCE with the `S256` challenge
+method. Deployments SHOULD use Pushed Authorization Requests when supported so
+the rich grant request is integrity-protected and is not exposed in browser
+URLs, history, or intermediary logs.
+
+The OAuth `scope` parameter MAY carry OAuth protocol scopes unrelated to Agent
+Surface authority. It MUST NOT add Agent Surface scopes, actions, resources, or
+caveats beyond the `authorization_details` object. A client MUST NOT encode the
+same Agent Surface authority in both forms, and the authorization server MUST
+reject an ambiguous request instead of unioning its permissions.
+
+In token and introspection responses, the standard OAuth `scope` member MAY be
+an exact space-delimited projection of the granted Agent Grant `scopes` for
+legacy resource-server integration. If present, it MUST contain no authority
+absent from `authorization_details.scopes`; the granted
+`authorization_details` remains authoritative. A resource server MUST reject a
+credential when the two representations conflict.
+
+Consent MUST present the application, runtime, agent, passport evidence,
+requested actions and scopes, resources, expiration and budgets, approval
+requirements, credential profile, data exposure, and receipt requirements. The
+user MAY approve a strict subset. The authorization server MUST compare the
+requested and approved objects according to Agent Grant semantics rather than
+using raw JSON equality, and MUST NOT enrich the result with additional
+authority.
+
+The token response MUST return the granted `authorization_details` as required
+by RFC 9396. For this type, the returned object MUST be enriched with the
+authoritative `grant_id`, `subject`, delegate binding, effective constraints,
+and `credential_binding` assigned by the authorization server. The
+authorization server and resource server MUST retain or receive the same
+granted object for later action verification and introspection.
+
+#### OAuth Token Exchange Profile
+
+A runtime MAY exchange a user-authorized subject token for an Agent Grant
+Credential using RFC 8693. The request uses the standard token endpoint and
+form-encoded parameters:
+
+```http
+POST /oauth/token HTTP/1.1
+Host: code.example.com
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=urn:ietf:params:oauth:grant-type:token-exchange
+&resource=https%3A%2F%2Fcode.example.com%2Fagent-actions
+&requested_token_type=urn:ietf:params:oauth:token-type:access_token
+&subject_token=<user-authorized-token>
+&subject_token_type=urn:ietf:params:oauth:token-type:access_token
+&authorization_details=<percent-encoded-agent-grant-details>
+```
+
+The Token Exchange request has these additional ASP requirements:
+
+- The runtime MUST authenticate to the token endpoint. For a
+  `proof_bound` request, it MUST authenticate using the key or channel binding
+  that will identify the bound runtime.
+- `subject_token` MUST represent the authenticated user's authorization for the
+  requested application and MUST be valid at the time of exchange.
+- `resource` MUST contain exactly the published Agent Surface action resource
+  URI. An `audience` value MAY additionally name the same logical resource
+  server but MUST NOT add another target.
+- `requested_token_type` MUST be
+  `urn:ietf:params:oauth:token-type:access_token` for the OAuth Grant Credential
+  profile in this draft.
+- `authorization_details` MUST contain exactly one Agent Grant object of the
+  type defined above and MUST be semantically equal to or narrower than the
+  authorization approved by the user.
+- If OAuth client authentication does not establish the runtime identity, the
+  request MUST include an `actor_token` representing the runtime and the
+  corresponding `actor_token_type`. The authorization server MUST verify it and
+  bind the output credential to that runtime. For a `proof_bound` request, the
+  actor token MUST itself be sender-constrained or presented through the same
+  bound channel authentication.
+
+The authorization server MUST validate the subject token, runtime identity,
+agent and passport binding, resource, requested scopes, constraints, and
+credential profile. The exchange MUST NOT increase authority, widen resources,
+relax approval or receipt requirements, extend beyond the approved expiration,
+or replace `proof_bound` with `compatibility_bearer` without fresh user consent.
+
+RFC 8693 does not itself create lifecycle linkage between input and output
+tokens. This ASP profile does: the authorization server MUST record the source
+authorization or parent grant from which the Agent Grant was derived. Revoking
+or invalidating that source authority MUST revoke or suspend every derived Agent
+Grant unless an independently approved grant replaced it.
+
+Example successful response:
+
+```json
+{
+  "access_token": "<opaque-grant-credential>",
+  "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+  "token_type": "DPoP",
+  "expires_in": 1800,
+  "scope": "pull_request.read pull_request.comment",
+  "grant_id": "grant_123",
+  "authorization_details": [
+    {
+      "type": "https://github.com/0al-spec/agent-surface/authorization-details/agent-grant",
+      "locations": ["https://code.example.com/agent-actions"],
+      "actions": ["pull_request.get", "comment.create"],
+      "app_id": "code.example.com",
+      "surface_version": "2026-06-25",
+      "subject": {
+        "user": "app-user-7f3a"
+      },
+      "delegate": {
+        "runtime_id": "application_runtime_456",
+        "agent_id": "local_agent_789",
+        "passport_hash": "sha256:..."
+      },
+      "scopes": ["pull_request.read", "pull_request.comment"],
+      "resources": {
+        "repositories": ["example-org/example-repo"],
+        "pull_requests": [13]
+      },
+      "constraints": {
+        "expires_at": "2026-06-25T20:00:00Z",
+        "write_approval": "required",
+        "max_actions": 20
+      },
+      "credential_profile": "proof_bound",
+      "credential_binding": {
+        "method": "dpop",
+        "jkt": "<base64url-thumbprint>"
+      },
+      "receipts": {
+        "runtime": "required",
+        "app": "required"
+      },
+      "grant_id": "grant_123"
+    }
+  ]
+}
+```
+
+The response MUST include `access_token`, `issued_token_type`, `token_type`,
+`expires_in`, `grant_id`, the exact `scope` projection defined above, and the
+granted `authorization_details`. This also satisfies the RFC 8693 requirement to
+return `scope` when the issued scope differs from the request. The `token_type`
+and credential confirmation data MUST match the selected credential profile. A
+refresh token SHOULD NOT be issued by default; if one is issued, it MUST
+preserve the tuple binding, attenuation, and revocation linkage of the Agent
+Grant and follow RFC 9700 refresh-token replay protections.
+
+Token responses containing a Grant Credential or its authorization details MUST
+use `Cache-Control: no-store` and `Pragma: no-cache`.
+
+#### Grant Introspection Profile
+
+The manifest `grant_introspection_url` MAY identify the same RFC 7662 endpoint
+as `oauth.introspection_url`. A protected resource or runtime introspects a
+Grant Credential using an authenticated RFC 7662 request with the required
+`token` parameter and optional `token_type_hint`. The endpoint MUST authenticate
+and authorize the caller and disclose only grant data that caller needs.
+
+For an inactive, unknown, or undisclosable credential, the response MUST be:
+
+```json
+{
+  "active": false
+}
+```
+
+It MUST NOT reveal whether the credential was unknown, expired, revoked, or
+outside the caller's authority.
+
+For an active Grant Credential, the response MUST include the RFC 7662 fields
+`active`, `client_id`, `scope`, `token_type`, `exp`, `iat`, `sub`, `aud`, and
+`iss`, plus the ASP fields `grant_id`, `surface`, `delegate`, `resources`,
+`constraints`, `credential_binding`, and `authorization_details`. The `sub`
+value SHOULD be a stable app-scoped pseudonymous user identifier. `client_id`
+identifies the OAuth client; `delegate.runtime_id` is the authoritative ASP
+runtime binding and MAY differ from `client_id`.
+
+The `authorization_details` member MUST contain the granted Agent Grant object,
+filtered only to data the authenticated caller may receive. Top-level `sub`,
+`grant_id`, `surface`, `delegate`, `resources`, `constraints`, and
+`credential_binding` are projections of that object and MUST match it; `sub`
+corresponds to `subject.user`. A resource server MUST treat a mismatch as an
+invalid grant proof rather than selecting one representation.
+
+```json
+{
+  "active": true,
+  "client_id": "application_runtime_456",
+  "scope": "pull_request.read pull_request.comment",
+  "token_type": "DPoP",
+  "exp": 1782417600,
+  "iat": 1782415800,
+  "sub": "app-user-7f3a",
+  "aud": "https://code.example.com/agent-actions",
+  "iss": "https://code.example.com",
+  "grant_id": "grant_123",
+  "surface": {
+    "app_id": "code.example.com",
+    "surface_version": "2026-06-25"
+  },
+  "delegate": {
+    "runtime_id": "application_runtime_456",
+    "agent_id": "local_agent_789",
+    "passport_hash": "sha256:..."
+  },
+  "resources": {
+    "repositories": ["example-org/example-repo"],
+    "pull_requests": [13]
+  },
+  "constraints": {
+    "expires_at": "2026-06-25T20:00:00Z",
+    "write_approval": "required",
+    "max_actions": 20
+  },
+  "credential_binding": {
+    "method": "dpop",
+    "jkt": "<base64url-thumbprint>"
+  },
+  "authorization_details": [
+    {
+      "type": "https://github.com/0al-spec/agent-surface/authorization-details/agent-grant",
+      "locations": ["https://code.example.com/agent-actions"],
+      "actions": ["pull_request.get", "comment.create"],
+      "app_id": "code.example.com",
+      "surface_version": "2026-06-25",
+      "subject": {
+        "user": "app-user-7f3a"
+      },
+      "delegate": {
+        "runtime_id": "application_runtime_456",
+        "agent_id": "local_agent_789",
+        "passport_hash": "sha256:..."
+      },
+      "scopes": ["pull_request.read", "pull_request.comment"],
+      "resources": {
+        "repositories": ["example-org/example-repo"],
+        "pull_requests": [13]
+      },
+      "constraints": {
+        "expires_at": "2026-06-25T20:00:00Z",
+        "write_approval": "required",
+        "max_actions": 20
+      },
+      "credential_profile": "proof_bound",
+      "credential_binding": {
+        "method": "dpop",
+        "jkt": "<base64url-thumbprint>"
+      },
+      "receipts": {
+        "runtime": "required",
+        "app": "required"
+      },
+      "grant_id": "grant_123"
+    }
+  ]
+}
+```
+
+The response MUST describe current authoritative state. An application MUST NOT
+authorize an action using a cached `active: true` response after it has observed
+revocation, expiry, a binding invalidation, or a superseding surface state.
+Responses SHOULD use `Cache-Control: no-store`; any deployment that permits
+caching MUST bound the cache lifetime by the earlier of token expiration and
+its documented revocation-propagation limit.
 
 ### Grant Credentials and Proof
 
@@ -1719,6 +2093,88 @@ in-app view of active agent grants — comparable to OAuth application
 management pages — where a grant can be inspected and revoked without going
 through the runtime.
 
+### OAuth Grant Revocation Profile
+
+The manifest `grant_revocation_url` MAY identify the same endpoint as
+`oauth.revocation_url`. When it does, a runtime requests revocation using RFC
+7009: an authenticated form-encoded `POST` containing the Grant Credential in
+the required `token` parameter and, optionally, an `access_token`
+`token_type_hint`.
+
+The endpoint MUST authenticate the runtime client and, for a credential it can
+locate, verify that the credential was issued to that client. A successful
+request and a request containing an unknown or already invalid credential both
+return HTTP 200 with no response body, as required by RFC 7009. The runtime MUST
+stop using the credential after that response. An HTTP 503 response means
+revocation is not confirmed; the runtime MUST continue treating the credential
+as sensitive, MUST NOT initiate new actions with it, and SHOULD retry according
+to `Retry-After`.
+
+For the Agent Grant profile, revoking a Grant Credential through
+`grant_revocation_url` revokes the semantic Agent Grant, not only that token.
+The application MUST immediately mark the grant inactive, reject every
+credential derived from it, invalidate refresh tokens and proof-bound sessions,
+and cascade revocation to child or exchanged grants whose authority derives
+from it. Revocation initiated through the application's user-facing grant view
+MUST produce the same state transition.
+
+When an active grant changes to revoked and the manifest declares an event
+subscription endpoint, the application MUST emit a `grant.revoked` control event
+with this minimum envelope:
+
+```json
+{
+  "id": "event_01J2ABCDEF",
+  "type": "grant.revoked",
+  "occurred_at": "2026-06-25T18:30:00Z",
+  "issuer": "https://code.example.com",
+  "audience": "application_runtime_456",
+  "payload": {
+    "grant_id": "grant_123",
+    "app_id": "code.example.com",
+    "runtime_id": "application_runtime_456",
+    "agent_id": "local_agent_789",
+    "passport_hash": "sha256:...",
+    "revoked_at": "2026-06-25T18:30:00Z",
+    "effective_at": "2026-06-25T18:30:00Z",
+    "reason": "user_revoked",
+    "parent_grant_id": null,
+    "cascade": true
+  }
+}
+```
+
+Required event fields are `id`, `type`, `occurred_at`, `issuer`, `audience`, and
+`payload`. The payload MUST contain `grant_id`, `app_id`, `runtime_id`,
+`agent_id`, `passport_hash`, `revoked_at`, `effective_at`, `reason`, and
+`cascade`; `parent_grant_id` is REQUIRED for a child grant and otherwise MAY be
+null. Defined reason values are `user_revoked`, `application_revoked`,
+`runtime_revoked`, `credential_compromise`, `parent_revoked`, `policy_changed`,
+and `superseded`. A runtime MUST still enforce revocation when it receives an
+unknown future reason value and MAY preserve that value as opaque audit data.
+
+The event MUST be delivered over an application-authenticated event channel
+bound to the manifest issuer and target runtime. The runtime MUST verify
+`issuer`, `audience`, tuple binding, and channel authenticity before acting on
+it. Delivery of this control event MUST use event-channel authority independent
+of the revoked grant and MUST disclose no more grant data than the target
+runtime already possessed. A future signing profile MAY additionally define an
+application signature for portable event verification.
+
+After accepting the event, the runtime MUST atomically mark the grant inactive,
+discard cached active introspection state, stop new actions and credential use,
+cancel or downgrade affected sessions according to app policy, cascade the
+state to locally tracked child grants, and record a runtime receipt. Event
+processing is idempotent by `id`; a duplicate event MUST NOT create duplicate
+receipts or repeat external side effects.
+
+The event is notification, not the enforcement mechanism. The application MUST
+reject the revoked grant immediately even if delivery is delayed or lost. A
+runtime that misses the event learns the inactive state from introspection or a
+rejected action. General event ordering, acknowledgement, replay cursor,
+retention, and backpressure remain outside this profile and are defined by the
+future Event Delivery Semantics work.
+
 ### Grant Revoked
 
 If a grant is revoked:
@@ -1728,10 +2184,9 @@ If a grant is revoked:
 - active sessions SHOULD be cancelled or downgraded to read-only according to
   app policy
 - receipt generation SHOULD record the revocation event
-- the event channel SHOULD deliver `grant.revoked` as a final event before the
-  app closes the subscription; delivery of this one event MUST NOT itself
-  require an active grant, or the runtime could never learn about the
-  revocation through the event channel
+- when the manifest declares an event subscription endpoint, the app MUST emit
+  `grant.revoked` according to the OAuth Grant Revocation Profile before it
+  closes the subscription
 
 ### Runtime Disconnected
 
@@ -2024,6 +2479,21 @@ An application conforms to the Grant-Enforcing profile when it:
 - supports idempotency for side-effecting actions
 - supports grant revocation
 
+### OAuth Grant Lifecycle Application
+
+An application conforms to the OAuth Grant Lifecycle Application profile when
+it:
+
+- satisfies the Grant-Enforcing Application profile
+- advertises the Agent Grant authorization-details type and supported standard
+  OAuth grant types
+- validates and returns Agent Grant `authorization_details` according to the
+  Rich Authorization Request Profile
+- implements the OAuth Token Exchange Profile without privilege amplification
+- returns the active and inactive Grant Introspection Profile contracts
+- implements RFC 7009 semantic grant revocation, derivation cascade, and the
+  authenticated `grant.revoked` control event when an event endpoint is declared
+
 ### Receipt-Producing Application
 
 An application conforms to the Receipt-Producing profile when it:
@@ -2061,6 +2531,8 @@ An application runtime conforms to this profile when it:
   models, and ungranted secondary runtimes
 - treats a separately granted child runtime as its own controlling runtime and
   preserves parent linkage, attenuation, and cascade revocation
+- implements RAR, Token Exchange, introspection, and revocation processing when
+  using the OAuth Grant Lifecycle Application profile
 - implements the Proof-Bound Credential Profile when the application requires
   the Proof-Bound Grant-Enforcing Application profile
 - enforces local policy and approval rules
@@ -2112,24 +2584,26 @@ To support Agent Surface Protocol, the next slices are:
 2. Application runtime discovers and validates the surface.
 3. User chooses "Connect my local agent".
 4. Runtime verifies the selected agent's Agent Passport.
-5. Runtime shows consent:
+5. Runtime sends an Agent Grant `authorization_details` request.
+6. The app authorization server shows consent:
    - app: code.example.com
    - agent: local-agent
    - scopes: pull_request.read, pull_request.comment
    - repository: example-org/example-repo
    - duration: 2 hours
    - writes: require approval
-6. User approves.
-7. App issues grant_123 and a grant credential.
-8. Runtime stores grant_123 and the grant credential.
-9. App starts a pull-request review session.
-10. Agent reads typed PR context through runtime-mediated resources.
-11. Agent proposes a review comment.
-12. User or app approves the write.
-13. Runtime sends comment.create with an idempotency key and grant credential.
-14. App verifies grant and writes the comment.
-15. Runtime and app issue linked receipts.
-16. User revokes grant or grant expires.
+7. User approves a subset or the complete request.
+8. App issues or token-exchanges grant_123 and its bound Grant Credential.
+9. Runtime stores the authoritative granted details and credential.
+10. App starts a pull-request review session.
+11. Agent reads typed PR context through runtime-mediated resources.
+12. Agent proposes a review comment.
+13. User or app approves the write.
+14. Runtime sends comment.create with an idempotency key and Grant Credential.
+15. App verifies or introspects current grant state and writes the comment.
+16. Runtime and app issue linked receipts.
+17. User revokes grant_123; the app rejects it immediately.
+18. App emits authenticated `grant.revoked`; runtime stops affected work.
 ```
 
 ## Open Questions
@@ -2168,6 +2642,8 @@ To support Agent Surface Protocol, the next slices are:
   <https://agentclientprotocol.com/protocol/v1/overview>
 - OAuth 2.0:
   <https://www.rfc-editor.org/rfc/rfc6749>
+- OAuth 2.0 Proof Key for Code Exchange:
+  <https://www.rfc-editor.org/rfc/rfc7636>
 - OAuth 2.0 Token Revocation:
   <https://www.rfc-editor.org/rfc/rfc7009>
 - OAuth 2.0 Token Introspection:
@@ -2176,6 +2652,12 @@ To support Agent Surface Protocol, the next slices are:
   <https://www.rfc-editor.org/rfc/rfc8693>
 - OAuth 2.0 Resource Indicators:
   <https://www.rfc-editor.org/rfc/rfc8707>
+- OAuth 2.0 Rich Authorization Requests:
+  <https://www.rfc-editor.org/rfc/rfc9396>
+- OAuth 2.0 Pushed Authorization Requests:
+  <https://www.rfc-editor.org/rfc/rfc9126>
+- Best Current Practice for OAuth 2.0 Security:
+  <https://www.rfc-editor.org/rfc/rfc9700>
 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access
   Tokens:
   <https://www.rfc-editor.org/rfc/rfc8705>
