@@ -262,6 +262,13 @@ This proposal separates two runtime responsibilities:
 One process can implement both roles, but the distinction matters for security
 analysis.
 
+For agent-initiated access to an Agent Surface, the runtime is the reference
+monitor. It is the only component allowed to mediate an agent's requested
+application actions: it evaluates local policy, grant caveats, approvals, and
+redaction before an action reaches the application. This does not make the
+runtime the final authority; the application remains responsible for verifying
+the grant on every action.
+
 ### Agent Passport
 
 [Agent Passport](https://github.com/0al-spec/agent-passport) is identity and
@@ -282,8 +289,10 @@ A user-approved, app-scoped, policy-bound delegation object.
 
 The grant is the semantic authorization. Tokens, cookies, JWTs, capability URLs,
 sender-constrained credentials, or signed objects are transport representations.
-A grant SHOULD be temporary, constrained, auditable, revocable, and bound to the
-user, application, runtime, agent, and passport evidence.
+A grant SHOULD be temporary, constrained, auditable, and revocable. A
+conforming grant MUST bind the user, application, runtime, agent, and passport
+evidence that it authorizes. A credential presentation MUST let the application
+verify that binding directly or retrieve it from authoritative grant state.
 
 ### Grant Credential
 
@@ -293,6 +302,11 @@ proofs, mTLS-bound tokens, JWTs, macaroon-like capabilities, signed delegation
 objects, or app-side server sessions.
 
 A `grant_id` is an identifier. It is not, by itself, authority.
+
+Grant credentials are runtime-held by default. Releasing a raw credential into
+an agent-visible process, tool, prompt, environment, or model context is a
+privileged `credential.release` capability and is denied unless the grant
+explicitly permits it.
 
 ### Capability Lease
 
@@ -371,6 +385,13 @@ Application
   -> enforces app-side grant scopes
 ```
 
+Every agent-initiated action against an Agent Surface MUST traverse the runtime.
+An agent, adapter, tool, or subagent MUST NOT call an Agent Surface with an
+independently obtained application credential or another authorization path that
+bypasses runtime mediation. The runtime's reference-monitor role does not
+replace application-side verification: the application MUST still enforce its
+own grant authority and resource policy for every action.
+
 ### Grant Is More Important Than Token
 
 A token is a bearer mechanism, proof key, or API credential. A grant is the
@@ -408,9 +429,9 @@ mechanism.
 
 ### Agent Does Not Receive Raw Authority
 
-Where practical, the agent SHOULD NOT receive the grant secret, OAuth access
-token, cookie, session key, or broad application credential. The agent SHOULD
-request typed actions from the runtime:
+An agent MUST NOT receive the grant secret, OAuth access token, cookie, session
+key, or broad application credential by default. The agent MUST request typed
+actions from the runtime:
 
 ```text
 Agent -> Runtime -> App Agent Surface
@@ -418,6 +439,15 @@ Agent -> Runtime -> App Agent Surface
 
 The runtime can then enforce local policy, approvals, idempotency, auditing, and
 redaction before sending anything to the app.
+
+A runtime MAY release a raw credential only under an explicitly authorized
+`credential.release` capability. The grant MUST name the credential class,
+target agent identity and passport hash, resource-server audience, permitted
+scopes, expiration, and required approval. The release MUST be shown during
+consent, require the specified approval before delivery, and produce both a
+runtime receipt and an app receipt where the application participates. Absence
+of this capability means denial; a general action grant or an agent's request
+MUST NOT imply credential release.
 
 ### Proposal Mode Is the Default
 
@@ -1160,7 +1190,16 @@ surface, scopes, and caveats.
     "expires_at": "2026-06-25T20:00:00Z",
     "write_approval": "required",
     "max_actions": 20,
-    "max_cost_usd": 5
+    "max_cost_usd": 5,
+    "credential_release": {
+      "mode": "deny"
+    }
+  },
+  "credential_binding": {
+    "method": "dpop",
+    "runtime_id": "application_runtime_456",
+    "agent_id": "local_agent_789",
+    "passport_hash": "sha256:..."
   },
   "audit": {
     "local_receipt": "required",
@@ -1234,7 +1273,10 @@ Cons:
 #### Model B: Runtime-Held Grant Plus App Token
 
 The app issues a scoped token to the runtime. The runtime locally binds that
-token to an agent, passport, and policy.
+token to an agent, passport, and policy. To satisfy the Grant-Enforcing
+Application profile, the application MUST also establish the runtime, agent,
+and passport binding from app-verifiable state or a verified proof at action
+time. A runtime-only assertion of that binding is insufficient.
 
 Pros:
 
@@ -1275,19 +1317,71 @@ An Agent Grant MAY be represented or proven by one of several mechanisms:
 - signed delegation object
 - macaroon-like caveated capability
 
-A future draft is expected to define required proof profiles. The MVP profile
-MAY use app-issued bearer grant credentials, but production deployments SHOULD
-prefer sender-constrained credentials where practical.
+A future draft is expected to define interoperable proof profiles. An MVP MAY
+define an explicitly labeled development or compatibility bearer profile.
+Production profiles MUST require a sender-constrained credential method or an
+equivalent app-authenticated runtime-session binding for every Agent Surface
+action.
+
+Regardless of representation, a Grant Credential MUST let the application
+establish or obtain from authoritative grant state all of the following:
+
+- the active `grant_id`;
+- the intended application or resource-server audience;
+- the bound runtime identity;
+- the bound agent identity and passport hash; and
+- the credential-binding method and any proof-of-possession key or session
+  binding that it requires.
+
+The application MUST reject a presentation whose binding does not match the
+grant's `delegate` or `credential_binding` values. An introspection or
+server-side session profile MAY supply these values indirectly, but the runtime
+MUST NOT substitute its own unverified assertion for application-verifiable
+binding evidence.
+
+Sender-constrained methods include DPoP, mTLS, and equivalent
+proof-of-possession mechanisms. A DPoP profile MUST follow RFC 9449 and bind
+the proof to the request; an mTLS profile MUST follow RFC 8705 and bind the
+credential to the authenticated certificate. A sender-constrained profile MUST
+detect replay of a proof or an invalidated binding. A bare bearer credential
+MAY be used only in the explicitly labeled development or compatibility profile
+described above. It remains outside every agent-visible context and is subject
+to short expiration, audience restriction, revocation, and application-side
+grant verification.
+
+### Subdelegation
+
+A runtime MAY use a subagent, remote model, MCP server, tool, adapter, or a
+secondary runtime to help execute delegated work. Receiving task context does
+not make that component a grant delegate and does not transfer Agent Grant
+authority.
+
+The runtime MUST treat every downstream component as untrusted with respect to
+application authority. It MUST NOT forward a Grant Credential, raw application
+credential, approval artifact, or an authorization path that can invoke an
+Agent Surface outside runtime mediation. A downstream component that needs an
+application action MUST request a typed action through the controlling runtime;
+the runtime MUST evaluate the original grant, policy, approval, and redaction
+rules again for that request.
+
+If a runtime delegates work to a secondary runtime, the secondary runtime is a
+separate delegate. It MUST receive a newly issued, explicitly bound grant with
+equal or narrower scopes, resources, caveats, lifetime, and credential-release
+permissions. A parent grant or credential MUST NOT be forwarded as implicit
+subdelegation.
 
 ### Grant Verification
 
-Applications SHOULD verify every action against grant state:
+Applications MUST verify every action against grant state:
 
 - grant exists and is active
 - grant credential or proof is valid
 - grant is bound to the user
 - grant is bound to the runtime when binding is required
 - grant is bound to the agent/passport hash when binding is required
+- credential-binding method and proof-of-possession requirements are satisfied
+- proof, nonce, certificate, or server-session binding has not been replayed or
+  invalidated
 - scope permits the action
 - resource constraints permit the target object
 - expiration has not passed
@@ -1305,6 +1399,8 @@ Runtimes SHOULD verify:
 - local approval is present when required
 - action input matches the declared schema
 - secrets and credentials are not exposed to the agent
+- any subagent, tool, adapter, remote model, or secondary runtime remains
+  subject to the same runtime mediation and does not receive implicit authority
 
 ## Capability Matching
 
@@ -1403,7 +1499,8 @@ Example:
 ```http
 POST /agent-actions HTTP/1.1
 Host: example.com
-Authorization: Bearer <grant-credential>
+Authorization: DPoP <grant-credential>
+DPoP: <signed-proof>
 Idempotency-Key: idem_01HX7DS8AC6G9
 Content-Type: application/json
 ```
@@ -1425,22 +1522,9 @@ Content-Type: application/json
 }
 ```
 
-If the runtime uses a signed proof instead of a bearer grant credential, the
-request SHOULD carry proof material in a standard authorization header or an
-explicit `proof` field.
-
-Example proof shape:
-
-```json
-{
-  "proof": {
-    "type": "dpop+jwt",
-    "jti": "proof_123",
-    "iat": 1782400000,
-    "signature": "..."
-  }
-}
-```
+The request's proof material MUST use the authorization mechanism selected by
+the credential-binding profile. For example, a DPoP-bound credential carries a
+DPoP proof in the `DPoP` header as defined by RFC 9449.
 
 ### Action Response
 
@@ -1744,7 +1828,9 @@ Agent -> Runtime -> App
 ```
 
 The runtime holds or obtains credentials and exposes only typed action results to
-the agent.
+the agent. A raw credential release requires the explicit `credential.release`
+capability and its corresponding approval and receipts; it is never implied by a
+normal action grant.
 
 ### Malicious or Compromised Runtime
 
@@ -1785,6 +1871,7 @@ unauthorized actions.
 Mitigations:
 
 - no direct credentials in agent process
+- no implicit credential or grant transfer to subagents, tools, or remote models
 - schema validation
 - risk-based approval
 - action count limits
@@ -1817,6 +1904,7 @@ Mitigations:
 - short-lived grants
 - sender-constrained tokens
 - DPoP or mTLS binding where practical
+- credential-release default denial and explicit release receipts
 - token introspection
 - revocation
 - action count limits
@@ -1892,6 +1980,7 @@ An application conforms to the Grant-Enforcing profile when it:
 - satisfies the Surface-Only profile
 - issues, validates, or introspects Agent Grants
 - validates grant state for every action
+- validates credential binding to runtime, agent, and passport evidence
 - treats `grant_id` as an identifier, not authority
 - supports idempotency for side-effecting actions
 - supports grant revocation
@@ -1914,6 +2003,10 @@ An application runtime conforms to this profile when it:
 - verifies Agent Passport evidence before delegation
 - obtains explicit user consent before storing a grant
 - mediates agent actions instead of exposing raw authority
+- denies credential release unless an explicit `credential.release` capability
+  and its constraints are satisfied
+- preserves runtime mediation when using subagents, tools, adapters, remote
+  models, or secondary runtimes
 - enforces local policy and approval rules
 - validates action input against schemas before sending to the app
 - records local audit events and runtime receipts
@@ -1925,6 +2018,7 @@ An adapter conforms to this draft when it:
 
 - runs under runtime supervision
 - does not require raw app credentials
+- does not receive a Grant Credential or transfer one to downstream components
 - requests app actions through runtime APIs
 - emits typed events
 - handles denials and approval waits
@@ -2026,6 +2120,11 @@ To support Agent Surface Protocol, the next slices are:
   <https://www.rfc-editor.org/rfc/rfc8693>
 - OAuth 2.0 Resource Indicators:
   <https://www.rfc-editor.org/rfc/rfc8707>
+- OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access
+  Tokens:
+  <https://www.rfc-editor.org/rfc/rfc8705>
+- OAuth 2.0 Demonstrating Proof-of-Possession at the Application Layer (DPoP):
+  <https://www.rfc-editor.org/rfc/rfc9449>
 - Key words for use in RFCs to Indicate Requirement Levels:
   <https://www.rfc-editor.org/rfc/rfc2119>
 - Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words:
