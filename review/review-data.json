@@ -280,24 +280,24 @@
       "side": "right",
       "anchors": [
         {
-          "heading": "Grant Object",
-          "anchorId": "grant-object"
+          "heading": "Grant Hash",
+          "anchorId": "grant-hash"
         },
         {
-          "heading": "Receipt Requirements",
-          "anchorId": "receipt-requirements"
+          "heading": "Canonical Object Hash Profile",
+          "anchorId": "canonical-object-hash-profile"
         },
         {
-          "heading": "App Receipt",
-          "anchorId": "app-receipt"
+          "heading": "Action Request",
+          "anchorId": "action-request"
         },
         {
-          "heading": "Receipt Forgery",
-          "anchorId": "receipt-forgery"
+          "heading": "Receipt Hash Chain",
+          "anchorId": "receipt-hash-chain"
         }
       ],
-      "status": "missing",
-      "rationale": "Receipts содержат grant_id, но canonical grant_hash и ссылка на точное содержимое grant отсутствуют.",
+      "status": "present",
+      "rationale": "RFC определяет canonical grant_hash над authoritative Grant Object, связывает его с action context и receipts и требует отклонять несовпадение с текущим grant state.",
       "priority": "P1"
     },
     {
@@ -400,24 +400,24 @@
       "side": "right",
       "anchors": [
         {
-          "heading": "Required Top-Level Fields",
-          "anchorId": "required-top-level-fields"
+          "heading": "Surface Hash",
+          "anchorId": "surface-hash"
+        },
+        {
+          "heading": "Canonical Object Hash Profile",
+          "anchorId": "canonical-object-hash-profile"
         },
         {
           "heading": "Grant Object",
           "anchorId": "grant-object"
         },
         {
-          "heading": "Receipt Requirements",
-          "anchorId": "receipt-requirements"
-        },
-        {
           "heading": "Surface Downgrade",
           "anchorId": "surface-downgrade"
         }
       ],
-      "status": "missing",
-      "rationale": "Связь выполняется только через surface_version; canonical surface_hash в manifest, grant и receipts отсутствует.",
+      "status": "present",
+      "rationale": "RFC определяет canonical surface_hash над точным manifest object, связывает его с grant и receipts, требует отклонять подмену/downgrade и явно отделяет внешнее содержимое schema URLs.",
       "priority": "P1"
     },
     {
@@ -601,7 +601,7 @@
         }
       ],
       "status": "partial",
-      "rationale": "Требование normalization есть, но canonical algorithm/profile оставлен приложению или будущему draft.",
+      "rationale": "RFC задаёт canonical hash точного wire input для receipt binding, но semantic normalization, defaults, set ordering и schema equivalence для idempotency остаются action-specific.",
       "priority": "P1"
     },
     {
@@ -890,11 +890,11 @@
       "description": "добавить `parent_receipt_hash`, `trace_id`, `surface_hash`, `grant_hash`, `policy_decision_hash`.",
       "category": "Receipts / audit / provenance",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
-          "heading": "Receipt Requirements",
-          "anchorId": "receipt-requirements"
+          "heading": "Receipt Hash Chain",
+          "anchorId": "receipt-hash-chain"
         },
         {
           "heading": "Runtime Receipt",
@@ -909,7 +909,7 @@
           "anchorId": "receipt-forgery"
         }
       ],
-      "rationale": "Есть связь app receipt с runtime receipt и hash входов/выходов, но нет общей цепочки и требуемых hash/trace полей.",
+      "rationale": "Runtime/App receipts образуют проверяемую цепочку через receipt_hash и parent_receipt_hash и несут surface_hash, grant_hash, policy_decision_hash и trace context.",
       "priority": "P1"
     },
     {
@@ -918,11 +918,15 @@
       "description": "оставить MVP unsigned, но заранее определить будущий профиль canonicalization + signatures.",
       "category": "Receipts / audit / provenance",
       "side": "left",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
-          "heading": "Receipts",
-          "anchorId": "receipts"
+          "heading": "Receipt Signing Profile",
+          "anchorId": "receipt-signing-profile"
+        },
+        {
+          "heading": "Canonical Object Hash Profile",
+          "anchorId": "canonical-object-hash-profile"
         },
         {
           "heading": "App Receipt",
@@ -931,13 +935,9 @@
         {
           "heading": "Receipt Forgery",
           "anchorId": "receipt-forgery"
-        },
-        {
-          "heading": "Open Questions",
-          "anchorId": "open-questions"
         }
       ],
-      "rationale": "Подпись и canonicalization отложены на future draft; профиль и алгоритмы не определены.",
+      "rationale": "RFC задаёт concrete JCS canonicalization и detached JWS profile, signing input, algorithm/key verification и downgrade behavior; unsigned receipts остаются допустимы в MVP.",
       "priority": "P2"
     },
     {
@@ -974,11 +974,11 @@
       "description": "стандартизировать объяснимый объект `policy.decision` с reason code, matched rules и safe-to-show текстом.",
       "category": "Receipts / audit / provenance",
       "side": "left",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
-          "heading": "Approval Semantics",
-          "anchorId": "approval-semantics"
+          "heading": "Policy Decision Object",
+          "anchorId": "policy-decision-object"
         },
         {
           "heading": "Runtime Receipt",
@@ -993,7 +993,7 @@
           "anchorId": "error-model"
         }
       ],
-      "rationale": "Policy decisions упомянуты, но нет типизированного policy.decision с codes, matched rules и safe text.",
+      "rationale": "RFC задаёт типизированный policy.decision с outcome, reason_code, matched_rules, safe-to-show explanation, policy version и проверяемым policy_decision_hash.",
       "priority": "P1"
     },
     {
@@ -1462,8 +1462,12 @@
       "description": "добавить trace/span/session ids, чтобы ASP действия связывались с app logs, runtime logs и receipts.",
       "category": "Economics / limits / operations",
       "side": "left",
-      "status": "partial",
+      "status": "present",
       "anchors": [
+        {
+          "heading": "Observability Context",
+          "anchorId": "observability-context"
+        },
         {
           "heading": "Sessions and Actions",
           "anchorId": "sessions-and-actions"
@@ -1475,13 +1479,9 @@
         {
           "heading": "Receipt Requirements",
           "anchorId": "receipt-requirements"
-        },
-        {
-          "heading": "Agent Adapter",
-          "anchorId": "agent-adapter"
         }
       ],
-      "rationale": "Session correlation присутствует, но trace_id, span_id и сквозная observability semantics отсутствуют.",
+      "rationale": "RFC задаёт W3C-compatible creation и propagation semantics для trace_id, span_id и session_id через sessions, actions, receipts и adapter/log context и отделяет correlation от authority.",
       "priority": "P2"
     },
     {
