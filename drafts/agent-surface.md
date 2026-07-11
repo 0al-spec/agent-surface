@@ -306,7 +306,8 @@ A `grant_id` is an identifier. It is not, by itself, authority.
 Grant credentials are runtime-held by default. Releasing a raw credential into
 an agent-visible process, tool, prompt, environment, or model context is a
 privileged `credential.release` capability and is denied unless the grant
-explicitly permits it.
+explicitly permits it. The Grant Credential that authorizes Agent Surface
+actions is never releasable under this capability.
 
 ### Capability Lease
 
@@ -441,13 +442,20 @@ The runtime can then enforce local policy, approvals, idempotency, auditing, and
 redaction before sending anything to the app.
 
 A runtime MAY release a raw credential only under an explicitly authorized
-`credential.release` capability. The grant MUST name the credential class,
-target agent identity and passport hash, resource-server audience, permitted
-scopes, expiration, and required approval. The release MUST be shown during
-consent, require the specified approval before delivery, and produce both a
-runtime receipt and an app receipt where the application participates. Absence
-of this capability means denial; a general action grant or an agent's request
-MUST NOT imply credential release.
+`credential.release` capability. The released credential MUST be newly issued,
+target-bound, attenuated to a non-Agent-Surface audience, and unusable at every
+Agent Surface endpoint. The application MUST reject that credential if it is
+presented to an Agent Surface endpoint. A Grant Credential, app session, or
+other credential that can authorize Agent Surface actions MUST NOT be released.
+
+The grant MUST name the credential class, target agent identity and passport
+hash, non-Agent-Surface resource-server audience, permitted scopes, expiration,
+and required approval. The release MUST be shown during consent, require the
+specified approval before delivery, and produce both a runtime receipt and an
+app receipt where the application participates. Absence of this capability
+means denial; a general action grant or an agent's request MUST NOT imply
+credential release. A future direct-access profile would require a separate
+authority model and is outside this draft.
 
 ### Proposal Mode Is the Default
 
@@ -1317,11 +1325,19 @@ An Agent Grant MAY be represented or proven by one of several mechanisms:
 - signed delegation object
 - macaroon-like caveated capability
 
-A future draft is expected to define interoperable proof profiles. An MVP MAY
-define an explicitly labeled development or compatibility bearer profile.
-Production profiles MUST require a sender-constrained credential method or an
-equivalent app-authenticated runtime-session binding for every Agent Surface
-action.
+This draft defines two credential profiles:
+
+- **Compatibility Bearer Credential Profile**: an explicitly labeled
+  development or compatibility profile in which the runtime holds a bearer
+  credential outside every agent-visible context. It is not proof-bound and
+  MUST NOT be advertised as the Proof-Bound Credential Profile.
+- **Proof-Bound Credential Profile**: every Agent Surface action uses a
+  sender-constrained credential or an app-authenticated runtime session that
+  requires possession of a bound key or channel credential on every request. A
+  reusable session identifier, cookie, or bearer token by itself does not
+  satisfy this profile.
+
+A future draft is expected to define additional interoperable proof profiles.
 
 Regardless of representation, a Grant Credential MUST let the application
 establish or obtain from authoritative grant state all of the following:
@@ -1339,36 +1355,52 @@ server-side session profile MAY supply these values indirectly, but the runtime
 MUST NOT substitute its own unverified assertion for application-verifiable
 binding evidence.
 
-Sender-constrained methods include DPoP, mTLS, and equivalent
-proof-of-possession mechanisms. A DPoP profile MUST follow RFC 9449 and bind
-the proof to the request; an mTLS profile MUST follow RFC 8705 and bind the
-credential to the authenticated certificate. A sender-constrained profile MUST
-detect replay of a proof or an invalidated binding. A bare bearer credential
-MAY be used only in the explicitly labeled development or compatibility profile
-described above. It remains outside every agent-visible context and is subject
-to short expiration, audience restriction, revocation, and application-side
-grant verification.
+Proof-Bound Credential Profile methods include DPoP, mTLS, and equivalent
+proof-of-possession mechanisms. A DPoP method MUST follow RFC 9449, bind the
+proof to the request, and accept proofs only within a limited freshness window.
+It SHOULD track `jti` values during that window and reject duplicates where the
+deployment can maintain the required shared state. Reuse of a server-provided
+DPoP nonce MUST NOT by itself be treated as replay. An mTLS method MUST follow
+RFC 8705, require the protected-resource request to use the certificate bound
+to the token, and reject a certificate mismatch or an invalidated binding.
+Reuse of that bound certificate across valid requests MUST NOT by itself be
+treated as replay. A proof-bound server session MUST be active, bound to the
+grant and runtime, and authenticated with its bound key or channel credential
+on every request.
+
+A bare bearer credential MAY be used only in the Compatibility Bearer
+Credential Profile. It remains outside every agent-visible context and is
+subject to short expiration, audience restriction, revocation, and
+application-side grant verification.
 
 ### Subdelegation
 
-A runtime MAY use a subagent, remote model, MCP server, tool, adapter, or a
-secondary runtime to help execute delegated work. Receiving task context does
-not make that component a grant delegate and does not transfer Agent Grant
-authority.
+A runtime MAY use a subagent, remote model, MCP server, tool, adapter, or an
+ungranted secondary runtime to help execute delegated work. Receiving task
+context does not make that component a grant delegate and does not transfer
+Agent Grant authority.
 
-The runtime MUST treat every downstream component as untrusted with respect to
-application authority. It MUST NOT forward a Grant Credential, raw application
-credential, approval artifact, or an authorization path that can invoke an
-Agent Surface outside runtime mediation. A downstream component that needs an
-application action MUST request a typed action through the controlling runtime;
-the runtime MUST evaluate the original grant, policy, approval, and redaction
-rules again for that request.
+The runtime MUST treat every downstream component, including an ungranted
+secondary runtime, as untrusted with respect to application authority. It MUST
+NOT forward a Grant Credential, raw application credential, approval artifact,
+or an authorization path that can invoke an Agent Surface outside runtime
+mediation. A downstream component that needs an application action MUST request
+a typed action through the controlling runtime; the runtime MUST evaluate the
+original grant, policy, approval, and redaction rules again for that request.
 
-If a runtime delegates work to a secondary runtime, the secondary runtime is a
-separate delegate. It MUST receive a newly issued, explicitly bound grant with
-equal or narrower scopes, resources, caveats, lifetime, and credential-release
-permissions. A parent grant or credential MUST NOT be forwarded as implicit
-subdelegation.
+The application MAY instead issue a child grant that makes a secondary runtime
+a separate delegate. Once that grant is issued, the child runtime is the
+controlling runtime for actions under the child grant and sends them directly to
+the application with its own bound credential; those actions do not route
+through the parent runtime. The parent runtime MUST NOT present the child
+credential or mediate an action as if it originated from the child.
+
+The child grant MUST record `parent_grant_id` and `parent_runtime_id`, and MUST
+have equal or narrower scopes, resources, caveats, credential-release
+permissions, and lifetime. The application MUST revoke or suspend the child
+grant when the parent grant expires, is revoked, or loses the authority from
+which the child grant was derived. A parent grant or credential MUST NOT be
+forwarded as implicit subdelegation.
 
 ### Grant Verification
 
@@ -1377,11 +1409,17 @@ Applications MUST verify every action against grant state:
 - grant exists and is active
 - grant credential or proof is valid
 - grant is bound to the user
-- grant is bound to the runtime when binding is required
-- grant is bound to the agent/passport hash when binding is required
+- grant is bound to the runtime
+- grant is bound to the agent/passport hash
 - credential-binding method and proof-of-possession requirements are satisfied
-- proof, nonce, certificate, or server-session binding has not been replayed or
-  invalidated
+- for DPoP, the proof is request-bound and within the limited acceptance window;
+  when `jti` replay tracking is enabled, its `jti` has not already been accepted;
+  reuse of a valid server nonce is not rejected by itself
+- for mTLS, the presented certificate matches the certificate bound to the token
+  and the binding has not been invalidated; reuse of the matching certificate is
+  not rejected by itself
+- for a proof-bound server session, the session is active, bound to the grant
+  and runtime, and authenticated with the bound key or channel credential
 - scope permits the action
 - resource constraints permit the target object
 - expiration has not passed
@@ -1816,7 +1854,7 @@ not authority. Grant is authority only within caveats.
 ### Confused Deputy
 
 The runtime can accidentally use a grant for the wrong agent, user, workspace, or
-application. Grants SHOULD bind user, app, runtime, agent, and passport hash.
+application. Grants MUST bind user, app, runtime, agent, and passport hash.
 
 ### Raw Token Leakage
 
@@ -1829,8 +1867,9 @@ Agent -> Runtime -> App
 
 The runtime holds or obtains credentials and exposes only typed action results to
 the agent. A raw credential release requires the explicit `credential.release`
-capability and its corresponding approval and receipts; it is never implied by a
-normal action grant.
+capability and its corresponding approval and receipts; it is never implied by
+a normal action grant. A released credential is restricted to a
+non-Agent-Surface audience and MUST be rejected at Agent Surface endpoints.
 
 ### Malicious or Compromised Runtime
 
@@ -1995,6 +2034,19 @@ An application conforms to the Receipt-Producing profile when it:
   idempotency key
 - records denied or failed high-risk actions
 
+### Proof-Bound Grant-Enforcing Application
+
+An application conforms to the Proof-Bound Grant-Enforcing Application profile
+when it:
+
+- satisfies the Grant-Enforcing Application profile
+- accepts Agent Surface actions only under the Proof-Bound Credential Profile
+- verifies the per-request proof-of-possession or bound-channel authentication
+- applies the method-specific DPoP, mTLS, or proof-bound session checks defined
+  in Grant Verification
+- rejects a bearer token, cookie, or reusable session identifier as sufficient
+  authority by itself
+
 ### Application Runtime Profile
 
 An application runtime conforms to this profile when it:
@@ -2005,8 +2057,12 @@ An application runtime conforms to this profile when it:
 - mediates agent actions instead of exposing raw authority
 - denies credential release unless an explicit `credential.release` capability
   and its constraints are satisfied
-- preserves runtime mediation when using subagents, tools, adapters, remote
-  models, or secondary runtimes
+- preserves parent-runtime mediation for subagents, tools, adapters, remote
+  models, and ungranted secondary runtimes
+- treats a separately granted child runtime as its own controlling runtime and
+  preserves parent linkage, attenuation, and cascade revocation
+- implements the Proof-Bound Credential Profile when the application requires
+  the Proof-Bound Grant-Enforcing Application profile
 - enforces local policy and approval rules
 - validates action input against schemas before sending to the app
 - records local audit events and runtime receipts

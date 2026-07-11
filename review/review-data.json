@@ -78,10 +78,14 @@
         {
           "heading": "Stolen Grant Credential",
           "anchorId": "stolen-grant-credential"
+        },
+        {
+          "heading": "Proof-Bound Grant-Enforcing Application",
+          "anchorId": "proof-bound-grant-enforcing-application"
         }
       ],
       "status": "present",
-      "rationale": "Production profiles обязаны поддерживать sender-constrained credential; для DPoP и mTLS заданы нормативные RFC и требования к proof-of-possession/replay защите.",
+      "rationale": "Proof-Bound Credential и Proof-Bound Grant-Enforcing profiles требуют per-request possession proof; DPoP, mTLS и server-session проверки имеют отдельную корректную replay semantics.",
       "priority": "P0"
     },
     {
@@ -109,7 +113,7 @@
         }
       ],
       "status": "present",
-      "rationale": "Raw credential release теперь default-deny privileged capability `credential.release` с явным consent, scope, target passport, approval и receipts.",
+      "rationale": "Raw credential release — default-deny capability `credential.release`; выдаётся только новый attenuated credential для non-Agent-Surface audience, который app обязана отклонять на Surface endpoints.",
       "priority": "P0"
     },
     {
@@ -141,7 +145,7 @@
         }
       ],
       "status": "present",
-      "rationale": "RFC определяет, что subagents, tools, MCP servers, remote models и secondary runtimes не наследуют authority; действия заново проходят runtime mediation, а secondary runtime получает отдельный attenuated grant.",
+      "rationale": "Компоненты без отдельного grant проходят parent runtime; отдельно granted child runtime использует собственный binding и direct app route, с parent linkage, attenuation и cascade revocation.",
       "priority": "P0"
     },
     {
@@ -1085,7 +1089,7 @@
           "anchorId": "privacy-considerations"
         }
       ],
-      "rationale": "Secrets, tokens, cookies и private credentials теперь остаются вне agent-visible context по умолчанию; исключение требует явной privileged capability `credential.release` с ограничениями, approval и receipts.",
+      "rationale": "Secrets и credentials остаются вне agent-visible context; `credential.release` допускает только новый attenuated non-Surface credential с обязательным rejection на Agent Surface endpoints.",
       "priority": "P0"
     },
     {
