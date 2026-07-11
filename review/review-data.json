@@ -1066,7 +1066,7 @@
       "description": "определить, что secrets, tokens, cookies и private credentials не попадают в agent-visible context без отдельного privileged grant.",
       "category": "Privacy / data exposure",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
           "heading": "Agent Does Not Receive Raw Authority",
@@ -1085,7 +1085,7 @@
           "anchorId": "privacy-considerations"
         }
       ],
-      "rationale": "Default no-secrets boundary есть, но отсутствует явная privileged capability для исключений и agent-visible context.",
+      "rationale": "Secrets, tokens, cookies и private credentials теперь остаются вне agent-visible context по умолчанию; исключение требует явной privileged capability `credential.release` с ограничениями, approval и receipts.",
       "priority": "P0"
     },
     {
