@@ -43,6 +43,13 @@ jobs:
           python -m pip install --requirement review/requirements.txt
           make review-check
 
+      - name: Check repository whitespace
+        shell: bash
+        run: |
+          set -euo pipefail
+          empty_tree="$(git hash-object -t tree /dev/null)"
+          git diff --check "${empty_tree}" HEAD
+
       - name: Check Markdown hygiene
         shell: bash
         run: |
