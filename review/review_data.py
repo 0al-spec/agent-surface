@@ -200,7 +200,7 @@ def _validate_dependency_graph(
             item_id for item_id, count in remaining_dependencies.items() if count > 0
         )
         raise ValueError(
-            f"{label.title()} dependency cycle involving: "
+            f"{label.title()} dependency graph is cyclic; unresolved nodes: "
             + ", ".join(map(str, cyclic_ids))
         )
 

@@ -100,11 +100,11 @@ class ReviewDataValidationTests(unittest.TestCase):
                 {"id": "two", "title": "Two", "depends_on": ["one"]},
             ]
         )
-        self.assert_invalid(payload, "Profile dependency cycle")
+        self.assert_invalid(payload, "Profile dependency graph is cyclic")
 
     def test_review_cycle_fixture_is_rejected(self) -> None:
         self.assert_invalid(
-            self.fixture("invalid-review-cycle.json"), "Review dependency cycle"
+            self.fixture("invalid-review-cycle.json"), "Review dependency graph is cyclic"
         )
 
     def test_stale_anchor_fixture_is_rejected(self) -> None:
