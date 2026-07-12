@@ -77,6 +77,7 @@ HTML directly.
 
 ```sh
 python3 -m pip install -r review/requirements.txt
+make review-data-check
 make review-build
 make review-check
 ```
@@ -87,6 +88,18 @@ and commit the RFC, review data, and generated HTML together. `review-check`
 validates card fields and priorities, verifies every linked heading still
 exists in the RFC, checks that the generated artifact is current, and parses
 the dashboard's inline JavaScript.
+
+Each card keeps RFC coverage (`status`) separate from delivery maturity
+(`maturity`). `profile`, `depends_on`, `target_release`, and `evidence` are
+canonical planning metadata. Reverse `blocks` links and `readiness` are derived
+during the build and MUST NOT be stored in `review-data.json`. A card is ready
+when every direct dependency has `present` coverage and at least `specified`
+maturity; the card's own coverage does not affect whether it is ready to be
+worked on. Maturity above `specified` remains fail-closed until authoritative
+evidence resolvers are added to the validation gate.
+The canonical file keeps `planning_metadata_mode` set to `required`;
+`transitional` exists only so schema v2 can validate the stacked migration
+without silently changing the v2 contract.
 
 ## Status
 

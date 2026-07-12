@@ -4,6 +4,7 @@ import copy
 import json
 import sys
 import unittest
+from collections import Counter
 from pathlib import Path
 
 
@@ -12,7 +13,11 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 sys.path.insert(0, str(REVIEW_DIR))
 
 from build_review import render_rfc  # noqa: E402
-from review_data import load_review_payload, validate_review_payload  # noqa: E402
+from review_data import (  # noqa: E402
+    load_review_payload,
+    normalize_reviews,
+    validate_review_payload,
+)
 
 
 class ReviewDataValidationTests(unittest.TestCase):
@@ -30,7 +35,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, message):
             validate_review_payload(payload, self.heading_ids)
 
-    def test_canonical_review_data_is_valid_during_transition(self) -> None:
+    def test_canonical_review_data_is_valid(self) -> None:
         validate_review_payload(load_review_payload(), self.heading_ids)
 
     def test_valid_v2_planning_bundle_is_accepted(self) -> None:
@@ -166,7 +171,8 @@ class ReviewDataValidationTests(unittest.TestCase):
 
     def test_required_planning_metadata_rejects_legacy_card(self) -> None:
         payload = load_review_payload()
-        payload["planning_metadata_mode"] = "required"
+        for field in ("profile", "depends_on", "target_release", "maturity", "evidence"):
+            del payload["reviews"][0][field]
         with self.assertRaisesRegex(ValueError, "does not match review-data.schema.json"):
             validate_review_payload(payload, self.heading_ids)
 
@@ -182,6 +188,67 @@ class ReviewDataValidationTests(unittest.TestCase):
             reviews.append(review)
         payload["reviews"] = reviews
         validate_review_payload(payload, self.heading_ids)
+
+    def test_canonical_migration_counts_and_defaults(self) -> None:
+        payload = load_review_payload()
+        reviews = payload["reviews"]
+        self.assertEqual(len(reviews), 60)
+        self.assertEqual(
+            Counter(review["maturity"] for review in reviews),
+            Counter({"specified": 30, "proposal": 30}),
+        )
+        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 113)
+        self.assertTrue(all(review["target_release"] is None for review in reviews))
+        self.assertEqual(
+            Counter(review["profile"] for review in reviews),
+            Counter(
+                {
+                    "core": 4,
+                    "oauth-grants": 8,
+                    "manifest": 6,
+                    "action-execution": 6,
+                    "events-sessions": 5,
+                    "receipts-provenance": 6,
+                    "privacy-consent": 10,
+                    "identity-passport": 5,
+                    "operations-safety": 5,
+                    "conformance-tooling": 5,
+                }
+            ),
+        )
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 178)
+        for review in reviews:
+            if review["status"] == "missing":
+                self.assertEqual(review["evidence"], [])
+            else:
+                self.assertEqual(
+                    [item["ref"] for item in review["evidence"]],
+                    [anchor["anchorId"] for anchor in review["anchors"]],
+                )
+
+    def test_canonical_readiness_and_reverse_dependencies(self) -> None:
+        payload = load_review_payload()
+        reviews = normalize_reviews(payload, self.heading_ids)
+        reviews_by_id = {review["id"]: review for review in reviews}
+        ready_ids = {review["id"] for review in reviews if review["readiness"] == "ready"}
+        blocked_ids = set(reviews_by_id) - ready_ids
+        self.assertEqual(
+            blocked_ids,
+            {17, 27, 29, 37, 38, 44, 45, 46, 47, 50, 51, 52, 54, 58, 59, 60},
+        )
+        self.assertEqual(len(ready_ids), 44)
+        self.assertEqual(reviews_by_id[26]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[36]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[25]["status"], "missing")
+        self.assertEqual(reviews_by_id[25]["readiness"], "ready")
+        for review in reviews:
+            for dependency_id in review["depends_on"]:
+                self.assertIn(review["id"], reviews_by_id[dependency_id]["blocks"])
+
+    def test_derived_planning_fields_are_not_persisted(self) -> None:
+        for review in load_review_payload()["reviews"]:
+            self.assertNotIn("blocks", review)
+            self.assertNotIn("readiness", review)
 
 
 if __name__ == "__main__":
