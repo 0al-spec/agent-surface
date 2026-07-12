@@ -3230,9 +3230,6 @@ its boundary and creates a new <code>span_id</code> for each adapter operation.<
     &quot;task&quot;: {
       &quot;kind&quot;: &quot;pull_request.review&quot;,
       &quot;goal&quot;: &quot;Review PR #13 and propose a concise review comment.&quot;,
-      &quot;exposure_sources&quot;: [
-        {&quot;kind&quot;: &quot;resource&quot;, &quot;id&quot;: &quot;pull_request&quot;}
-      ],
       &quot;inputs&quot;: {
         &quot;repository&quot;: &quot;example-org/example-repo&quot;,
         &quot;pull_request&quot;: 13
@@ -3241,20 +3238,18 @@ its boundary and creates a new <code>span_id</code> for each adapter operation.<
   }
 }
 </code></pre>
-<p>Application-authored task content MUST NOT create a disclosure path around the
-Data Exposure Contract. A <code>session.start.task</code> that contains application data
-MUST include a unique, canonically ordered <code>exposure_sources</code> array. Every entry
-MUST exactly reference a source in the active grant's <code>data_exposure</code>
-projection, and the application MUST have applied that source's redaction before
-constructing the task. Application data that cannot be attributed to such a
-source MUST NOT be placed in <code>goal</code>, <code>inputs</code>, or another task member.</p>
-<p>When a task combines sources, the runtime applies every referenced retention
-obligation: the shortest <code>max_seconds</code> controls, <code>transient</code> is stricter than
-<code>bounded</code>, and <code>delete_on_grant_end</code> is true if any source requires it. A task
-containing only user- or runtime-authored content uses an explicit empty
-<code>exposure_sources</code> array. Missing, duplicate, unknown, or non-canonical source
-references make the session invalid and MUST fail before the task enters agent
-context.</p>
+<p><code>session.start.task</code> is user- or runtime-authored orchestration, not an
+application data-delivery mechanism. The application MUST NOT place
+application-originated content in <code>goal</code>, <code>inputs</code>, or another task member.
+Opaque identifiers and filters already present in the grant constraints MAY be
+copied into <code>inputs</code>; their presence identifies the task but does not disclose
+the referenced application representation. Application content needed by the
+agent MUST first cross an independently authorized resource, action-result, or
+event path and remains subject to that source's exposure contract. Merely
+listing a source in the grant's <code>data_exposure</code> projection never authorizes the
+application to push its data during session start. An application that wants to
+suggest a task MUST use an authorized event; the runtime decides whether to
+construct a local task after applying user and local policy.</p>
 <h3 id="action-request" data-asp-heading="Action Request">Action Request</h3>
 <p>The agent requests an action through the runtime. The runtime sends the action to
 the app only if grant and policy allow it.</p>

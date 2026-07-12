@@ -3519,9 +3519,6 @@ Once a grant exists, an application or runtime MAY start a session.
     "task": {
       "kind": "pull_request.review",
       "goal": "Review PR #13 and propose a concise review comment.",
-      "exposure_sources": [
-        {"kind": "resource", "id": "pull_request"}
-      ],
       "inputs": {
         "repository": "example-org/example-repo",
         "pull_request": 13
@@ -3531,21 +3528,18 @@ Once a grant exists, an application or runtime MAY start a session.
 }
 ```
 
-Application-authored task content MUST NOT create a disclosure path around the
-Data Exposure Contract. A `session.start.task` that contains application data
-MUST include a unique, canonically ordered `exposure_sources` array. Every entry
-MUST exactly reference a source in the active grant's `data_exposure`
-projection, and the application MUST have applied that source's redaction before
-constructing the task. Application data that cannot be attributed to such a
-source MUST NOT be placed in `goal`, `inputs`, or another task member.
-
-When a task combines sources, the runtime applies every referenced retention
-obligation: the shortest `max_seconds` controls, `transient` is stricter than
-`bounded`, and `delete_on_grant_end` is true if any source requires it. A task
-containing only user- or runtime-authored content uses an explicit empty
-`exposure_sources` array. Missing, duplicate, unknown, or non-canonical source
-references make the session invalid and MUST fail before the task enters agent
-context.
+`session.start.task` is user- or runtime-authored orchestration, not an
+application data-delivery mechanism. The application MUST NOT place
+application-originated content in `goal`, `inputs`, or another task member.
+Opaque identifiers and filters already present in the grant constraints MAY be
+copied into `inputs`; their presence identifies the task but does not disclose
+the referenced application representation. Application content needed by the
+agent MUST first cross an independently authorized resource, action-result, or
+event path and remains subject to that source's exposure contract. Merely
+listing a source in the grant's `data_exposure` projection never authorizes the
+application to push its data during session start. An application that wants to
+suggest a task MUST use an authorized event; the runtime decides whether to
+construct a local task after applying user and local policy.
 
 ### Action Request
 
