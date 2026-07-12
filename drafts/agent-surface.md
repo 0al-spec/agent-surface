@@ -351,6 +351,15 @@ A typed object or collection exposed by an Agent Surface. Examples:
 - `document`
 - `invoice`
 
+### Data Exposure Declaration
+
+A manifest-pinned declaration of the maximum application-originated data that
+can become visible to a runtime or agent through a resource, action, or event.
+The contract names data classes and defines the redaction and retention
+obligations that apply after disclosure. It describes and constrains exposure;
+it does not grant authority to read a resource, invoke an action, receive an
+event, or release a credential.
+
 ### Execution Preview
 
 An application-produced prediction of the preconditions and expected effects
@@ -958,6 +967,7 @@ Cache-Control: max-age=300
   "auth": {},
   "agent_api": {},
   "scopes": [],
+  "data_classes": [],
   "resources": [],
   "actions": [],
   "events": [],
@@ -1073,11 +1083,44 @@ surface discoverable.
       "description": "Create comments in the application."
     }
   ],
+  "data_classes": [
+    {
+      "id": "grant.metadata",
+      "classification": "sensitive",
+      "label": "Grant metadata",
+      "description": "Identifiers and lifecycle state for an Agent Grant."
+    },
+    {
+      "id": "repository.content",
+      "classification": "private",
+      "label": "Repository content",
+      "description": "Content visible to the connected repository user."
+    },
+    {
+      "id": "user.identifier",
+      "classification": "sensitive",
+      "label": "User identifiers",
+      "description": "Stable account identifiers associated with repository content."
+    }
+  ],
   "resources": [
     {
       "id": "task",
       "read_scope": "tasks.read",
-      "schema": "https://example.com/schemas/task.schema.json"
+      "schema": "https://example.com/schemas/task.schema.json",
+      "data_exposure": {
+        "classes": ["repository.content", "user.identifier"],
+        "redaction": {
+          "mode": "policy",
+          "policy_id": "repository-visible-fields-only",
+          "summary": "Only fields visible to the connected repository user are returned."
+        },
+        "retention": {
+          "mode": "bounded",
+          "max_seconds": 7200,
+          "delete_on_grant_end": true
+        }
+      }
     }
   ],
   "actions": [
@@ -1095,7 +1138,12 @@ surface discoverable.
         "commit_action": "comment.create"
       },
       "input_schema": "https://example.com/schemas/comment-propose.input.schema.json",
-      "output_schema": "https://example.com/schemas/comment-propose.output.schema.json"
+      "output_schema": "https://example.com/schemas/comment-propose.output.schema.json",
+      "data_exposure": {
+        "classes": ["repository.content"],
+        "redaction": {"mode": "none"},
+        "retention": {"mode": "transient", "delete_on_grant_end": true}
+      }
     },
     {
       "id": "comment.create",
@@ -1124,6 +1172,11 @@ surface discoverable.
       },
       "input_schema": "https://example.com/schemas/comment-create.input.schema.json",
       "output_schema": "https://example.com/schemas/comment-create.output.schema.json",
+      "data_exposure": {
+        "classes": ["repository.content"],
+        "redaction": {"mode": "none"},
+        "retention": {"mode": "transient", "delete_on_grant_end": true}
+      },
       "receipt": "required"
     }
   ],
@@ -1131,12 +1184,40 @@ surface discoverable.
     {
       "id": "task.created",
       "scope": "tasks.read",
-      "schema": "https://example.com/schemas/task-created.event.schema.json"
+      "schema": "https://example.com/schemas/task-created.event.schema.json",
+      "data_exposure": {
+        "classes": ["repository.content", "user.identifier"],
+        "redaction": {
+          "mode": "policy",
+          "policy_id": "repository-visible-fields-only",
+          "summary": "Only fields visible to the connected repository user are returned."
+        },
+        "retention": {"mode": "transient", "delete_on_grant_end": true}
+      }
     },
     {
       "id": "review.requested",
       "scope": "tasks.read",
-      "schema": "https://example.com/schemas/review-requested.event.schema.json"
+      "schema": "https://example.com/schemas/review-requested.event.schema.json",
+      "data_exposure": {
+        "classes": ["repository.content", "user.identifier"],
+        "redaction": {
+          "mode": "policy",
+          "policy_id": "repository-visible-fields-only",
+          "summary": "Only fields visible to the connected repository user are returned."
+        },
+        "retention": {"mode": "transient", "delete_on_grant_end": true}
+      }
+    },
+    {
+      "id": "grant.revoked",
+      "control": true,
+      "schema": "https://example.com/schemas/grant-revoked.event.schema.json",
+      "data_exposure": {
+        "classes": ["grant.metadata"],
+        "redaction": {"mode": "none"},
+        "retention": {"mode": "transient", "delete_on_grant_end": true}
+      }
     }
   ],
   "audit": {
@@ -1190,14 +1271,13 @@ semantics require them even if they are not repeated in this list.
 
 Resources describe data the agent MAY read, reference, or attach to an action.
 
-Each resource SHOULD include:
+Each resource MUST include:
 
 - `id`
 - `read_scope`
 - `schema`
 - optional `query_actions`
-- optional `redaction_policy`
-- optional `retention_policy`
+- `data_exposure`
 
 Example:
 
@@ -1207,7 +1287,19 @@ Example:
   "read_scope": "pull_request.read",
   "schema": "https://github.example/schemas/pull-request.schema.json",
   "query_actions": ["pull_request.get", "pull_request.list_files"],
-  "redaction_policy": "repository-visible-fields-only"
+  "data_exposure": {
+    "classes": ["repository.content", "user.identifier"],
+    "redaction": {
+      "mode": "policy",
+      "policy_id": "repository-visible-fields-only",
+      "summary": "Only fields visible to the connected repository user are returned."
+    },
+    "retention": {
+      "mode": "bounded",
+      "max_seconds": 7200,
+      "delete_on_grant_end": true
+    }
+  }
 }
 ```
 
@@ -1215,7 +1307,8 @@ Example:
 
 Actions are typed operations the app allows agents to request through a runtime.
 
-Each action SHOULD include:
+Each action SHOULD include the following fields as applicable.
+`data_exposure` is REQUIRED for every action:
 
 - `id`
 - `scope`
@@ -1231,6 +1324,7 @@ Each action SHOULD include:
 - `receipt` for side-effecting actions
 - `input_hash_profile` for actions requiring receipt-linked input evidence
 - `execution_hash_profile` for `reserve`, `commit`, `compensate`, and `revert`
+- `data_exposure`
 
 An action whose receipt chain binds the exact request input MUST set
 `input_hash_profile` to `asp-jcs-sha-256`. Other profile identifiers are not
@@ -1273,6 +1367,11 @@ Example:
   },
   "input_schema": "https://example.com/schemas/pr-review-submit.input.schema.json",
   "output_schema": "https://example.com/schemas/pr-review-submit.output.schema.json",
+  "data_exposure": {
+    "classes": ["repository.content"],
+    "redaction": {"mode": "none"},
+    "retention": {"mode": "transient", "delete_on_grant_end": true}
+  },
   "receipt": "required"
 }
 ```
@@ -1311,7 +1410,12 @@ Example:
     "commit_action": "pull_request.review.submit"
   },
   "input_schema": "https://example.com/schemas/pr-review-propose.input.schema.json",
-  "output_schema": "https://example.com/schemas/pr-review-propose.output.schema.json"
+  "output_schema": "https://example.com/schemas/pr-review-propose.output.schema.json",
+  "data_exposure": {
+    "classes": ["repository.content"],
+    "redaction": {"mode": "none"},
+    "retention": {"mode": "transient", "delete_on_grant_end": true}
+  }
 }
 ```
 
@@ -1334,9 +1438,11 @@ This allows early adopters to become agent-native without allowing direct writes
 
 Events let applications notify runtimes and agents about app context changes.
 
-Events SHOULD be scoped. A grant that permits `pull_request.read` MAY receive
-`pull_request.updated`, but SHOULD NOT receive unrelated financial, HR, or admin
-events.
+Every non-control event MUST declare a non-empty `scope`. A grant that permits
+`pull_request.read` MAY receive `pull_request.updated`, but MUST NOT receive an
+unrelated financial, HR, or admin event or an event whose scope is absent. An
+unscoped non-control event declaration is an invalid surface, not an event
+implicitly available to every grant.
 
 Example:
 
@@ -1344,7 +1450,12 @@ Example:
 {
   "id": "ci.failed",
   "scope": "pull_request.read",
-  "schema": "https://example.com/schemas/ci-failed.event.schema.json"
+  "schema": "https://example.com/schemas/ci-failed.event.schema.json",
+  "data_exposure": {
+    "classes": ["repository.content"],
+    "redaction": {"mode": "none"},
+    "retention": {"mode": "transient", "delete_on_grant_end": true}
+  }
 }
 ```
 
@@ -1352,12 +1463,188 @@ Grant constraints filter events the same way they filter actions: a grant
 constrained to one repository SHOULD NOT receive events about other
 repositories, even when the event scope matches.
 
+An event declaration MAY set `control: true` only for an application control
+event whose delivery authority and closure are defined by this specification or
+another profile understood by the runtime. A control event omits `scope`; it is
+not authorized by the affected grant. This draft defines `grant.revoked` as the
+only core control event. A manifest that advertises `grant.revoked` MUST list it
+in `events` with `control: true` and a `data_exposure` contract.
+
 `grant.revoked` is an application control event rather than an event authorized
 by the revoked grant. Its payload, authentication, and processing requirements
 are defined in the OAuth Grant Revocation Profile.
 
 Event delivery semantics — transport, ordering, acknowledgement, and replay —
 are not defined in this draft; see Open Questions.
+
+### Data Exposure Contract
+
+The manifest `data_classes` array defines the application-local data classes
+used by exposure declarations. Every entry MUST contain a unique, stable `id`,
+a `classification`, a non-empty `label`, and a non-empty `description`.
+Defined classification values are:
+
+- `public`: information intentionally available without user-specific access
+- `private`: non-public application or user content
+- `sensitive`: information whose disclosure can create material privacy,
+  safety, financial, or organizational harm
+- `credential`: secrets or authentication material
+
+The protection order is `public` < `private` < `sensitive` < `credential`.
+
+Class identifiers name semantic kinds of data, such as
+`repository.content` or `user.identifier`; classifications describe their
+minimum handling sensitivity. A publisher MUST assign the most protective
+applicable classification when a class can contain data of different
+sensitivities. Labels and descriptions are application-authored display hints,
+not authority or evidence that a class is harmless. A runtime MUST preserve the
+class identifier and classification when it renders an application label.
+The `data_classes` array and every exposure `classes` array MUST be ordered by
+ascending Unicode code point of the class identifier; duplicates are invalid.
+
+Every resource, action, and event declaration MUST contain a `data_exposure`
+object. The object describes the maximum application-originated data that can
+reach the runtime or agent through that declaration after application-side
+redaction. It has this shape:
+
+```json
+{
+  "classes": ["repository.content", "user.identifier"],
+  "redaction": {
+    "mode": "policy",
+    "policy_id": "repository-visible-fields-only",
+    "summary": "Only fields visible to the connected repository user are returned."
+  },
+  "retention": {
+    "mode": "bounded",
+    "max_seconds": 7200,
+    "delete_on_grant_end": true
+  }
+}
+```
+
+Examples in later sections that isolate execution, receipt, or error semantics
+are declaration fragments and can omit unrelated required manifest members for
+readability. A complete manifest cannot omit `data_exposure`.
+
+`classes` MUST be an array of unique identifiers declared in `data_classes`.
+It is a conservative maximum: every class that can occur on a success, partial
+result, preview, structured error, pagination path, nested representation, or
+event payload MUST be listed. An explicit empty array means that the declaration
+delivers no application-originated data. Omission never means "no exposure".
+A JSON Schema reference does not replace this declaration.
+
+`redaction.mode` is `none` or `policy`. `none` means that the class set already
+describes the unredacted representation and the object MUST omit `policy_id`
+and `summary`. `policy` means the application applies a named policy before the
+payload crosses the application boundary; it MUST include a stable non-empty
+`policy_id` and a consent-safe non-empty `summary`. The application MUST apply
+redaction before delivery. A runtime or agent MUST NOT be made responsible for
+removing fields whose receipt would already violate the contract.
+
+`retention.mode` is `transient` or `bounded`. `transient` prohibits durable
+persistence of the disclosed payload by the runtime or agent. `bounded` MUST
+include a positive integer `max_seconds`, measured from receipt, after which
+runtime-controlled plaintext copies MUST be deleted. `transient` MUST omit
+`max_seconds`. `delete_on_grant_end` is REQUIRED; when true, expiry or
+revocation shortens the retention period and requires prompt deletion of
+runtime-controlled plaintext copies. When false, the declared time bound still
+applies. Hashes and data-minimized audit metadata MAY outlive the plaintext
+only when another grant or policy requirement explicitly permits their
+retention.
+
+The resource contract applies to every representation and query result of that
+resource. The action contract applies to all application-originated
+agent-visible output from that action, including dry-run or proposal output,
+success responses, partial results, and structured error details. It does not
+describe application retention of agent-supplied action input. The event
+contract applies to its payload. Control events such as `grant.revoked` MUST
+also appear in the manifest `events` array with `control: true` and an exposure
+contract; they cannot bypass these rules merely because their delivery
+authority is independent of the affected grant.
+
+The application is responsible for classifying source fields and enforcing the
+declared post-redaction envelope before delivery. This draft does not define a
+field-level classifier and does not require a runtime to infer semantic data
+classes from arbitrary payload bytes. A schema MAY carry implementation-specific
+classification annotations, but those annotations do not replace the contract.
+
+The authorization server MUST derive the issued grant's effective
+`data_exposure` array from the exact pinned manifest and approved Grant Object
+using this conservative source closure:
+
+1. include every resource whose `read_scope` is an exact member of the granted
+   `scopes`, even when a resource filter narrows the instances;
+2. include every action whose `id` is an exact member of the granted `actions`;
+3. include every non-control event whose `scope` is an exact member of the
+   granted `scopes`; and
+4. include the core `grant.revoked` event when the manifest advertises it with
+   `control: true`, regardless of the revoked grant's scopes.
+
+The conservative resource and event rules may display a class that a narrower
+resource filter never returns, but they MUST NOT omit a class that remains
+reachable. Future control events require their own explicit closure rule; an
+unknown `control: true` event makes the surface incompatible with this profile.
+Every selected source is included, including one with an empty `classes` array.
+Duplicate source pairs are invalid. Projection entries MUST be ordered first by
+source kind in the order `resource`, `action`, `event`, then by ascending Unicode
+code point of `source.id`. Each entry copies that source's complete
+post-redaction contract:
+
+```json
+[
+  {
+    "source": {"kind": "resource", "id": "task"},
+    "classes": ["repository.content", "user.identifier"],
+    "redaction": {
+      "mode": "policy",
+      "policy_id": "repository-visible-fields-only",
+      "summary": "Only fields visible to the connected repository user are returned."
+    },
+    "retention": {
+      "mode": "bounded",
+      "max_seconds": 7200,
+      "delete_on_grant_end": true
+    }
+  }
+]
+```
+
+Defined source kinds are `resource`, `action`, and `event`. The client MUST NOT
+supply `data_exposure` in an Agent Grant authorization request. The
+authorization server derives it after applying the approved subset and MUST
+NOT omit a selected source. Its `classes`, `redaction`, and `retention` members
+MUST be structurally identical to the pinned source declaration; a narrower
+runtime policy is a local overlay and does not rewrite this projection.
+The returned Grant Object and introspection response MUST contain the same
+projection. The complete projection is part of the Grant Object hashing view
+and therefore changes `grant_hash`.
+
+Before storing or using a grant, the runtime MUST recompute this projection
+from the exact pinned manifest and granted authority. It MUST require exact
+structural equality, including source and class array ordering, and reject a
+missing, extra, unknown, stale, or inconsistent projection as
+`integrity_mismatch`. A
+runtime MAY apply additional redaction or a shorter retention period as local
+policy, but it MUST NOT widen the class set or retain plaintext longer. If it
+cannot enforce the effective contract for the selected runtime-agent path, it
+MUST refuse to use the grant for that path.
+
+An exposure declaration never grants access and never weakens scope, resource,
+action, subdelegation, or credential-release checks. In particular, declaring a
+class with classification `credential` does not authorize its disclosure. An
+Agent Surface Grant Credential remains non-releasable, and other credential
+material can cross into agent-visible context only through the separately
+authorized `credential.release` capability and its constraints.
+
+If the application detects that a payload would exceed the effective contract,
+it MUST block delivery and return `data_exposure_violation`. If the runtime
+detects such a violation before agent delivery, it MUST discard the payload and
+fail the operation with the same error. Either component records only
+data-minimized evidence: the offending value MUST NOT be copied into the error,
+receipt, trace, prompt, or audit log. Changing a data class or exposure contract
+changes the manifest hashing view and requires a new `surface_version`; an
+existing grant MUST NOT silently adopt the replacement contract.
 
 ## Action Execution Model
 
@@ -2293,6 +2580,28 @@ surface, scopes, and caveats.
       "mode": "deny"
     }
   },
+  "data_exposure": [
+    {
+      "source": {"kind": "action", "id": "comment.create"},
+      "classes": ["repository.content"],
+      "redaction": {"mode": "none"},
+      "retention": {"mode": "transient", "delete_on_grant_end": true}
+    },
+    {
+      "source": {"kind": "action", "id": "pull_request.get"},
+      "classes": ["repository.content", "user.identifier"],
+      "redaction": {
+        "mode": "policy",
+        "policy_id": "repository-visible-fields-only",
+        "summary": "Only fields visible to the connected repository user are returned."
+      },
+      "retention": {
+        "mode": "bounded",
+        "max_seconds": 7200,
+        "delete_on_grant_end": true
+      }
+    }
+  ],
   "credential_profile": "proof_bound",
   "credential_binding": {
     "method": "dpop",
@@ -2327,13 +2636,18 @@ OAuth `authorization_details` uses this same shape with the additional RFC 9396
 runtime, agent, and passport tuple. A DPoP binding MUST additionally contain
 `jkt`; an mTLS binding MUST instead contain `x5t#S256`. Those values use the
 same encoding and semantics as the corresponding standard `cnf` members.
+`data_exposure` is also authorization-server output. It is the complete
+effective projection derived under the Data Exposure Contract and does not
+grant authority independent of the action, scope, location, and resource
+members from which it was derived.
 
 ### Grant Hash
 
 The authorization server MUST add `grant_hash` after constructing the complete
 authoritative Agent Grant, including `grant_id`, subject, delegate,
 `resource_server.surface_hash`, effective constraints, credential profile, and
-credential binding. It computes the value with the Canonical Object Hash
+credential binding, and the effective `data_exposure` projection. It computes
+the value with the Canonical Object Hash
 Profile and persists the exact hashing view for the lifetime of the grant and
 its audit-retention period.
 
@@ -2540,8 +2854,9 @@ are the authoritative Grant Object wire shape defined above:
   invoked action MUST be a member. The authorization applies to the product of
   the granted actions, locations, scopes, and resource filters; every allowed
   combination MUST be published by the surface and semantically compatible.
-- `grant_id`, `grant_hash`, `subject`, and `credential_binding` MUST NOT be
-  supplied by the client in an authorization request; they are
+- `grant_id`, `grant_hash`, `subject`, `credential_binding`, and
+  `data_exposure` MUST NOT be supplied by the client in an authorization
+  request; they are
   authorization-server output.
 - A client MAY request an `audit.receipt_signing` profile and signer roles, but
   it MUST NOT supply authoritative `signer_keys`. Before issuance, the
@@ -2597,7 +2912,8 @@ authority.
 The token response MUST return the granted `authorization_details` as required
 by RFC 9396. For this type, the returned object MUST be enriched with the
 authoritative `grant_id`, `subject`, delegate binding, effective constraints,
-`credential_binding`, and `grant_hash` assigned by the authorization server. The
+`credential_binding`, effective `data_exposure`, and `grant_hash` assigned by
+the authorization server. The
 authorization server and resource server MUST retain or receive the same
 granted object for later action verification and introspection.
 
@@ -3103,6 +3419,7 @@ Matching inputs:
 - risk labels
 - execution modes and required companion stages
 - declared effect envelopes and effect schemas
+- declared data classes, redaction, and retention obligations
 - reservation requirements and available recovery actions
 - Agent Passport capabilities
 - Agent Passport security policy
@@ -3119,6 +3436,7 @@ Matching outputs:
 - risk summary
 - supported execution stages and any missing preview or reservation support
 - maximum effects and recovery limitations
+- effective data exposure and any unsupported retention obligations
 - expected sandbox constraints
 
 The matching result is shown to the user before grant issuance.
@@ -3211,6 +3529,19 @@ Once a grant exists, an application or runtime MAY start a session.
   }
 }
 ```
+
+`session.start.task` is user- or runtime-authored orchestration, not an
+application data-delivery mechanism. The application MUST NOT place
+application-originated content in `goal`, `inputs`, or another task member.
+Opaque identifiers and filters already present in the grant constraints MAY be
+copied into `inputs`; their presence identifies the task but does not disclose
+the referenced application representation. Application content needed by the
+agent MUST first cross an independently authorized resource, action-result, or
+event path and remains subject to that source's exposure contract. Merely
+listing a source in the grant's `data_exposure` projection never authorizes the
+application to push its data during session start. An application that wants to
+suggest a task MUST use an authorized event; the runtime decides whether to
+construct a local task after applying user and local policy.
 
 ### Action Request
 
@@ -3955,6 +4286,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `revert_conflict` | Prior state required for an exact revert is no longer available. |
 | `outcome_unknown` | An external or partial effect may have occurred and blind retry is unsafe. |
 | `risk_denied` | Local or app policy denied the risk class. |
+| `data_exposure_violation` | An application-originated payload contains an undeclared data class or violates its redaction or retention contract. |
 | `passport_invalid` | Agent Passport is missing, expired, revoked, or invalid. |
 | `runtime_untrusted` | Runtime binding or attestation is not accepted. |
 | `surface_incompatible` | Runtime does not support the surface version. |
@@ -4129,6 +4461,8 @@ actions.
 
 Mitigations:
 
+- runtime derives grant and exposure details from the verified manifest rather
+  than trusting application-authored labels alone
 - runtime presents grant details clearly
 - local policy can deny high-risk surfaces
 - user can revoke app grants locally
@@ -4252,6 +4586,23 @@ Runtimes SHOULD minimize agent and passport disclosure when possible. Receipts
 SHOULD support pseudonymous user references where legal and operationally
 appropriate.
 
+Data Exposure Contracts make application-to-agent disclosure inspectable but
+do not prove that a publisher classified its data correctly. A runtime MUST
+treat application-authored labels and descriptions as untrusted hints, preserve
+the manifest identifier and classification in consent and policy decisions,
+and MAY apply a stricter local classification. Unknown classes, missing
+contracts, and inconsistent grant projections fail closed; they MUST NOT be
+rendered as no exposure.
+
+Redaction and retention obligations apply to prompts, model context, tool
+arguments, caches, diagnostic captures, and agent-visible logs under runtime
+control, not only to the primary response object. A runtime MUST NOT select an
+agent or remote processing path that cannot enforce the effective contract.
+Deletion of runtime-controlled plaintext does not prove model unlearning or
+deletion by an undeclared external processor. Training use and remote-agent
+defaults require separate policy profiles and are not implied by a retention
+declaration in this draft.
+
 Cross-system trace correlation can reveal relationships between otherwise
 separate user actions, tenants, and services. `trace_id`, `span_id`, and
 `tracestate` MUST NOT encode semantic identifiers or secrets. Components SHOULD
@@ -4278,6 +4629,8 @@ An application conforms to the Surface-Only profile when it:
 - computes and publishes a valid `surface_hash` and changes
   `surface_version` whenever the manifest hashing view changes
 - declares actions, resources, events, scopes, and schemas
+- declares every referenced data class and complete exposure contracts for
+  resources, actions, and events
 - declares risk labels for actions
 - declares one static execution mode and operation id per action
 - declares maximum effects for state-changing actions and internally consistent
@@ -4301,6 +4654,10 @@ An application conforms to the Grant-Enforcing profile when it:
   recovery target before a state change
 - issues and accepts only action allow-lists closed over required companion
   dependencies
+- derives the complete effective data-exposure projection from the pinned
+  manifest, returns it with the grant, and includes it in `grant_hash`
+- applies declared redaction before application-originated data crosses the
+  application boundary
 - enforces cumulative per-target recovery limits independently of request
   idempotency keys
 - treats `grant_id` as an identifier, not authority
@@ -4380,6 +4737,9 @@ An application runtime conforms to this profile when it:
 - recomputes `surface_hash` and pins the exact manifest snapshot
 - verifies Agent Passport evidence before delegation
 - obtains explicit user consent before storing a grant
+- recomputes the grant's effective data-exposure projection, refuses missing or
+  inconsistent contracts, and selects only runtime-agent paths that can enforce
+  redaction and retention obligations
 - mediates agent actions instead of exposing raw authority
 - denies credential release unless an explicit `credential.release` capability
   and its constraints are satisfied
