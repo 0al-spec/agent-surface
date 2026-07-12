@@ -1579,9 +1579,10 @@ within the grant and session and reuses it for exact idempotent retries of that
 invocation. The identifier is correlation, not authority.
 
 For an idempotency-required invocation, the application MUST enforce that one
-tuple of `grant_id`, `action_id`, and `execution_id` maps to exactly one
-idempotency key, `input_hash`, and, when required, `execution_hash`. Reusing an
-execution id with any different value is an `idempotency_conflict`. Read,
+tuple of `grant_id`, `session_id`, `action_id`, and `execution_id` maps to
+exactly one idempotency key, `input_hash`, and, when required,
+`execution_hash`. Reusing an execution id with any different value in the same
+grant and session is an `idempotency_conflict`. Read,
 ordinary dry-run, and non-persisted proposal invocations can omit the key or
 execution hash, but their execution ids still cannot be rebound to different
 requests. Reusing the same preview or approval under a new execution id does
