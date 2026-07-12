@@ -1905,7 +1905,7 @@
       "description": "для каждого resource/action описывать, какие классы данных агент увидит и какие redaction/retention правила применяются.",
       "category": "Privacy / data exposure",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
           "heading": "Resources",
@@ -1916,18 +1916,28 @@
           "anchorId": "actions"
         },
         {
+          "heading": "Data Exposure Contract",
+          "anchorId": "data-exposure-contract"
+        },
+        {
+          "heading": "Grant Object",
+          "anchorId": "grant-object"
+        },
+        {
           "heading": "Privacy Considerations",
           "anchorId": "privacy-considerations"
         }
       ],
-      "rationale": "Для resources есть redaction и retention hooks, но нет классов данных и per-action exposure contract.",
+      "rationale": "RFC определяет manifest registry классов данных, обязательный post-redaction exposure contract для resources, actions и events, grant-bound projection, retention enforcement и fail-closed обработку нарушений.",
       "priority": "P0",
       "profile": "privacy-consent",
       "depends_on": [
+        10,
+        14,
         20
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -1936,6 +1946,14 @@
         {
           "kind": "rfc_anchor",
           "ref": "actions"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "data-exposure-contract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-object"
         },
         {
           "kind": "rfc_anchor",
