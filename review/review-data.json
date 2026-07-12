@@ -744,6 +744,10 @@
           "anchorId": "revocation-semantics"
         },
         {
+          "heading": "Semantic Grant Revocation Transition",
+          "anchorId": "semantic-grant-revocation-transition"
+        },
+        {
           "heading": "OAuth Grant Revocation Profile",
           "anchorId": "oauth-grant-revocation-profile"
         },
@@ -753,7 +757,7 @@
         }
       ],
       "status": "present",
-      "rationale": "RFC определяет RFC 7009 grant transition, cascade revocation, authenticated `grant.revoked` envelope, reason codes, idempotent runtime processing и границу с общей event delivery model.",
+      "rationale": "RFC отделяет transport-neutral inactive/cascade transition от RFC 7009 binding, задаёт authenticated `grant.revoked` envelope, reason codes, idempotent runtime processing и границу с общей event delivery model.",
       "priority": "P1",
       "profile": "oauth-grants",
       "depends_on": [
@@ -774,6 +778,10 @@
         {
           "kind": "rfc_anchor",
           "ref": "revocation-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "semantic-grant-revocation-transition"
         },
         {
           "kind": "rfc_anchor",
@@ -2521,15 +2529,39 @@
       "description": "определить, где пользователь видит активные grants и как быстро может их отозвать.",
       "category": "UX / consent",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
           "heading": "Endpoints",
           "anchorId": "endpoints"
         },
         {
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        },
+        {
           "heading": "Revocation Semantics",
           "anchorId": "revocation-semantics"
+        },
+        {
+          "heading": "Active Grant Management",
+          "anchorId": "active-grant-management"
+        },
+        {
+          "heading": "User Revocation Intent and Confirmation",
+          "anchorId": "user-revocation-intent-and-confirmation"
+        },
+        {
+          "heading": "Revocation Timing and Concurrency",
+          "anchorId": "revocation-timing-and-concurrency"
+        },
+        {
+          "heading": "Semantic Grant Revocation Transition",
+          "anchorId": "semantic-grant-revocation-transition"
+        },
+        {
+          "heading": "OAuth Grant Revocation Profile",
+          "anchorId": "oauth-grant-revocation-profile"
         },
         {
           "heading": "Grant Revoked",
@@ -2538,9 +2570,13 @@
         {
           "heading": "Malicious or Compromised Application",
           "anchorId": "malicious-or-compromised-application"
+        },
+        {
+          "heading": "Privacy Considerations",
+          "anchorId": "privacy-considerations"
         }
       ],
-      "rationale": "Protocol plumbing и post-revocation behavior есть, но active-grants UI и latency expectation не определены.",
+      "rationale": "RFC задаёт issuer-bound management page, authoritative grant summary, snapshot-bound revoke intent без fail-open race, immediate-before-success invalidation, effect fencing и honest unknown-confirmation state.",
       "priority": "P1",
       "profile": "privacy-consent",
       "depends_on": [
@@ -2548,7 +2584,7 @@
         46
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -2556,7 +2592,31 @@
         },
         {
           "kind": "rfc_anchor",
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
           "ref": "revocation-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "active-grant-management"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "user-revocation-intent-and-confirmation"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "revocation-timing-and-concurrency"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "semantic-grant-revocation-transition"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "oauth-grant-revocation-profile"
         },
         {
           "kind": "rfc_anchor",
@@ -2565,6 +2625,10 @@
         {
           "kind": "rfc_anchor",
           "ref": "malicious-or-compromised-application"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "privacy-considerations"
         }
       ]
     },

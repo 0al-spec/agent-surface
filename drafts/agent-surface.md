@@ -1031,6 +1031,11 @@ Example:
     "action_url": "https://example.com/agent-actions",
     "event_subscription_url": "https://example.com/agent-events",
     "receipt_url": "https://example.com/agent-receipts"
+  },
+  "revocation": {
+    "grant_management_url": "https://example.com/settings/agent-grants",
+    "grant_revocation_url": "https://example.com/agent-grants/revoke",
+    "event": "grant.revoked"
   }
 }
 ```
@@ -1263,6 +1268,7 @@ surface discoverable.
     ]
   },
   "revocation": {
+    "grant_management_url": "https://example.com/settings/agent-grants",
     "grant_revocation_url": "https://example.com/agent-grants/revoke",
     "event": "grant.revoked"
   }
@@ -4293,10 +4299,168 @@ not retroactively authorize or undo the underlying application action.
 
 The protocol MUST define what happens when authority changes.
 
-Revocation MUST be possible from both sides. Applications SHOULD give users an
-in-app view of active agent grants — comparable to OAuth application
-management pages — where a grant can be inspected and revoked without going
-through the runtime.
+Revocation MUST be possible from both sides. The application-managed and
+runtime-managed user paths are defined below and converge on the same
+authoritative grant transition.
+
+### Active Grant Management
+
+A Grant-Enforcing Application MUST publish an HTTPS
+`revocation.grant_management_url` in its manifest. The URL identifies the
+application's human-facing active-grant management page, not the RFC 7009
+runtime revocation endpoint and not an authority-bearing capability URL. Its
+origin MUST match the manifest issuer origin. The generic URL MUST NOT place a
+grant id, token, user id, or other sensitive value in its query or fragment.
+
+The application management page is the authoritative user view of current
+grant state. It MUST authenticate the resource owner through the application's
+ordinary user-authentication mechanism, derive the subject from that session,
+and list only grants belonging to that subject. It MUST NOT accept a caller-
+supplied subject selector, treat an Agent Grant Credential as user
+authentication, or let a runtime or agent enumerate another user's grants.
+Responses containing grant details MUST use `Cache-Control: no-store` and
+`Referrer-Policy: no-referrer`.
+
+For each active grant, the page MUST make these semantics visible and
+inspectable:
+
+- application and issuer, grant id and hash, pinned surface version and hash,
+  and authoritative active or expiry state;
+- runtime id, agent id, passport hash, and available verified identity labels;
+- exact actions, scopes, locations, resource filters, expiration, budgets, and
+  approval caveats;
+- maximum effects, execution stages, and recovery limitations;
+- effective data-exposure classes, redaction, and retention obligations;
+- credential profile and receipt requirements; and
+- whether revocation cascades to derived grants and the known number of
+  affected descendants.
+
+The summary MUST be derived from the stored authoritative Grant Object and the
+exact pinned manifest snapshot that the grant references. It MUST NOT silently
+reinterpret an old grant using the current manifest. If the pinned snapshot or
+some historical display metadata is unavailable, the page MUST mark those
+details unavailable, preserve the stored machine identifiers and hashes, and
+still allow immediate revocation. Missing display metadata never makes a grant
+look less privileged.
+
+The page MUST NOT expose Grant Credentials, refresh tokens, cookies, raw
+credential-binding material, receipt-signing private material, application
+resource content, or passport data beyond what the user needs to identify the
+delegate. Every active entry MUST provide a direct inspect-and-revoke path; a
+user MUST NOT need the runtime, agent, or an active Grant Credential to use it.
+
+An Application Runtime MUST also provide a local view of the grants and
+credentials it stores, including their last known state and the trusted
+`grant_management_url`. The application remains authoritative. If the local
+view and an authenticated application view or introspection result disagree,
+the runtime MUST stop new use, mark its state uncertain or inactive, and
+resynchronize rather than treating cached `active` state as authority.
+
+### User Revocation Intent and Confirmation
+
+Before accepting a user-facing revocation, the application MUST show the
+current grant using the common grant- and manifest-derived semantics listed in
+Active Grant Management. It does not need runtime-local assertions from the
+Consent Preview Contract and MUST NOT represent the old preview as portable
+consent evidence. The application MUST additionally explain:
+
+- that new actions will stop under this grant and its derived grants;
+- which known child grants, sessions, execution tokens, and reservations are
+  affected by the cascade;
+- that queued or in-flight actions which have not passed the final atomic
+  grant-state check will be rejected, while effects irreversibly committed
+  before revocation remain authoritative and receiptable;
+- that already committed effects are not undone and require separately
+  authorized compensation or revert when available; and
+- which `delete_on_grant_end` exposure obligations become effective, without
+  claiming deletion of application source data or model unlearning.
+
+The confirmation MUST be bound server-side to the exact `grant_id` and
+`grant_hash` displayed to the user. That binding prevents target substitution;
+it is not a fail-open precondition when authority changes concurrently. On
+confirmation, the application MUST atomically freeze new use of the displayed
+grant and every derived, renewed, exchanged, or superseding grant that preserves
+its delegation lineage, then apply the Semantic Grant Revocation Transition.
+New lineage members discovered during that transition are included in the
+cascade. The application MUST show updated impact after authority has stopped,
+but MUST NOT keep the lineage active while waiting for another confirmation.
+An unrelated grant with a different lineage is never silently included and
+requires its own user action. The user cannot disable the required cascade or
+select only one credential of the semantic grant.
+
+The management action uses the ordinary authenticated user session, not an
+Agent Grant Credential. Implementations MUST apply their normal protections
+against CSRF, clickjacking, session fixation, and confused-account actions, and
+SHOULD require recent or step-up user authentication when local risk policy
+warrants it. A missing grant and a grant belonging to another subject MUST
+produce the same non-enumerating user-visible result.
+
+User-facing revocation invokes the transport-neutral Semantic Grant Revocation
+Transition; it is not a second authority mechanism.
+Repeating an already confirmed request for the same grant state is idempotent
+and MUST NOT repeat cascade side effects or emit duplicate control events.
+
+### Revocation Timing and Concurrency
+
+Revocation is logically immediate: before the application presents success to
+the user, authoritative grant state MUST already be inactive and every
+application enforcement point MUST reject a newly linearized action under the
+grant. The application records an `effective_at` instant for that transition
+and a `confirmed_at` instant for the user-visible success;
+`confirmed_at` MUST NOT precede `effective_at`.
+
+For a state-changing action, the effect linearization point is the final
+authoritative grant-state check performed atomically with the first irreversible
+application mutation or external-effect dispatch. Queued or in-flight work that
+has not crossed that point before `effective_at` MUST be cancelled or fail as
+`grant_revoked`. Work that crossed it before `effective_at` MAY finish only the
+consequences already irreversibly committed at that point and MUST receipt its
+actual outcome; it MUST NOT initiate another effect afterward without a new
+current grant check. An implementation that cannot fence its effect dispatch
+against revocation MUST NOT confirm success until the fence is established.
+Cached introspection, an in-flight session, or an outstanding execution token
+or reservation cannot move this boundary.
+
+After success, the authenticated management page MUST provide read-your-writes
+behavior: the grant MUST no longer appear active, and its detail view MUST show
+the authoritative revoked state and `effective_at`. Event delivery, runtime
+notification, session cleanup, credential deletion, and exposure-retention
+cleanup MAY finish asynchronously, but none is the enforcement transition or a
+precondition for success confirmation.
+
+If the application cannot confirm the authoritative transition, it MUST show
+revocation as unconfirmed and MUST NOT claim success. A runtime that initiates
+revocation locally MUST stop new actions as soon as the user confirms intent;
+on timeout or a binding-specific unavailable response it keeps the credential
+frozen, labels confirmation as unknown, and retries or resynchronizes according
+to the selected authenticated revocation binding. For OAuth, HTTP 503 and
+`Retry-After` provide that signal. `pending` or `confirmation_unknown` are local
+presentation states, not active-grant authority states.
+
+This specification intentionally defines no universal wall-clock UI deadline.
+Deployment latency is an operational SLO; the interoperable security invariant
+is that application-side invalidation precedes success confirmation and later
+authorization decisions observe it. Delivery of `grant.revoked` is notification,
+not user confirmation, and loss of the event never reactivates a grant.
+
+### Semantic Grant Revocation Transition
+
+Every issuance and transport binding uses one transport-neutral semantic
+transition. For a located active grant, the application MUST atomically mark the
+grant inactive, reject every credential derived from it, invalidate refresh
+tokens and proof-bound sessions, invalidate outstanding execution tokens and
+reservations, and cascade revocation to child, exchanged, renewed, or
+superseding grants whose authority preserves its delegation lineage. The
+transition establishes `effective_at` and the concurrency fence defined above.
+
+The transition is idempotent. Reapplying it to an inactive grant MUST NOT emit
+duplicate control events, repeat cleanup side effects, or change the original
+effective instant. It does not erase receipts or undo committed effects.
+Transport profiles define how a runtime or user authenticates a request and how
+success is represented; they MUST NOT weaken this inactive state, cascade, or
+timing boundary. A non-OAuth issuance model claiming Grant-Enforcing
+conformance MUST define an authenticated revocation binding that invokes this
+same transition.
 
 ### OAuth Grant Revocation Profile
 
@@ -4315,14 +4479,10 @@ revocation is not confirmed; the runtime MUST continue treating the credential
 as sensitive, MUST NOT initiate new actions with it, and SHOULD retry according
 to `Retry-After`.
 
-For the Agent Grant profile, revoking a Grant Credential through
-`grant_revocation_url` revokes the semantic Agent Grant, not only that token.
-The application MUST immediately mark the grant inactive, reject every
-credential derived from it, invalidate refresh tokens and proof-bound sessions,
-invalidate outstanding execution tokens and reservations, and cascade
-revocation to child or exchanged grants whose authority derives from it.
-Revocation initiated through the application's user-facing grant view
-MUST produce the same state transition.
+For the Agent Grant profile, a successful request for a located credential MUST
+invoke the Semantic Grant Revocation Transition for the semantic Agent Grant,
+not only that token. A user-facing request invokes the same transition through
+Active Grant Management and its confirmation and timing requirements.
 
 When an active grant changes to revoked and the manifest declares an event
 subscription endpoint, the application MUST emit a `grant.revoked` control event
@@ -4656,7 +4816,8 @@ Mitigations:
   sending the exact authorization request
 - runtime presents grant details clearly
 - local policy can deny high-risk surfaces
-- user can revoke app grants locally
+- user can inspect and revoke authoritative app grants without the runtime, and
+  can freeze locally held credentials from the runtime view
 - app manifest can be pinned or allowlisted
 - enterprise policy can restrict issuers
 
@@ -4800,6 +4961,13 @@ telemetry, browser history, or general-purpose logs. A local preview is not
 portable consent evidence and SHOULD be retained only as long as local policy
 needs it to complete and audit the authorization flow.
 
+Active-grant management views contain the same relationship metadata plus
+lifecycle state and usage-sensitive constraints. Applications and runtimes MUST
+authenticate those views, avoid cross-subject enumeration, exclude credentials
+and application payloads, and prevent caching or referrer leakage as defined by
+Active Grant Management. Historical summaries SHOULD retain only the metadata
+needed for user understanding, security audit, and applicable legal obligations.
+
 Cross-system trace correlation can reveal relationships between otherwise
 separate user actions, tenants, and services. `trace_id`, `span_id`, and
 `tracestate` MUST NOT encode semantic identifiers or secrets. Components SHOULD
@@ -4864,6 +5032,9 @@ An application conforms to the Grant-Enforcing profile when it:
 - does not accept `reserve`, `commit`, `compensate`, or `revert` unless it also
   satisfies the Receipt-Producing Application profile for that action
 - supports grant revocation
+- publishes the issuer-bound active-grant management page, authenticates the
+  resource owner independently of Agent Grant Credentials, and confirms
+  revocation only after authoritative invalidation
 
 ### OAuth Grant Lifecycle Application
 
@@ -4878,8 +5049,11 @@ it:
 - implements the OAuth Token Exchange Profile without privilege amplification
 - returns the active and inactive Grant Introspection Profile contracts
 - returns matching top-level and authorization-details hash projections
-- implements RFC 7009 semantic grant revocation, derivation cascade, and the
-  authenticated `grant.revoked` control event when an event endpoint is declared
+- binds RFC 7009 token revocation to the Semantic Grant Revocation Transition
+  and emits the authenticated `grant.revoked` control event when an event
+  endpoint is declared
+- routes user-facing grant management through the same semantic revocation
+  transition and preserves its immediate confirmation boundary
 - presents authorization-server consent from the exact verified request,
   manifest semantics, and effective exposure projection
 
@@ -4970,6 +5144,9 @@ An application runtime conforms to this profile when it:
 - records session id, trace id, and producer span id in local action and receipt
   logs
 - stops actions when grants are revoked or expired
+- provides a local grant view with the trusted application management link,
+  freezes local use while revocation confirmation is unknown, and treats
+  application state or introspection as authoritative over cached active state
 
 ### Agent Adapter
 
@@ -5062,8 +5239,10 @@ To support Agent Surface Protocol, the next slices are:
 18. App returns actual effects and an app receipt. Runtime and app receipts form
     a verified parent-hash chain and MAY carry
     detached JWS signatures when required by the grant.
-19. User revokes grant_123; the app rejects it immediately and invalidates
-    outstanding preview evidence and reservations.
+19. User opens the issuer-bound grant management page, inspects the exact
+    grant_123 summary, and confirms revocation; the app marks the grant inactive
+    before confirming success and invalidates outstanding preview evidence and
+    reservations.
 20. App emits authenticated `grant.revoked`; runtime stops affected work.
 ```
 
