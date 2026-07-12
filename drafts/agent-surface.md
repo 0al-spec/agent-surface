@@ -4309,8 +4309,12 @@ A Grant-Enforcing Application MUST publish an HTTPS
 `revocation.grant_management_url` in its manifest. The URL identifies the
 application's human-facing active-grant management page, not the RFC 7009
 runtime revocation endpoint and not an authority-bearing capability URL. Its
-origin MUST match the manifest issuer origin. The generic URL MUST NOT place a
-grant id, token, user id, or other sensitive value in its query or fragment.
+origin MUST match the manifest issuer origin. The published URL MUST be a
+generic issuer-wide entry point shared by all users and grants. It MUST NOT
+encode a grant id, token, user id, or other user- or grant-specific sensitive
+value in its path, query, fragment, user information, host, or any other URL
+component. Selection of a user or grant happens only after authentication from
+server-side state, not through the manifest URL.
 
 The application management page is the authoritative user view of current
 grant state. It MUST authenticate the resource owner through the application's
