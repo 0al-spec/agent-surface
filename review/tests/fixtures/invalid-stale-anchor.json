@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "profiles": [
+    {
+      "id": "core",
+      "title": "Core Protocol",
+      "depends_on": []
+    }
+  ],
+  "releases": [
+    {
+      "id": "0.2",
+      "status": "planning"
+    }
+  ],
+  "reviews": [
+    {
+      "id": 1,
+      "title": "Stale anchor review",
+      "description": "The persisted anchor id does not match the RFC heading.",
+      "category": "Fixture",
+      "side": "left",
+      "anchors": [
+        {
+          "heading": "Abstract",
+          "anchorId": "not-abstract"
+        }
+      ],
+      "status": "partial",
+      "rationale": "Invalid by design.",
+      "priority": "P1",
+      "profile": "core",
+      "depends_on": [],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
+    }
+  ]
+}

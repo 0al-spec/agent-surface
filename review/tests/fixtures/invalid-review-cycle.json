@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "profiles": [
+    {
+      "id": "core",
+      "title": "Core Protocol",
+      "depends_on": []
+    }
+  ],
+  "releases": [
+    {
+      "id": "0.2",
+      "status": "planning"
+    }
+  ],
+  "reviews": [
+    {
+      "id": 1,
+      "title": "First review",
+      "description": "First half of a dependency cycle.",
+      "category": "Fixture",
+      "side": "left",
+      "anchors": [
+        {
+          "heading": "Abstract",
+          "anchorId": "abstract"
+        }
+      ],
+      "status": "missing",
+      "rationale": "Invalid by design.",
+      "priority": "P1",
+      "profile": "core",
+      "depends_on": [
+        2
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
+    },
+    {
+      "id": 2,
+      "title": "Second review",
+      "description": "Second half of a dependency cycle.",
+      "category": "Fixture",
+      "side": "right",
+      "anchors": [
+        {
+          "heading": "Abstract",
+          "anchorId": "abstract"
+        }
+      ],
+      "status": "missing",
+      "rationale": "Invalid by design.",
+      "priority": "P1",
+      "profile": "core",
+      "depends_on": [
+        1
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
+    }
+  ]
+}

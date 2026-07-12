@@ -1,0 +1,44 @@
+{
+  "schema_version": 2,
+  "profiles": [
+    {
+      "id": "core",
+      "title": "Core Protocol",
+      "depends_on": []
+    }
+  ],
+  "releases": [
+    {
+      "id": "0.2",
+      "status": "planning"
+    }
+  ],
+  "reviews": [
+    {
+      "id": 1,
+      "title": "Overstated review",
+      "description": "Partial coverage cannot claim specified maturity.",
+      "category": "Fixture",
+      "side": "left",
+      "anchors": [
+        {
+          "heading": "Abstract",
+          "anchorId": "abstract"
+        }
+      ],
+      "status": "partial",
+      "rationale": "Invalid by design.",
+      "priority": "P1",
+      "profile": "core",
+      "depends_on": [],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "abstract"
+        }
+      ]
+    }
+  ]
+}

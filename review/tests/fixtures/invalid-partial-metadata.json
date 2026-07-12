@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "profiles": [
+    {
+      "id": "core",
+      "title": "Core Protocol",
+      "depends_on": []
+    }
+  ],
+  "releases": [
+    {
+      "id": "0.2",
+      "status": "planning"
+    }
+  ],
+  "reviews": [
+    {
+      "id": 1,
+      "title": "Half-migrated review",
+      "description": "Only one planning field is present.",
+      "category": "Fixture",
+      "side": "left",
+      "anchors": [
+        {
+          "heading": "Abstract",
+          "anchorId": "abstract"
+        }
+      ],
+      "status": "partial",
+      "rationale": "Invalid by design.",
+      "priority": "P1",
+      "profile": "core"
+    }
+  ]
+}

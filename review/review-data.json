@@ -1,4 +1,101 @@
 {
+  "schema_version": 2,
+  "profiles": [
+    {
+      "id": "core",
+      "title": "Core Protocol",
+      "depends_on": []
+    },
+    {
+      "id": "manifest",
+      "title": "Agent Surface Manifest",
+      "depends_on": [
+        "core"
+      ]
+    },
+    {
+      "id": "oauth-grants",
+      "title": "OAuth Grants",
+      "depends_on": [
+        "core",
+        "manifest"
+      ]
+    },
+    {
+      "id": "receipts-provenance",
+      "title": "Receipts and Provenance",
+      "depends_on": [
+        "core",
+        "manifest",
+        "oauth-grants"
+      ]
+    },
+    {
+      "id": "action-execution",
+      "title": "Action Execution",
+      "depends_on": [
+        "core",
+        "manifest",
+        "oauth-grants",
+        "receipts-provenance"
+      ]
+    },
+    {
+      "id": "events-sessions",
+      "title": "Events and Sessions",
+      "depends_on": [
+        "core",
+        "oauth-grants"
+      ]
+    },
+    {
+      "id": "privacy-consent",
+      "title": "Privacy and Consent",
+      "depends_on": [
+        "core",
+        "oauth-grants",
+        "receipts-provenance"
+      ]
+    },
+    {
+      "id": "identity-passport",
+      "title": "Identity and Passport",
+      "depends_on": [
+        "core",
+        "oauth-grants"
+      ]
+    },
+    {
+      "id": "operations-safety",
+      "title": "Operations Safety",
+      "depends_on": [
+        "core",
+        "action-execution",
+        "events-sessions"
+      ]
+    },
+    {
+      "id": "conformance-tooling",
+      "title": "Conformance and Tooling",
+      "depends_on": [
+        "core",
+        "manifest",
+        "oauth-grants",
+        "receipts-provenance",
+        "action-execution",
+        "events-sessions",
+        "privacy-consent",
+        "identity-passport",
+        "operations-safety"
+      ]
+    }
+  ],
+  "releases": [
+    {
+      "id": "0.2",
+      "status": "planning"
+    }
+  ],
   "reviews": [
     {
       "id": 1,

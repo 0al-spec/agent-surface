@@ -13,6 +13,8 @@ from pathlib import Path
 
 from markdown_it import MarkdownIt
 
+from review_data import load_review_payload, normalize_reviews, validate_review_payload
+
 
 ROOT = Path(__file__).resolve().parents[1]
 REVIEW_DIR = Path(__file__).resolve().parent
@@ -21,9 +23,6 @@ DATA_PATH = REVIEW_DIR / "review-data.json"
 TEMPLATE_PATH = REVIEW_DIR / "review-template.html"
 STYLESHEET_PATH = REVIEW_DIR / "standalone.css"
 OUTPUT_PATH = REVIEW_DIR / "agent-surface-rfc-review.html"
-VALID_PRIORITIES = {"P0", "P1", "P2", "P3"}
-VALID_SIDES = {"left", "right"}
-VALID_STATUSES = {"present", "partial", "missing"}
 
 
 def slugify(value: str) -> str:
@@ -59,56 +58,9 @@ def render_rfc() -> tuple[str, dict[str, str]]:
 
 
 def load_reviews(heading_ids: dict[str, str]) -> list[dict[str, object]]:
-    payload = json.loads(DATA_PATH.read_text(encoding="utf-8"))
-    reviews = payload.get("reviews")
-    if not isinstance(reviews, list) or not reviews:
-        raise ValueError("review-data.json must contain a non-empty reviews array")
-
-    ids = [review.get("id") for review in reviews]
-    if not all(isinstance(review_id, int) for review_id in ids):
-        raise ValueError("Every review id must be an integer")
-    if sorted(ids) != list(range(1, len(reviews) + 1)):
-        raise ValueError("Review ids must be unique and sequential, starting at 1")
-
-    missing_headings: list[str] = []
-    normalized_reviews: list[dict[str, object]] = []
-    required_fields = {"id", "title", "description", "category", "side", "status", "rationale", "priority", "anchors"}
-    for review in sorted(reviews, key=lambda item: item["id"]):
-        absent = required_fields - set(review)
-        if absent:
-            raise ValueError(f"Review #{review.get('id', '?')} is missing fields: {', '.join(sorted(absent))}")
-        if review["side"] not in VALID_SIDES:
-            raise ValueError(f"Review #{review['id']} has invalid side: {review['side']}")
-        if review["status"] not in VALID_STATUSES:
-            raise ValueError(f"Review #{review['id']} has invalid status: {review['status']}")
-        if review["priority"] not in VALID_PRIORITIES:
-            raise ValueError(f"Review #{review['id']} has invalid priority: {review['priority']}")
-        if not all(isinstance(review[field], str) and review[field].strip() for field in required_fields - {"id", "anchors"}):
-            raise ValueError(f"Review #{review['id']} has an empty text field")
-        anchors = review["anchors"]
-        if not isinstance(anchors, list) or not anchors:
-            raise ValueError(f"Review #{review['id']} must have anchors")
-        anchor_headings = []
-        for anchor in anchors:
-            heading = anchor if isinstance(anchor, str) else anchor.get("heading") if isinstance(anchor, dict) else None
-            if not isinstance(heading, str) or not heading.strip():
-                raise ValueError(f"Review #{review['id']} has an invalid anchor")
-            anchor_headings.append(heading)
-        if len(anchor_headings) != len(set(anchor_headings)):
-            raise ValueError(f"Review #{review['id']} must have unique anchors")
-
-        resolved_anchors = []
-        for heading in anchor_headings:
-            anchor_id = heading_ids.get(heading)
-            if anchor_id is None:
-                missing_headings.append(f"#{review['id']}: {heading}")
-                continue
-            resolved_anchors.append({"heading": heading, "anchorId": anchor_id})
-        normalized_reviews.append({**review, "anchors": resolved_anchors})
-
-    if missing_headings:
-        raise ValueError("Unresolved RFC headings:\n" + "\n".join(missing_headings))
-    return normalized_reviews
+    payload = load_review_payload(DATA_PATH)
+    validate_review_payload(payload, heading_ids)
+    return normalize_reviews(payload, heading_ids)
 
 
 def build_document() -> str:
@@ -142,9 +94,24 @@ def build_document() -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="fail when the committed dashboard is stale")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="fail when the committed dashboard is stale")
+    mode.add_argument(
+        "--check-data",
+        action="store_true",
+        help="validate review metadata without writing the dashboard",
+    )
     args = parser.parse_args()
-    document = build_document()
+    try:
+        if args.check_data:
+            _, heading_ids = render_rfc()
+            load_reviews(heading_ids)
+            print(f"Review data is valid: {DATA_PATH.relative_to(ROOT)}")
+            return 0
+        document = build_document()
+    except (json.JSONDecodeError, ValueError) as error:
+        print(error, file=sys.stderr)
+        return 1
     if args.check:
         if not OUTPUT_PATH.exists() or OUTPUT_PATH.read_text(encoding="utf-8") != document:
             print("Dashboard is stale; run: make review-build", file=sys.stderr)
