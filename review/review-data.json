@@ -536,20 +536,20 @@
           "anchorId": "actions"
         },
         {
-          "heading": "Proposal-Only Support",
-          "anchorId": "proposal-only-support"
+          "heading": "Static Execution Modes",
+          "anchorId": "static-execution-modes"
         },
         {
-          "heading": "Risk Taxonomy",
-          "anchorId": "risk-taxonomy"
+          "heading": "Companion Actions and Transitions",
+          "anchorId": "companion-actions-and-transitions"
         },
         {
-          "heading": "Proposal Flow",
-          "anchorId": "proposal-flow"
+          "heading": "Execution Context and Binding",
+          "anchorId": "execution-context-and-binding"
         }
       ],
-      "status": "partial",
-      "rationale": "Есть direct, write и proposal_only, но единая stateful модель read/dry_run/reserve/commit/compensate/revert отсутствует.",
+      "status": "present",
+      "rationale": "RFC задаёт семь static execution modes, отдельные companion actions и reciprocal transitions; каждый stage независимо связан с action id, scope, approval, grant и canonical execution context.",
       "priority": "P1"
     },
     {
@@ -560,24 +560,24 @@
       "side": "right",
       "anchors": [
         {
-          "heading": "Actions",
-          "anchorId": "actions"
-        },
-        {
           "heading": "Risk Taxonomy",
           "anchorId": "risk-taxonomy"
+        },
+        {
+          "heading": "Effect Model",
+          "anchorId": "effect-model"
         },
         {
           "heading": "Approval Semantics",
           "anchorId": "approval-semantics"
         },
         {
-          "heading": "Security Considerations",
-          "anchorId": "security-considerations"
+          "heading": "Execution Mode Confusion, TOCTOU, and Reservation Abuse",
+          "anchorId": "execution-mode-confusion-toctou-and-reservation-abuse"
         }
       ],
-      "status": "partial",
-      "rationale": "Risk labels покрывают часть эффектов, но независимые dimensions visibility, reversibility, boundary и effect domain не моделируются.",
+      "status": "present",
+      "rationale": "Нормативный Effect Model разделяет visibility, boundary, reversibility, domain, operation и resource type, связывает их с risk floor и различает declared, expected и actual effects с canonical hashes.",
       "priority": "P1"
     },
     {
@@ -616,20 +616,20 @@
           "anchorId": "actions"
         },
         {
+          "heading": "Preconditions and Effect Preview",
+          "anchorId": "preconditions-and-effect-preview"
+        },
+        {
           "heading": "Action Request",
           "anchorId": "action-request"
         },
         {
           "heading": "Action Response",
           "anchorId": "action-response"
-        },
-        {
-          "heading": "Proposal Flow",
-          "anchorId": "proposal-flow"
         }
       ],
-      "status": "missing",
-      "rationale": "Action model содержит input/output schemas, но не preconditions_schema, expected_effects_schema или impact preview.",
+      "status": "present",
+      "rationale": "Actions могут объявлять preconditions_schema, expected_effects_schema и actual_effects_schema; dry-run возвращает immutable time-bounded preview, а commit атомарно перепроверяет state и approved effect hashes.",
       "priority": "P1"
     },
     {
@@ -640,24 +640,24 @@
       "side": "left",
       "anchors": [
         {
-          "heading": "Capability Lease",
-          "anchorId": "capability-lease"
+          "heading": "Resource Reservation",
+          "anchorId": "resource-reservation"
         },
         {
-          "heading": "Resources",
-          "anchorId": "resources"
+          "heading": "Resource Reservations",
+          "anchorId": "resource-reservations"
         },
         {
-          "heading": "Actions",
-          "anchorId": "actions"
+          "heading": "Idempotency",
+          "anchorId": "idempotency"
         },
         {
-          "heading": "Sessions and Actions",
-          "anchorId": "sessions-and-actions"
+          "heading": "Grant Revoked",
+          "anchorId": "grant-revoked"
         }
       ],
-      "status": "missing",
-      "rationale": "Capability Lease относится к authorization grant; protocol-level reservation конкретных ресурсов и conflict semantics отсутствуют.",
+      "status": "present",
+      "rationale": "RFC отделяет reservation от authority и задаёт canonical target identity, shared/exclusive conflict matrix, atomic acquire, optional renew и mandatory release actions, holder binding, bounded TTL, idempotency, consume и invalidation lifecycle.",
       "priority": "P2"
     },
     {
@@ -668,24 +668,24 @@
       "side": "right",
       "anchors": [
         {
-          "heading": "Actions",
-          "anchorId": "actions"
+          "heading": "Compensation",
+          "anchorId": "compensation"
         },
         {
-          "heading": "Risk Taxonomy",
-          "anchorId": "risk-taxonomy"
+          "heading": "Compensation and Revert",
+          "anchorId": "compensation-and-revert"
         },
         {
-          "heading": "Proposal Flow",
-          "anchorId": "proposal-flow"
+          "heading": "Effect Model",
+          "anchorId": "effect-model"
         },
         {
-          "heading": "Receipts",
-          "anchorId": "receipts"
+          "heading": "Receipt Hash Chain",
+          "anchorId": "receipt-hash-chain"
         }
       ],
-      "status": "missing",
-      "rationale": "Reversibility частично отражена риском destructive, но compensation/revert action linkage и гарантии отката не определены.",
+      "status": "present",
+      "rationale": "Commit и recovery actions имеют reciprocal effect-level links и recovery window; recovery независимо авторизуется, агрегирует cumulative limits, проверяет target surface/receipt, а revert требует receipt-bound prior-state evidence и atomic revision check.",
       "priority": "P1"
     },
     {

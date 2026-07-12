@@ -192,9 +192,10 @@ into an application context. Agent Surface Protocol defines the security and
 interoperability machinery that makes that expectation practical.</p>
 <p>The central idea is not that an application &quot;gets an agent&quot;. The user remains
 the principal. The application publishes a typed <strong>Agent Surface</strong> describing
-the resources, actions, events, scopes, risk labels, approval requirements,
-schemas, idempotency rules, receipts, endpoints, and revocation semantics it
-supports. The user chooses a local or remote agent they own. An application
+the resources, actions, events, scopes, risk labels, execution modes, effect
+dimensions, approval requirements, schemas, preconditions, reservations,
+compensation links, idempotency rules, receipts, endpoints, and revocation
+semantics it supports. The user chooses a local or remote agent they own. An application
 runtime verifies the agent's Agent Passport, obtains a scoped <strong>Agent Grant</strong>,
 enforces local policy, supervises the agent, and mediates all application
 actions.</p>
@@ -214,7 +215,9 @@ actions.</p>
 <li>Terminology</li>
 <li>Design Principles</li>
 <li>Agent Surface Manifest</li>
+<li>Action Execution Model</li>
 <li>Risk Taxonomy</li>
+<li>Effect Model</li>
 <li>Approval Semantics</li>
 <li>Idempotency</li>
 <li>Agent Grant</li>
@@ -294,8 +297,9 @@ contexts.</p>
 </li>
 <li>
 <p>Let applications publish typed resources, actions, events, schemas, scopes,
-risk labels, idempotency rules, approval hints, receipt requirements, and
-wire-level endpoints.</p>
+risk labels, execution modes, effect dimensions, preconditions, reservation
+and compensation relationships, idempotency rules, approval hints, receipt
+requirements, and wire-level endpoints.</p>
 </li>
 <li>
 <p>Let runtimes verify Agent Passports before an agent can receive delegated work.</p>
@@ -308,7 +312,7 @@ wire-level endpoints.</p>
 </li>
 <li>
 <p>Make proposal-first workflows the default safety posture:</p>
-<pre><code class="language-text">read -&gt; propose -&gt; approve -&gt; write -&gt; receipt
+<pre><code class="language-text">read -&gt; propose -&gt; approve -&gt; commit -&gt; receipt
 </code></pre>
 </li>
 <li>
@@ -433,6 +437,15 @@ approval requirements, max actions, or max spend.</p>
 <li><code>task.assign</code></li>
 <li><code>invoice.refund.request</code></li>
 </ul>
+<p>Every action has exactly one manifest-declared execution mode. Related actions
+can represent preview, reservation, commit, compensation, or revert stages of
+one logical operation, but each related action retains its own scope, risk,
+approval, idempotency, and receipt requirements.</p>
+<h3 id="action-execution-context" data-asp-heading="Action Execution Context">Action Execution Context</h3>
+<p>The per-request object that identifies the manifest-declared mode and binds any
+preview, precondition, expected-effect, reservation, or recovery evidence used
+for one invocation. Its canonical <code>execution_hash</code> is distinct from the
+business input's <code>input_hash</code>.</p>
 <h3 id="resource" data-asp-heading="Resource">Resource</h3>
 <p>A typed object or collection exposed by an Agent Surface. Examples:</p>
 <ul>
@@ -442,6 +455,20 @@ approval requirements, max actions, or max spend.</p>
 <li><code>document</code></li>
 <li><code>invoice</code></li>
 </ul>
+<h3 id="execution-preview" data-asp-heading="Execution Preview">Execution Preview</h3>
+<p>An application-produced prediction of the preconditions and expected effects
+for a possible later commit. A preview is time-bounded evidence about observed
+state. It is not authority, approval, a reservation, or a promise that the
+commit will still succeed.</p>
+<h3 id="resource-reservation" data-asp-heading="Resource Reservation">Resource Reservation</h3>
+<p>Time-bounded application coordination state that gives one grant-bound holder
+priority to attempt a declared commit against named resources. A reservation is
+not a grant, credential, approval, or guarantee that the commit will succeed.</p>
+<h3 id="compensation" data-asp-heading="Compensation">Compensation</h3>
+<p>A new action intended to offset some or all effects of an earlier committed
+action. Compensation is independently authorized and can be partial or fail. A
+revert is the narrower case in which the application can restore a declared
+prior state.</p>
 <h3 id="event" data-asp-heading="Event">Event</h3>
 <p>A typed notification exposed by an Agent Surface or runtime. Examples:</p>
 <ul>
@@ -452,7 +479,8 @@ approval requirements, max actions, or max spend.</p>
 </ul>
 <h3 id="receipt" data-asp-heading="Receipt">Receipt</h3>
 <p>Portable evidence that an action occurred, including the grant, session, agent,
-passport hash, input hash, output hash, approval, timestamp, and result.</p>
+passport hash, input and execution hashes, effects, approval, timestamp, and
+result.</p>
 <p>Receipts can be stored locally, in the application, in enterprise audit systems,
 or in a provenance graph.</p>
 <p>This proposal distinguishes:</p>
@@ -535,14 +563,15 @@ credential release. A future direct-access profile would require a separate
 authority model and is outside this draft.</p>
 <h3 id="proposal-mode-is-the-default" data-asp-heading="Proposal Mode Is the Default">Proposal Mode Is the Default</h3>
 <p>The first safe interaction mode SHOULD be:</p>
-<pre><code class="language-text">read -&gt; draft/propose -&gt; human or app approval -&gt; write -&gt; receipt
+<pre><code class="language-text">read -&gt; draft/propose -&gt; human or app approval -&gt; commit -&gt; receipt
 </code></pre>
 <p>Direct writes without approval can exist for mature grants and low-risk actions,
 but the protocol SHOULD make proposal flows first-class.</p>
 <h3 id="every-write-is-idempotent" data-asp-heading="Every Write Is Idempotent">Every Write Is Idempotent</h3>
-<p>Any action with side effects MUST support idempotency. Retries, network
-reconnects, agent loops, and duplicate messages MUST NOT create ten comments, ten
-branches, ten refund requests, or ten approvals.</p>
+<p>Any action that changes domain or coordination state MUST support idempotency.
+This includes <code>reserve</code>, <code>commit</code>, <code>compensate</code>, and <code>revert</code>. Retries, network
+reconnects, agent loops, and duplicate messages MUST NOT create ten
+reservations, comments, branches, refund requests, compensations, or approvals.</p>
 <h3 id="receipts-are-first-class" data-asp-heading="Receipts Are First-Class">Receipts Are First-Class</h3>
 <p>Audit logs are useful, but action receipts are portable. A receipt SHOULD be
 created for every successful side-effecting action and for important denied or
@@ -730,6 +759,10 @@ connect directly to the local runtime.</p>
 <li>scopes</li>
 <li>JSON Schemas</li>
 <li>risk labels</li>
+<li>execution modes and companion-action relationships</li>
+<li>effect dimensions</li>
+<li>precondition and expected-effect schemas</li>
+<li>reservation and compensation semantics</li>
 <li>approval hints</li>
 <li>idempotency requirements</li>
 <li>receipt requirements</li>
@@ -781,11 +814,12 @@ all Agent Surface semantics.</p>
 <p>The adapter layer turns a concrete agent into a runtime-mediated worker.</p>
 <h2 id="canonical-integrity-and-provenance" data-asp-heading="Canonical Integrity and Provenance">Canonical Integrity and Provenance</h2>
 <h3 id="canonical-object-hash-profile" data-asp-heading="Canonical Object Hash Profile">Canonical Object Hash Profile</h3>
-<p>ASP manifests, grants, action inputs, policy decisions, and receipts use the
+<p>ASP manifests, grants, action inputs, action execution contexts, policy decisions, and receipts use the
 <code>asp-jcs-sha-256</code> profile when a field in this draft is named <code>surface_hash</code>,
-<code>grant_hash</code>, <code>input_hash</code>, <code>policy_decision_hash</code>, <code>receipt_hash</code>, or
-<code>parent_receipt_hash</code>. The profile identifies exact JSON content; it does not
-by itself authenticate the producer or grant authority.</p>
+<code>grant_hash</code>, <code>input_hash</code>, <code>execution_hash</code>, <code>preconditions_hash</code>,
+<code>expected_effects_hash</code>, <code>actual_effects_hash</code>, <code>policy_decision_hash</code>,
+<code>receipt_hash</code>, or <code>parent_receipt_hash</code>. The profile identifies exact JSON
+content; it does not by itself authenticate the producer or grant authority.</p>
 <p>To compute an ASP object hash, an implementation MUST:</p>
 <ol>
 <li>Construct the hashing view for the object type according to the table below.</li>
@@ -808,6 +842,10 @@ and prepend the literal <code>sha-256:</code>.</li>
 | Agent Surface Manifest | <code>https://github.com/0al-spec/agent-surface/hash/manifest/v1</code> | top-level <code>surface_hash</code> |
 | authoritative Agent Grant | <code>https://github.com/0al-spec/agent-surface/hash/grant/v1</code> | top-level <code>grant_hash</code>; the RFC 9396 <code>type</code> discriminator when starting from an OAuth authorization-details object |
 | Action Request <code>input</code> | <code>https://github.com/0al-spec/agent-surface/hash/action-input/v1</code> | none; the hashing view is exactly <code>payload.input</code> after schema validation and before default insertion, coercion, or other semantic normalization |
+| Action Execution Context | <code>https://github.com/0al-spec/agent-surface/hash/action-execution/v1</code> | <code>execution_token</code>; the hashing view is <code>payload.execution</code> after structural validation with the confidential raw token omitted |
+| Action Preconditions | <code>https://github.com/0al-spec/agent-surface/hash/action-preconditions/v1</code> | none; the hashing view is exactly the validated <code>preconditions</code> object |
+| Expected Effects | <code>https://github.com/0al-spec/agent-surface/hash/expected-effects/v1</code> | none; the hashing view is exactly the validated <code>expected_effects</code> array |
+| Actual Effects | <code>https://github.com/0al-spec/agent-surface/hash/actual-effects/v1</code> | none; the hashing view is exactly the validated <code>actual_effects</code> array |
 | Policy Decision Object | <code>https://github.com/0al-spec/agent-surface/hash/policy-decision/v1</code> | top-level <code>policy_decision_hash</code> |
 | receipt | <code>https://github.com/0al-spec/agent-surface/hash/receipt/v1</code> | top-level <code>receipt_hash</code> and <code>receipt_signatures</code> |</p>
 <p>All other members, including extension members, are part of the hashing view.
@@ -819,6 +857,26 @@ it without the complete hashing view.</p>
 receipt from being attached to different input. It is distinct from the
 action-specific semantic normalization used for idempotency; JCS does not
 define default insertion, equivalence, or set ordering.</p>
+<p>The Action Execution Context hash independently commits to the mode and any
+preview, precondition, expected-effect, reservation, or target-receipt
+references used for the request. The raw <code>execution_token</code> is omitted because
+it is confidential runtime-held material; the context instead carries its
+<code>execution_token_hash</code>. It prevents the non-secret controls from being changed
+while reusing an <code>input_hash</code>. It does not make a preview, reservation, or
+target receipt into authority; the application still verifies the current
+grant, policy, approval, resource state, and mode-specific rules atomically.</p>
+<p><code>execution_token_hash</code> is not a JCS object hash. The producer MUST generate at
+least 128 bits of entropy with a cryptographically secure random-number
+generator and encode the resulting 16 or more octets with unpadded RFC 4648
+base64url. Its hash is the SHA-256 digest of those decoded token octets, encoded
+with the same unpadded <code>sha-256:</code> base64url representation. A receiver can
+validate syntax and decoded length, not entropy quality; it MUST reject padding,
+non-base64url characters, or fewer than 16 decoded octets.
+The raw token MUST be sent only over the authenticated confidential action
+channel, and MUST NOT appear in a receipt, log, prompt, event, or agent-visible
+context.</p>
+<p>For the example token <code>FW_vZMMelqPUDUmFfxSr1A</code>, the required token hash is
+<code>sha-256:tONJJscZ4IsDBfafODsBja4waqe1AtkpH54rXv_tPrk</code>.</p>
 <p>The following minimal vector fixes the domain separation, wrapper, JCS, and
 encoding rules. For the Grant domain and hashing view
 <code>{&quot;grant_id&quot;:&quot;grant_123&quot;,&quot;scopes&quot;:[&quot;read&quot;]}</code>, the canonical wrapper is:</p>
@@ -986,8 +1044,12 @@ surface discoverable.</p>
       &quot;risk&quot;: &quot;propose&quot;,
       &quot;side_effect&quot;: false,
       &quot;approval&quot;: &quot;none&quot;,
+      &quot;idempotency&quot;: &quot;required&quot;,
       &quot;execution&quot;: {
-        &quot;mode&quot;: &quot;direct&quot;
+        &quot;mode&quot;: &quot;propose&quot;,
+        &quot;operation_id&quot;: &quot;comment.publish&quot;,
+        &quot;persisted&quot;: true,
+        &quot;commit_action&quot;: &quot;comment.create&quot;
       },
       &quot;input_schema&quot;: &quot;https://example.com/schemas/comment-propose.input.schema.json&quot;,
       &quot;output_schema&quot;: &quot;https://example.com/schemas/comment-propose.output.schema.json&quot;
@@ -997,11 +1059,24 @@ surface discoverable.</p>
       &quot;scope&quot;: &quot;comments.write&quot;,
       &quot;risk&quot;: &quot;write&quot;,
       &quot;side_effect&quot;: true,
+      &quot;effects&quot;: [
+        {
+          &quot;effect_id&quot;: &quot;comment-publish&quot;,
+          &quot;operation&quot;: &quot;publish&quot;,
+          &quot;resource_type&quot;: &quot;comment&quot;,
+          &quot;visibility&quot;: &quot;shared&quot;,
+          &quot;boundary&quot;: &quot;internal&quot;,
+          &quot;reversibility&quot;: &quot;irreversible&quot;,
+          &quot;domain&quot;: &quot;communication&quot;
+        }
+      ],
       &quot;approval&quot;: &quot;user_or_app&quot;,
       &quot;idempotency&quot;: &quot;required&quot;,
       &quot;input_hash_profile&quot;: &quot;asp-jcs-sha-256&quot;,
+      &quot;execution_hash_profile&quot;: &quot;asp-jcs-sha-256&quot;,
       &quot;execution&quot;: {
-        &quot;mode&quot;: &quot;write&quot;,
+        &quot;mode&quot;: &quot;commit&quot;,
+        &quot;operation_id&quot;: &quot;comment.publish&quot;,
         &quot;proposal_action&quot;: &quot;comment.propose&quot;
       },
       &quot;input_schema&quot;: &quot;https://example.com/schemas/comment-create.input.schema.json&quot;,
@@ -1047,6 +1122,8 @@ surface discoverable.</p>
       &quot;subject&quot;,
       &quot;idempotency_key&quot;,
       &quot;input_hash&quot;,
+      &quot;execution&quot;,
+      &quot;execution_hash&quot;,
       &quot;policy_decision&quot;,
       &quot;policy_decision_hash&quot;,
       &quot;timestamp&quot;,
@@ -1095,14 +1172,22 @@ semantics require them even if they are not repeated in this list.</p>
 <li><code>input_schema</code></li>
 <li><code>output_schema</code></li>
 <li><code>side_effect</code></li>
+<li><code>effects</code> for actions that change domain or coordination state</li>
 <li><code>execution</code></li>
 <li>optional <code>capability_hint</code></li>
 <li><code>idempotency</code> for side-effecting actions</li>
 <li><code>receipt</code> for side-effecting actions</li>
 <li><code>input_hash_profile</code> for actions requiring receipt-linked input evidence</li>
+<li><code>execution_hash_profile</code> for <code>reserve</code>, <code>commit</code>, <code>compensate</code>, and <code>revert</code></li>
 </ul>
 <p>An action whose receipt chain binds the exact request input MUST set
 <code>input_hash_profile</code> to <code>asp-jcs-sha-256</code>. Other profile identifiers are not
+defined by this draft.</p>
+<p>Every action MUST declare exactly one standard <code>execution.mode</code> and a stable
+<code>execution.operation_id</code>. The mode, companion-action references, effect model,
+and mode-specific schemas are defined by the Action Execution Model. An action
+in mode <code>reserve</code>, <code>commit</code>, <code>compensate</code>, or <code>revert</code> MUST set
+<code>execution_hash_profile</code> to <code>asp-jcs-sha-256</code>; other profile identifiers are not
 defined by this draft.</p>
 <p>Example:</p>
 <pre><code class="language-json">{
@@ -1110,11 +1195,24 @@ defined by this draft.</p>
   &quot;scope&quot;: &quot;pull_request.review.write&quot;,
   &quot;risk&quot;: &quot;write&quot;,
   &quot;side_effect&quot;: true,
+  &quot;effects&quot;: [
+    {
+      &quot;effect_id&quot;: &quot;review-publish&quot;,
+      &quot;operation&quot;: &quot;publish&quot;,
+      &quot;resource_type&quot;: &quot;pull_request.review&quot;,
+      &quot;visibility&quot;: &quot;shared&quot;,
+      &quot;boundary&quot;: &quot;internal&quot;,
+      &quot;reversibility&quot;: &quot;irreversible&quot;,
+      &quot;domain&quot;: &quot;communication&quot;
+    }
+  ],
   &quot;approval&quot;: &quot;user_or_app&quot;,
   &quot;idempotency&quot;: &quot;required&quot;,
   &quot;input_hash_profile&quot;: &quot;asp-jcs-sha-256&quot;,
+  &quot;execution_hash_profile&quot;: &quot;asp-jcs-sha-256&quot;,
   &quot;execution&quot;: {
-    &quot;mode&quot;: &quot;write&quot;,
+    &quot;mode&quot;: &quot;commit&quot;,
+    &quot;operation_id&quot;: &quot;pull_request.review.publish&quot;,
     &quot;proposal_action&quot;: &quot;pull_request.review.propose&quot;
   },
   &quot;input_schema&quot;: &quot;https://example.com/schemas/pr-review-submit.input.schema.json&quot;,
@@ -1131,8 +1229,10 @@ patch, review body, or other non-committed artifact.</p>
 commit domain-visible changes. However, when the application persists
 proposals as drafts — as the proposal flow in this draft assumes — repeated
 proposal requests can still accumulate duplicate drafts under retries and
-agent loops. Applications that persist proposals SHOULD accept idempotency
-keys for proposal actions and deduplicate stored drafts accordingly.</p>
+agent loops. An action that persists proposals MUST declare
+<code>execution.persisted: true</code> and <code>idempotency: &quot;required&quot;</code>, accept idempotency
+keys, and deduplicate stored drafts accordingly. A non-persisted proposal MUST
+omit <code>execution.persisted</code> or set it to <code>false</code>.</p>
 <p>Example:</p>
 <pre><code class="language-json">{
   &quot;id&quot;: &quot;pull_request.review.propose&quot;,
@@ -1140,18 +1240,23 @@ keys for proposal actions and deduplicate stored drafts accordingly.</p>
   &quot;risk&quot;: &quot;propose&quot;,
   &quot;side_effect&quot;: false,
   &quot;approval&quot;: &quot;none&quot;,
+  &quot;idempotency&quot;: &quot;required&quot;,
   &quot;execution&quot;: {
-    &quot;mode&quot;: &quot;proposal_only&quot;
+    &quot;mode&quot;: &quot;propose&quot;,
+    &quot;operation_id&quot;: &quot;pull_request.review.publish&quot;,
+    &quot;persisted&quot;: true,
+    &quot;commit_action&quot;: &quot;pull_request.review.submit&quot;
   },
   &quot;input_schema&quot;: &quot;https://example.com/schemas/pr-review-propose.input.schema.json&quot;,
   &quot;output_schema&quot;: &quot;https://example.com/schemas/pr-review-propose.output.schema.json&quot;
 }
 </code></pre>
-<p>If a write action depends on a proposal, it SHOULD reference the proposal action:</p>
+<p>If a commit action depends on a proposal, it SHOULD reference the proposal action:</p>
 <pre><code class="language-json">{
   &quot;id&quot;: &quot;pull_request.review.submit&quot;,
   &quot;execution&quot;: {
-    &quot;mode&quot;: &quot;write&quot;,
+    &quot;mode&quot;: &quot;commit&quot;,
+    &quot;operation_id&quot;: &quot;pull_request.review.publish&quot;,
     &quot;proposal_action&quot;: &quot;pull_request.review.propose&quot;
   }
 }
@@ -1177,6 +1282,513 @@ by the revoked grant. Its payload, authentication, and processing requirements
 are defined in the OAuth Grant Revocation Profile.</p>
 <p>Event delivery semantics — transport, ordering, acknowledgement, and replay —
 are not defined in this draft; see Open Questions.</p>
+<h2 id="action-execution-model" data-asp-heading="Action Execution Model">Action Execution Model</h2>
+<p>The Action Execution Model separates an action's immutable, manifest-pinned
+semantics from the context of one invocation. It standardizes preview, resource
+coordination, commit, and recovery without letting a caller turn low-risk
+authority into a state-changing operation.</p>
+<h3 id="static-execution-modes" data-asp-heading="Static Execution Modes">Static Execution Modes</h3>
+<p>Every action declaration MUST contain exactly one <code>execution.mode</code> selected
+from this table:</p>
+<p>| Mode | Meaning | <code>side_effect</code> |
+| --- | --- | --- |
+| <code>read</code> | Read application state without changing domain or coordination state. | <code>false</code> |
+| <code>dry_run</code> | Validate a possible later commit and predict its preconditions and effects without performing it. | <code>false</code> |
+| <code>propose</code> | Produce a non-committed proposal or draft. | <code>false</code> |
+| <code>reserve</code> | Acquire, renew, or release time-bounded application coordination state. | <code>true</code> |
+| <code>commit</code> | Apply declared effects to application or external state. | <code>true</code> |
+| <code>compensate</code> | Apply a new counter-effect intended to offset an earlier commit. | <code>true</code> |
+| <code>revert</code> | Attempt to restore a declared prior state controlled by the application. | <code>true</code> |</p>
+<p>The mode is a property of the action identifier in the pinned manifest. It is
+not a caller-selectable privilege. The <code>mode</code> repeated in an Action Request
+MUST equal the declaration for its <code>action_id</code>; the application MUST reject a
+mismatch as <code>execution_mode_invalid</code> before performing any effect.</p>
+<p>Each action MUST also declare a non-empty <code>execution.operation_id</code> that groups
+the separately authorized stages of one logical operation. Sharing an
+<code>operation_id</code> does not share authority. Every companion action has its own
+<code>action_id</code>, scope, risk, approval, schemas, idempotency key, and receipt
+requirements, and every invoked action MUST independently be present in the
+grant's authoritative <code>actions</code> allow-list. Scope alone never authorizes an
+action or a stronger companion stage.</p>
+<p>The legacy example values <code>direct</code>, <code>write</code>, and <code>proposal_only</code> are not
+standard modes. A publisher MUST use <code>read</code> or <code>propose</code> according to the
+operation's semantics, <code>commit</code>, and <code>propose</code>, respectively. An application
+does not need to implement every standard mode.</p>
+<p>Actions in mode <code>read</code>, <code>dry_run</code>, or <code>propose</code> MUST declare
+<code>side_effect: false</code>. Actions in mode <code>reserve</code>, <code>commit</code>, <code>compensate</code>, or
+<code>revert</code> MUST declare <code>side_effect: true</code>, <code>idempotency: &quot;required&quot;</code>,
+<code>receipt: &quot;required&quot;</code>, a non-empty <code>effects</code> array,
+<code>input_hash_profile: &quot;asp-jcs-sha-256&quot;</code>, and
+<code>execution_hash_profile: &quot;asp-jcs-sha-256&quot;</code>. Persisted proposals remain
+non-committed domain artifacts but MUST support idempotency as specified in
+Proposal-Only Support.</p>
+<p>Ephemeral preview handles, deduplication records, audit records, and stored
+proposal drafts are protocol bookkeeping for this classification. A <code>dry_run</code>
+MUST NOT reserve a resource, exclude another actor, or mutate the target domain;
+an operation that affects availability or concurrency uses <code>reserve</code> and is
+state-changing.</p>
+<h3 id="companion-actions-and-transitions" data-asp-heading="Companion Actions and Transitions">Companion Actions and Transitions</h3>
+<p>Companion stages use separate action identifiers:</p>
+<pre><code class="language-text">dry_run ---------------------&gt; commit
+   |                             |
+   +----------&gt; reserve ---------+
+                                 |
+                                 +----&gt; compensate
+                                 +----&gt; revert
+
+propose ----------------------&gt; commit
+</code></pre>
+<p>A commit action MAY declare <code>dry_run_action</code>, <code>proposal_action</code>,
+<code>reservation_action</code>, and <code>recovery_actions</code>. It MAY declare
+<code>dry_run_required: true</code> or <code>reservation_required: true</code>; when either flag is
+true, the corresponding action reference and valid request evidence are
+required. A dry-run, proposal, or reservation-acquire action that leads to a
+commit MUST declare <code>commit_action</code>. A recovery action MUST declare a non-empty
+<code>target_actions</code> array.</p>
+<p>Every companion reference MUST resolve in the same manifest snapshot, MUST NOT
+reference the declaring action itself, and MUST use the same <code>operation_id</code>.
+The referenced mode MUST match the reference: <code>dry_run_action</code> identifies a
+<code>dry_run</code> action, <code>proposal_action</code> a <code>propose</code> action,
+<code>reservation_action</code> a <code>reserve</code> acquisition action, and each
+<code>recovery_actions</code> entry identifies the declared <code>compensate</code> or <code>revert</code>
+mode. Every recovery entry MUST also contain a non-empty, unique <code>effect_ids</code>
+array naming effects from the commit declaration and a positive integer
+<code>recovery_window_seconds</code>. A <code>revert</code> entry can name
+only <code>reversible</code> effects whose boundary is <code>internal</code>; a <code>compensate</code> entry
+can name only <code>compensatable</code> effects. Effects declared <code>irreversible</code> or
+<code>not_applicable</code> MUST NOT be named by a recovery relationship.</p>
+<p>A <code>revert</code> action MUST declare <code>revert_preconditions_schema</code>. Its schema
+defines the application-controlled revision and prior-state evidence required
+to restore the named reversible effects without overwriting intervening work.</p>
+<p>For a <code>commit</code> action, every effect declared <code>reversible</code> MUST be covered by at
+least one <code>revert</code> entry, and every effect declared <code>compensatable</code> MUST be
+covered by at least one <code>compensate</code> entry. A publisher that cannot provide the
+corresponding independently authorized action MUST declare the effect
+<code>irreversible</code> rather than advertise unsupported recovery.</p>
+<p>References MUST be reciprocal: a companion's <code>commit_action</code> or
+<code>target_actions</code> MUST identify the originating commit action and the same
+effect ids and recovery window. A recovery declaration represents each target
+as an object with <code>action_id</code>, <code>effect_ids</code>, and <code>recovery_window_seconds</code>, not
+as an unscoped action string.</p>
+<p>A direct commit remains valid when neither dry run nor reservation is required.
+Even when a companion stage succeeded, a commit MUST repeat complete current
+grant, credential, tuple, scope, resource, policy, approval, and schema
+verification. A companion result is never inherited authority.</p>
+<p>An issued grant's <code>actions</code> allow-list MUST be closed over required companion
+dependencies. Including a commit with <code>dry_run_required: true</code> requires its
+<code>dry_run_action</code>; including a commit with <code>reservation_required: true</code> requires
+its reservation-acquire action and that acquisition's mandatory release action.
+Including an acquisition action requires its <code>commit_action</code> and
+<code>release_action</code>. Closure is recursive when the required commit has other
+required stages. Optional proposal, renewal, compensation, and revert actions
+need not be granted. The authorization server MUST reject an unclosed subset;
+it MUST NOT silently add authority to close it.</p>
+<p>The following fragment declares a commit stage. Its referenced actions are
+separate declarations in the same surface:</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;branch.create&quot;,
+  &quot;scope&quot;: &quot;repository.branch.write&quot;,
+  &quot;risk&quot;: &quot;write&quot;,
+  &quot;side_effect&quot;: true,
+  &quot;approval&quot;: &quot;user_or_app&quot;,
+  &quot;idempotency&quot;: &quot;required&quot;,
+  &quot;input_hash_profile&quot;: &quot;asp-jcs-sha-256&quot;,
+  &quot;execution_hash_profile&quot;: &quot;asp-jcs-sha-256&quot;,
+  &quot;execution&quot;: {
+    &quot;mode&quot;: &quot;commit&quot;,
+    &quot;operation_id&quot;: &quot;repository.branch.create&quot;,
+    &quot;dry_run_action&quot;: &quot;branch.create.preview&quot;,
+    &quot;dry_run_required&quot;: true,
+    &quot;reservation_action&quot;: &quot;branch.create.reserve&quot;,
+    &quot;reservation_required&quot;: true,
+    &quot;recovery_actions&quot;: [
+      {
+        &quot;mode&quot;: &quot;revert&quot;,
+        &quot;action_id&quot;: &quot;branch.delete&quot;,
+        &quot;effect_ids&quot;: [&quot;branch-create&quot;],
+        &quot;recovery_window_seconds&quot;: 86400
+      }
+    ]
+  },
+  &quot;preconditions_schema&quot;: &quot;https://example.com/schemas/branch-create.preconditions.schema.json&quot;,
+  &quot;expected_effects_schema&quot;: &quot;https://example.com/schemas/branch-create.expected-effects.schema.json&quot;,
+  &quot;actual_effects_schema&quot;: &quot;https://example.com/schemas/branch-create.actual-effects.schema.json&quot;,
+  &quot;effects&quot;: [
+    {
+      &quot;effect_id&quot;: &quot;branch-create&quot;,
+      &quot;operation&quot;: &quot;create&quot;,
+      &quot;resource_type&quot;: &quot;git.branch&quot;,
+      &quot;visibility&quot;: &quot;shared&quot;,
+      &quot;boundary&quot;: &quot;internal&quot;,
+      &quot;reversibility&quot;: &quot;reversible&quot;,
+      &quot;domain&quot;: &quot;workflow&quot;
+    }
+  ],
+  &quot;input_schema&quot;: &quot;https://example.com/schemas/branch-create.input.schema.json&quot;,
+  &quot;output_schema&quot;: &quot;https://example.com/schemas/branch-create.output.schema.json&quot;,
+  &quot;receipt&quot;: &quot;required&quot;
+}
+</code></pre>
+<p>Its reciprocal revert declaration can be:</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;branch.delete&quot;,
+  &quot;scope&quot;: &quot;repository.branch.delete&quot;,
+  &quot;risk&quot;: &quot;destructive&quot;,
+  &quot;side_effect&quot;: true,
+  &quot;approval&quot;: &quot;runtime_and_app&quot;,
+  &quot;idempotency&quot;: &quot;required&quot;,
+  &quot;input_hash_profile&quot;: &quot;asp-jcs-sha-256&quot;,
+  &quot;execution_hash_profile&quot;: &quot;asp-jcs-sha-256&quot;,
+  &quot;execution&quot;: {
+    &quot;mode&quot;: &quot;revert&quot;,
+    &quot;operation_id&quot;: &quot;repository.branch.create&quot;,
+    &quot;target_actions&quot;: [
+      {
+        &quot;action_id&quot;: &quot;branch.create&quot;,
+        &quot;effect_ids&quot;: [&quot;branch-create&quot;],
+        &quot;recovery_window_seconds&quot;: 86400
+      }
+    ]
+  },
+  &quot;revert_preconditions_schema&quot;: &quot;https://example.com/schemas/branch-delete.revert-preconditions.schema.json&quot;,
+  &quot;effects&quot;: [
+    {
+      &quot;effect_id&quot;: &quot;branch-delete&quot;,
+      &quot;operation&quot;: &quot;delete&quot;,
+      &quot;resource_type&quot;: &quot;git.branch&quot;,
+      &quot;visibility&quot;: &quot;shared&quot;,
+      &quot;boundary&quot;: &quot;internal&quot;,
+      &quot;reversibility&quot;: &quot;irreversible&quot;,
+      &quot;domain&quot;: &quot;workflow&quot;
+    }
+  ],
+  &quot;input_schema&quot;: &quot;https://example.com/schemas/branch-delete.input.schema.json&quot;,
+  &quot;output_schema&quot;: &quot;https://example.com/schemas/branch-delete.output.schema.json&quot;,
+  &quot;receipt&quot;: &quot;required&quot;
+}
+</code></pre>
+<h3 id="execution-context-and-binding" data-asp-heading="Execution Context and Binding">Execution Context and Binding</h3>
+<p>Every Action Request MUST carry an <code>execution</code> object with <code>mode</code> and a
+non-empty <code>execution_id</code>. The runtime chooses an <code>execution_id</code> that is unique
+within the grant and session and reuses it for exact idempotent retries of that
+invocation. The identifier is correlation, not authority.</p>
+<p>For an idempotency-required invocation, the application MUST enforce that one
+tuple of <code>grant_id</code>, <code>action_id</code>, and <code>execution_id</code> maps to exactly one
+idempotency key, <code>input_hash</code>, and, when required, <code>execution_hash</code>. Reusing an
+execution id with any different value is an <code>idempotency_conflict</code>. Read,
+ordinary dry-run, and non-persisted proposal invocations can omit the key or
+execution hash, but their execution ids still cannot be rebound to different
+requests. Reusing the same preview or approval under a new execution id does
+not bypass their own single-use and exact-binding rules.</p>
+<p>The request execution context can additionally contain <code>preview_id</code>,
+<code>execution_token</code>, <code>execution_token_hash</code>, <code>preconditions_hash</code>,
+<code>expected_effects_hash</code>, <code>reservation_id</code>, and <code>target_receipt_hash</code>. Unknown
+standard-looking bare names are invalid; extensions MUST use
+collision-resistant URI member names.</p>
+<p>For <code>reserve</code>, <code>commit</code>, <code>compensate</code>, and <code>revert</code>, the request MUST carry
+<code>execution_hash</code> computed with the Canonical Object Hash Profile over the
+<code>execution</code> object with <code>execution_token</code> omitted. The runtime receipt and app
+receipt MUST contain the same sanitized <code>execution</code> object and matching
+<code>execution_hash</code>. A verifier MUST recompute the hash and reject a request or
+receipt mismatch as <code>integrity_mismatch</code>.</p>
+<p>When a raw <code>execution_token</code> is present, <code>execution_token_hash</code> is REQUIRED and
+MUST match it. The runtime MUST omit the raw token from receipts, logs, prompts,
+events, and agent-visible context. The application MUST treat the token as
+preview evidence only and MUST reject it when the current grant credential,
+tuple, surface, action, input, resource state, or approval is invalid.</p>
+<p>Example commit context:</p>
+<pre><code class="language-json">{
+  &quot;mode&quot;: &quot;commit&quot;,
+  &quot;execution_id&quot;: &quot;exec_01J2COMMIT&quot;,
+  &quot;preview_id&quot;: &quot;preview_01J2ABCDEF&quot;,
+  &quot;execution_token&quot;: &quot;FW_vZMMelqPUDUmFfxSr1A&quot;,
+  &quot;execution_token_hash&quot;: &quot;sha-256:tONJJscZ4IsDBfafODsBja4waqe1AtkpH54rXv_tPrk&quot;,
+  &quot;preconditions_hash&quot;: &quot;sha-256:&lt;preconditions-digest&gt;&quot;,
+  &quot;expected_effects_hash&quot;: &quot;sha-256:&lt;expected-effects-digest&gt;&quot;,
+  &quot;reservation_id&quot;: &quot;reservation_01J2ABCDEF&quot;
+}
+</code></pre>
+<p><code>input_hash</code> continues to bind the exact validated action input.
+<code>execution_hash</code> separately binds protocol control context. Reusing an
+idempotency key with the same input but a different <code>execution_hash</code> is an
+<code>idempotency_conflict</code>; an application MUST NOT select whichever context is
+more permissive.</p>
+<h3 id="preconditions-and-effect-preview" data-asp-heading="Preconditions and Effect Preview">Preconditions and Effect Preview</h3>
+<p>A commit that declares <code>dry_run_action</code> MUST declare both
+<code>preconditions_schema</code> and <code>expected_effects_schema</code>. Those two members MUST be
+absent when no dry-run action is linked; a direct commit expresses ordinary
+optimistic-concurrency fields through its <code>input_schema</code>. A state-changing
+action MAY declare <code>actual_effects_schema</code> to further constrain the mandatory
+core Effect Model. A linked dry-run action MUST set
+<code>input_hash_profile: &quot;asp-jcs-sha-256&quot;</code>, use the same <code>input_schema</code> as its
+target commit, and identify that commit through <code>execution.commit_action</code>. It
+MUST NOT change target-domain or coordination state.</p>
+<p>The dry-run request MUST carry <code>input_hash</code>, and the application MUST recompute
+it from the exact validated wire input. A preview-bound commit MUST present the
+same exact input and matching <code>input_hash</code>; schema equivalence or application
+normalization does not make a different wire input the previewed input.</p>
+<p>A successful dry run returns application-produced preconditions and expected
+effects, their canonical hashes, and time-bounded evidence:</p>
+<pre><code class="language-json">{
+  &quot;result&quot;: &quot;preview&quot;,
+  &quot;execution&quot;: {
+    &quot;mode&quot;: &quot;dry_run&quot;,
+    &quot;execution_id&quot;: &quot;exec_01J2PREVIEW&quot;
+  },
+  &quot;preview&quot;: {
+    &quot;preview_id&quot;: &quot;preview_01J2ABCDEF&quot;,
+    &quot;commit_action_id&quot;: &quot;branch.create&quot;,
+    &quot;execution_token&quot;: &quot;FW_vZMMelqPUDUmFfxSr1A&quot;,
+    &quot;execution_token_hash&quot;: &quot;sha-256:tONJJscZ4IsDBfafODsBja4waqe1AtkpH54rXv_tPrk&quot;,
+    &quot;expires_at&quot;: &quot;2026-07-12T12:05:00Z&quot;
+  },
+  &quot;preconditions&quot;: {
+    &quot;repository_revision&quot;: &quot;rev_456&quot;,
+    &quot;branch_absent&quot;: &quot;feature-x&quot;
+  },
+  &quot;preconditions_hash&quot;: &quot;sha-256:&lt;preconditions-digest&gt;&quot;,
+  &quot;expected_effects&quot;: [
+    {
+      &quot;effect_id&quot;: &quot;branch-create&quot;,
+      &quot;operation&quot;: &quot;create&quot;,
+      &quot;resource_type&quot;: &quot;git.branch&quot;,
+      &quot;resource_key&quot;: &quot;example/repo:feature-x&quot;,
+      &quot;visibility&quot;: &quot;shared&quot;,
+      &quot;boundary&quot;: &quot;internal&quot;,
+      &quot;reversibility&quot;: &quot;reversible&quot;,
+      &quot;domain&quot;: &quot;workflow&quot;
+    }
+  ],
+  &quot;expected_effects_hash&quot;: &quot;sha-256:&lt;expected-effects-digest&gt;&quot;
+}
+</code></pre>
+<p><code>preconditions</code> and <code>expected_effects</code> MUST validate against the target
+commit's declared schemas. Their hashes use the Canonical Object Hash Profile.
+The application MUST keep the preview immutable until expiry and MUST bind the
+execution token to at least the application and tenant, <code>grant_id</code>,
+<code>grant_hash</code>, <code>session_id</code>, <code>surface_hash</code>, dry-run and commit action ids,
+<code>input_hash</code>, <code>preview_id</code>, <code>preconditions_hash</code>, <code>expected_effects_hash</code>,
+relevant resource identities and revisions, and expiry. The token can be an
+opaque handle to server state, or its decoded random octets can select or carry
+application-authenticated state, but its wire representation remains the single
+unpadded base64url string defined by the Canonical Object Hash Profile.</p>
+<p><code>preview_id</code> MUST be unique within the application and tenant and MUST NOT be
+rebound to different input, effects, authority, or state. <code>expires_at</code> MUST be
+an RFC 3339 UTC timestamp with the <code>Z</code> suffix. After a commit applies any effect,
+the application MUST mark the preview token consumed by that action's
+execution id and idempotency key. An exact idempotent retry can retrieve the
+original result; another key or execution id MUST NOT reuse the consumed token.</p>
+<p>A commit that relies on the preview MUST repeat <code>preview_id</code>, the raw token and
+its hash, <code>preconditions_hash</code>, and <code>expected_effects_hash</code> in its execution
+context. The application MUST verify all bindings and re-evaluate the declared
+preconditions immediately before applying any effect. For app-controlled state,
+the final precondition and reservation check and the mutation MUST be atomic.</p>
+<p>Expiry, a changed revision, mismatched input or resource, a different grant or
+surface, or more severe expected effects MUST fail before mutation. The
+application MUST return <code>execution_token_expired</code>, <code>precondition_failed</code>, or
+<code>effect_mismatch</code> as appropriate. It MUST NOT silently generate a new preview
+and continue the commit.</p>
+<p>A preview is a prediction, not a reservation or commit guarantee. Approval for
+a previewed commit MUST bind at least <code>action_id</code>, execution mode, <code>input_hash</code>,
+<code>preview_id</code>, and <code>expected_effects_hash</code>. If any of those values or the
+approval-relevant effect presentation changes, the runtime or application MUST
+obtain new approval.</p>
+<h3 id="resource-reservations" data-asp-heading="Resource Reservations">Resource Reservations</h3>
+<p>A reservation coordinates competing attempts against typed resources. It does
+not authorize the holder, override application concurrency control, or promise
+that a later commit will pass its preconditions.</p>
+<p>A <code>reserve</code> declaration MUST fix one <code>execution.reservation.operation</code> value:
+<code>acquire</code>, <code>renew</code>, or <code>release</code>. The operation is not request-selectable.
+An acquisition declaration MUST identify <code>commit_action</code>, <code>kind</code> (<code>exclusive</code>
+or <code>shared</code>), a positive integer <code>max_ttl_seconds</code>, mandatory <code>release_action</code>,
+and <code>disconnect_behavior</code> (<code>retain_until_expiry</code> or <code>release</code>). It MAY identify
+a <code>renew_action</code>; when present, a positive integer <code>max_renewals</code> is REQUIRED.
+Renew and release declarations MUST reciprocally identify the
+acquisition through <code>execution.reservation.acquisition_action</code> and use the same
+operation id. The declared effect operation MUST be <code>reserve</code>, <code>renew</code>, or
+<code>release</code> for acquisition, renewal, or release, respectively.</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;branch.create.reserve&quot;,
+  &quot;scope&quot;: &quot;repository.branch.reserve&quot;,
+  &quot;risk&quot;: &quot;write&quot;,
+  &quot;side_effect&quot;: true,
+  &quot;approval&quot;: &quot;none&quot;,
+  &quot;idempotency&quot;: &quot;required&quot;,
+  &quot;input_hash_profile&quot;: &quot;asp-jcs-sha-256&quot;,
+  &quot;execution_hash_profile&quot;: &quot;asp-jcs-sha-256&quot;,
+  &quot;execution&quot;: {
+    &quot;mode&quot;: &quot;reserve&quot;,
+    &quot;operation_id&quot;: &quot;repository.branch.create&quot;,
+    &quot;commit_action&quot;: &quot;branch.create&quot;,
+    &quot;reservation&quot;: {
+      &quot;operation&quot;: &quot;acquire&quot;,
+      &quot;kind&quot;: &quot;exclusive&quot;,
+      &quot;max_ttl_seconds&quot;: 600,
+      &quot;disconnect_behavior&quot;: &quot;release&quot;,
+      &quot;renew_action&quot;: &quot;branch.create.reservation.renew&quot;,
+      &quot;max_renewals&quot;: 2,
+      &quot;release_action&quot;: &quot;branch.create.reservation.release&quot;
+    }
+  },
+  &quot;effects&quot;: [
+    {
+      &quot;effect_id&quot;: &quot;branch-name-reservation&quot;,
+      &quot;operation&quot;: &quot;reserve&quot;,
+      &quot;resource_type&quot;: &quot;git.branch_name&quot;,
+      &quot;visibility&quot;: &quot;private&quot;,
+      &quot;boundary&quot;: &quot;internal&quot;,
+      &quot;reversibility&quot;: &quot;reversible&quot;,
+      &quot;domain&quot;: &quot;workflow&quot;
+    }
+  ],
+  &quot;input_schema&quot;: &quot;https://example.com/schemas/branch-reservation.input.schema.json&quot;,
+  &quot;output_schema&quot;: &quot;https://example.com/schemas/branch-reservation.output.schema.json&quot;,
+  &quot;receipt&quot;: &quot;required&quot;
+}
+</code></pre>
+<p>The acquisition input schema MUST identify the complete target set and a positive integer
+requested TTL no greater than <code>max_ttl_seconds</code>. Each target consists of
+<code>resource_type</code> and an application-canonical <code>resource_key</code> that is stable
+within issuer and tenant. The application MUST resolve aliases, case rules, and
+equivalent locators to that canonical tuple before conflict checking; two
+targets are equal when their canonical issuer, tenant, type, and key are equal.</p>
+<p>An acquire operation over multiple targets MUST be atomic: either every target
+is reserved or none is. Two <code>shared</code> reservations on the same target are
+compatible. Any overlap where the existing or requested kind is <code>exclusive</code>
+is a conflict and MUST fail the complete acquisition with
+<code>reservation_conflict</code>. The response MUST NOT reveal another holder's identity
+or grant details.</p>
+<p>A successful acquisition returns and records in the app receipt a
+<code>reservation_result</code> object containing <code>reservation_id</code>, <code>state: &quot;active&quot;</code>,
+kind, targets, <code>commit_action_id</code>, <code>created_at</code>, and <code>expires_at</code>. This outcome
+object is not added to the parent runtime receipt's request execution context.
+The application MUST bind its authoritative reservation state to
+the application and tenant, grant, runtime-agent-passport tuple, surface,
+session, acquisition and commit action ids, <code>input_hash</code>, exact targets, kind,
+and expiry. <code>reservation_id</code> alone is never sufficient to use, renew, release,
+or consume the reservation.</p>
+<p>A successful renewal also reports <code>reservation_result.state: &quot;active&quot;</code> with
+the new expiry and an actual effect operation of <code>renew</code>. A successful explicit
+release reports state <code>released</code> and an actual effect operation of <code>release</code>.
+The app receipt MUST NOT report a state or effect operation inconsistent with
+the declaration's fixed reservation operation.</p>
+<p>An acquire request MUST omit <code>execution.reservation_id</code>. A renew or release
+request MUST carry the active <code>reservation_id</code>, and a commit whose declaration
+sets <code>reservation_required: true</code> MUST carry it. The application MUST reject a
+missing value or wrong binding before mutation. A reservation id MUST be unique
+within issuer and tenant and MUST NOT be rebound after consumption, release,
+expiry, or invalidation. <code>created_at</code> and <code>expires_at</code> MUST be RFC 3339 UTC
+timestamps with the <code>Z</code> suffix.</p>
+<p>Reservation state transitions are:</p>
+<pre><code class="language-text">active -&gt; consumed
+active -&gt; released
+active -&gt; expired
+active -&gt; invalidated
+</code></pre>
+<p>The effective expiry MUST NOT exceed the acquisition declaration's maximum or
+the grant expiry. On renewal, the application computes the new expiry from the
+time of successful renewal, not by adding duration to the old expiry, and again
+caps it by <code>max_ttl_seconds</code> and grant expiry. A renewal input schema MUST carry
+a positive requested TTL subject to the same cap. The application MUST reject a
+renewal beyond declared <code>max_renewals</code>. Applications SHOULD impose additional
+per-grant and per-resource limits on active reservations to prevent starvation. An
+exact idempotent retry returns the original reservation and receipt.</p>
+<p>Renew and release are independently granted, state-changing <code>reserve</code> actions
+with their own idempotency keys and receipts. Grant revocation, grant expiry,
+tuple invalidation, or an incompatible surface change MUST immediately
+invalidate affected active reservations. A successful commit MUST atomically
+validate and mark its required reservation <code>consumed</code>. A commit that performs
+no effect MUST leave the reservation active for a retry, explicit release, or
+expiry unless the response explicitly reports that it was invalidated.</p>
+<h3 id="compensation-and-revert" data-asp-heading="Compensation and Revert">Compensation and Revert</h3>
+<p><code>compensate</code> and <code>revert</code> are recovery actions, not rollback flags on the
+original request. A commit lists them in <code>execution.recovery_actions</code>; each
+recovery declaration reciprocally lists objects containing the supported
+original <code>action_id</code> and exact <code>effect_ids</code> in <code>execution.target_actions</code>.
+The reciprocal entry also repeats the positive <code>recovery_window_seconds</code>.</p>
+<p>A compensation applies a new semantic counter-effect, such as issuing a refund
+after a charge. It can be partial and does not claim that the original state or
+external world was restored. A revert is appropriate only when the application
+can define and conditionally restore a prior app-controlled state, such as a
+document revision. Neither mode erases the original effect or receipt, and
+neither is a universal transactional rollback guarantee.</p>
+<p>For every effect advertised as <code>reversible</code>, the original commit's app receipt
+MUST include a <code>revert_evidence</code> entry containing <code>effect_id</code>, an opaque
+<code>prior_state_ref</code>, and <code>committed_state_revision</code>. The prior-state reference is
+receipt-bound evidence and a lookup handle, not authority. The application MUST
+retain the referenced state for the declared recovery window; otherwise the
+effect cannot be advertised as reversible.</p>
+<p>A revert request MUST carry <code>revert_preconditions</code> in its business input. The
+object MUST validate against <code>revert_preconditions_schema</code> and bind the target
+effect id, prior-state reference, and expected current revision from the
+verified target receipt. Immediately before restoring state, the application
+MUST atomically verify that the current revision is the target receipt's
+<code>committed_state_revision</code>. A mismatch returns <code>revert_conflict</code> without
+mutation; a prior-state reference MUST NOT be accepted as a credential or used
+with another target receipt.</p>
+<p>A recovery request MUST carry the hash of the original application receipt:</p>
+<pre><code class="language-json">{
+  &quot;mode&quot;: &quot;compensate&quot;,
+  &quot;execution_id&quot;: &quot;exec_01J2REFUND&quot;,
+  &quot;target_receipt_hash&quot;: &quot;sha-256:&lt;original-app-receipt-digest&gt;&quot;
+}
+</code></pre>
+<p><code>target_receipt_hash</code> is a causal cross-action link. It MUST NOT be placed in
+<code>parent_receipt_hash</code>, because the parent link joins the runtime and app
+receipts for the same action, input, grant, and idempotency key. Recovery starts
+a new runtime-to-application receipt chain and repeats <code>target_receipt_hash</code> in
+both receipts.</p>
+<p>The application MUST retrieve and verify the complete target app receipt,
+recompute its <code>receipt_hash</code>, and load the exact manifest snapshot named by its
+<code>surface_hash</code>. That target commit declaration MUST have authorized the same
+recovery action, mode, operation id, and target effect ids. The current recovery
+declaration MUST contain the reciprocal mapping. When the target and current
+surface hashes differ, the complete original-action and recovery-action
+declaration objects in both snapshots MUST be byte-identical after JCS
+serialization. This exact pair is the recovery compatibility projection for
+the current profile; looser mappings require a future profile. A mismatch MUST
+be rejected as <code>recovery_not_supported</code> rather than reinterpret old effects
+under a new surface. The application MUST also validate tenant and resource
+relationships.
+The target receipt timestamp MUST fall within the declared recovery window.
+An application advertising recovery MUST retain the relevant manifest snapshots
+and target receipts for its declared recovery window; unavailable evidence
+means recovery is unsupported, never that the current surface can be
+substituted.</p>
+<p>The target receipt MUST record <code>effect_outcome</code> as
+<code>applied</code> or as a reconciled <code>partially_applied</code> outcome with the exact
+recoverable <code>actual_effects</code>. A denied or <code>not_applied</code> action has nothing to
+recover. An <code>unknown</code> outcome is ineligible for compensation or revert in this
+profile because the immutable target receipt does not prove the recoverable
+effect. It MUST return <code>recovery_not_supported</code>. A future
+reconciliation-evidence profile can define a separate app-authoritative
+cross-linked object; until then, any corrective action is an independently
+authorized operation rather than recovery under this target receipt.</p>
+<p>The target receipt and its original grant are evidence, not authority. Recovery
+MUST use a currently valid Grant Credential that independently permits the
+recovery action, scope, resources, risk, and approval; it MAY use a different
+grant from the original action.</p>
+<p>Every recovery input schema MUST identify a non-empty subset of the effect ids
+authorized by the reciprocal manifest relationship and, for
+quantified effects such as a charge or transfer, the amount or quantity to
+recover. The application MUST maintain authoritative remaining-effect state
+keyed by target receipt and target effect. It MUST aggregate every compensation
+or revert action, grant, execution id, and idempotency key against that single
+state and prevent cumulative recovery from exceeding the confirmed unrecovered
+effect. Per-action attempt records MAY be stored separately but MUST NOT create
+independent remaining balances. A non-quantified effect can be recovered
+at most once unless its action-specific schema defines a safe repeatable
+recovery unit. An exact retry under the original idempotency key returns its
+original result. A new request whose target is already exhausted or whose
+amount exceeds the remaining effect MUST return <code>recovery_already_applied</code> and
+MUST NOT emit another counter-effect.</p>
+<p>Every recovery action MUST also be idempotent per request and MUST record
+whether its outcome is <code>applied</code>, <code>partially_applied</code>, <code>not_applied</code>, or
+<code>unknown</code>. A revert MUST
+recheck its declared prior-state preconditions and return <code>revert_conflict</code>
+without mutation when they no longer hold. An external effect whose outcome is
+uncertain MUST return and receipt <code>unknown</code>; a runtime MUST NOT blindly retry it
+under a new idempotency key.</p>
 <h2 id="risk-taxonomy" data-asp-heading="Risk Taxonomy">Risk Taxonomy</h2>
 <p>Every action SHOULD have a standard risk label. Runtimes can map risk labels to
 local policy defaults.</p>
@@ -1201,6 +1813,96 @@ labeled <code>write</code> or a more severe label MUST declare <code>side_effect
 an action labeled <code>read</code> MUST declare <code>side_effect: false</code>.</p>
 <p>Applications MAY define extension risk labels, but they SHOULD map them to the
 standard labels for runtime interoperability.</p>
+<h2 id="effect-model" data-asp-heading="Effect Model">Effect Model</h2>
+<p>Risk is a policy-oriented severity label. Effects are independent,
+machine-readable descriptions of what an action can change. A state-changing
+action MUST declare a non-empty <code>effects</code> array whose entries contain exactly
+the standard members below unless collision-resistant extension members are
+used:</p>
+<ul>
+<li><code>effect_id</code>: non-empty identifier unique within the action</li>
+<li><code>operation</code>: <code>create</code>, <code>update</code>, <code>delete</code>, <code>publish</code>, <code>send</code>, <code>execute</code>,
+<code>transfer</code>, <code>grant</code>, <code>revoke</code>, <code>deploy</code>, <code>reserve</code>, <code>renew</code>, or <code>release</code></li>
+<li><code>resource_type</code>: non-empty application resource type</li>
+<li><code>visibility</code>: <code>private</code>, <code>shared</code>, or <code>public</code></li>
+<li><code>boundary</code>: <code>internal</code> or <code>external</code></li>
+<li><code>reversibility</code>: <code>reversible</code>, <code>compensatable</code>, <code>irreversible</code>, or
+<code>not_applicable</code></li>
+<li><code>domain</code>: <code>data</code>, <code>communication</code>, <code>workflow</code>, <code>financial</code>, <code>security</code>,
+<code>identity</code>, <code>authorization</code>, <code>deployment</code>, or <code>configuration</code></li>
+</ul>
+<p>An extension value for any enumerated member MUST be a collision-resistant URI.
+Its specification MUST define a conservative mapping to a standard visibility,
+boundary, reversibility, and risk floor and MUST define comparison with its
+expected and actual values. A verifier that does not support that mapping MUST
+reject the surface or action as <code>surface_incompatible</code>; it MUST NOT assume an
+unknown extension is less severe. Bare unrecognized values are invalid. Effect
+identifiers are stable within one surface version and allow a runtime to match
+declared, expected, and actual effects without relying on array position.</p>
+<p>The manifest declaration is the maximum effect envelope for the action. A
+publisher that permits materially different alternatives MUST declare each
+alternative effect rather than using a less severe generic value. Within the
+standard values, <code>public</code> is more exposed than <code>shared</code>, which is more exposed
+than <code>private</code>; <code>external</code> crosses a stronger boundary than <code>internal</code>; and
+<code>irreversible</code> is less recoverable than <code>compensatable</code>, which is less
+recoverable than <code>reversible</code>. <code>not_applicable</code> is valid only for an operation
+that does not claim recovery semantics.</p>
+<p>An expected or actual effect exceeds the declaration when it:</p>
+<ul>
+<li>uses an undeclared <code>effect_id</code>, operation, resource type, or domain</li>
+<li>has greater visibility or crosses a stronger boundary</li>
+<li>is less recoverable than declared</li>
+<li>identifies a resource not authorized by the grant and the action's declared
+target, container, or produced-output semantics</li>
+<li>otherwise violates the action's expected- or actual-effects schema</li>
+</ul>
+<p>Actions in mode <code>read</code>, <code>dry_run</code>, and <code>propose</code> MUST omit <code>effects</code> because
+they do not commit the predicted target-domain effects. A <code>reserve</code> action MUST
+declare its coordination effect. Actions in mode <code>commit</code>, <code>compensate</code>, and
+<code>revert</code> MUST declare every maximum domain or external effect they can
+intentionally produce.</p>
+<p>The action declaration, <code>risk</code>, and effects MUST be consistent. At minimum:</p>
+<ul>
+<li>a public effect requires <code>public_side_effect</code> or a more severe risk</li>
+<li>an external effect requires <code>external_side_effect</code> or a more severe risk</li>
+<li>a <code>financial</code> effect requires <code>financial_side_effect</code> or a more severe risk</li>
+<li>a state-changing <code>security</code>, <code>identity</code>, or <code>authorization</code> effect requires
+<code>privileged</code></li>
+<li>a delete or revoke that is irreversible requires <code>destructive</code> or
+<code>privileged</code></li>
+</ul>
+<p>When several rules apply, the action MUST use the most severe applicable risk.
+Effect dimensions do not reduce scope, approval, or grant checks and MUST NOT be
+used to downgrade a more severe risk label.</p>
+<p><code>expected_effects</code> is an application-produced prediction for one validated
+input and state snapshot. <code>actual_effects</code> is the application's record of what
+the invocation applied or may have applied. Both are arrays of effect entries
+under the mandatory core Effect Model; each declared <code>effect_id</code> MUST appear at
+most once in either array. Standard instance members <code>resource_key</code>,
+<code>resource_keys</code>, and <code>safe_summary</code> MAY appear without an application-specific
+schema. An <code>expected_effects_schema</code> or <code>actual_effects_schema</code> can further
+constrain entries and define additional instance members. Multiple instances of
+one declared effect are represented through <code>resource_keys</code> or another
+schema-defined value, not duplicate <code>effect_id</code> entries. Their canonical hashes
+bind the exact arrays, including extension members and array order.</p>
+<p>Before a commit, the application MUST reject an expected effect that exceeds
+the manifest envelope. If the expected effects differ from the approved
+<code>expected_effects_hash</code>, the application MUST fail with <code>effect_mismatch</code> and
+require a new preview and approval. It MUST NOT silently approve the changed
+impact on the user's behalf.</p>
+<p>When an effect was or may have been attempted, the response and app receipt MUST
+include <code>actual_effects</code>, <code>actual_effects_hash</code>, and <code>effect_outcome</code>. The
+outcome is <code>applied</code>, <code>partially_applied</code>, <code>not_applied</code>, or <code>unknown</code>. A
+successful internal atomic mutation normally reports <code>applied</code>. A denial or
+validation failure before any attempt MAY omit those fields; if it reports
+<code>not_applied</code>, it uses an empty <code>actual_effects</code> array and its canonical hash.</p>
+<p>An application MUST NOT report plain success when an actual effect exceeded the
+declared or approved envelope, only part of an external operation completed, or
+the external outcome is unknown. A pre-effect mismatch returns
+<code>effect_mismatch</code> with no mutation. Once an effect may have occurred, the app
+records the safest accurate <code>partially_applied</code> or <code>unknown</code> outcome and
+requires explicit reconciliation before a new attempt; it MUST NOT describe
+that condition as a retryable preview mismatch.</p>
 <h2 id="approval-semantics" data-asp-heading="Approval Semantics">Approval Semantics</h2>
 <p>Actions SHOULD declare an approval mode:</p>
 <p>| Approval | Meaning |
@@ -1222,6 +1924,17 @@ runtime-side approval SHOULD carry an approval reference (for example an
 the approval can be linked into receipts and audited. Applications that do not
 want to accept runtime approval assertions MUST declare <code>app</code> or
 <code>runtime_and_app</code> for the affected actions.</p>
+<p>Approval for a state-changing invocation MUST bind the exact action id,
+manifest-declared execution mode, <code>idempotency_key</code>, <code>input_hash</code>, and
+<code>execution_hash</code>. When a
+preview is used, it MUST additionally bind <code>preview_id</code> and
+<code>expected_effects_hash</code>; when a reservation or recovery target materially
+affects the decision, it MUST bind <code>reservation_id</code> or <code>target_receipt_hash</code>.
+An approval for <code>dry_run</code>, <code>propose</code>, or <code>reserve</code> MUST NOT be reused as
+approval for <code>commit</code>, <code>compensate</code>, or <code>revert</code>. Expired evidence, changed
+preconditions, changed expected effects, a different companion action, or a
+different execution hash requires a new policy decision and any required user
+approval.</p>
 <h3 id="policy-decision-object" data-asp-heading="Policy Decision Object">Policy Decision Object</h3>
 <p>A runtime or application that records why an action was allowed, denied, or
 paused for approval MUST use a <code>policy.decision</code> object. The object explains one
@@ -1278,8 +1991,15 @@ runtime and application normally produce different decisions and hashes; an
 application MUST NOT treat a runtime decision as authority to widen the Agent
 Grant or bypass its own checks.</p>
 <h2 id="idempotency" data-asp-heading="Idempotency">Idempotency</h2>
-<p>Every side-effecting action MUST support idempotency.</p>
-<p>Action requests SHOULD include:</p>
+<p>Every action in mode <code>reserve</code>, <code>commit</code>, <code>compensate</code>, or <code>revert</code> MUST support
+idempotency. A persisted proposal MUST support it as defined in
+Proposal-Only Support.</p>
+<p>Requests in mode <code>reserve</code>, <code>commit</code>, <code>compensate</code>, or <code>revert</code>, and requests
+for a persisted proposal, MUST include <code>idempotency_key</code> in the body. In the
+HTTP binding they MUST also send the same value in <code>Idempotency-Key</code>. The
+application MUST reject a missing required key as <code>schema_invalid</code> before any
+effect. Other requests MAY include a key for retry correlation.</p>
+<p>Example:</p>
 <pre><code class="language-json">{
   &quot;idempotency_key&quot;: &quot;idem_01HX...&quot;,
   &quot;action_id&quot;: &quot;comment.create&quot;
@@ -1296,6 +2016,27 @@ SHOULD return the original result and receipt reference rather than an error,
 so a retrying runtime can converge on the outcome of the first attempt.
 Applications SHOULD retain idempotency state at least for the remaining
 lifetime of the grant and SHOULD document their retention window.</p>
+<p>Because one action id has exactly one static execution mode, the action id also
+binds the mode for idempotency. The application's stored idempotency record for
+a state-changing action MUST additionally bind <code>input_hash</code> and
+<code>execution_hash</code>. Reuse of the same key with a different execution id, preview,
+precondition hash, expected-effects hash, reservation, or recovery target
+therefore returns <code>idempotency_conflict</code> even when the business input is
+unchanged. A runtime MUST use distinct idempotency keys for different companion
+action ids.</p>
+<p>The application MUST also maintain the execution-id mapping defined by the
+Action Execution Model. A new key with an old execution id, preview token, or
+approval is a conflict, not a new invocation. Successful commit consumes its
+preview evidence for that execution id and key; only an exact retry can obtain
+the original immutable result.</p>
+<p>After authenticating the caller and tuple, the application SHOULD check for an
+exact completed idempotency record before rejecting mutable execution evidence
+that expired only after the original effect. An exact retry of a completed
+commit returns the original result and receipt even when its preview token has
+since expired or its reservation is now <code>consumed</code>; it MUST NOT repeat the
+effect or require a new reservation. This rule does not reactivate a revoked
+grant or require disclosure of an old result when current authorization policy
+forbids it.</p>
 <p>An exact retry under the Receipt Hash Chain profile MUST reuse the original
 finalized runtime receipt and the same <code>parent_receipt_hash</code>; it MUST NOT create
 a second policy receipt for the already-authorized side effect. The application
@@ -1362,9 +2103,18 @@ surface, scopes, and caveats.</p>
   }
 }
 </code></pre>
-<p>This object is the authoritative Agent Grant wire shape. <code>locations</code> restricts
-the action endpoints at which the grant may be used, and <code>actions</code>, when
-present, is an authoritative allow-list of Agent Surface action identifiers.
+<p>This object is the authoritative Agent Grant wire shape. A grant that authorizes
+any Agent Surface action MUST contain non-empty <code>locations</code> and <code>actions</code>
+arrays. <code>locations</code> is the allow-list of action endpoints and <code>actions</code> is the
+authoritative allow-list of action identifiers. A resource-only grant can omit
+them but cannot authorize an Action Request. Scope alone is never sufficient to
+select an action. The authorization server derives the issued arrays from the
+exact user-approved endpoints and stages and MUST NOT add companion actions
+implicitly.</p>
+<p>The authoritative action allow-list MUST satisfy the required companion closure
+defined by the Action Execution Model. A list that contains a commit or
+reservation acquisition without its required stages is an invalid Grant Object,
+not a partially usable delegation.
 OAuth <code>authorization_details</code> uses this same shape with the additional RFC 9396
 <code>type</code> discriminator; it does not define aliases for Grant Object fields.
 <code>credential_binding</code> is authorization-server output and MUST repeat the bound
@@ -1393,9 +2143,14 @@ hashes and retain their explicit derivation linkage.</p>
 remaining stateful budget. Those mutable checks still use authoritative grant
 state on every action.</p>
 <p>Numeric caveats need defined accounting. In this draft, <code>max_actions</code> counts
-side-effecting action requests accepted by the application under the grant.
-Reads and denied requests do not consume the budget, and neither do idempotent
-replays: a retry deduplicated under a previously accepted idempotency key
+requests in mode <code>reserve</code>, <code>commit</code>, <code>compensate</code>, or <code>revert</code> accepted by the
+application under the grant. Reservation acquisition and renewal count when
+they are separate accepted actions. An explicit release is idempotent cleanup:
+it does not consume <code>max_actions</code> and remains allowed while the grant is active
+even when that budget is exhausted; revocation or expiry invalidates the
+reservation without a release action. Reads, dry runs, proposals, and denied
+requests do not consume this budget, and neither do idempotent replays:
+a retry deduplicated under a previously accepted idempotency key
 MUST NOT consume the budget again, or lost responses and transport retries
 could exhaust a grant without producing new side effects. <code>max_cost_usd</code> is
 advisory in the MVP profile: the runtime SHOULD meter agent-side cost against
@@ -1540,9 +2295,10 @@ verified <code>surface_hash</code>.</li>
 Agent Grant object.</li>
 <li><code>credential_profile</code> MUST be <code>compatibility_bearer</code> or <code>proof_bound</code> and maps
 to the credential profiles defined in this draft.</li>
-<li>RFC 9396 common fields <code>locations</code> and <code>actions</code> MAY restrict the request to
-published action endpoints and Agent Surface action identifiers. When
-<code>actions</code> is present, the granted value is an authoritative allow-list: every
+<li>A request for action authority MUST contain non-empty RFC 9396 common
+<code>locations</code> and <code>actions</code> arrays of published action endpoints and Agent
+Surface action identifiers; omission requests no action authority. The
+granted values are authoritative allow-lists and every
 invoked action MUST be a member. The authorization applies to the product of
 the granted actions, locations, scopes, and resource filters; every allowed
 combination MUST be published by the surface and semantically compatible.</li>
@@ -1561,7 +2317,8 @@ session or, at the token endpoint, from the validated <code>subject_token</code>
 <p>The authorization server MUST reject unknown fields, unknown action or scope
 values, a mismatched <code>resource_server.app_id</code> or
 <code>resource_server.surface_version</code>, a mismatched <code>resource_server.surface_hash</code>,
-an unverified passport hash, or constraints that are invalid for the published
+an unverified passport hash, an action set that is not closed over required
+companion dependencies, or constraints that are invalid for the published
 surface. It MUST use the RFC 9396
 <code>invalid_authorization_details</code> error for malformed or unsupported Agent Grant
 authorization details.</p>
@@ -1581,8 +2338,16 @@ projection; the granted <code>authorization_details</code> remains authoritative
 resource server MUST reject a credential when the two representations conflict.</p>
 <p>Consent MUST present the application, runtime, agent, passport evidence,
 requested actions and scopes, resources, expiration and budgets, approval
-requirements, credential profile, data exposure, and receipt requirements. The
-user MAY approve a strict subset. The authorization server MUST compare the
+requirements, execution modes, maximum effect envelopes, required dry-run or
+reservation stages, available recovery actions and their limitations,
+credential profile, data exposure, and receipt requirements. A preview shown
+during consent MUST be identified as a prediction rather than a commit
+guarantee. Compensation MUST NOT be presented as exact rollback unless the
+declared action uses <code>revert</code> and the application can enforce its prior-state
+preconditions. The user MAY approve a strict subset. The authorization server
+MUST present each required companion closure as one approval group. It MUST
+materialize the exact approved action stages in the returned <code>actions</code>
+allow-list, reject a selection that breaks required closure, compare the
 requested and approved objects according to Agent Grant semantics rather than
 using raw JSON equality, and MUST NOT enrich the result with additional
 authority.</p>
@@ -1639,10 +2404,15 @@ actor token MUST itself be sender-constrained or presented through the same
 bound channel authentication.</li>
 </ul>
 <p>The authorization server MUST validate the subject token, runtime identity,
-agent and passport binding, resource, requested scopes, constraints, and
-credential profile. The exchange MUST NOT increase authority, widen resources,
-relax approval or receipt requirements, extend beyond the approved expiration,
-or replace <code>proof_bound</code> with <code>compatibility_bearer</code> without fresh user consent.</p>
+agent and passport binding, resource, requested action and location allow-lists,
+scopes, constraints, and credential profile. Returned <code>actions</code> and <code>locations</code>
+MUST be subsets of the source authorization. The exchange MUST NOT add a
+stronger companion stage under a shared scope, increase authority, widen
+resources, relax approval or receipt requirements, extend beyond the approved
+expiration, or replace <code>proof_bound</code> with <code>compatibility_bearer</code> without fresh
+user consent. Any attenuated action subset MUST remain closed over its required
+companion dependencies; otherwise the exchange MUST reject it rather than add
+missing stages.</p>
 <p>RFC 8693 does not itself create lifecycle linkage between input and output
 tokens. This ASP profile does: the authorization server MUST record the source
 authorization or parent grant from which the Agent Grant was derived. Revoking
@@ -1935,8 +2705,17 @@ the application with its own bound credential; those actions do not route
 through the parent runtime. The parent runtime MUST NOT present the child
 credential or mediate an action as if it originated from the child.</p>
 <p>The child grant MUST record <code>parent_grant_id</code> and <code>parent_runtime_id</code>, and MUST
-have equal or narrower scopes, resources, caveats, credential-release
-permissions, and lifetime. The application MUST revoke or suspend the child
+have equal or narrower actions, locations, scopes, resources, caveats,
+credential-release permissions, and lifetime. When the parent has an <code>actions</code>
+allow-list, the child's list MUST be a subset; when the parent has no action
+authority, the child MUST NOT add it. A child MUST NOT add a stronger companion
+stage, effect envelope, or weaker approval semantics under a reused scope. The
+child action subset MUST remain closed over required companion dependencies;
+the application MUST reject an unclosed subset instead of adding stages. The
+child <code>resource_server.app_id</code>, issuer, surface version, and <code>surface_hash</code> MUST
+exactly equal the parent's values. Derivation onto another surface snapshot
+requires a future explicit compatibility profile or fresh independent user
+consent. The application MUST revoke or suspend the child
 grant when the parent grant expires, is revoked, or loses the authority from
 which the child grant was derived. A parent grant or credential MUST NOT be
 forwarded as implicit subdelegation.</p>
@@ -1961,9 +2740,30 @@ and the binding has not been invalidated; reuse of the matching certificate is
 not rejected by itself</li>
 <li>for a proof-bound server session, the session is active, bound to the grant
 and runtime, and authenticated with the bound key or channel credential</li>
-<li>when the grant contains <code>actions</code>, the requested action identifier is a
-member of that authoritative allow-list, is served at a granted <code>location</code>,
-and remains compatible with the granted scopes and resource constraints</li>
+<li>the grant contains a non-empty <code>actions</code> allow-list, the requested action
+identifier is a member, is served at a granted <code>location</code>, and remains
+compatible with the granted scopes and resource constraints</li>
+<li>the grant action allow-list is closed over every required companion
+dependency in its pinned manifest snapshot</li>
+<li>request <code>execution.mode</code> exactly matches the action declaration in the
+manifest snapshot selected by <code>surface_hash</code></li>
+<li>whenever the action declares <code>input_hash_profile</code>, recomputed <code>input_hash</code>
+matches the request and any verified runtime receipt</li>
+<li>for a state-changing action, recomputed <code>execution_hash</code> matches the request
+and verified runtime receipt</li>
+<li>referenced companion actions resolve in the same manifest snapshot and the
+invoked companion action is independently granted</li>
+<li>any preview token is unexpired and bound to this app, grant, session,
+surface, action, input, preconditions, and expected effects</li>
+<li>declared preconditions still hold immediately before a state change</li>
+<li>any required reservation is active, holder-bound, resource-compatible, and
+atomically consumable by this commit</li>
+<li>expected effects remain within the manifest declaration and applicable
+schemas before mutation</li>
+<li>a compensation or revert has independent current authority and a verified
+eligible target application receipt with unrecovered confirmed effects</li>
+<li>a revert has receipt-bound prior-state evidence and its declared current-state
+preconditions hold atomically with restoration</li>
 <li>scope permits the action</li>
 <li>resource constraints permit the target object</li>
 <li>expiration has not passed</li>
@@ -1971,6 +2771,10 @@ and remains compatible with the granted scopes and resource constraints</li>
 <li>approval caveats are satisfied</li>
 <li>idempotency key is valid</li>
 </ul>
+<p>After an effect was or may have been attempted, the application MUST validate
+and record actual effects against the core Effect Model and any declared
+<code>actual_effects_schema</code>. Post-effect uncertainty does not retroactively satisfy
+a failed precondition or authorize an undeclared effect.</p>
 <p>Runtimes SHOULD verify:</p>
 <ul>
 <li>grant is active</li>
@@ -1982,6 +2786,10 @@ and remains compatible with the granted scopes and resource constraints</li>
 <li>local policy allows the action</li>
 <li>local approval is present when required</li>
 <li>action input matches the declared schema</li>
+<li>execution mode, context, and hashes match the pinned action declaration</li>
+<li>preview evidence is current and any required reservation belongs to the
+bound tuple</li>
+<li>expected effects and recovery limitations are presented before approval</li>
 <li>secrets and credentials are not exposed to the agent</li>
 <li>any subagent, tool, adapter, remote model, or secondary runtime remains
 subject to the same runtime mediation and does not receive implicit authority</li>
@@ -2004,6 +2812,9 @@ The user authorizes a specific runtime-agent-passport tuple through a grant.
 <li>action schemas</li>
 <li>required scopes</li>
 <li>risk labels</li>
+<li>execution modes and required companion stages</li>
+<li>declared effect envelopes and effect schemas</li>
+<li>reservation requirements and available recovery actions</li>
 <li>Agent Passport capabilities</li>
 <li>Agent Passport security policy</li>
 <li>local runtime adapter availability</li>
@@ -2017,6 +2828,8 @@ The user authorizes a specific runtime-agent-passport tuple through a grant.
 <li>required scopes</li>
 <li>required approvals</li>
 <li>risk summary</li>
+<li>supported execution stages and any missing preview or reservation support</li>
+<li>maximum effects and recovery limitations</li>
 <li>expected sandbox constraints</li>
 </ul>
 <p>The matching result is shown to the user before grant issuance.</p>
@@ -2137,6 +2950,11 @@ Content-Type: application/json
     &quot;idempotency_key&quot;: &quot;idem_01HX7DS8AC6G9&quot;,
     &quot;parent_receipt_hash&quot;: &quot;sha-256:&lt;runtime-receipt-digest&gt;&quot;,
     &quot;input_hash&quot;: &quot;sha-256:&lt;action-input-digest&gt;&quot;,
+    &quot;execution&quot;: {
+      &quot;mode&quot;: &quot;commit&quot;,
+      &quot;execution_id&quot;: &quot;exec_01J2COMMENT&quot;
+    },
+    &quot;execution_hash&quot;: &quot;sha-256:&lt;action-execution-digest&gt;&quot;,
     &quot;input&quot;: {
       &quot;repository&quot;: &quot;example-org/example-repo&quot;,
       &quot;pull_request&quot;: 13,
@@ -2148,7 +2966,7 @@ Content-Type: application/json
 <p>The request's proof material MUST use the authorization mechanism selected by
 the credential-binding profile. For example, a DPoP-bound credential carries a
 DPoP proof in the <code>DPoP</code> header as defined by RFC 9449.</p>
-<p>Before forwarding a side-effecting action, the runtime MUST finalize its
+<p>Before forwarding a state-changing action, the runtime MUST finalize its
 runtime receipt and place that receipt's <code>receipt_hash</code> in
 <code>parent_receipt_hash</code>. When the application requires the runtime receipt
 content, the runtime MUST either submit the complete receipt through the
@@ -2164,6 +2982,13 @@ equality with both the action request and verified parent runtime receipt. A
 receipt for one input MUST NOT be attached to a different input even when the
 grant, action id, and idempotency key match. The semantic normalization used
 for idempotency remains a separate action contract.</p>
+<p>For <code>reserve</code>, <code>commit</code>, <code>compensate</code>, or <code>revert</code>, the runtime and application
+MUST also compute <code>execution_hash</code> over the structurally validated execution
+context, require it to match the request, and require the sanitized context and
+hash to match the verified parent runtime receipt. The runtime MUST remove a
+raw <code>execution_token</code> before producing its receipt. The application verifies
+the raw request token against <code>execution_token_hash</code> and authoritative preview
+state, but MUST NOT copy the token into its receipt.</p>
 <h3 id="action-response" data-asp-heading="Action Response">Action Response</h3>
 <pre><code class="language-json">{
   &quot;type&quot;: &quot;action.result&quot;,
@@ -2176,7 +3001,26 @@ for idempotency remains a separate action contract.</p>
     &quot;surface_hash&quot;: &quot;sha-256:&lt;base64url-digest&gt;&quot;,
     &quot;action_id&quot;: &quot;comment.create&quot;,
     &quot;idempotency_key&quot;: &quot;idem_01HX7DS8AC6G9&quot;,
+    &quot;execution&quot;: {
+      &quot;mode&quot;: &quot;commit&quot;,
+      &quot;execution_id&quot;: &quot;exec_01J2COMMENT&quot;
+    },
+    &quot;execution_hash&quot;: &quot;sha-256:&lt;action-execution-digest&gt;&quot;,
     &quot;result&quot;: &quot;success&quot;,
+    &quot;effect_outcome&quot;: &quot;applied&quot;,
+    &quot;actual_effects&quot;: [
+      {
+        &quot;effect_id&quot;: &quot;comment-publish&quot;,
+        &quot;operation&quot;: &quot;publish&quot;,
+        &quot;resource_type&quot;: &quot;comment&quot;,
+        &quot;resource_key&quot;: &quot;comment_789&quot;,
+        &quot;visibility&quot;: &quot;shared&quot;,
+        &quot;boundary&quot;: &quot;internal&quot;,
+        &quot;reversibility&quot;: &quot;irreversible&quot;,
+        &quot;domain&quot;: &quot;communication&quot;
+      }
+    ],
+    &quot;actual_effects_hash&quot;: &quot;sha-256:&lt;actual-effects-digest&gt;&quot;,
     &quot;resource&quot;: {
       &quot;type&quot;: &quot;comment&quot;,
       &quot;id&quot;: &quot;comment_789&quot;,
@@ -2187,13 +3031,27 @@ for idempotency remains a separate action contract.</p>
   }
 }
 </code></pre>
+<p>An Action Response MUST repeat <code>session_id</code>, grant and surface hashes,
+<code>action_id</code>, and the idempotency key from the request. For a state-changing
+action it MUST repeat the sanitized execution context and <code>execution_hash</code>.
+When an effect was or may have been attempted, it MUST return
+<code>effect_outcome</code>, <code>actual_effects</code>, and <code>actual_effects_hash</code> as defined by the
+Effect Model. A response MUST distinguish <code>partially_applied</code> and <code>unknown</code>
+from success so a runtime does not create a new idempotency key and duplicate an
+external effect.</p>
+<p>Dry-run and reservation responses use the mode-specific objects defined in the
+Action Execution Model. A failed request that performed no effect MAY omit
+<code>actual_effects</code>; its structured error and any failure receipt MUST agree about
+retryability and whether the outcome is known. An exact idempotent retry MUST
+return the original immutable result and receipt reference.</p>
 <h3 id="proposal-flow" data-asp-heading="Proposal Flow">Proposal Flow</h3>
 <p>Proposal mode separates drafting from committing.</p>
 <pre><code class="language-text">Agent -&gt; comment.propose
 Runtime -&gt; local policy check
 App -&gt; stores draft/proposal
-User/App -&gt; approves
-App -&gt; comment.create
+Runtime/App -&gt; optional dry_run and reservation
+User/App -&gt; approves exact input and expected effects
+App -&gt; comment.create commit
 Runtime/App -&gt; receipt
 </code></pre>
 <p>This is the RECOMMENDED default for early integrations.</p>
@@ -2220,7 +3078,16 @@ Runtime/App -&gt; receipt
 <li>surface hash</li>
 <li>policy decision and policy decision hash</li>
 <li>input hash</li>
+<li>sanitized execution context and execution hash for state-changing actions</li>
+<li>preconditions and expected-effects hashes when preview evidence is used</li>
+<li>reservation id when it was part of the request execution context, and an
+app-produced <code>reservation_result</code> with id and state when the operation
+created or changed reservation state</li>
+<li>target receipt hash for compensation or revert</li>
+<li>revert evidence for every effect advertised as reversible</li>
 <li>output hash</li>
+<li>actual effects, actual-effects hash, and effect outcome when an effect was or
+may have been attempted</li>
 <li>approval reference</li>
 <li>idempotency key</li>
 <li>timestamp</li>
@@ -2231,20 +3098,29 @@ Runtime/App -&gt; receipt
 denial before execution, MAY be omitted. The identity, authority, trace,
 decision, and result fields that do apply MUST be present and internally
 consistent.</p>
+<p>A receipt MUST NOT contain the raw <code>execution_token</code>. It carries the sanitized
+execution context with <code>execution_token_hash</code>, allowing a verifier to recompute
+<code>execution_hash</code> without receiving reusable preview evidence.</p>
 <h3 id="receipt-hash-chain" data-asp-heading="Receipt Hash Chain">Receipt Hash Chain</h3>
 <p>Every runtime and application receipt MUST contain <code>receipt_hash</code> computed with
 the Canonical Object Hash Profile. A root receipt omits
 <code>parent_receipt_hash</code>; it MUST NOT encode the missing parent as <code>null</code>. A
 non-root receipt contains exactly one <code>parent_receipt_hash</code>, which is included
 in its own hashing view.</p>
-<p>For a runtime-mediated side-effecting action whose grant requires a runtime
+<p>For a runtime-mediated state-changing action whose grant requires a runtime
 receipt, the application receipt MUST use the verified runtime
 <code>receipt_hash</code> from the action request as its <code>parent_receipt_hash</code>. A later
 runtime receipt MAY use the returned application <code>receipt_hash</code> as its parent.
 This single-parent model permits branches but does not represent multi-parent
 causal joins; a future profile may define a DAG representation.</p>
 <p>A parent and child receipt for one action MUST carry identical <code>grant_hash</code>,
-<code>surface_hash</code>, <code>session_id</code>, <code>action_id</code>, <code>idempotency_key</code>, and <code>input_hash</code>.
+<code>surface_hash</code>, <code>session_id</code>, <code>action_id</code>, <code>idempotency_key</code>, <code>input_hash</code>,
+sanitized <code>execution</code>, and <code>execution_hash</code>. Conditional <code>preview_id</code>,
+<code>execution_token_hash</code>, <code>preconditions_hash</code>, <code>expected_effects_hash</code>,
+<code>reservation_id</code>, and <code>target_receipt_hash</code> values inside that request context
+MUST therefore also match. An app-only <code>reservation_result</code>,
+<code>actual_effects</code>, <code>actual_effects_hash</code>, and <code>effect_outcome</code> describe the
+outcome and are not required in the parent runtime receipt.
 They also carry the same <code>trace_id</code> unless the child records a trust-boundary
 restart with <code>linked_trace_id</code> equal to the parent's <code>trace_id</code>.
 Their <code>span_id</code> and <code>policy_decision_hash</code> normally differ because each producer
@@ -2252,6 +3128,12 @@ records its own operation and decision. A consumer MUST recompute every
 available object hash, verify these invariants, reject a cycle, and stop at any
 missing or mismatched parent. Reusing one <code>receipt_id</code> for different
 <code>receipt_hash</code> values is an invalid receipt conflict.</p>
+<p>For <code>compensate</code> or <code>revert</code>, <code>target_receipt_hash</code> links to a separately
+verified original application receipt but does not create another parent edge.
+A verifier MUST validate that target receipt and the manifest's reciprocal
+recovery relationship independently. It MUST NOT apply the same-action parent
+invariants across this causal link, and MUST NOT treat the target as authority
+for the recovery action.</p>
 <p>The runtime makes its parent receipt available to the application through the
 <code>agent_api.receipt_url</code> or an explicitly declared inline action-request
 extension, as defined in Action Request. The application MUST NOT claim a
@@ -2290,6 +3172,11 @@ redactions.</p>
   },
   &quot;idempotency_key&quot;: &quot;idem_01HX7DS8AC6G9&quot;,
   &quot;input_hash&quot;: &quot;sha-256:&lt;action-input-digest&gt;&quot;,
+  &quot;execution&quot;: {
+    &quot;mode&quot;: &quot;commit&quot;,
+    &quot;execution_id&quot;: &quot;exec_01J2COMMENT&quot;
+  },
+  &quot;execution_hash&quot;: &quot;sha-256:&lt;action-execution-digest&gt;&quot;,
   &quot;policy_decision_hash&quot;: &quot;sha-256:&lt;runtime-policy-decision-digest&gt;&quot;,
   &quot;policy_decision&quot;: {
     &quot;type&quot;: &quot;policy.decision&quot;,
@@ -2346,7 +3233,26 @@ deduplicated under a grant.</p>
   },
   &quot;idempotency_key&quot;: &quot;idem_01HX7DS8AC6G9&quot;,
   &quot;input_hash&quot;: &quot;sha-256:&lt;action-input-digest&gt;&quot;,
+  &quot;execution&quot;: {
+    &quot;mode&quot;: &quot;commit&quot;,
+    &quot;execution_id&quot;: &quot;exec_01J2COMMENT&quot;
+  },
+  &quot;execution_hash&quot;: &quot;sha-256:&lt;action-execution-digest&gt;&quot;,
   &quot;output_hash&quot;: &quot;sha256:...&quot;,
+  &quot;actual_effects&quot;: [
+    {
+      &quot;effect_id&quot;: &quot;comment-publish&quot;,
+      &quot;operation&quot;: &quot;publish&quot;,
+      &quot;resource_type&quot;: &quot;comment&quot;,
+      &quot;resource_key&quot;: &quot;comment_789&quot;,
+      &quot;visibility&quot;: &quot;shared&quot;,
+      &quot;boundary&quot;: &quot;internal&quot;,
+      &quot;reversibility&quot;: &quot;irreversible&quot;,
+      &quot;domain&quot;: &quot;communication&quot;
+    }
+  ],
+  &quot;actual_effects_hash&quot;: &quot;sha-256:&lt;actual-effects-digest&gt;&quot;,
+  &quot;effect_outcome&quot;: &quot;applied&quot;,
   &quot;policy_decision_hash&quot;: &quot;sha-256:&lt;app-policy-decision-digest&gt;&quot;,
   &quot;policy_decision&quot;: {
     &quot;type&quot;: &quot;policy.decision&quot;,
@@ -2520,8 +3426,9 @@ to <code>Retry-After</code>.</p>
 <code>grant_revocation_url</code> revokes the semantic Agent Grant, not only that token.
 The application MUST immediately mark the grant inactive, reject every
 credential derived from it, invalidate refresh tokens and proof-bound sessions,
-and cascade revocation to child or exchanged grants whose authority derives
-from it. Revocation initiated through the application's user-facing grant view
+invalidate outstanding execution tokens and reservations, and cascade
+revocation to child or exchanged grants whose authority derives from it.
+Revocation initiated through the application's user-facing grant view
 MUST produce the same state transition.</p>
 <p>When an active grant changes to revoked and the manifest declares an event
 subscription endpoint, the application MUST emit a <code>grant.revoked</code> control event
@@ -2573,8 +3480,9 @@ projections from the event, but it also MUST NOT ignore the revocation and keep
 using the grant.</p>
 <p>After accepting the event, the runtime MUST atomically mark the grant inactive,
 discard cached active introspection state, stop new actions and credential use,
-cancel or downgrade affected sessions according to app policy, cascade the
-state to locally tracked child grants, and record a runtime receipt. Event
+discard cached execution tokens and reservation state, cancel or downgrade
+affected sessions according to app policy, cascade the state to locally tracked
+child grants, and record a runtime receipt. Event
 processing is idempotent by <code>id</code>; a duplicate event MUST NOT create duplicate
 receipts or repeat external side effects.</p>
 <p>The event is notification, not the enforcement mechanism. The application MUST
@@ -2588,6 +3496,8 @@ future Event Delivery Semantics work.</p>
 <ul>
 <li>runtime MUST stop initiating new actions under that grant</li>
 <li>app MUST reject new actions under that grant</li>
+<li>app MUST invalidate outstanding execution tokens and active reservations
+bound to that grant</li>
 <li>active sessions SHOULD be cancelled or downgraded to read-only according to
 app policy</li>
 <li>receipt generation SHOULD record the revocation event</li>
@@ -2600,6 +3510,10 @@ closes the subscription</li>
 <ul>
 <li>app SHOULD mark active runtime-mediated sessions as interrupted</li>
 <li>app MUST NOT treat pending runtime approvals as approved</li>
+<li>app MUST apply each acquisition declaration's <code>disconnect_behavior</code>; a
+retained reservation remains bounded by its existing expiry and MUST NOT be
+consumed until the same tuple reconnects with a current Grant Credential and
+required proof</li>
 <li>app MAY allow resumable sessions when the same runtime reconnects</li>
 </ul>
 <h3 id="agent-passport-revoked-or-expired" data-asp-heading="Agent Passport Revoked or Expired">Agent Passport Revoked or Expired</h3>
@@ -2615,6 +3529,8 @@ completion</li>
 <ul>
 <li>app SHOULD publish a new <code>surface_version</code></li>
 <li>runtime SHOULD re-fetch and re-validate schemas</li>
+<li>app MUST invalidate execution tokens and reservations bound to an
+incompatible old action declaration</li>
 <li>grants bound to incompatible actions SHOULD require renewal</li>
 </ul>
 <h3 id="user-session-expired" data-asp-heading="User Session Expired">User Session Expired</h3>
@@ -2629,12 +3545,25 @@ session unless explicitly configured otherwise.</p>
 | <code>grant_expired</code> | Grant has expired. |
 | <code>grant_revoked</code> | Grant was revoked. |
 | <code>grant_proof_invalid</code> | Grant credential or proof is missing, invalid, or not bound correctly. |
-| <code>integrity_mismatch</code> | A supplied surface, grant, policy-decision, receipt, or parent hash does not match its complete hashing view or authoritative projection. |
+| <code>integrity_mismatch</code> | A supplied surface, grant, input, execution, precondition, effect, policy-decision, receipt, or parent hash does not match its complete hashing view or authoritative projection. |
 | <code>scope_denied</code> | Grant scope does not permit the action. |
 | <code>resource_denied</code> | Grant constraints do not permit the target resource. |
 | <code>approval_required</code> | Required approval is absent. |
-| <code>schema_invalid</code> | Input or output does not match the declared schema. |
-| <code>idempotency_conflict</code> | Idempotency key was reused with different input. |
+| <code>schema_invalid</code> | Input, output, preconditions, expected effects, actual effects, or mode-specific context does not match its declared or core schema. |
+| <code>idempotency_conflict</code> | Idempotency key was reused with different input or execution context. |
+| <code>execution_mode_invalid</code> | Request mode does not match the manifest-declared mode for the action. |
+| <code>execution_transition_invalid</code> | Required companion stage or reciprocal action relationship is absent or invalid. |
+| <code>execution_token_invalid</code> | Preview evidence is malformed or bound to different authority, input, state, or effects. |
+| <code>execution_token_expired</code> | Preview evidence has expired and a new dry run is required. |
+| <code>precondition_failed</code> | Declared state preconditions no longer hold. |
+| <code>effect_mismatch</code> | Before mutation, expected effects exceed or differ from the declared or approved envelope. |
+| <code>reservation_conflict</code> | An atomic reservation cannot be acquired because a target conflicts. |
+| <code>reservation_expired</code> | The referenced reservation has expired. |
+| <code>reservation_invalid</code> | Reservation is unknown, inactive, wrong-holder, wrong-surface, or incompatible with the commit. |
+| <code>recovery_not_supported</code> | Target action or receipt does not support the requested compensation or revert. |
+| <code>recovery_already_applied</code> | Confirmed target effects have already been fully recovered or the requested amount exceeds the unrecovered remainder. |
+| <code>revert_conflict</code> | Prior state required for an exact revert is no longer available. |
+| <code>outcome_unknown</code> | An external or partial effect may have occurred and blind retry is unsafe. |
 | <code>risk_denied</code> | Local or app policy denied the risk class. |
 | <code>passport_invalid</code> | Agent Passport is missing, expired, revoked, or invalid. |
 | <code>runtime_untrusted</code> | Runtime binding or attestation is not accepted. |
@@ -2649,6 +3578,16 @@ error code, a human-readable description, and a retryability indication.
 Mapping error codes to HTTP status codes is left to a future draft.</p>
 <p>Errors SHOULD be safe to show to users and precise enough for runtime policy
 debugging.</p>
+<p><code>execution_mode_invalid</code>, <code>execution_transition_invalid</code>,
+<code>execution_token_invalid</code>, <code>reservation_invalid</code>, <code>recovery_not_supported</code>, and
+<code>recovery_already_applied</code> are not blindly retryable. An expired token or
+failed precondition requires a new read or dry run and any required approval. A
+reservation conflict MAY be retried after a safe <code>retry_after</code> interval without
+disclosing the holder; an expired reservation requires a new acquisition.
+After an effect was attempted, drift or uncertainty is represented by
+<code>effect_outcome: &quot;partially_applied&quot;</code> or <code>&quot;unknown&quot;</code>, not a retryable
+<code>effect_mismatch</code>. <code>outcome_unknown</code> MUST NOT be retried under a new
+idempotency key until the application reconciles the authoritative outcome.</p>
 <h2 id="versioning-and-compatibility" data-asp-heading="Versioning and Compatibility">Versioning and Compatibility</h2>
 <p>Surface manifests MUST include:</p>
 <pre><code class="language-json">{
@@ -2679,6 +3618,11 @@ action.</li>
 <li>Adding optional fields is non-breaking.</li>
 <li>Adding a new action is non-breaking.</li>
 <li>Changing risk labels to a higher risk class can require grant renewal.</li>
+<li>Changing an action's execution mode, operation id, required companion stage,
+effect envelope, precondition or effect schema, reservation policy, or
+recovery relationship is breaking for grants that authorize that action.</li>
+<li>Adding an optional companion action is non-breaking only when existing action
+semantics, approval, and effect envelopes remain unchanged.</li>
 <li>Changing receipt requirements can require grant renewal.</li>
 <li>Changing endpoint semantics can require grant renewal.</li>
 </ul>
@@ -2751,6 +3695,8 @@ unauthorized actions.</p>
 <li>no implicit credential or grant transfer to subagents, tools, or remote models</li>
 <li>schema validation</li>
 <li>risk-based approval</li>
+<li>static execution modes and preview-bound approval</li>
+<li>atomic precondition and reservation checks</li>
 <li>action count limits</li>
 <li>cost limits</li>
 <li>sandboxing</li>
@@ -2798,6 +3744,36 @@ weaken approval requirements, or alter local policy.</p>
 <h3 id="replay-and-duplicate-actions" data-asp-heading="Replay and Duplicate Actions">Replay and Duplicate Actions</h3>
 <p>Idempotency keys, timestamps, nonce binding, and grant expiration reduce replay
 risk. Side-effecting actions MUST be idempotent.</p>
+<h3 id="execution-mode-confusion-toctou-and-reservation-abuse" data-asp-heading="Execution Mode Confusion, TOCTOU, and Reservation Abuse">Execution Mode Confusion, TOCTOU, and Reservation Abuse</h3>
+<p>A malicious agent can request a benign preview and then attempt to relabel it as
+a commit. ASP prevents that escalation by assigning one static mode to each
+action id and authorizing every companion action independently. Applications
+MUST compare request mode with the pinned manifest and MUST NOT accept a client
+request to select a stronger mode under the same action authority.</p>
+<p>State can change between dry run, approval, reservation, and commit. An
+execution token, preview id, precondition hash, or reservation id is evidence
+about that flow, not authority and not a lock on all relevant state. The
+application MUST revalidate current grant authority and check preconditions and
+required reservations atomically with every app-controlled mutation. A stale
+preview MUST fail closed instead of being silently refreshed after approval.</p>
+<p>Effect under-classification can mislead both policy and the user. Applications
+MUST publish the maximum effect envelope, reject a more severe predicted effect
+before commit, and receipt partial or unknown external outcomes accurately.
+Runtimes SHOULD compare expected effects with the declaration and SHOULD show
+visibility, boundary, domain, and recovery limitations during approval.</p>
+<p>Reservations can be used for starvation or as an oracle about other users.
+Applications SHOULD use short TTLs, bounded renewals, per-grant and per-resource
+quotas, atomic all-or-none acquisition, and non-identifying conflict responses.
+Reservation identifiers MUST NOT confer authority, and revocation or tuple
+invalidation MUST release their coordination effect.</p>
+<p>Compensation and revert are new effects with their own failure modes. They MUST
+use current independent authority and a new idempotent receipt chain. A target
+receipt proves what was recorded; it does not authorize recovery. Neither mode
+erases the original audit record, and compensation MUST NOT be described as
+transactional rollback. Applications MUST track recovery against the target
+receipt and effect rather than relying only on request idempotency; changing an
+idempotency key MUST NOT produce a second refund, revert, or counter-effect for
+an already recovered target.</p>
 <h3 id="surface-downgrade" data-asp-heading="Surface Downgrade">Surface Downgrade</h3>
 <p>A malicious network or compromised app path can present an older, less safe
 surface version. Runtimes SHOULD pin issuer, app id, minimum accepted protocol
@@ -2839,6 +3815,12 @@ separate user actions, tenants, and services. <code>trace_id</code>, <code>span_
 <code>tracestate</code> MUST NOT encode semantic identifiers or secrets. Components SHOULD
 apply bounded retention, access control, and sampling independently of whether
 the incoming trace flags request recording.</p>
+<p>Preconditions, expected effects, resource keys, reservation conflicts, and
+recovery targets can reveal sensitive application state. Schemas and approval
+views SHOULD expose only what the user and runtime need to understand and
+authorize the effect. Conflict responses MUST NOT identify another reservation
+holder. Raw execution tokens are confidential runtime-held material and MUST
+NOT enter receipts, logs, prompts, traces, or agent-visible context.</p>
 <h2 id="conformance" data-asp-heading="Conformance">Conformance</h2>
 <p>This draft defines conformance profiles instead of a single all-or-nothing
 profile.</p>
@@ -2850,9 +3832,12 @@ profile.</p>
 <code>surface_version</code> whenever the manifest hashing view changes</li>
 <li>declares actions, resources, events, scopes, and schemas</li>
 <li>declares risk labels for actions</li>
+<li>declares one static execution mode and operation id per action</li>
+<li>declares maximum effects for state-changing actions and internally consistent
+companion-action, precondition, reservation, and recovery metadata</li>
 <li>declares endpoints or explicitly marks the surface as proposal/documentation
 only</li>
-<li>provides proposal-mode actions or read-only resources</li>
+<li>provides <code>propose</code> actions or read-only resources</li>
 </ul>
 <h3 id="grant-enforcing-application" data-asp-heading="Grant-Enforcing Application">Grant-Enforcing Application</h3>
 <p>An application conforms to the Grant-Enforcing profile when it:</p>
@@ -2863,8 +3848,19 @@ only</li>
 <li>validates credential binding to runtime, agent, and passport evidence</li>
 <li>validates <code>grant_hash</code> and binds the grant to the exact verified
 <code>surface_hash</code> snapshot</li>
+<li>validates static execution mode, companion authority, execution context and
+hash, preconditions, effect envelope, and any required reservation or
+recovery target before a state change</li>
+<li>issues and accepts only action allow-lists closed over required companion
+dependencies</li>
+<li>enforces cumulative per-target recovery limits independently of request
+idempotency keys</li>
 <li>treats <code>grant_id</code> as an identifier, not authority</li>
-<li>supports idempotency for side-effecting actions</li>
+<li>supports idempotency for <code>reserve</code>, <code>commit</code>, <code>compensate</code>, and <code>revert</code></li>
+<li>invalidates preview evidence and reservations when their grant or surface
+binding becomes invalid</li>
+<li>does not accept <code>reserve</code>, <code>commit</code>, <code>compensate</code>, or <code>revert</code> unless it also
+satisfies the Receipt-Producing Application profile for that action</li>
 <li>supports grant revocation</li>
 </ul>
 <h3 id="oauth-grant-lifecycle-application" data-asp-heading="OAuth Grant Lifecycle Application">OAuth Grant Lifecycle Application</h3>
@@ -2886,15 +3882,22 @@ authenticated <code>grant.revoked</code> control event when an event endpoint is
 <p>An application conforms to the Receipt-Producing profile when it:</p>
 <ul>
 <li>satisfies the Grant-Enforcing profile</li>
-<li>emits app receipts for required side-effecting actions</li>
-<li>emits recomputable <code>receipt_hash</code>, <code>grant_hash</code>, <code>surface_hash</code>, and
-<code>policy_decision_hash</code> values</li>
+<li>emits app receipts for required state-changing actions</li>
+<li>emits recomputable <code>receipt_hash</code>, <code>grant_hash</code>, <code>surface_hash</code>,
+<code>execution_hash</code>, effect hashes, and <code>policy_decision_hash</code> values</li>
 <li>includes the complete typed Policy Decision Object and requires its embedded
 hash to match the receipt's <code>policy_decision_hash</code></li>
 <li>links an app receipt to the verified runtime receipt through
 <code>parent_receipt_hash</code> when runtime receipt evidence is required</li>
 <li>preserves trace id, session id, action id, agent id, runtime id, and
 idempotency key while using a producer-specific span id</li>
+<li>preserves sanitized execution context across the runtime/app receipt edge,
+omits raw execution tokens, and uses <code>target_receipt_hash</code> rather than a
+parent edge for recovery causality</li>
+<li>records actual effects and distinguishes applied, partial, absent, and unknown
+outcomes</li>
+<li>records and retains receipt-bound revert evidence for effects advertised as
+reversible</li>
 <li>records session id, trace id, and producer span id in the corresponding local
 action and receipt log entry</li>
 <li>records denied or failed high-risk actions</li>
@@ -2937,9 +3940,17 @@ using the OAuth Grant Lifecycle Application profile</li>
 the Proof-Bound Grant-Enforcing Application profile</li>
 <li>enforces local policy and approval rules</li>
 <li>validates action input against schemas before sending to the app</li>
+<li>validates request mode against the pinned declaration and computes input and
+execution hashes</li>
+<li>presents expected effects and recovery limitations, and binds approval to the
+exact input and preview evidence</li>
+<li>protects raw execution tokens, tracks reservations, and does not treat either
+as authority</li>
+<li>handles stale previews, reservation conflicts, and partial or unknown recovery
+outcomes without blind retry</li>
 <li>records local audit events and runtime receipts</li>
-<li>computes and validates grant, policy-decision, and receipt hashes; propagates
-session and W3C-compatible trace context</li>
+<li>computes and validates grant, execution, effect, policy-decision, and receipt
+hashes; propagates session and W3C-compatible trace context</li>
 <li>records session id, trace id, and producer span id in local action and receipt
 logs</li>
 <li>stops actions when grants are revoked or expired</li>
@@ -2953,6 +3964,9 @@ logs</li>
 <li>requests app actions through runtime APIs</li>
 <li>emits typed events</li>
 <li>handles denials and approval waits</li>
+<li>preserves the manifest-declared action id and mode and handles preview,
+reservation, precondition, and recovery errors without selecting stronger
+authority</li>
 <li>preserves session and grant identifiers in audit context</li>
 <li>preserves valid trace ids and creates a new span id for each adapter operation</li>
 </ul>
@@ -2975,9 +3989,15 @@ logs</li>
 <li>Add a grant consent screen in the demo browser UI.</li>
 <li>Bind session start to a grant id.</li>
 <li>Add <code>action.request</code> and <code>action.result</code> events.</li>
-<li>Split <code>comment.propose</code> from <code>comment.create</code> in the demo.</li>
-<li>Require idempotency keys for write actions.</li>
-<li>Produce local runtime receipts and app-visible receipts.</li>
+<li>Assign one static execution mode to every action and split
+<code>comment.propose</code> from the <code>comment.create</code> commit action.</li>
+<li>Declare effect envelopes and add preview/precondition schemas for selected
+commit actions.</li>
+<li>Require idempotency keys and execution hashes for state-changing actions.</li>
+<li>Add bounded reservation and recovery actions only where the application can
+enforce their lifecycle and semantics.</li>
+<li>Produce local runtime receipts and app-visible receipts with execution and
+actual-effect evidence.</li>
 <li>Integrate Agent Passport verification as an admission precondition.</li>
 </ol>
 <h2 id="example-end-to-end-flow" data-asp-heading="Example End-to-End Flow">Example End-to-End Flow</h2>
@@ -2992,7 +4012,8 @@ logs</li>
    - scopes: pull_request.read, pull_request.comment
    - repository: example-org/example-repo
    - duration: 2 hours
-   - writes: require approval
+   - commit effects: shared, internal communication
+   - commit: requires approval
 7. User approves a subset or the complete request.
 8. App issues or token-exchanges grant_123, its canonical `grant_hash`, and its
    bound Grant Credential.
@@ -3000,15 +4021,20 @@ logs</li>
 10. App starts a pull-request review session.
 11. Agent reads typed PR context through runtime-mediated resources.
 12. Agent proposes a review comment.
-13. User or app approves the write.
-14. Runtime records its policy decision and receipt, then sends comment.create
-    with trace context, parent receipt hash, idempotency key, and Grant Credential.
-15. App verifies current grant, surface, decision, and receipt hashes and writes
-    the comment.
-16. Runtime and app receipts form a verified parent-hash chain and MAY carry
+13. When declared, runtime requests a dry run and the app returns immutable
+    preconditions, expected effects, and time-bounded preview evidence.
+14. User or app approves the exact commit input and expected effects.
+15. Runtime records its policy decision and receipt, then sends comment.create
+    with trace context, parent receipt hash, idempotency key, execution context
+    and hash, and Grant Credential.
+16. App verifies current grant, surface, decision, input, execution, preview,
+    and receipt hashes, rechecks preconditions, and commits the comment.
+17. App returns actual effects and an app receipt. Runtime and app receipts form
+    a verified parent-hash chain and MAY carry
     detached JWS signatures when required by the grant.
-17. User revokes grant_123; the app rejects it immediately.
-18. App emits authenticated `grant.revoked`; runtime stops affected work.
+18. User revokes grant_123; the app rejects it immediately and invalidates
+    outstanding preview evidence and reservations.
+19. App emits authenticated `grant.revoked`; runtime stops affected work.
 </code></pre>
 <h2 id="open-questions" data-asp-heading="Open Questions">Open Questions</h2>
 <ul>
@@ -3523,7 +4549,7 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
   const root = document.getElementById("asp-review-019f48fb");
   if (!root) return;
 
-  const reviews = [{"id":1,"title":"Reference Monitor Invariants","description":"явно зафиксировать, что все app-действия агента должны проходить через runtime, а агент не получает прямую authority по умолчанию.","category":"Security / authority boundary","side":"left","anchors":[{"heading":"Abstract","anchorId":"abstract"},{"heading":"App Exposes, Runtime Mediates, Agent Executes","anchorId":"app-exposes-runtime-mediates-agent-executes"},{"heading":"Agent Does Not Receive Raw Authority","anchorId":"agent-does-not-receive-raw-authority"},{"heading":"Application Runtime Profile","anchorId":"application-runtime-profile"}],"status":"present","rationale":"RFC теперь определяет runtime как reference monitor: каждое agent-initiated действие к Agent Surface проходит через runtime, а app-side verification остаётся обязательной.","priority":"P0"},{"id":2,"title":"Grant Credential Binding","description":"описать, чем именно runtime доказывает app, что grant принадлежит конкретному runtime/agent/passport tuple.","category":"Security / authority boundary","side":"right","anchors":[{"heading":"Agent Grant","anchorId":"agent-grant-2"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Grant Verification","anchorId":"grant-verification"}],"status":"present","rationale":"RFC требует app-verifiable binding grant credential к grant, audience, runtime, agent и passport hash; introspection и session profiles не могут подменяться runtime assertion.","priority":"P0"},{"id":3,"title":"Sender-Constrained Grants","description":"поддержать DPoP, mTLS, workload identity или аналог, чтобы украденный bearer-token не давал полномочий сам по себе.","category":"Security / authority boundary","side":"left","anchors":[{"heading":"Grant Credential","anchorId":"grant-credential"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Action Request","anchorId":"action-request"},{"heading":"Stolen Grant Credential","anchorId":"stolen-grant-credential"},{"heading":"Proof-Bound Grant-Enforcing Application","anchorId":"proof-bound-grant-enforcing-application"}],"status":"present","rationale":"Proof-Bound Credential и Proof-Bound Grant-Enforcing profiles требуют per-request possession proof; DPoP, mTLS и server-session проверки имеют отдельную корректную replay semantics.","priority":"P0"},{"id":4,"title":"Credential Release Policy","description":"сделать выдачу raw app token агенту отдельной privileged capability, запрещённой по умолчанию.","category":"Security / authority boundary","side":"right","anchors":[{"heading":"Agent Does Not Receive Raw Authority","anchorId":"agent-does-not-receive-raw-authority"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Raw Token Leakage","anchorId":"raw-token-leakage"},{"heading":"Agent Adapter","anchorId":"agent-adapter"}],"status":"present","rationale":"Raw credential release — default-deny capability `credential.release`; выдаётся только новый attenuated credential для non-Agent-Surface audience, который app обязана отклонять на Surface endpoints.","priority":"P0"},{"id":5,"title":"Subdelegation Rules","description":"явно описать, может ли агент вызывать субагентов, remote models, MCP servers или другие runtimes.","category":"Security / authority boundary","side":"left","anchors":[{"heading":"Runtime","anchorId":"runtime"},{"heading":"Subdelegation","anchorId":"subdelegation"},{"heading":"Model Context Protocol","anchorId":"model-context-protocol"},{"heading":"4. Agent Adapter Protocol","anchorId":"4-agent-adapter-protocol"},{"heading":"Malicious or Compromised Agent","anchorId":"malicious-or-compromised-agent"}],"status":"present","rationale":"Компоненты без отдельного grant проходят parent runtime; отдельно granted child runtime использует собственный binding и direct app route, с parent linkage, attenuation и cascade revocation.","priority":"P0"},{"id":6,"title":"App-Side Enforcement Requirements","description":"закрепить, что app обязана проверять grant на каждое действие, а не доверять runtime assertion.","category":"Security / authority boundary","side":"right","anchors":[{"heading":"App-Side Enforcement Is Mandatory","anchorId":"app-side-enforcement-is-mandatory"},{"heading":"Model A: App-Issued Grant","anchorId":"model-a-app-issued-grant"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Malicious or Compromised Runtime","anchorId":"malicious-or-compromised-runtime"}],"status":"present","rationale":"Спецификация уже требует app-verifiable authorization для каждого действия и запрещает доверять одному runtime assertion.","priority":"P3"},{"id":7,"title":"OAuth RAR Profile","description":"описать Agent Grant как профиль OAuth Rich Authorization Requests через `authorization_details`.","category":"Grant / OAuth / authorization model","side":"left","anchors":[{"heading":"OAuth","anchorId":"oauth"},{"heading":"OAuth Grant Lifecycle Profile","anchorId":"oauth-grant-lifecycle-profile"},{"heading":"Rich Authorization Request Profile","anchorId":"rich-authorization-request-profile"},{"heading":"Agent Grant","anchorId":"agent-grant-2"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Grant Issuance Models","anchorId":"grant-issuance-models"}],"status":"present","rationale":"RFC задаёт collision-resistant Agent Grant authorization-details type, обязательные поля, consent/subset semantics, ошибки RFC 9396 и возврат authoritative granted object.","priority":"P2"},{"id":8,"title":"OAuth Token Exchange Profile","description":"добавить путь, где user/app session обменивается на constrained agent grant token.","category":"Grant / OAuth / authorization model","side":"right","anchors":[{"heading":"OAuth","anchorId":"oauth"},{"heading":"OAuth Token Exchange Profile","anchorId":"oauth-token-exchange-profile"},{"heading":"Grant Issuance Models","anchorId":"grant-issuance-models"},{"heading":"Model A: App-Issued Grant","anchorId":"model-a-app-issued-grant"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"}],"status":"present","rationale":"RFC профилирует RFC 8693 request/response, runtime/actor authentication, resource restriction, attenuation, proof binding и explicit derivation/revocation linkage.","priority":"P2"},{"id":9,"title":"Grant Proof vs Grant ID","description":"явно сказать, что `grant_id` — это идентификатор, а не authority без credential/proof.","category":"Grant / OAuth / authorization model","side":"left","anchors":[{"heading":"Grant Credential","anchorId":"grant-credential"},{"heading":"Grant Identifier Is Not Authority","anchorId":"grant-identifier-is-not-authority"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Action Request","anchorId":"action-request"}],"status":"present","rationale":"Текст прямо и нормативно определяет grant_id как correlation identifier, а не authority.","priority":"P3"},{"id":10,"title":"Grant Hash","description":"добавить канонический `grant_hash`, чтобы receipts и audit ссылались на конкретное содержимое grant.","category":"Grant / OAuth / authorization model","side":"right","anchors":[{"heading":"Grant Hash","anchorId":"grant-hash"},{"heading":"Canonical Object Hash Profile","anchorId":"canonical-object-hash-profile"},{"heading":"Action Request","anchorId":"action-request"},{"heading":"Receipt Hash Chain","anchorId":"receipt-hash-chain"}],"status":"present","rationale":"RFC определяет canonical grant_hash над authoritative Grant Object, связывает его с action context и receipts и требует отклонять несовпадение с текущим grant state.","priority":"P1"},{"id":11,"title":"Grant Introspection Contract","description":"определить минимальный ответ introspection endpoint: active, scopes, constraints, runtime, agent, passport hash, expiry.","category":"Grant / OAuth / authorization model","side":"left","anchors":[{"heading":"OAuth","anchorId":"oauth"},{"heading":"Grant Introspection Profile","anchorId":"grant-introspection-profile"},{"heading":"Endpoints","anchorId":"endpoints"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Grant Verification","anchorId":"grant-verification"}],"status":"present","rationale":"RFC задаёт authenticated RFC 7662 request, privacy-preserving inactive response и минимальный active contract со scope, tuple, constraints, surface, expiry и credential binding.","priority":"P1"},{"id":12,"title":"Grant Revocation Events","description":"стандартизировать событие `grant.revoked` и поведение runtime/app при его получении.","category":"Grant / OAuth / authorization model","side":"right","anchors":[{"heading":"Event","anchorId":"event"},{"heading":"Events","anchorId":"events"},{"heading":"Revocation Semantics","anchorId":"revocation-semantics"},{"heading":"OAuth Grant Revocation Profile","anchorId":"oauth-grant-revocation-profile"},{"heading":"Grant Revoked","anchorId":"grant-revoked"}],"status":"present","rationale":"RFC определяет RFC 7009 grant transition, cascade revocation, authenticated `grant.revoked` envelope, reason codes, idempotent runtime processing и границу с общей event delivery model.","priority":"P1"},{"id":13,"title":"Wire-Level Endpoints","description":"добавить в manifest явные URLs для action requests, grant request/introspection/revocation, events и receipts.","category":"Agent Surface Manifest","side":"left","anchors":[{"heading":"Agent Surface Manifest","anchorId":"agent-surface-manifest-2"},{"heading":"Endpoints","anchorId":"endpoints"},{"heading":"Example Manifest","anchorId":"example-manifest"},{"heading":"Discovery","anchorId":"discovery"}],"status":"present","rationale":"Manifest уже объявляет grant request/introspection/revocation, actions, events и receipts URLs.","priority":"P3"},{"id":14,"title":"Surface Hash","description":"добавить `surface_hash`, чтобы runtime и receipts ссылались не только на версию, но и на точный surface contract.","category":"Agent Surface Manifest","side":"right","anchors":[{"heading":"Surface Hash","anchorId":"surface-hash"},{"heading":"Canonical Object Hash Profile","anchorId":"canonical-object-hash-profile"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Surface Downgrade","anchorId":"surface-downgrade"}],"status":"present","rationale":"RFC определяет canonical surface_hash над точным manifest object, связывает его с grant и receipts, требует отклонять подмену/downgrade и явно отделяет внешнее содержимое schema URLs.","priority":"P1"},{"id":15,"title":"Surface Version Compatibility Rules","description":"формализовать, какие изменения surface breaking, а какие non-breaking.","category":"Agent Surface Manifest","side":"left","anchors":[{"heading":"Surface Version Changed","anchorId":"surface-version-changed"},{"heading":"Versioning and Compatibility","anchorId":"versioning-and-compatibility"}],"status":"present","rationale":"Breaking и non-breaking изменения уже классифицированы, включая schema, actions, risks, receipts и endpoint semantics.","priority":"P3"},{"id":16,"title":"Agent Surface Is Not Full API","description":"подчеркнуть, что surface — curated affordance layer, а не зеркало всего public/private API приложения.","category":"Agent Surface Manifest","side":"right","anchors":[{"heading":"Non-Goals","anchorId":"non-goals"},{"heading":"Agent Surface","anchorId":"agent-surface"},{"heading":"Model Context Protocol","anchorId":"model-context-protocol"},{"heading":"Application MVP Mapping","anchorId":"application-mvp-mapping"}],"status":"partial","rationale":"Surface отделён от API endpoint list и не заменяет existing APIs, но curated/selective exposure и запрет зеркалирования API не сформулированы явно.","priority":"P2"},{"id":17,"title":"OpenAPI / AsyncAPI Extensions","description":"разрешить генерировать Agent Surface из существующих API specs через `x-agent-surface` аннотации.","category":"Agent Surface Manifest","side":"left","anchors":[{"heading":"Agent Surface Manifest","anchorId":"agent-surface-manifest-2"},{"heading":"Resources","anchorId":"resources"},{"heading":"Actions","anchorId":"actions"},{"heading":"Events","anchorId":"events"}],"status":"missing","rationale":"JSON Schema URLs поддерживаются, но import/generation и x-agent-surface annotations для OpenAPI/AsyncAPI отсутствуют.","priority":"P3"},{"id":18,"title":"Proposal-Only Surface Mode","description":"дать app способ объявить, что агенты могут только предлагать изменения, но не делать writes напрямую.","category":"Agent Surface Manifest","side":"right","anchors":[{"heading":"Proposal Mode Is the Default","anchorId":"proposal-mode-is-the-default"},{"heading":"Proposal-Only Support","anchorId":"proposal-only-support"},{"heading":"Proposal Flow","anchorId":"proposal-flow"},{"heading":"Surface-Only Application","anchorId":"surface-only-application"}],"status":"partial","rationale":"Proposal-only actions полностью описаны, но нет формального top-level surface mode, запрещающего все direct writes.","priority":"P1"},{"id":19,"title":"Action Execution Modes","description":"добавить стандартные modes: `read`, `dry_run`, `propose`, `reserve`, `commit`, `compensate`, `revert`.","category":"Action semantics","side":"left","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Proposal-Only Support","anchorId":"proposal-only-support"},{"heading":"Risk Taxonomy","anchorId":"risk-taxonomy"},{"heading":"Proposal Flow","anchorId":"proposal-flow"}],"status":"partial","rationale":"Есть direct, write и proposal_only, но единая stateful модель read/dry_run/reserve/commit/compensate/revert отсутствует.","priority":"P1"},{"id":20,"title":"Effect Model","description":"дополнить risk taxonomy описанием эффекта: public/private, reversible/irreversible, internal/external, financial/security/deployment/etc.","category":"Action semantics","side":"right","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Risk Taxonomy","anchorId":"risk-taxonomy"},{"heading":"Approval Semantics","anchorId":"approval-semantics"},{"heading":"Security Considerations","anchorId":"security-considerations"}],"status":"partial","rationale":"Risk labels покрывают часть эффектов, но независимые dimensions visibility, reversibility, boundary и effect domain не моделируются.","priority":"P1"},{"id":21,"title":"Idempotency Normalization","description":"определить, как нормализуется input для проверки повторного idempotency key.","category":"Action semantics","side":"left","anchors":[{"heading":"Every Write Is Idempotent","anchorId":"every-write-is-idempotent"},{"heading":"Idempotency","anchorId":"idempotency"},{"heading":"Replay and Duplicate Actions","anchorId":"replay-and-duplicate-actions"}],"status":"partial","rationale":"RFC задаёт canonical hash точного wire input для receipt binding, но semantic normalization, defaults, set ordering и schema equivalence для idempotency остаются action-specific.","priority":"P1"},{"id":22,"title":"Preconditions and Effects Schemas","description":"дать actions схемы для preconditions и expected effects, чтобы runtime мог показать impact до commit.","category":"Action semantics","side":"right","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Action Request","anchorId":"action-request"},{"heading":"Action Response","anchorId":"action-response"},{"heading":"Proposal Flow","anchorId":"proposal-flow"}],"status":"missing","rationale":"Action model содержит input/output schemas, но не preconditions_schema, expected_effects_schema или impact preview.","priority":"P1"},{"id":23,"title":"Resource Lease / Reservation","description":"добавить lease model для задач, tickets, branch names и других ресурсов, чтобы несколько агентов не делали одно и то же.","category":"Action semantics","side":"left","anchors":[{"heading":"Capability Lease","anchorId":"capability-lease"},{"heading":"Resources","anchorId":"resources"},{"heading":"Actions","anchorId":"actions"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"}],"status":"missing","rationale":"Capability Lease относится к authorization grant; protocol-level reservation конкретных ресурсов и conflict semantics отсутствуют.","priority":"P2"},{"id":24,"title":"Compensation Semantics","description":"описать, какие действия можно откатить и какой action является компенсацией.","category":"Action semantics","side":"right","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Risk Taxonomy","anchorId":"risk-taxonomy"},{"heading":"Proposal Flow","anchorId":"proposal-flow"},{"heading":"Receipts","anchorId":"receipts"}],"status":"missing","rationale":"Reversibility частично отражена риском destructive, но compensation/revert action linkage и гарантии отката не определены.","priority":"P1"},{"id":25,"title":"CloudEvents Binding","description":"сделать app events совместимыми с CloudEvents или определить эквивалентный envelope.","category":"Events / sessions / AHP","side":"left","anchors":[{"heading":"Event","anchorId":"event"},{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Events","anchorId":"events"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"}],"status":"missing","rationale":"ASP определяет typed events со schema и scope, но CloudEvents envelope или эквивалентный canonical envelope отсутствует.","priority":"P2"},{"id":26,"title":"Event Delivery Semantics","description":"описать at-least-once delivery, ordering, replay cursor, retention, ack и backpressure.","category":"Events / sessions / AHP","side":"right","anchors":[{"heading":"Conceptual Architecture","anchorId":"conceptual-architecture"},{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Events","anchorId":"events"},{"heading":"Runtime Disconnected","anchorId":"runtime-disconnected"}],"status":"missing","rationale":"Transport hints присутствуют, но delivery guarantee, ordering, cursor, replay, retention, ack и backpressure не определены.","priority":"P1"},{"id":27,"title":"ASP-over-AHP Binding","description":"описать профиль, где AHP несёт session/UI state, а ASP-объекты остаются authority для grants/actions/receipts.","category":"Events / sessions / AHP","side":"left","anchors":[{"heading":"Agent Client Protocol","anchorId":"agent-client-protocol"},{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"},{"heading":"Receipts","anchorId":"receipts"}],"status":"missing","rationale":"Разделение transport и ASP semantics уже намечено для ACP/runtime bridge, но AHP binding нигде не определён.","priority":"P2"},{"id":28,"title":"Session Ownership Model","description":"уточнить, кто может стартовать, наблюдать, отменять и возобновлять session: user, app, runtime или agent.","category":"Events / sessions / AHP","side":"right","anchors":[{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Session Start","anchorId":"session-start"},{"heading":"Runtime Disconnected","anchorId":"runtime-disconnected"},{"heading":"User Session Expired","anchorId":"user-session-expired"}],"status":"partial","rationale":"App или runtime MAY start session, а cancel/resume упомянуты, но права start/observe/cancel/resume по ролям не формализованы.","priority":"P1"},{"id":29,"title":"Human Elicitation Events","description":"добавить не только approve/deny, но и clarify, choose option, edit proposal, redline diff, step-up auth.","category":"Events / sessions / AHP","side":"left","anchors":[{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Approval Semantics","anchorId":"approval-semantics"},{"heading":"Proposal Flow","anchorId":"proposal-flow"},{"heading":"Error Model","anchorId":"error-model"}],"status":"partial","rationale":"Есть approval required/resolved, но clarify, options, edit/redline и step-up auth message types отсутствуют.","priority":"P2"},{"id":30,"title":"Runtime Receipt vs App Receipt","description":"разделить receipt от runtime о запросе/approval и receipt от app о фактической мутации ресурса.","category":"Receipts / audit / provenance","side":"right","anchors":[{"heading":"Receipt","anchorId":"receipt"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"}],"status":"present","rationale":"Два типа receipts уже явно разделены по observed intent/policy и фактически committed/denied app mutation и связаны хешем.","priority":"P3"},{"id":31,"title":"Approval Receipt","description":"сделать approval/denial отдельным receipt, который можно связать с последующим write.","category":"Receipts / audit / provenance","side":"left","status":"partial","anchors":[{"heading":"Approval Semantics","anchorId":"approval-semantics"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"}],"rationale":"Approval уже связан с action receipt, но отдельного receipt type для approve/deny нет.","priority":"P1"},{"id":32,"title":"Receipt Hash Chain","description":"добавить `parent_receipt_hash`, `trace_id`, `surface_hash`, `grant_hash`, `policy_decision_hash`.","category":"Receipts / audit / provenance","side":"right","status":"present","anchors":[{"heading":"Receipt Hash Chain","anchorId":"receipt-hash-chain"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Receipt Forgery","anchorId":"receipt-forgery"}],"rationale":"Runtime/App receipts образуют проверяемую цепочку через receipt_hash и parent_receipt_hash и несут surface_hash, grant_hash, policy_decision_hash и trace context.","priority":"P1"},{"id":33,"title":"Receipt Signing Profile","description":"оставить MVP unsigned, но заранее определить будущий профиль canonicalization + signatures.","category":"Receipts / audit / provenance","side":"left","status":"present","anchors":[{"heading":"Receipt Signing Profile","anchorId":"receipt-signing-profile"},{"heading":"Canonical Object Hash Profile","anchorId":"canonical-object-hash-profile"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Receipt Forgery","anchorId":"receipt-forgery"}],"rationale":"RFC задаёт concrete JCS canonicalization и detached JWS profile, signing input, algorithm/key verification и downgrade behavior; unsigned receipts остаются допустимы в MVP.","priority":"P2"},{"id":34,"title":"Denied Action Receipts","description":"логировать не только успешные writes, но и важные deny/fail decisions.","category":"Receipts / audit / provenance","side":"right","status":"present","anchors":[{"heading":"Receipts Are First-Class","anchorId":"receipts-are-first-class"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"}],"rationale":"Требование уже закреплено как design principle, app semantics и conformance requirement.","priority":"P2"},{"id":35,"title":"Policy Decision Object","description":"стандартизировать объяснимый объект `policy.decision` с reason code, matched rules и safe-to-show текстом.","category":"Receipts / audit / provenance","side":"left","status":"present","anchors":[{"heading":"Policy Decision Object","anchorId":"policy-decision-object"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Error Model","anchorId":"error-model"}],"rationale":"RFC задаёт типизированный policy.decision с outcome, reason_code, matched_rules, safe-to-show explanation, policy version и проверяемым policy_decision_hash.","priority":"P1"},{"id":36,"title":"Data Exposure Contract","description":"для каждого resource/action описывать, какие классы данных агент увидит и какие redaction/retention правила применяются.","category":"Privacy / data exposure","side":"right","status":"partial","anchors":[{"heading":"Resources","anchorId":"resources"},{"heading":"Actions","anchorId":"actions"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Для resources есть redaction и retention hooks, но нет классов данных и per-action exposure contract.","priority":"P0"},{"id":37,"title":"Agent Training Use Policy","description":"явно указывать, можно ли agent/provider использовать данные для обучения или только для transient processing.","category":"Privacy / data exposure","side":"left","status":"missing","anchors":[{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Training, model improvement и transient-only processing в RFC не рассматриваются.","priority":"P2"},{"id":38,"title":"Remote Agent Restrictions","description":"различать local, enterprise-managed и remote user-selected agents с разными data exposure defaults.","category":"Privacy / data exposure","side":"right","status":"partial","anchors":[{"heading":"User-Owned Agent","anchorId":"user-owned-agent"},{"heading":"Runtime","anchorId":"runtime"},{"heading":"Malicious or Compromised Application","anchorId":"malicious-or-compromised-application"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Deployment locations перечислены, но для local, managed и remote agents не заданы разные exposure defaults.","priority":"P2"},{"id":39,"title":"Pseudonymous Receipts","description":"разрешить receipts со стабильными псевдонимами пользователя вместо раскрытия реального user id.","category":"Privacy / data exposure","side":"left","status":"present","anchors":[{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Stable pseudonymous user references уже явно разрешены в receipts и privacy requirements.","priority":"P2"},{"id":40,"title":"Secrets Boundary","description":"определить, что secrets, tokens, cookies и private credentials не попадают в agent-visible context без отдельного privileged grant.","category":"Privacy / data exposure","side":"right","status":"present","anchors":[{"heading":"Agent Does Not Receive Raw Authority","anchorId":"agent-does-not-receive-raw-authority"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Raw Token Leakage","anchorId":"raw-token-leakage"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Secrets и credentials остаются вне agent-visible context; `credential.release` допускает только новый attenuated non-Surface credential с обязательным rejection на Agent Surface endpoints.","priority":"P0"},{"id":41,"title":"Runtime Identity Classes","description":"описать `registered_device`, `spiffe`, `oidc_workload`, `hardware_attested`, `enterprise_managed`.","category":"Runtime / Agent Passport / identity","side":"left","status":"missing","anchors":[{"heading":"Runtime","anchorId":"runtime"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Error Model","anchorId":"error-model"},{"heading":"Open Questions","anchorId":"open-questions"}],"rationale":"Runtime описан концептуально, но registered_device, SPIFFE, OIDC workload и другие identity classes отсутствуют.","priority":"P2"},{"id":42,"title":"Minimal Agent Passport Profile","description":"определить минимальный набор passport fields, достаточный для grant issuance.","category":"Runtime / Agent Passport / identity","side":"right","status":"missing","anchors":[{"heading":"Agent Passport","anchorId":"agent-passport"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Application Runtime Profile","anchorId":"application-runtime-profile"},{"heading":"Open Questions","anchorId":"open-questions"}],"rationale":"Набор обязательных passport fields не определён и прямо оставлен open question.","priority":"P0"},{"id":43,"title":"Passport Revocation Handling","description":"уточнить, что происходит с grants и active sessions при истечении или отзыве паспорта.","category":"Runtime / Agent Passport / identity","side":"left","status":"present","anchors":[{"heading":"Agent Passport Revoked or Expired","anchorId":"agent-passport-revoked-or-expired"},{"heading":"Grant Revoked","anchorId":"grant-revoked"},{"heading":"Grant Verification","anchorId":"grant-verification"}],"rationale":"RFC уже задаёт поведение для новых запусков, active sessions и связанных grants.","priority":"P1"},{"id":44,"title":"Capability Matching Output","description":"стандартизировать результат matching: compatible agents, missing capabilities, risks, required scopes, required approvals.","category":"Runtime / Agent Passport / identity","side":"right","status":"partial","anchors":[{"heading":"Capability Matching","anchorId":"capability-matching"}],"rationale":"Все требуемые смысловые outputs перечислены, но нет нормативного wire object или schema.","priority":"P2"},{"id":45,"title":"Runtime Attestation Optional Profile","description":"добавить future profile для подтверждения integrity runtime, но не требовать его в MVP.","category":"Runtime / Agent Passport / identity","side":"left","status":"partial","anchors":[{"heading":"Malicious or Compromised Runtime","anchorId":"malicious-or-compromised-runtime"},{"heading":"Error Model","anchorId":"error-model"},{"heading":"Open Questions","anchorId":"open-questions"}],"rationale":"Attestation предусмотрена как возможность и open question, но optional profile и MVP boundary не описаны.","priority":"P2"},{"id":46,"title":"Consent Preview","description":"runtime должен показывать пользователю понятное резюме grant: app, agent, scopes, resources, duration, writes, data exposure.","category":"UX / consent","side":"right","status":"partial","anchors":[{"heading":"Grant Lifecycle","anchorId":"grant-lifecycle"},{"heading":"Capability Matching","anchorId":"capability-matching"},{"heading":"Malicious or Compromised Application","anchorId":"malicious-or-compromised-application"},{"heading":"Example End-to-End Flow","anchorId":"example-end-to-end-flow"}],"rationale":"Есть хороший пример consent summary, но нет полного нормативного contract, особенно для data exposure.","priority":"P0"},{"id":47,"title":"Impact Simulation","description":"consent screen может показывать примеры allowed и denied действий для снижения consent fatigue.","category":"UX / consent","side":"left","status":"missing","anchors":[{"heading":"Capability Matching","anchorId":"capability-matching"},{"heading":"Example End-to-End Flow","anchorId":"example-end-to-end-flow"}],"rationale":"Consent flow не показывает simulated allowed/denied examples или прогноз impact.","priority":"P3"},{"id":48,"title":"Risk Explanation UI Hints","description":"manifest может включать human-readable risk summaries для actions.","category":"UX / consent","side":"right","status":"partial","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Risk Taxonomy","anchorId":"risk-taxonomy"},{"heading":"Capability Matching","anchorId":"capability-matching"}],"rationale":"Machine-readable risk labels и matching summary есть, human-readable manifest hints отсутствуют.","priority":"P2"},{"id":49,"title":"Default Proposal-First UX","description":"пользовательский flow должен сначала позволять agent propose, а не write.","category":"UX / consent","side":"left","status":"present","anchors":[{"heading":"Proposal Mode Is the Default","anchorId":"proposal-mode-is-the-default"},{"heading":"Proposal-Only Support","anchorId":"proposal-only-support"},{"heading":"Proposal Flow","anchorId":"proposal-flow"}],"rationale":"Proposal-first уже закреплён как design principle и RECOMMENDED integration flow.","priority":"P1"},{"id":50,"title":"Revocation UX Contract","description":"определить, где пользователь видит активные grants и как быстро может их отозвать.","category":"UX / consent","side":"right","status":"partial","anchors":[{"heading":"Endpoints","anchorId":"endpoints"},{"heading":"Revocation Semantics","anchorId":"revocation-semantics"},{"heading":"Grant Revoked","anchorId":"grant-revoked"},{"heading":"Malicious or Compromised Application","anchorId":"malicious-or-compromised-application"}],"rationale":"Protocol plumbing и post-revocation behavior есть, но active-grants UI и latency expectation не определены.","priority":"P1"},{"id":51,"title":"Budget Caveats","description":"добавить в grant constraints лимиты по cost, tokens, runtime seconds, tool calls, write actions и parallel sessions.","category":"Economics / limits / operations","side":"left","status":"partial","anchors":[{"heading":"Capability Lease","anchorId":"capability-lease"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Malicious or Compromised Agent","anchorId":"malicious-or-compromised-agent"}],"rationale":"Action и cost budgets есть; token, runtime, tool-call, write и parallel-session limits отсутствуют.","priority":"P1"},{"id":52,"title":"Budget Events","description":"стандартизировать `budget.warning`, `budget.exceeded`, `session.paused_budget`.","category":"Economics / limits / operations","side":"right","status":"missing","anchors":[{"heading":"Events","anchorId":"events"},{"heading":"Grant Revoked","anchorId":"grant-revoked"}],"rationale":"Event mechanism существует, но budget.warning, budget.exceeded и session.paused_budget не определены.","priority":"P2"},{"id":53,"title":"Rate Limits and Quotas","description":"surface должен объявлять ограничения на actions/events, чтобы runtime мог планировать нагрузку.","category":"Economics / limits / operations","side":"left","status":"missing","anchors":[{"heading":"Required Top-Level Fields","anchorId":"required-top-level-fields"},{"heading":"Actions","anchorId":"actions"},{"heading":"Events","anchorId":"events"}],"rationale":"Manifest не имеет rate-limit или quota declarations для actions и event delivery.","priority":"P2"},{"id":54,"title":"Runaway Loop Protection","description":"runtime должен иметь обязательные guards на повторяющиеся действия, retries и event-triggered loops.","category":"Economics / limits / operations","side":"right","status":"partial","anchors":[{"heading":"Every Write Is Idempotent","anchorId":"every-write-is-idempotent"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Malicious or Compromised Agent","anchorId":"malicious-or-compromised-agent"},{"heading":"Replay and Duplicate Actions","anchorId":"replay-and-duplicate-actions"}],"rationale":"Idempotency и общие limits снижают ущерб, но обязательных repeat/retry/event-loop guards нет.","priority":"P0"},{"id":55,"title":"Observability Fields","description":"добавить trace/span/session ids, чтобы ASP действия связывались с app logs, runtime logs и receipts.","category":"Economics / limits / operations","side":"left","status":"present","anchors":[{"heading":"Observability Context","anchorId":"observability-context"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"},{"heading":"Action Request","anchorId":"action-request"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"}],"rationale":"RFC задаёт W3C-compatible creation и propagation semantics для trace_id, span_id и session_id через sessions, actions, receipts и adapter/log context и отделяет correlation от authority.","priority":"P2"},{"id":56,"title":"Conformance Profiles","description":"разделить conformance на Surface Publisher, Grant Issuer, Action Executor, Receipt Producer, Runtime Mediator и Agent Adapter.","category":"Conformance / tooling / adoption","side":"right","status":"partial","anchors":[{"heading":"Conformance","anchorId":"conformance"},{"heading":"Grant-Enforcing Application","anchorId":"grant-enforcing-application"},{"heading":"Application Runtime Profile","anchorId":"application-runtime-profile"},{"heading":"Agent Adapter","anchorId":"agent-adapter"}],"rationale":"Role profiles уже есть, но Grant Issuer и Action Executor объединены, а именование ролей не унифицировано.","priority":"P2"},{"id":57,"title":"ASP Manifest Linter","description":"сделать tooling, который проверяет missing schemas, missing risk labels, missing idempotency и inconsistent scopes.","category":"Conformance / tooling / adoption","side":"left","status":"missing","anchors":[{"heading":"Required Top-Level Fields","anchorId":"required-top-level-fields"},{"heading":"Resources","anchorId":"resources"},{"heading":"Actions","anchorId":"actions"},{"heading":"Surface-Only Application","anchorId":"surface-only-application"}],"rationale":"Проверяемые требования существуют, но linter, ruleset и diagnostics contract отсутствуют.","priority":"P3"},{"id":58,"title":"Mock App / Mock Runtime","description":"дать reference fixtures для тестирования приложений и runtimes без реального агента.","category":"Conformance / tooling / adoption","side":"right","status":"missing","anchors":[{"heading":"Conceptual Architecture","anchorId":"conceptual-architecture"},{"heading":"Application MVP Mapping","anchorId":"application-mvp-mapping"},{"heading":"Example End-to-End Flow","anchorId":"example-end-to-end-flow"}],"rationale":"Есть architecture и implementation roadmap, но reference fixtures или mock implementations не заявлены.","priority":"P3"},{"id":59,"title":"Replay Tool","description":"добавить формат, позволяющий воспроизвести session/events/receipts для debugging и audit.","category":"Conformance / tooling / adoption","side":"left","status":"missing","anchors":[{"heading":"Events","anchorId":"events"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"},{"heading":"Receipts","anchorId":"receipts"},{"heading":"Application MVP Mapping","anchorId":"application-mvp-mapping"}],"rationale":"Session/event/receipt primitives есть, но portable replay bundle format и tool отсутствуют.","priority":"P3"},{"id":60,"title":"Interop Test Suite","description":"подготовить набор обязательных тестов для grant verification, idempotency conflicts, revocation, receipts и denied actions.","category":"Conformance / tooling / adoption","side":"right","status":"missing","anchors":[{"heading":"Idempotency","anchorId":"idempotency"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Revocation Semantics","anchorId":"revocation-semantics"},{"heading":"Conformance","anchorId":"conformance"}],"rationale":"Нормативные области для тестов определены, но обязательных test cases и interop suite нет.","priority":"P2"}];
+  const reviews = [{"id":1,"title":"Reference Monitor Invariants","description":"явно зафиксировать, что все app-действия агента должны проходить через runtime, а агент не получает прямую authority по умолчанию.","category":"Security / authority boundary","side":"left","anchors":[{"heading":"Abstract","anchorId":"abstract"},{"heading":"App Exposes, Runtime Mediates, Agent Executes","anchorId":"app-exposes-runtime-mediates-agent-executes"},{"heading":"Agent Does Not Receive Raw Authority","anchorId":"agent-does-not-receive-raw-authority"},{"heading":"Application Runtime Profile","anchorId":"application-runtime-profile"}],"status":"present","rationale":"RFC теперь определяет runtime как reference monitor: каждое agent-initiated действие к Agent Surface проходит через runtime, а app-side verification остаётся обязательной.","priority":"P0"},{"id":2,"title":"Grant Credential Binding","description":"описать, чем именно runtime доказывает app, что grant принадлежит конкретному runtime/agent/passport tuple.","category":"Security / authority boundary","side":"right","anchors":[{"heading":"Agent Grant","anchorId":"agent-grant-2"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Grant Verification","anchorId":"grant-verification"}],"status":"present","rationale":"RFC требует app-verifiable binding grant credential к grant, audience, runtime, agent и passport hash; introspection и session profiles не могут подменяться runtime assertion.","priority":"P0"},{"id":3,"title":"Sender-Constrained Grants","description":"поддержать DPoP, mTLS, workload identity или аналог, чтобы украденный bearer-token не давал полномочий сам по себе.","category":"Security / authority boundary","side":"left","anchors":[{"heading":"Grant Credential","anchorId":"grant-credential"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Action Request","anchorId":"action-request"},{"heading":"Stolen Grant Credential","anchorId":"stolen-grant-credential"},{"heading":"Proof-Bound Grant-Enforcing Application","anchorId":"proof-bound-grant-enforcing-application"}],"status":"present","rationale":"Proof-Bound Credential и Proof-Bound Grant-Enforcing profiles требуют per-request possession proof; DPoP, mTLS и server-session проверки имеют отдельную корректную replay semantics.","priority":"P0"},{"id":4,"title":"Credential Release Policy","description":"сделать выдачу raw app token агенту отдельной privileged capability, запрещённой по умолчанию.","category":"Security / authority boundary","side":"right","anchors":[{"heading":"Agent Does Not Receive Raw Authority","anchorId":"agent-does-not-receive-raw-authority"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Raw Token Leakage","anchorId":"raw-token-leakage"},{"heading":"Agent Adapter","anchorId":"agent-adapter"}],"status":"present","rationale":"Raw credential release — default-deny capability `credential.release`; выдаётся только новый attenuated credential для non-Agent-Surface audience, который app обязана отклонять на Surface endpoints.","priority":"P0"},{"id":5,"title":"Subdelegation Rules","description":"явно описать, может ли агент вызывать субагентов, remote models, MCP servers или другие runtimes.","category":"Security / authority boundary","side":"left","anchors":[{"heading":"Runtime","anchorId":"runtime"},{"heading":"Subdelegation","anchorId":"subdelegation"},{"heading":"Model Context Protocol","anchorId":"model-context-protocol"},{"heading":"4. Agent Adapter Protocol","anchorId":"4-agent-adapter-protocol"},{"heading":"Malicious or Compromised Agent","anchorId":"malicious-or-compromised-agent"}],"status":"present","rationale":"Компоненты без отдельного grant проходят parent runtime; отдельно granted child runtime использует собственный binding и direct app route, с parent linkage, attenuation и cascade revocation.","priority":"P0"},{"id":6,"title":"App-Side Enforcement Requirements","description":"закрепить, что app обязана проверять grant на каждое действие, а не доверять runtime assertion.","category":"Security / authority boundary","side":"right","anchors":[{"heading":"App-Side Enforcement Is Mandatory","anchorId":"app-side-enforcement-is-mandatory"},{"heading":"Model A: App-Issued Grant","anchorId":"model-a-app-issued-grant"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Malicious or Compromised Runtime","anchorId":"malicious-or-compromised-runtime"}],"status":"present","rationale":"Спецификация уже требует app-verifiable authorization для каждого действия и запрещает доверять одному runtime assertion.","priority":"P3"},{"id":7,"title":"OAuth RAR Profile","description":"описать Agent Grant как профиль OAuth Rich Authorization Requests через `authorization_details`.","category":"Grant / OAuth / authorization model","side":"left","anchors":[{"heading":"OAuth","anchorId":"oauth"},{"heading":"OAuth Grant Lifecycle Profile","anchorId":"oauth-grant-lifecycle-profile"},{"heading":"Rich Authorization Request Profile","anchorId":"rich-authorization-request-profile"},{"heading":"Agent Grant","anchorId":"agent-grant-2"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Grant Issuance Models","anchorId":"grant-issuance-models"}],"status":"present","rationale":"RFC задаёт collision-resistant Agent Grant authorization-details type, обязательные поля, consent/subset semantics, ошибки RFC 9396 и возврат authoritative granted object.","priority":"P2"},{"id":8,"title":"OAuth Token Exchange Profile","description":"добавить путь, где user/app session обменивается на constrained agent grant token.","category":"Grant / OAuth / authorization model","side":"right","anchors":[{"heading":"OAuth","anchorId":"oauth"},{"heading":"OAuth Token Exchange Profile","anchorId":"oauth-token-exchange-profile"},{"heading":"Grant Issuance Models","anchorId":"grant-issuance-models"},{"heading":"Model A: App-Issued Grant","anchorId":"model-a-app-issued-grant"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"}],"status":"present","rationale":"RFC профилирует RFC 8693 request/response, runtime/actor authentication, resource restriction, attenuation, proof binding и explicit derivation/revocation linkage.","priority":"P2"},{"id":9,"title":"Grant Proof vs Grant ID","description":"явно сказать, что `grant_id` — это идентификатор, а не authority без credential/proof.","category":"Grant / OAuth / authorization model","side":"left","anchors":[{"heading":"Grant Credential","anchorId":"grant-credential"},{"heading":"Grant Identifier Is Not Authority","anchorId":"grant-identifier-is-not-authority"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Action Request","anchorId":"action-request"}],"status":"present","rationale":"Текст прямо и нормативно определяет grant_id как correlation identifier, а не authority.","priority":"P3"},{"id":10,"title":"Grant Hash","description":"добавить канонический `grant_hash`, чтобы receipts и audit ссылались на конкретное содержимое grant.","category":"Grant / OAuth / authorization model","side":"right","anchors":[{"heading":"Grant Hash","anchorId":"grant-hash"},{"heading":"Canonical Object Hash Profile","anchorId":"canonical-object-hash-profile"},{"heading":"Action Request","anchorId":"action-request"},{"heading":"Receipt Hash Chain","anchorId":"receipt-hash-chain"}],"status":"present","rationale":"RFC определяет canonical grant_hash над authoritative Grant Object, связывает его с action context и receipts и требует отклонять несовпадение с текущим grant state.","priority":"P1"},{"id":11,"title":"Grant Introspection Contract","description":"определить минимальный ответ introspection endpoint: active, scopes, constraints, runtime, agent, passport hash, expiry.","category":"Grant / OAuth / authorization model","side":"left","anchors":[{"heading":"OAuth","anchorId":"oauth"},{"heading":"Grant Introspection Profile","anchorId":"grant-introspection-profile"},{"heading":"Endpoints","anchorId":"endpoints"},{"heading":"Grant Credentials and Proof","anchorId":"grant-credentials-and-proof"},{"heading":"Grant Verification","anchorId":"grant-verification"}],"status":"present","rationale":"RFC задаёт authenticated RFC 7662 request, privacy-preserving inactive response и минимальный active contract со scope, tuple, constraints, surface, expiry и credential binding.","priority":"P1"},{"id":12,"title":"Grant Revocation Events","description":"стандартизировать событие `grant.revoked` и поведение runtime/app при его получении.","category":"Grant / OAuth / authorization model","side":"right","anchors":[{"heading":"Event","anchorId":"event"},{"heading":"Events","anchorId":"events"},{"heading":"Revocation Semantics","anchorId":"revocation-semantics"},{"heading":"OAuth Grant Revocation Profile","anchorId":"oauth-grant-revocation-profile"},{"heading":"Grant Revoked","anchorId":"grant-revoked"}],"status":"present","rationale":"RFC определяет RFC 7009 grant transition, cascade revocation, authenticated `grant.revoked` envelope, reason codes, idempotent runtime processing и границу с общей event delivery model.","priority":"P1"},{"id":13,"title":"Wire-Level Endpoints","description":"добавить в manifest явные URLs для action requests, grant request/introspection/revocation, events и receipts.","category":"Agent Surface Manifest","side":"left","anchors":[{"heading":"Agent Surface Manifest","anchorId":"agent-surface-manifest-2"},{"heading":"Endpoints","anchorId":"endpoints"},{"heading":"Example Manifest","anchorId":"example-manifest"},{"heading":"Discovery","anchorId":"discovery"}],"status":"present","rationale":"Manifest уже объявляет grant request/introspection/revocation, actions, events и receipts URLs.","priority":"P3"},{"id":14,"title":"Surface Hash","description":"добавить `surface_hash`, чтобы runtime и receipts ссылались не только на версию, но и на точный surface contract.","category":"Agent Surface Manifest","side":"right","anchors":[{"heading":"Surface Hash","anchorId":"surface-hash"},{"heading":"Canonical Object Hash Profile","anchorId":"canonical-object-hash-profile"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Surface Downgrade","anchorId":"surface-downgrade"}],"status":"present","rationale":"RFC определяет canonical surface_hash над точным manifest object, связывает его с grant и receipts, требует отклонять подмену/downgrade и явно отделяет внешнее содержимое schema URLs.","priority":"P1"},{"id":15,"title":"Surface Version Compatibility Rules","description":"формализовать, какие изменения surface breaking, а какие non-breaking.","category":"Agent Surface Manifest","side":"left","anchors":[{"heading":"Surface Version Changed","anchorId":"surface-version-changed"},{"heading":"Versioning and Compatibility","anchorId":"versioning-and-compatibility"}],"status":"present","rationale":"Breaking и non-breaking изменения уже классифицированы, включая schema, actions, risks, receipts и endpoint semantics.","priority":"P3"},{"id":16,"title":"Agent Surface Is Not Full API","description":"подчеркнуть, что surface — curated affordance layer, а не зеркало всего public/private API приложения.","category":"Agent Surface Manifest","side":"right","anchors":[{"heading":"Non-Goals","anchorId":"non-goals"},{"heading":"Agent Surface","anchorId":"agent-surface"},{"heading":"Model Context Protocol","anchorId":"model-context-protocol"},{"heading":"Application MVP Mapping","anchorId":"application-mvp-mapping"}],"status":"partial","rationale":"Surface отделён от API endpoint list и не заменяет existing APIs, но curated/selective exposure и запрет зеркалирования API не сформулированы явно.","priority":"P2"},{"id":17,"title":"OpenAPI / AsyncAPI Extensions","description":"разрешить генерировать Agent Surface из существующих API specs через `x-agent-surface` аннотации.","category":"Agent Surface Manifest","side":"left","anchors":[{"heading":"Agent Surface Manifest","anchorId":"agent-surface-manifest-2"},{"heading":"Resources","anchorId":"resources"},{"heading":"Actions","anchorId":"actions"},{"heading":"Events","anchorId":"events"}],"status":"missing","rationale":"JSON Schema URLs поддерживаются, но import/generation и x-agent-surface annotations для OpenAPI/AsyncAPI отсутствуют.","priority":"P3"},{"id":18,"title":"Proposal-Only Surface Mode","description":"дать app способ объявить, что агенты могут только предлагать изменения, но не делать writes напрямую.","category":"Agent Surface Manifest","side":"right","anchors":[{"heading":"Proposal Mode Is the Default","anchorId":"proposal-mode-is-the-default"},{"heading":"Proposal-Only Support","anchorId":"proposal-only-support"},{"heading":"Proposal Flow","anchorId":"proposal-flow"},{"heading":"Surface-Only Application","anchorId":"surface-only-application"}],"status":"partial","rationale":"Proposal-only actions полностью описаны, но нет формального top-level surface mode, запрещающего все direct writes.","priority":"P1"},{"id":19,"title":"Action Execution Modes","description":"добавить стандартные modes: `read`, `dry_run`, `propose`, `reserve`, `commit`, `compensate`, `revert`.","category":"Action semantics","side":"left","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Static Execution Modes","anchorId":"static-execution-modes"},{"heading":"Companion Actions and Transitions","anchorId":"companion-actions-and-transitions"},{"heading":"Execution Context and Binding","anchorId":"execution-context-and-binding"}],"status":"present","rationale":"RFC задаёт семь static execution modes, отдельные companion actions и reciprocal transitions; каждый stage независимо связан с action id, scope, approval, grant и canonical execution context.","priority":"P1"},{"id":20,"title":"Effect Model","description":"дополнить risk taxonomy описанием эффекта: public/private, reversible/irreversible, internal/external, financial/security/deployment/etc.","category":"Action semantics","side":"right","anchors":[{"heading":"Risk Taxonomy","anchorId":"risk-taxonomy"},{"heading":"Effect Model","anchorId":"effect-model"},{"heading":"Approval Semantics","anchorId":"approval-semantics"},{"heading":"Execution Mode Confusion, TOCTOU, and Reservation Abuse","anchorId":"execution-mode-confusion-toctou-and-reservation-abuse"}],"status":"present","rationale":"Нормативный Effect Model разделяет visibility, boundary, reversibility, domain, operation и resource type, связывает их с risk floor и различает declared, expected и actual effects с canonical hashes.","priority":"P1"},{"id":21,"title":"Idempotency Normalization","description":"определить, как нормализуется input для проверки повторного idempotency key.","category":"Action semantics","side":"left","anchors":[{"heading":"Every Write Is Idempotent","anchorId":"every-write-is-idempotent"},{"heading":"Idempotency","anchorId":"idempotency"},{"heading":"Replay and Duplicate Actions","anchorId":"replay-and-duplicate-actions"}],"status":"partial","rationale":"RFC задаёт canonical hash точного wire input для receipt binding, но semantic normalization, defaults, set ordering и schema equivalence для idempotency остаются action-specific.","priority":"P1"},{"id":22,"title":"Preconditions and Effects Schemas","description":"дать actions схемы для preconditions и expected effects, чтобы runtime мог показать impact до commit.","category":"Action semantics","side":"right","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Preconditions and Effect Preview","anchorId":"preconditions-and-effect-preview"},{"heading":"Action Request","anchorId":"action-request"},{"heading":"Action Response","anchorId":"action-response"}],"status":"present","rationale":"Actions могут объявлять preconditions_schema, expected_effects_schema и actual_effects_schema; dry-run возвращает immutable time-bounded preview, а commit атомарно перепроверяет state и approved effect hashes.","priority":"P1"},{"id":23,"title":"Resource Lease / Reservation","description":"добавить lease model для задач, tickets, branch names и других ресурсов, чтобы несколько агентов не делали одно и то же.","category":"Action semantics","side":"left","anchors":[{"heading":"Resource Reservation","anchorId":"resource-reservation"},{"heading":"Resource Reservations","anchorId":"resource-reservations"},{"heading":"Idempotency","anchorId":"idempotency"},{"heading":"Grant Revoked","anchorId":"grant-revoked"}],"status":"present","rationale":"RFC отделяет reservation от authority и задаёт canonical target identity, shared/exclusive conflict matrix, atomic acquire, optional renew и mandatory release actions, holder binding, bounded TTL, idempotency, consume и invalidation lifecycle.","priority":"P2"},{"id":24,"title":"Compensation Semantics","description":"описать, какие действия можно откатить и какой action является компенсацией.","category":"Action semantics","side":"right","anchors":[{"heading":"Compensation","anchorId":"compensation"},{"heading":"Compensation and Revert","anchorId":"compensation-and-revert"},{"heading":"Effect Model","anchorId":"effect-model"},{"heading":"Receipt Hash Chain","anchorId":"receipt-hash-chain"}],"status":"present","rationale":"Commit и recovery actions имеют reciprocal effect-level links и recovery window; recovery независимо авторизуется, агрегирует cumulative limits, проверяет target surface/receipt, а revert требует receipt-bound prior-state evidence и atomic revision check.","priority":"P1"},{"id":25,"title":"CloudEvents Binding","description":"сделать app events совместимыми с CloudEvents или определить эквивалентный envelope.","category":"Events / sessions / AHP","side":"left","anchors":[{"heading":"Event","anchorId":"event"},{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Events","anchorId":"events"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"}],"status":"missing","rationale":"ASP определяет typed events со schema и scope, но CloudEvents envelope или эквивалентный canonical envelope отсутствует.","priority":"P2"},{"id":26,"title":"Event Delivery Semantics","description":"описать at-least-once delivery, ordering, replay cursor, retention, ack и backpressure.","category":"Events / sessions / AHP","side":"right","anchors":[{"heading":"Conceptual Architecture","anchorId":"conceptual-architecture"},{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Events","anchorId":"events"},{"heading":"Runtime Disconnected","anchorId":"runtime-disconnected"}],"status":"missing","rationale":"Transport hints присутствуют, но delivery guarantee, ordering, cursor, replay, retention, ack и backpressure не определены.","priority":"P1"},{"id":27,"title":"ASP-over-AHP Binding","description":"описать профиль, где AHP несёт session/UI state, а ASP-объекты остаются authority для grants/actions/receipts.","category":"Events / sessions / AHP","side":"left","anchors":[{"heading":"Agent Client Protocol","anchorId":"agent-client-protocol"},{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"},{"heading":"Receipts","anchorId":"receipts"}],"status":"missing","rationale":"Разделение transport и ASP semantics уже намечено для ACP/runtime bridge, но AHP binding нигде не определён.","priority":"P2"},{"id":28,"title":"Session Ownership Model","description":"уточнить, кто может стартовать, наблюдать, отменять и возобновлять session: user, app, runtime или agent.","category":"Events / sessions / AHP","side":"right","anchors":[{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Session Start","anchorId":"session-start"},{"heading":"Runtime Disconnected","anchorId":"runtime-disconnected"},{"heading":"User Session Expired","anchorId":"user-session-expired"}],"status":"partial","rationale":"App или runtime MAY start session, а cancel/resume упомянуты, но права start/observe/cancel/resume по ролям не формализованы.","priority":"P1"},{"id":29,"title":"Human Elicitation Events","description":"добавить не только approve/deny, но и clarify, choose option, edit proposal, redline diff, step-up auth.","category":"Events / sessions / AHP","side":"left","anchors":[{"heading":"3. Runtime Bridge Protocol","anchorId":"3-runtime-bridge-protocol"},{"heading":"Approval Semantics","anchorId":"approval-semantics"},{"heading":"Proposal Flow","anchorId":"proposal-flow"},{"heading":"Error Model","anchorId":"error-model"}],"status":"partial","rationale":"Есть approval required/resolved, но clarify, options, edit/redline и step-up auth message types отсутствуют.","priority":"P2"},{"id":30,"title":"Runtime Receipt vs App Receipt","description":"разделить receipt от runtime о запросе/approval и receipt от app о фактической мутации ресурса.","category":"Receipts / audit / provenance","side":"right","anchors":[{"heading":"Receipt","anchorId":"receipt"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"}],"status":"present","rationale":"Два типа receipts уже явно разделены по observed intent/policy и фактически committed/denied app mutation и связаны хешем.","priority":"P3"},{"id":31,"title":"Approval Receipt","description":"сделать approval/denial отдельным receipt, который можно связать с последующим write.","category":"Receipts / audit / provenance","side":"left","status":"partial","anchors":[{"heading":"Approval Semantics","anchorId":"approval-semantics"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"}],"rationale":"Approval уже связан с action receipt, но отдельного receipt type для approve/deny нет.","priority":"P1"},{"id":32,"title":"Receipt Hash Chain","description":"добавить `parent_receipt_hash`, `trace_id`, `surface_hash`, `grant_hash`, `policy_decision_hash`.","category":"Receipts / audit / provenance","side":"right","status":"present","anchors":[{"heading":"Receipt Hash Chain","anchorId":"receipt-hash-chain"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Receipt Forgery","anchorId":"receipt-forgery"}],"rationale":"Runtime/App receipts образуют проверяемую цепочку через receipt_hash и parent_receipt_hash и несут surface_hash, grant_hash, policy_decision_hash и trace context.","priority":"P1"},{"id":33,"title":"Receipt Signing Profile","description":"оставить MVP unsigned, но заранее определить будущий профиль canonicalization + signatures.","category":"Receipts / audit / provenance","side":"left","status":"present","anchors":[{"heading":"Receipt Signing Profile","anchorId":"receipt-signing-profile"},{"heading":"Canonical Object Hash Profile","anchorId":"canonical-object-hash-profile"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Receipt Forgery","anchorId":"receipt-forgery"}],"rationale":"RFC задаёт concrete JCS canonicalization и detached JWS profile, signing input, algorithm/key verification и downgrade behavior; unsigned receipts остаются допустимы в MVP.","priority":"P2"},{"id":34,"title":"Denied Action Receipts","description":"логировать не только успешные writes, но и важные deny/fail decisions.","category":"Receipts / audit / provenance","side":"right","status":"present","anchors":[{"heading":"Receipts Are First-Class","anchorId":"receipts-are-first-class"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"}],"rationale":"Требование уже закреплено как design principle, app semantics и conformance requirement.","priority":"P2"},{"id":35,"title":"Policy Decision Object","description":"стандартизировать объяснимый объект `policy.decision` с reason code, matched rules и safe-to-show текстом.","category":"Receipts / audit / provenance","side":"left","status":"present","anchors":[{"heading":"Policy Decision Object","anchorId":"policy-decision-object"},{"heading":"Runtime Receipt","anchorId":"runtime-receipt"},{"heading":"App Receipt","anchorId":"app-receipt"},{"heading":"Error Model","anchorId":"error-model"}],"rationale":"RFC задаёт типизированный policy.decision с outcome, reason_code, matched_rules, safe-to-show explanation, policy version и проверяемым policy_decision_hash.","priority":"P1"},{"id":36,"title":"Data Exposure Contract","description":"для каждого resource/action описывать, какие классы данных агент увидит и какие redaction/retention правила применяются.","category":"Privacy / data exposure","side":"right","status":"partial","anchors":[{"heading":"Resources","anchorId":"resources"},{"heading":"Actions","anchorId":"actions"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Для resources есть redaction и retention hooks, но нет классов данных и per-action exposure contract.","priority":"P0"},{"id":37,"title":"Agent Training Use Policy","description":"явно указывать, можно ли agent/provider использовать данные для обучения или только для transient processing.","category":"Privacy / data exposure","side":"left","status":"missing","anchors":[{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Training, model improvement и transient-only processing в RFC не рассматриваются.","priority":"P2"},{"id":38,"title":"Remote Agent Restrictions","description":"различать local, enterprise-managed и remote user-selected agents с разными data exposure defaults.","category":"Privacy / data exposure","side":"right","status":"partial","anchors":[{"heading":"User-Owned Agent","anchorId":"user-owned-agent"},{"heading":"Runtime","anchorId":"runtime"},{"heading":"Malicious or Compromised Application","anchorId":"malicious-or-compromised-application"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Deployment locations перечислены, но для local, managed и remote agents не заданы разные exposure defaults.","priority":"P2"},{"id":39,"title":"Pseudonymous Receipts","description":"разрешить receipts со стабильными псевдонимами пользователя вместо раскрытия реального user id.","category":"Privacy / data exposure","side":"left","status":"present","anchors":[{"heading":"Receipt Requirements","anchorId":"receipt-requirements"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Stable pseudonymous user references уже явно разрешены в receipts и privacy requirements.","priority":"P2"},{"id":40,"title":"Secrets Boundary","description":"определить, что secrets, tokens, cookies и private credentials не попадают в agent-visible context без отдельного privileged grant.","category":"Privacy / data exposure","side":"right","status":"present","anchors":[{"heading":"Agent Does Not Receive Raw Authority","anchorId":"agent-does-not-receive-raw-authority"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Raw Token Leakage","anchorId":"raw-token-leakage"},{"heading":"Privacy Considerations","anchorId":"privacy-considerations"}],"rationale":"Secrets и credentials остаются вне agent-visible context; `credential.release` допускает только новый attenuated non-Surface credential с обязательным rejection на Agent Surface endpoints.","priority":"P0"},{"id":41,"title":"Runtime Identity Classes","description":"описать `registered_device`, `spiffe`, `oidc_workload`, `hardware_attested`, `enterprise_managed`.","category":"Runtime / Agent Passport / identity","side":"left","status":"missing","anchors":[{"heading":"Runtime","anchorId":"runtime"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Error Model","anchorId":"error-model"},{"heading":"Open Questions","anchorId":"open-questions"}],"rationale":"Runtime описан концептуально, но registered_device, SPIFFE, OIDC workload и другие identity classes отсутствуют.","priority":"P2"},{"id":42,"title":"Minimal Agent Passport Profile","description":"определить минимальный набор passport fields, достаточный для grant issuance.","category":"Runtime / Agent Passport / identity","side":"right","status":"missing","anchors":[{"heading":"Agent Passport","anchorId":"agent-passport"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Application Runtime Profile","anchorId":"application-runtime-profile"},{"heading":"Open Questions","anchorId":"open-questions"}],"rationale":"Набор обязательных passport fields не определён и прямо оставлен open question.","priority":"P0"},{"id":43,"title":"Passport Revocation Handling","description":"уточнить, что происходит с grants и active sessions при истечении или отзыве паспорта.","category":"Runtime / Agent Passport / identity","side":"left","status":"present","anchors":[{"heading":"Agent Passport Revoked or Expired","anchorId":"agent-passport-revoked-or-expired"},{"heading":"Grant Revoked","anchorId":"grant-revoked"},{"heading":"Grant Verification","anchorId":"grant-verification"}],"rationale":"RFC уже задаёт поведение для новых запусков, active sessions и связанных grants.","priority":"P1"},{"id":44,"title":"Capability Matching Output","description":"стандартизировать результат matching: compatible agents, missing capabilities, risks, required scopes, required approvals.","category":"Runtime / Agent Passport / identity","side":"right","status":"partial","anchors":[{"heading":"Capability Matching","anchorId":"capability-matching"}],"rationale":"Все требуемые смысловые outputs перечислены, но нет нормативного wire object или schema.","priority":"P2"},{"id":45,"title":"Runtime Attestation Optional Profile","description":"добавить future profile для подтверждения integrity runtime, но не требовать его в MVP.","category":"Runtime / Agent Passport / identity","side":"left","status":"partial","anchors":[{"heading":"Malicious or Compromised Runtime","anchorId":"malicious-or-compromised-runtime"},{"heading":"Error Model","anchorId":"error-model"},{"heading":"Open Questions","anchorId":"open-questions"}],"rationale":"Attestation предусмотрена как возможность и open question, но optional profile и MVP boundary не описаны.","priority":"P2"},{"id":46,"title":"Consent Preview","description":"runtime должен показывать пользователю понятное резюме grant: app, agent, scopes, resources, duration, writes, data exposure.","category":"UX / consent","side":"right","status":"partial","anchors":[{"heading":"Grant Lifecycle","anchorId":"grant-lifecycle"},{"heading":"Capability Matching","anchorId":"capability-matching"},{"heading":"Malicious or Compromised Application","anchorId":"malicious-or-compromised-application"},{"heading":"Example End-to-End Flow","anchorId":"example-end-to-end-flow"}],"rationale":"Есть хороший пример consent summary, но нет полного нормативного contract, особенно для data exposure.","priority":"P0"},{"id":47,"title":"Impact Simulation","description":"consent screen может показывать примеры allowed и denied действий для снижения consent fatigue.","category":"UX / consent","side":"left","status":"missing","anchors":[{"heading":"Capability Matching","anchorId":"capability-matching"},{"heading":"Example End-to-End Flow","anchorId":"example-end-to-end-flow"}],"rationale":"Consent flow не показывает simulated allowed/denied examples или прогноз impact.","priority":"P3"},{"id":48,"title":"Risk Explanation UI Hints","description":"manifest может включать human-readable risk summaries для actions.","category":"UX / consent","side":"right","status":"partial","anchors":[{"heading":"Actions","anchorId":"actions"},{"heading":"Risk Taxonomy","anchorId":"risk-taxonomy"},{"heading":"Capability Matching","anchorId":"capability-matching"}],"rationale":"Machine-readable risk labels и matching summary есть, human-readable manifest hints отсутствуют.","priority":"P2"},{"id":49,"title":"Default Proposal-First UX","description":"пользовательский flow должен сначала позволять agent propose, а не write.","category":"UX / consent","side":"left","status":"present","anchors":[{"heading":"Proposal Mode Is the Default","anchorId":"proposal-mode-is-the-default"},{"heading":"Proposal-Only Support","anchorId":"proposal-only-support"},{"heading":"Proposal Flow","anchorId":"proposal-flow"}],"rationale":"Proposal-first уже закреплён как design principle и RECOMMENDED integration flow.","priority":"P1"},{"id":50,"title":"Revocation UX Contract","description":"определить, где пользователь видит активные grants и как быстро может их отозвать.","category":"UX / consent","side":"right","status":"partial","anchors":[{"heading":"Endpoints","anchorId":"endpoints"},{"heading":"Revocation Semantics","anchorId":"revocation-semantics"},{"heading":"Grant Revoked","anchorId":"grant-revoked"},{"heading":"Malicious or Compromised Application","anchorId":"malicious-or-compromised-application"}],"rationale":"Protocol plumbing и post-revocation behavior есть, но active-grants UI и latency expectation не определены.","priority":"P1"},{"id":51,"title":"Budget Caveats","description":"добавить в grant constraints лимиты по cost, tokens, runtime seconds, tool calls, write actions и parallel sessions.","category":"Economics / limits / operations","side":"left","status":"partial","anchors":[{"heading":"Capability Lease","anchorId":"capability-lease"},{"heading":"Grant Object","anchorId":"grant-object"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Malicious or Compromised Agent","anchorId":"malicious-or-compromised-agent"}],"rationale":"Action и cost budgets есть; token, runtime, tool-call, write и parallel-session limits отсутствуют.","priority":"P1"},{"id":52,"title":"Budget Events","description":"стандартизировать `budget.warning`, `budget.exceeded`, `session.paused_budget`.","category":"Economics / limits / operations","side":"right","status":"missing","anchors":[{"heading":"Events","anchorId":"events"},{"heading":"Grant Revoked","anchorId":"grant-revoked"}],"rationale":"Event mechanism существует, но budget.warning, budget.exceeded и session.paused_budget не определены.","priority":"P2"},{"id":53,"title":"Rate Limits and Quotas","description":"surface должен объявлять ограничения на actions/events, чтобы runtime мог планировать нагрузку.","category":"Economics / limits / operations","side":"left","status":"missing","anchors":[{"heading":"Required Top-Level Fields","anchorId":"required-top-level-fields"},{"heading":"Actions","anchorId":"actions"},{"heading":"Events","anchorId":"events"}],"rationale":"Manifest не имеет rate-limit или quota declarations для actions и event delivery.","priority":"P2"},{"id":54,"title":"Runaway Loop Protection","description":"runtime должен иметь обязательные guards на повторяющиеся действия, retries и event-triggered loops.","category":"Economics / limits / operations","side":"right","status":"partial","anchors":[{"heading":"Every Write Is Idempotent","anchorId":"every-write-is-idempotent"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Malicious or Compromised Agent","anchorId":"malicious-or-compromised-agent"},{"heading":"Replay and Duplicate Actions","anchorId":"replay-and-duplicate-actions"}],"rationale":"Idempotency и общие limits снижают ущерб, но обязательных repeat/retry/event-loop guards нет.","priority":"P0"},{"id":55,"title":"Observability Fields","description":"добавить trace/span/session ids, чтобы ASP действия связывались с app logs, runtime logs и receipts.","category":"Economics / limits / operations","side":"left","status":"present","anchors":[{"heading":"Observability Context","anchorId":"observability-context"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"},{"heading":"Action Request","anchorId":"action-request"},{"heading":"Receipt Requirements","anchorId":"receipt-requirements"}],"rationale":"RFC задаёт W3C-compatible creation и propagation semantics для trace_id, span_id и session_id через sessions, actions, receipts и adapter/log context и отделяет correlation от authority.","priority":"P2"},{"id":56,"title":"Conformance Profiles","description":"разделить conformance на Surface Publisher, Grant Issuer, Action Executor, Receipt Producer, Runtime Mediator и Agent Adapter.","category":"Conformance / tooling / adoption","side":"right","status":"partial","anchors":[{"heading":"Conformance","anchorId":"conformance"},{"heading":"Grant-Enforcing Application","anchorId":"grant-enforcing-application"},{"heading":"Application Runtime Profile","anchorId":"application-runtime-profile"},{"heading":"Agent Adapter","anchorId":"agent-adapter"}],"rationale":"Role profiles уже есть, но Grant Issuer и Action Executor объединены, а именование ролей не унифицировано.","priority":"P2"},{"id":57,"title":"ASP Manifest Linter","description":"сделать tooling, который проверяет missing schemas, missing risk labels, missing idempotency и inconsistent scopes.","category":"Conformance / tooling / adoption","side":"left","status":"missing","anchors":[{"heading":"Required Top-Level Fields","anchorId":"required-top-level-fields"},{"heading":"Resources","anchorId":"resources"},{"heading":"Actions","anchorId":"actions"},{"heading":"Surface-Only Application","anchorId":"surface-only-application"}],"rationale":"Проверяемые требования существуют, но linter, ruleset и diagnostics contract отсутствуют.","priority":"P3"},{"id":58,"title":"Mock App / Mock Runtime","description":"дать reference fixtures для тестирования приложений и runtimes без реального агента.","category":"Conformance / tooling / adoption","side":"right","status":"missing","anchors":[{"heading":"Conceptual Architecture","anchorId":"conceptual-architecture"},{"heading":"Application MVP Mapping","anchorId":"application-mvp-mapping"},{"heading":"Example End-to-End Flow","anchorId":"example-end-to-end-flow"}],"rationale":"Есть architecture и implementation roadmap, но reference fixtures или mock implementations не заявлены.","priority":"P3"},{"id":59,"title":"Replay Tool","description":"добавить формат, позволяющий воспроизвести session/events/receipts для debugging и audit.","category":"Conformance / tooling / adoption","side":"left","status":"missing","anchors":[{"heading":"Events","anchorId":"events"},{"heading":"Sessions and Actions","anchorId":"sessions-and-actions"},{"heading":"Receipts","anchorId":"receipts"},{"heading":"Application MVP Mapping","anchorId":"application-mvp-mapping"}],"rationale":"Session/event/receipt primitives есть, но portable replay bundle format и tool отсутствуют.","priority":"P3"},{"id":60,"title":"Interop Test Suite","description":"подготовить набор обязательных тестов для grant verification, idempotency conflicts, revocation, receipts и denied actions.","category":"Conformance / tooling / adoption","side":"right","status":"missing","anchors":[{"heading":"Idempotency","anchorId":"idempotency"},{"heading":"Grant Verification","anchorId":"grant-verification"},{"heading":"Revocation Semantics","anchorId":"revocation-semantics"},{"heading":"Conformance","anchorId":"conformance"}],"rationale":"Нормативные области для тестов определены, но обязательных test cases и interop suite нет.","priority":"P2"}];
   const stage = root.querySelector("[data-review-stage]");
   const documentColumn = root.querySelector("[data-rfc-document]");
   const svg = root.querySelector("[data-review-threads]");
