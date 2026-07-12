@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "planning_metadata_mode": "required",
+  "profiles": [
+    {
+      "id": "core",
+      "title": "Core Protocol",
+      "depends_on": []
+    }
+  ],
+  "releases": [
+    {
+      "id": "0.2",
+      "status": "planning"
+    }
+  ],
+  "reviews": [
+    {
+      "id": 1,
+      "title": "Minimal review",
+      "description": "Minimal valid review fixture.",
+      "category": "Fixture",
+      "side": "left",
+      "anchors": [
+        {
+          "heading": "Abstract",
+          "anchorId": "abstract"
+        }
+      ],
+      "status": "partial",
+      "rationale": "The fixture exercises the planning metadata bundle.",
+      "priority": "P1",
+      "profile": "core",
+      "depends_on": [],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "abstract"
+        }
+      ]
+    }
+  ]
+}

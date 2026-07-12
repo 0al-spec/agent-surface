@@ -1,0 +1,312 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://0al-spec.github.io/agent-surface/review/review-data.schema.json",
+  "title": "Agent Surface RFC review planning data",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "planning_metadata_mode",
+    "profiles",
+    "releases",
+    "reviews"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "planning_metadata_mode": {
+      "enum": [
+        "transitional",
+        "required"
+      ]
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/profile"
+      }
+    },
+    "releases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/release"
+      }
+    },
+    "reviews": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/review"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "planning_metadata_mode": {
+            "const": "required"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviews": {
+            "items": {
+              "required": [
+                "profile",
+                "depends_on",
+                "target_release",
+                "maturity",
+                "evidence"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "anchorSlug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "depends_on"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "title": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "description": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "depends_on": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "title": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "status": {
+          "enum": [
+            "planning",
+            "active",
+            "released",
+            "deferred"
+          ]
+        }
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "heading",
+        "anchorId"
+      ],
+      "properties": {
+        "heading": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "anchorId": {
+          "$ref": "#/$defs/anchorSlug"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "rfc_anchor",
+            "schema",
+            "test",
+            "implementation",
+            "interop_test",
+            "registry"
+          ]
+        },
+        "ref": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "description": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "dependentRequired": {
+        "profile": [
+          "depends_on",
+          "target_release",
+          "maturity",
+          "evidence"
+        ],
+        "depends_on": [
+          "profile",
+          "target_release",
+          "maturity",
+          "evidence"
+        ],
+        "target_release": [
+          "profile",
+          "depends_on",
+          "maturity",
+          "evidence"
+        ],
+        "maturity": [
+          "profile",
+          "depends_on",
+          "target_release",
+          "evidence"
+        ],
+        "evidence": [
+          "profile",
+          "depends_on",
+          "target_release",
+          "maturity"
+        ]
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "category",
+        "side",
+        "anchors",
+        "status",
+        "rationale",
+        "priority"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "description": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "category": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "side": {
+          "enum": [
+            "left",
+            "right"
+          ]
+        },
+        "anchors": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/anchor"
+          }
+        },
+        "status": {
+          "enum": [
+            "present",
+            "partial",
+            "missing"
+          ]
+        },
+        "rationale": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "priority": {
+          "enum": [
+            "P0",
+            "P1",
+            "P2",
+            "P3"
+          ]
+        },
+        "profile": {
+          "$ref": "#/$defs/identifier"
+        },
+        "depends_on": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "target_release": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "maturity": {
+          "enum": [
+            "proposal",
+            "specified",
+            "machine_validated",
+            "implementation_tested",
+            "interop_tested",
+            "stable"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        }
+      }
+    }
+  }
+}
