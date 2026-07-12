@@ -2319,11 +2319,23 @@
       "description": "runtime должен показывать пользователю понятное резюме grant: app, agent, scopes, resources, duration, writes, data exposure.",
       "category": "UX / consent",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
+        {
+          "heading": "Data Exposure Contract",
+          "anchorId": "data-exposure-contract"
+        },
         {
           "heading": "Grant Lifecycle",
           "anchorId": "grant-lifecycle"
+        },
+        {
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        },
+        {
+          "heading": "Rich Authorization Request Profile",
+          "anchorId": "rich-authorization-request-profile"
         },
         {
           "heading": "Capability Matching",
@@ -2334,11 +2346,15 @@
           "anchorId": "malicious-or-compromised-application"
         },
         {
+          "heading": "Application Runtime Profile",
+          "anchorId": "application-runtime-profile"
+        },
+        {
           "heading": "Example End-to-End Flow",
           "anchorId": "example-end-to-end-flow"
         }
       ],
-      "rationale": "Есть хороший пример consent summary, но нет полного нормативного contract, особенно для data exposure.",
+      "rationale": "RFC требует runtime-derived preview точного request и pinned manifest, полное material summary, subset closure, stale invalidation, independent authorization-server consent и fail-closed reconciliation выданного grant.",
       "priority": "P0",
       "profile": "privacy-consent",
       "depends_on": [
@@ -2347,11 +2363,23 @@
         36
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
+          "ref": "data-exposure-contract"
+        },
+        {
+          "kind": "rfc_anchor",
           "ref": "grant-lifecycle"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "rich-authorization-request-profile"
         },
         {
           "kind": "rfc_anchor",
@@ -2360,6 +2388,10 @@
         {
           "kind": "rfc_anchor",
           "ref": "malicious-or-compromised-application"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-runtime-profile"
         },
         {
           "kind": "rfc_anchor",
