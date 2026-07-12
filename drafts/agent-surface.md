@@ -762,6 +762,90 @@ The runtime-to-agent integration layer:
 
 The adapter layer turns a concrete agent into a runtime-mediated worker.
 
+## Canonical Integrity and Provenance
+
+### Canonical Object Hash Profile
+
+ASP manifests, grants, action inputs, policy decisions, and receipts use the
+`asp-jcs-sha-256` profile when a field in this draft is named `surface_hash`,
+`grant_hash`, `input_hash`, `policy_decision_hash`, `receipt_hash`, or
+`parent_receipt_hash`. The profile identifies exact JSON content; it does not
+by itself authenticate the producer or grant authority.
+
+To compute an ASP object hash, an implementation MUST:
+
+1. Construct the hashing view for the object type according to the table below.
+2. Reject input that is not valid I-JSON, including duplicate object member
+   names, non-Unicode strings, or numbers that cannot be represented as IEEE
+   754 binary64 values. JSON negative zero also MUST be rejected rather than
+   normalized to positive zero.
+3. Construct an object with exactly two members: `domain`, containing the
+   domain URI from the table, and `object`, containing the hashing view.
+4. Serialize that wrapper with the JSON Canonicalization Scheme defined by RFC
+   8785. Object members are sorted by JCS; array order is preserved and is
+   therefore significant to the resulting hash. No additional Unicode, URI,
+   timestamp, default-value, or array normalization is performed.
+5. Compute SHA-256 over the canonical UTF-8 wrapper bytes.
+6. Encode the digest with the RFC 4648 base64url alphabet without `=` padding
+   and prepend the literal `sha-256:`.
+
+| Object | Domain URI | Hashing view exclusions |
+| --- | --- | --- |
+| Agent Surface Manifest | `https://github.com/0al-spec/agent-surface/hash/manifest/v1` | top-level `surface_hash` |
+| authoritative Agent Grant | `https://github.com/0al-spec/agent-surface/hash/grant/v1` | top-level `grant_hash`; the RFC 9396 `type` discriminator when starting from an OAuth authorization-details object |
+| Action Request `input` | `https://github.com/0al-spec/agent-surface/hash/action-input/v1` | none; the hashing view is exactly `payload.input` after schema validation and before default insertion, coercion, or other semantic normalization |
+| Policy Decision Object | `https://github.com/0al-spec/agent-surface/hash/policy-decision/v1` | top-level `policy_decision_hash` |
+| receipt | `https://github.com/0al-spec/agent-surface/hash/receipt/v1` | top-level `receipt_hash` and `receipt_signatures` |
+
+All other members, including extension members, are part of the hashing view.
+Omitting an unknown member before hashing is therefore an integrity failure,
+not extension tolerance. A party that receives a redacted or filtered object
+MAY carry its hash as an opaque reference but MUST NOT claim to have recomputed
+it without the complete hashing view.
+
+The Action Input hash commits to the exact validated wire input and prevents a
+receipt from being attached to different input. It is distinct from the
+action-specific semantic normalization used for idempotency; JCS does not
+define default insertion, equivalence, or set ordering.
+
+The following minimal vector fixes the domain separation, wrapper, JCS, and
+encoding rules. For the Grant domain and hashing view
+`{"grant_id":"grant_123","scopes":["read"]}`, the canonical wrapper is:
+
+```json
+{"domain":"https://github.com/0al-spec/agent-surface/hash/grant/v1","object":{"grant_id":"grant_123","scopes":["read"]}}
+```
+
+Its hash value is:
+
+```text
+sha-256:Xbq37_fP9PBiWI3Bv7Ch0t8TV5ikJGm55MxncSeA38Y
+```
+
+The following manifest vector demonstrates self-field exclusion and nested JCS
+member ordering. Given this received object:
+
+```json
+{"z":1,"surface_hash":"sha-256:Mckhl9gi8ePkXnuOJtPFNE1pe9LhilOGu1OgzxsXb8A","a":"x"}
+```
+
+the hashing view omits `surface_hash`, and the canonical wrapper is:
+
+```json
+{"domain":"https://github.com/0al-spec/agent-surface/hash/manifest/v1","object":{"a":"x","z":1}}
+```
+
+The recomputed value is `sha-256:Mckhl9gi8ePkXnuOJtPFNE1pe9LhilOGu1OgzxsXb8A`.
+Inputs containing duplicate members, JSON negative zero, a lone Unicode
+surrogate, or numeric input that would overflow binary64 to a non-finite value
+are negative vectors and MUST be rejected before hashing.
+
+An implementation MUST treat a supplied hash that does not match a recomputed
+hash as invalid. It MUST NOT fall back to `grant_id`, `surface_version`,
+`receipt_id`, or another mutable identifier. Hash-profile agility requires a
+future profile with a distinct identifier and domain URI; silently substituting
+a different digest or canonicalization algorithm is forbidden.
+
 ## Agent Surface Manifest
 
 ### Discovery
@@ -799,6 +883,7 @@ Cache-Control: max-age=300
   "app_id": "com.example.project-tool",
   "issuer": "https://example.com",
   "surface_version": "2026-06-25",
+  "surface_hash": "sha-256:<base64url-digest>",
   "surface_url": "https://example.com/.well-known/agent-surface.json",
   "auth": {},
   "agent_api": {},
@@ -810,6 +895,27 @@ Cache-Control: max-age=300
   "revocation": {}
 }
 ```
+
+### Surface Hash
+
+Every manifest MUST contain `surface_hash` computed with the Canonical Object
+Hash Profile over the complete manifest hashing view. A runtime MUST recompute
+and verify it before using the manifest for capability matching, consent, grant
+issuance, or action validation. The authorization server MUST perform the same
+check before embedding the value in a grant.
+
+`surface_version` remains the application's opaque compatibility label;
+`surface_hash` identifies the exact manifest object published under that label,
+including schema URLs but not the transitive bytes served by those URLs. A
+runtime MUST key cached surface state by issuer, app id, surface version, and
+surface hash. A publisher MUST issue a new `surface_version` whenever the
+manifest hashing view changes, including for a backward-compatible addition.
+If the same issuer, app id, and `surface_version` appears with a different
+`surface_hash`, the runtime MUST treat it as an integrity failure and MUST NOT
+silently replace the pinned object.
+
+The hash authenticates neither the issuer nor the transport. Runtimes MUST
+still enforce HTTPS, issuer and app-id binding, and any local pinning policy.
 
 ### Endpoints
 
@@ -853,6 +959,7 @@ surface discoverable.
   "app_id": "com.example.project-tool",
   "issuer": "https://example.com",
   "surface_version": "2026-06-25",
+  "surface_hash": "sha-256:<base64url-digest>",
   "surface_url": "https://example.com/.well-known/agent-surface.json",
   "compatibility": {
     "min_runtime": "application-runtime/0.1",
@@ -923,6 +1030,7 @@ surface discoverable.
       "side_effect": true,
       "approval": "user_or_app",
       "idempotency": "required",
+      "input_hash_profile": "asp-jcs-sha-256",
       "execution": {
         "mode": "write",
         "proposal_action": "comment.propose"
@@ -945,13 +1053,33 @@ surface discoverable.
     }
   ],
   "audit": {
+    "hash_profile": "asp-jcs-sha-256",
     "receipt_schema": "https://example.com/schemas/action-receipt.schema.json",
+    "receipt_signing": {
+      "profiles_supported": ["asp-jws-detached"],
+      "algorithms_supported": ["ES256"],
+      "jwks_uri": "https://example.com/.well-known/agent-surface-receipt-jwks.json"
+    },
     "required_fields": [
+      "receipt_id",
+      "receipt_type",
+      "receipt_hash",
       "grant_id",
+      "grant_hash",
       "session_id",
+      "trace_id",
+      "span_id",
       "action_id",
+      "app_id",
+      "surface_version",
+      "surface_hash",
+      "runtime",
       "actor_agent",
-      "user",
+      "subject",
+      "idempotency_key",
+      "input_hash",
+      "policy_decision",
+      "policy_decision_hash",
       "timestamp",
       "result"
     ]
@@ -962,6 +1090,12 @@ surface discoverable.
   }
 }
 ```
+
+`audit.required_fields` advertises the non-conditional minimum for application
+receipts and MUST NOT weaken the Receipt Requirements profile. Conditional
+fields such as `parent_receipt_hash`, `output_hash`, approval evidence, error
+classification, and required signatures remain mandatory when their receipt
+semantics require them even if they are not repeated in this list.
 
 ### Resources
 
@@ -1005,6 +1139,11 @@ Each action SHOULD include:
 - optional `capability_hint`
 - `idempotency` for side-effecting actions
 - `receipt` for side-effecting actions
+- `input_hash_profile` for actions requiring receipt-linked input evidence
+
+An action whose receipt chain binds the exact request input MUST set
+`input_hash_profile` to `asp-jcs-sha-256`. Other profile identifiers are not
+defined by this draft.
 
 Example:
 
@@ -1016,6 +1155,7 @@ Example:
   "side_effect": true,
   "approval": "user_or_app",
   "idempotency": "required",
+  "input_hash_profile": "asp-jcs-sha-256",
   "execution": {
     "mode": "write",
     "proposal_action": "pull_request.review.propose"
@@ -1157,6 +1297,71 @@ the approval can be linked into receipts and audited. Applications that do not
 want to accept runtime approval assertions MUST declare `app` or
 `runtime_and_app` for the affected actions.
 
+### Policy Decision Object
+
+A runtime or application that records why an action was allowed, denied, or
+paused for approval MUST use a `policy.decision` object. The object explains one
+component's final policy evaluation; it is evidence for audit and user
+explanation, not authority that another component must accept.
+
+```json
+{
+  "type": "policy.decision",
+  "decision_id": "pdec_runtime_01J2ABCDEF",
+  "enforcer": {
+    "type": "runtime",
+    "id": "application_runtime_456"
+  },
+  "outcome": "allow",
+  "policy": {
+    "id": "local-agent-action-policy",
+    "version": "2026-06-25"
+  },
+  "reason_code": "approval_satisfied",
+  "matched_rules": ["writes.require_local_approval"],
+  "safe_to_show": "The requested write is within the grant and was approved.",
+  "evaluated_at": "2026-06-25T16:29:59Z",
+  "policy_decision_hash": "sha-256:<base64url-digest>"
+}
+```
+
+`type`, `decision_id`, `enforcer`, `outcome`, `policy`, `reason_code`,
+`matched_rules`, `safe_to_show`, `evaluated_at`, and `policy_decision_hash` are
+REQUIRED. `outcome` MUST be `allow`, `deny`, or `require_approval`.
+`enforcer.type` MUST be `runtime`, `application`, or `enterprise`; `enforcer.id`
+identifies the component whose policy was evaluated. `policy.id` and
+`policy.version` identify the applied policy snapshot. Identifiers and
+`safe_to_show` are non-empty strings. `matched_rules` is an array of unique
+strings. `evaluated_at` is an RFC 3339 UTC timestamp with the `Z` suffix.
+
+`reason_code` is the primary stable machine-readable explanation. This draft
+defines `policy_allowed`, `approval_required`, `approval_satisfied`,
+`scope_denied`, `resource_denied`, `binding_invalid`, `limit_exceeded`,
+`local_policy_denied`, and `app_policy_denied`. Extensions MUST use a
+collision-resistant URI. `matched_rules` contains stable, non-secret rule
+identifiers and MAY be empty when disclosure would reveal policy internals.
+`safe_to_show` MUST be suitable for display to the affected user and MUST NOT
+contain secrets, credentials, hidden rule content, or sensitive resource data.
+
+The standard reason codes are valid only with these outcomes:
+
+| Outcome | Allowed standard reason codes |
+| --- | --- |
+| `allow` | `policy_allowed`, `approval_satisfied` |
+| `require_approval` | `approval_required` |
+| `deny` | `scope_denied`, `resource_denied`, `binding_invalid`, `limit_exceeded`, `local_policy_denied`, `app_policy_denied` |
+
+An extension reason-code specification MUST declare its allowed outcome. A
+producer and verifier MUST reject a standard or extension reason code used with
+an incompatible outcome.
+
+The producer MUST compute `policy_decision_hash` with the Canonical Object Hash
+Profile. A receipt MUST include the complete decision that directly determined
+its producer's outcome and repeat the matching hash at receipt top level. A
+runtime and application normally produce different decisions and hashes; an
+application MUST NOT treat a runtime decision as authority to widen the Agent
+Grant or bypass its own checks.
+
 ## Idempotency
 
 Every side-effecting action MUST support idempotency.
@@ -1184,10 +1389,20 @@ so a retrying runtime can converge on the outcome of the first attempt.
 Applications SHOULD retain idempotency state at least for the remaining
 lifetime of the grant and SHOULD document their retention window.
 
-Applications SHOULD define the input normalization procedure per action, or use
-the declared input schema with a canonical JSON profile. A future draft is
-expected to define canonicalization requirements for signed receipts and signed
-grants.
+An exact retry under the Receipt Hash Chain profile MUST reuse the original
+finalized runtime receipt and the same `parent_receipt_hash`; it MUST NOT create
+a second policy receipt for the already-authorized side effect. The application
+returns the original immutable app receipt. If the same grant, action,
+idempotency key, and normalized input arrives with a different parent hash, the
+application MUST NOT repeat the side effect and MUST report
+`integrity_mismatch` rather than attaching the original result to a competing
+provenance chain.
+
+Applications SHOULD define the semantic input-normalization procedure per
+action. After that procedure, they MAY use the Canonical Object Hash Profile's
+JCS rules to obtain stable JSON bytes. JCS does not define action-specific
+normalization, default insertion, set ordering, or schema equivalence, so its
+availability does not remove that requirement.
 
 ## Agent Grant
 
@@ -1199,6 +1414,7 @@ surface, scopes, and caveats.
 ```json
 {
   "grant_id": "grant_123",
+  "grant_hash": "sha-256:<base64url-digest>",
   "subject": {
     "user": "user_abc"
   },
@@ -1211,7 +1427,8 @@ surface, scopes, and caveats.
   "resource_server": {
     "app_id": "code.example.com",
     "issuer": "https://code.example.com",
-    "surface_version": "2026-06-25"
+    "surface_version": "2026-06-25",
+    "surface_hash": "sha-256:<base64url-digest>"
   },
   "locations": ["https://code.example.com/agent-actions"],
   "actions": ["pull_request.get", "comment.create"],
@@ -1254,6 +1471,32 @@ OAuth `authorization_details` uses this same shape with the additional RFC 9396
 runtime, agent, and passport tuple. A DPoP binding MUST additionally contain
 `jkt`; an mTLS binding MUST instead contain `x5t#S256`. Those values use the
 same encoding and semantics as the corresponding standard `cnf` members.
+
+### Grant Hash
+
+The authorization server MUST add `grant_hash` after constructing the complete
+authoritative Agent Grant, including `grant_id`, subject, delegate,
+`resource_server.surface_hash`, effective constraints, credential profile, and
+credential binding. It computes the value with the Canonical Object Hash
+Profile and persists the exact hashing view for the lifetime of the grant and
+its audit-retention period.
+
+The client MUST NOT supply `grant_hash` in an authorization request. Token and
+introspection responses MUST return it with the authoritative grant. An action
+request and every receipt under that grant MUST carry the same value. The
+application MUST compare it with current authoritative grant state and reject a
+mismatch as `integrity_mismatch`; selecting state by `grant_id` and ignoring a
+hash mismatch is forbidden.
+
+Attenuating, renewing, or otherwise changing any hashed member creates a new
+`grant_hash`, even when a deployment retains a related identifier for lifecycle
+tracking. Token rotation alone does not change `grant_hash` when the underlying
+Agent Grant object is unchanged. Parent and child grants have independent
+hashes and retain their explicit derivation linkage.
+
+`grant_hash` does not prove that a grant is active, unrevoked, or within its
+remaining stateful budget. Those mutable checks still use authoritative grant
+state on every action.
 
 Numeric caveats need defined accounting. In this draft, `max_actions` counts
 side-effecting action requests accepted by the application under the grant.
@@ -1347,8 +1590,8 @@ Pros:
 
 Cons:
 
-- Requires canonicalization, trust stores, signing profiles, revocation
-  semantics, and stronger interop work.
+- Requires a signed-grant profile, trust stores, signer-key lifecycle,
+  revocation semantics, and stronger interop work beyond the receipt profile.
 - Too large for the first MVP.
 
 ### OAuth Grant Lifecycle Profile
@@ -1395,7 +1638,8 @@ Example, shown decoded from its form-encoded authorization request parameter:
     "resource_server": {
       "app_id": "code.example.com",
       "issuer": "https://code.example.com",
-      "surface_version": "2026-06-25"
+      "surface_version": "2026-06-25",
+      "surface_hash": "sha-256:<base64url-digest>"
     },
     "scopes": ["pull_request.read", "pull_request.comment"],
     "constraints": {
@@ -1422,7 +1666,8 @@ are the authoritative Grant Object wire shape defined above:
   `credential_profile`, and `audit` are REQUIRED.
 - `delegate` MUST contain `runtime`, `agent`, and `passport_hash`; it MAY contain
   `passport_ref`.
-- `resource_server` MUST contain `app_id`, `issuer`, and `surface_version`.
+- `resource_server` MUST contain `app_id`, `issuer`, `surface_version`, and the
+  verified `surface_hash`.
 - `constraints` MUST contain `expires_at`; other fields use the semantics of the
   Agent Grant object.
 - `credential_profile` MUST be `compatibility_bearer` or `proof_bound` and maps
@@ -1433,16 +1678,23 @@ are the authoritative Grant Object wire shape defined above:
   invoked action MUST be a member. The authorization applies to the product of
   the granted actions, locations, scopes, and resource filters; every allowed
   combination MUST be published by the surface and semantically compatible.
-- `grant_id`, `subject`, and `credential_binding` MUST NOT be supplied by the
-  client in an authorization request; they are authorization-server output.
+- `grant_id`, `grant_hash`, `subject`, and `credential_binding` MUST NOT be
+  supplied by the client in an authorization request; they are
+  authorization-server output.
+- A client MAY request an `audit.receipt_signing` profile and signer roles, but
+  it MUST NOT supply authoritative `signer_keys`. Before issuance, the
+  authorization server MUST reject a request containing those entries, derive
+  them from issuer metadata and the authenticated runtime key registration,
+  and include the resulting pins in `grant_hash`.
 - The request MUST NOT supply `subject.user` or another asserted user identity;
   the authorization server derives the subject from its authenticated user
   session or, at the token endpoint, from the validated `subject_token`.
 
 The authorization server MUST reject unknown fields, unknown action or scope
 values, a mismatched `resource_server.app_id` or
-`resource_server.surface_version`, an unverified passport hash, or constraints
-that are invalid for the published surface. It MUST use the RFC 9396
+`resource_server.surface_version`, a mismatched `resource_server.surface_hash`,
+an unverified passport hash, or constraints that are invalid for the published
+surface. It MUST use the RFC 9396
 `invalid_authorization_details` error for malformed or unsupported Agent Grant
 authorization details.
 
@@ -1474,7 +1726,7 @@ authority.
 The token response MUST return the granted `authorization_details` as required
 by RFC 9396. For this type, the returned object MUST be enriched with the
 authoritative `grant_id`, `subject`, delegate binding, effective constraints,
-and `credential_binding` assigned by the authorization server. The
+`credential_binding`, and `grant_hash` assigned by the authorization server. The
 authorization server and resource server MUST retain or receive the same
 granted object for later action verification and introspection.
 
@@ -1548,8 +1800,8 @@ multiply `max_actions`, `max_cost_usd`, or another stateful budget. The
 authorization server MUST treat semantically equivalent exchanges with the
 same source authorization, client and delegate tuple, target resource,
 normalized Agent Grant details, and proof-binding key as idempotent: it MUST
-reuse the same `grant_id` and accounting state, although it MAY rotate the
-access-token representation.
+reuse the same `grant_id`, `grant_hash`, and accounting state, although it MAY
+rotate the access-token representation.
 
 Example successful response:
 
@@ -1561,6 +1813,7 @@ Example successful response:
   "expires_in": 1800,
   "scope": "pull_request.read pull_request.comment",
   "grant_id": "grant_123",
+  "grant_hash": "sha-256:<base64url-digest>",
   "authorization_details": [
     {
       "type": "https://github.com/0al-spec/agent-surface/authorization-details/agent-grant",
@@ -1578,7 +1831,8 @@ Example successful response:
       "resource_server": {
         "app_id": "code.example.com",
         "issuer": "https://code.example.com",
-        "surface_version": "2026-06-25"
+        "surface_version": "2026-06-25",
+        "surface_hash": "sha-256:<base64url-digest>"
       },
       "scopes": ["pull_request.read", "pull_request.comment"],
       "constraints": {
@@ -1600,21 +1854,28 @@ Example successful response:
         "local_receipt": "required",
         "app_receipt": "required"
       },
-      "grant_id": "grant_123"
+      "grant_id": "grant_123",
+      "grant_hash": "sha-256:<base64url-digest>"
     }
   ]
 }
 ```
 
 The response MUST include `access_token`, `issued_token_type`, `token_type`,
-`expires_in`, `grant_id`, the exact `scope` projection defined above, and the
-granted `authorization_details`. This also satisfies the RFC 8693 requirement to
-return `scope` when the issued scope differs from the request. The `token_type`
-and method-specific credential confirmation data MUST match the selected
+`expires_in`, `grant_id`, `grant_hash`, the exact `scope` projection defined
+above, and the granted `authorization_details`. This also satisfies the RFC
+8693 requirement to return `scope` when the issued scope differs from the
+request. The `token_type` and method-specific credential confirmation data MUST
+match the selected
 credential profile and the binding established at the token endpoint. A
 refresh token SHOULD NOT be issued by default; if one is issued, it MUST
 preserve the tuple binding, attenuation, and revocation linkage of the Agent
 Grant and follow RFC 9700 refresh-token replay protections.
+
+Top-level `grant_id` and `grant_hash` MUST exactly match the same members in the
+sole returned Agent Grant authorization-details object. The client MUST reject
+the token response if either projection is absent or mismatched; it MUST NOT
+select one representation and ignore the other.
 
 Token responses containing a Grant Credential or its authorization details MUST
 use `Cache-Control: no-store` and `Pragma: no-cache`.
@@ -1641,7 +1902,7 @@ outside the caller's authority.
 
 For an active Grant Credential, the response MUST include the RFC 7662 fields
 `active`, `client_id`, `scope`, `token_type`, `exp`, `iat`, `sub`, `aud`, and
-`iss`, plus the ASP fields `grant_id`, `resource_server`, `delegate`,
+`iss`, plus the ASP fields `grant_id`, `grant_hash`, `resource_server`, `delegate`,
 `constraints`, `credential_binding`, and `authorization_details`. An active
 proof-bound credential MUST additionally include the method-specific standard
 `cnf` confirmation member. The `sub` value SHOULD be a stable app-scoped
@@ -1651,10 +1912,13 @@ pseudonymous user identifier. `client_id` identifies the OAuth client;
 
 The `authorization_details` member MUST contain the granted Agent Grant object,
 filtered only to data the authenticated caller may receive. Top-level `sub`,
-`grant_id`, `resource_server`, `delegate`, `constraints`, and
+`grant_id`, `grant_hash`, `resource_server`, `delegate`, `constraints`, and
 `credential_binding` are projections of that object and MUST match it; `sub`
 corresponds to `subject.user`. A resource server MUST treat a mismatch as an
-invalid grant proof rather than selecting one representation.
+invalid grant proof rather than selecting one representation. A filtered
+response still MUST carry `grant_hash` as an opaque authoritative commitment,
+but a caller MUST NOT claim to have recomputed it without the complete Grant
+Object.
 
 For DPoP, `cnf` MUST contain `jkt` as specified by RFC 9449; for mTLS, it MUST
 contain `x5t#S256` as specified by RFC 8705. The confirmation value MUST match
@@ -1677,10 +1941,12 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
     "jkt": "<base64url-thumbprint>"
   },
   "grant_id": "grant_123",
+  "grant_hash": "sha-256:<base64url-digest>",
   "resource_server": {
     "app_id": "code.example.com",
     "issuer": "https://code.example.com",
-    "surface_version": "2026-06-25"
+    "surface_version": "2026-06-25",
+    "surface_hash": "sha-256:<base64url-digest>"
   },
   "delegate": {
     "runtime": "application_runtime_456",
@@ -1719,7 +1985,8 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
       "resource_server": {
         "app_id": "code.example.com",
         "issuer": "https://code.example.com",
-        "surface_version": "2026-06-25"
+        "surface_version": "2026-06-25",
+        "surface_hash": "sha-256:<base64url-digest>"
       },
       "scopes": ["pull_request.read", "pull_request.comment"],
       "constraints": {
@@ -1741,7 +2008,8 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
         "local_receipt": "required",
         "app_receipt": "required"
       },
-      "grant_id": "grant_123"
+      "grant_id": "grant_123",
+      "grant_hash": "sha-256:<base64url-digest>"
     }
   ]
 }
@@ -1850,6 +2118,10 @@ forwarded as implicit subdelegation.
 Applications MUST verify every action against grant state:
 
 - grant exists and is active
+- recomputed `grant_hash` matches both the presented action context and current
+  authoritative Grant Object
+- `resource_server.surface_hash` matches the retained, verified manifest
+  snapshot used to interpret the action and its schemas
 - grant credential or proof is valid
 - grant is bound to the user
 - grant is bound to the runtime
@@ -1876,6 +2148,8 @@ Applications MUST verify every action against grant state:
 Runtimes SHOULD verify:
 
 - grant is active
+- `grant_hash` matches the complete grant returned at issuance or introspection
+- `surface_hash` matches the verified manifest snapshot pinned for that grant
 - local user has not revoked the app, runtime, or agent
 - Agent Passport is valid
 - requested action is compatible with the Agent Passport capability set
@@ -1929,6 +2203,62 @@ Matching outputs:
 
 The matching result is shown to the user before grant issuance.
 
+## Observability Context
+
+ASP uses W3C Trace Context for cross-component diagnostic correlation. An ASP
+session, action, event, and receipt MAY participate in a distributed trace, but
+trace context is never authorization, identity, idempotency, or proof that two
+objects belong to the same grant.
+
+JSON envelopes that carry observability context use `trace_id` and `span_id`.
+`trace_id` MUST be 32 lowercase hexadecimal characters representing 16 bytes
+and MUST NOT be all zero. `span_id` MUST be 16 lowercase hexadecimal characters
+representing 8 bytes and MUST NOT be all zero. These are projections of the W3C
+`trace-id` and `parent-id` formats. `session_id` remains the ASP lifecycle and
+accounting identifier and MUST continue to be validated independently.
+
+When an implementation claims the Application Runtime or Receipt-Producing
+profile, its `session.start`, `action.request`, `action.result`, and receipt
+envelopes MUST carry `session_id`, `trace_id`, and the producer's `span_id` as
+shown below. Each runtime and application MUST record the identifiers from the
+envelope or receipt it produces in the corresponding local log entry so those
+logs can be joined without parsing human-readable messages. Trace and session
+ids can match across components while each producer records its own span id.
+This draft defines correlation fields, not a telemetry export protocol or
+vendor backend.
+
+For an HTTP binding, a component carrying valid ASP observability context MUST
+send `traceparent`. A component participating in an incoming W3C trace MUST
+propagate `traceparent` and `tracestate` according to W3C Trace Context, subject
+to its defined trust-boundary privacy policy. It preserves a valid incoming
+`trace_id`, creates a fresh `span_id` for its own operation, and propagates that
+child context downstream. A receipt records the span of the component that
+produced it. Runtime and application receipts for one action therefore normally
+share `trace_id` and `session_id` but have different `span_id` values.
+
+An intermediary is allowed to create another span, so a receiver MUST NOT
+require the JSON `span_id` to equal the `parent-id` in the HTTP header after
+intermediation. For local processing, a valid `traceparent` takes precedence
+over the JSON projection. If no valid header exists and a verified parent
+receipt is available, the receiver continues the parent receipt's `trace_id`
+with a new span. Otherwise it uses a valid JSON `trace_id` or starts a new
+trace, in that order.
+
+If the selected processing trace differs from a verified parent receipt's
+trace because an intermediary or trust boundary restarted it, the child receipt
+MUST include `linked_trace_id` equal to the parent `trace_id`. Without such a
+documented restart, parent and child receipts MUST use the same `trace_id`.
+`linked_trace_id` uses the same format as `trace_id` and is included in the
+receipt hash. Invalid or conflicting trace context MUST NOT cause an otherwise
+unauthorized action to be accepted, and it MUST NOT bypass grant, session, or
+receipt-link verification.
+
+Trace identifiers MUST be generated without embedding user, agent, resource,
+tenant, or policy semantics. Producers MUST apply the same disclosure and
+retention controls to `tracestate` and correlated telemetry as to other audit
+metadata. An Agent Adapter preserves `session_id` and a valid `trace_id` across
+its boundary and creates a new `span_id` for each adapter operation.
+
 ## Sessions and Actions
 
 ### Session Start
@@ -1940,11 +2270,15 @@ Once a grant exists, an application or runtime MAY start a session.
   "type": "session.start",
   "payload": {
     "session_id": "sess_456",
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "span_id": "a3ce929d0e0e4736",
     "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
     "agent_id": "local_agent_789",
     "surface": {
       "app_id": "code.example.com",
-      "surface_version": "2026-06-25"
+      "surface_version": "2026-06-25",
+      "surface_hash": "sha-256:<base64url-digest>"
     },
     "task": {
       "kind": "pull_request.review",
@@ -1972,6 +2306,11 @@ presented grant. Otherwise a valid grant credential could be replayed against
 sessions created under other grants, corrupting session accounting and receipt
 linkage.
 
+The application MUST also verify that body `grant_hash` matches the complete
+authoritative grant selected by the credential and that `surface_hash` matches
+the manifest snapshot pinned by that grant. These hashes are correlation and
+integrity commitments, not substitutes for the HTTP authorization proof.
+
 If both the `Idempotency-Key` header and the body `idempotency_key` field are
 present, they MUST match, and the application MUST reject a mismatch as
 `schema_invalid`. Accepting a mismatched request and picking either value
@@ -1985,6 +2324,7 @@ POST /agent-actions HTTP/1.1
 Host: example.com
 Authorization: DPoP <grant-credential>
 DPoP: <signed-proof>
+traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-b7ad6b7169203331-01
 Idempotency-Key: idem_01HX7DS8AC6G9
 Content-Type: application/json
 ```
@@ -1994,9 +2334,15 @@ Content-Type: application/json
   "type": "action.request",
   "payload": {
     "session_id": "sess_456",
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "span_id": "b7ad6b7169203331",
     "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
+    "surface_hash": "sha-256:<base64url-digest>",
     "action_id": "comment.create",
     "idempotency_key": "idem_01HX7DS8AC6G9",
+    "parent_receipt_hash": "sha-256:<runtime-receipt-digest>",
+    "input_hash": "sha-256:<action-input-digest>",
     "input": {
       "repository": "example-org/example-repo",
       "pull_request": 13,
@@ -2010,6 +2356,24 @@ The request's proof material MUST use the authorization mechanism selected by
 the credential-binding profile. For example, a DPoP-bound credential carries a
 DPoP proof in the `DPoP` header as defined by RFC 9449.
 
+Before forwarding a side-effecting action, the runtime MUST finalize its
+runtime receipt and place that receipt's `receipt_hash` in
+`parent_receipt_hash`. When the application requires the runtime receipt
+content, the runtime MUST either submit the complete receipt through the
+manifest `agent_api.receipt_url` before the action or carry it inline through a
+declared action-request extension. The application MUST recompute the supplied
+receipt and policy-decision hashes before treating the receipt as verified. A
+bare parent hash is correlation evidence only and is insufficient when app
+policy requires verification of the runtime decision.
+
+For an action requiring runtime receipt evidence, the action declaration MUST
+set `input_hash_profile` to `asp-jcs-sha-256`. The runtime and application MUST
+compute the Action Input hash over the exact validated wire `input` and require
+equality with both the action request and verified parent runtime receipt. A
+receipt for one input MUST NOT be attached to a different input even when the
+grant, action id, and idempotency key match. The semantic normalization used
+for idempotency remains a separate action contract.
+
 ### Action Response
 
 ```json
@@ -2017,7 +2381,11 @@ DPoP proof in the `DPoP` header as defined by RFC 9449.
   "type": "action.result",
   "payload": {
     "session_id": "sess_456",
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "span_id": "00f067aa0ba902b7",
     "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
+    "surface_hash": "sha-256:<base64url-digest>",
     "action_id": "comment.create",
     "idempotency_key": "idem_01HX7DS8AC6G9",
     "result": "success",
@@ -2026,7 +2394,8 @@ DPoP proof in the `DPoP` header as defined by RFC 9449.
       "id": "comment_789",
       "url": "https://code.example.com/example-org/example-repo/pull/13#discussion_r..."
     },
-    "receipt_id": "receipt_abc"
+    "receipt_id": "receipt_app_abc",
+    "receipt_hash": "sha-256:<app-receipt-digest>"
   }
 }
 ```
@@ -2050,12 +2419,17 @@ This is the RECOMMENDED default for early integrations.
 
 ### Receipt Requirements
 
-Receipts SHOULD include:
+Receipts produced under the Receipt-Producing Application profile MUST include:
 
 - receipt id
 - receipt type
+- receipt hash
 - grant id
+- grant hash
 - session id
+- trace id
+- producer span id
+- linked parent trace id when a trust boundary restarted tracing
 - action id
 - app id
 - user id or stable pseudonymous user reference
@@ -2063,6 +2437,8 @@ Receipts SHOULD include:
 - agent id
 - Agent Passport hash
 - surface version
+- surface hash
+- policy decision and policy decision hash
 - input hash
 - output hash
 - approval reference
@@ -2070,6 +2446,47 @@ Receipts SHOULD include:
 - timestamp
 - result
 - error classification when failed
+
+Fields that do not apply to the recorded outcome, such as `output_hash` for a
+denial before execution, MAY be omitted. The identity, authority, trace,
+decision, and result fields that do apply MUST be present and internally
+consistent.
+
+### Receipt Hash Chain
+
+Every runtime and application receipt MUST contain `receipt_hash` computed with
+the Canonical Object Hash Profile. A root receipt omits
+`parent_receipt_hash`; it MUST NOT encode the missing parent as `null`. A
+non-root receipt contains exactly one `parent_receipt_hash`, which is included
+in its own hashing view.
+
+For a runtime-mediated side-effecting action whose grant requires a runtime
+receipt, the application receipt MUST use the verified runtime
+`receipt_hash` from the action request as its `parent_receipt_hash`. A later
+runtime receipt MAY use the returned application `receipt_hash` as its parent.
+This single-parent model permits branches but does not represent multi-parent
+causal joins; a future profile may define a DAG representation.
+
+A parent and child receipt for one action MUST carry identical `grant_hash`,
+`surface_hash`, `session_id`, `action_id`, `idempotency_key`, and `input_hash`.
+They also carry the same `trace_id` unless the child records a trust-boundary
+restart with `linked_trace_id` equal to the parent's `trace_id`.
+Their `span_id` and `policy_decision_hash` normally differ because each producer
+records its own operation and decision. A consumer MUST recompute every
+available object hash, verify these invariants, reject a cycle, and stop at any
+missing or mismatched parent. Reusing one `receipt_id` for different
+`receipt_hash` values is an invalid receipt conflict.
+
+The runtime makes its parent receipt available to the application through the
+`agent_api.receipt_url` or an explicitly declared inline action-request
+extension, as defined in Action Request. The application MUST NOT claim a
+verified parent link when it received only an unverified hash and its policy
+requires the parent content.
+
+A hash chain is tamper-evident only relative to a trusted stored chain head or
+authenticated signature. A party that can replace an entire unsigned chain can
+recompute every hash. Receipt hashes and links therefore do not authenticate a
+producer and do not authorize an action.
 
 ### Runtime Receipt
 
@@ -2081,9 +2498,16 @@ redactions.
 {
   "receipt_id": "receipt_runtime_abc",
   "receipt_type": "runtime",
+  "receipt_hash": "sha-256:<runtime-receipt-digest>",
   "grant_id": "grant_123",
+  "grant_hash": "sha-256:<base64url-digest>",
   "session_id": "sess_456",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "b7ad6b7169203331",
   "action_id": "comment.create",
+  "app_id": "code.example.com",
+  "surface_version": "2026-06-25",
+  "surface_hash": "sha-256:<base64url-digest>",
   "actor_agent": {
     "agent_id": "local_agent_789",
     "passport_hash": "sha256:..."
@@ -2095,13 +2519,32 @@ redactions.
     "user": "user_abc"
   },
   "idempotency_key": "idem_01HX7DS8AC6G9",
-  "input_hash": "sha256:...",
+  "input_hash": "sha-256:<action-input-digest>",
+  "policy_decision_hash": "sha-256:<runtime-policy-decision-digest>",
+  "policy_decision": {
+    "type": "policy.decision",
+    "decision_id": "pdec_runtime_01J2ABCDEF",
+    "enforcer": {
+      "type": "runtime",
+      "id": "application_runtime_456"
+    },
+    "outcome": "allow",
+    "policy": {
+      "id": "local-agent-action-policy",
+      "version": "2026-06-25"
+    },
+    "reason_code": "approval_satisfied",
+    "matched_rules": ["writes.require_local_approval"],
+    "safe_to_show": "The requested write is within the grant and was approved.",
+    "evaluated_at": "2026-06-25T16:29:59Z",
+    "policy_decision_hash": "sha-256:<runtime-policy-decision-digest>"
+  },
   "approved_by": {
     "type": "runtime_user_approval",
     "approval_id": "appr_123"
   },
   "timestamp": "2026-06-25T16:30:00Z",
-  "result": "forwarded_to_app"
+  "result": "authorized_for_forwarding"
 }
 ```
 
@@ -2114,11 +2557,17 @@ deduplicated under a grant.
 {
   "receipt_id": "receipt_app_abc",
   "receipt_type": "app",
+  "receipt_hash": "sha-256:<app-receipt-digest>",
+  "parent_receipt_hash": "sha-256:<runtime-receipt-digest>",
   "grant_id": "grant_123",
+  "grant_hash": "sha-256:<base64url-digest>",
   "session_id": "sess_456",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
   "action_id": "comment.create",
   "app_id": "code.example.com",
   "surface_version": "2026-06-25",
+  "surface_hash": "sha-256:<base64url-digest>",
   "runtime": {
     "runtime_id": "application_runtime_456"
   },
@@ -2130,8 +2579,27 @@ deduplicated under a grant.
     "user": "user_abc"
   },
   "idempotency_key": "idem_01HX7DS8AC6G9",
-  "input_hash": "sha256:...",
+  "input_hash": "sha-256:<action-input-digest>",
   "output_hash": "sha256:...",
+  "policy_decision_hash": "sha-256:<app-policy-decision-digest>",
+  "policy_decision": {
+    "type": "policy.decision",
+    "decision_id": "pdec_app_01J2ABCDEG",
+    "enforcer": {
+      "type": "application",
+      "id": "code.example.com"
+    },
+    "outcome": "allow",
+    "policy": {
+      "id": "agent-action-policy",
+      "version": "2026-06-25"
+    },
+    "reason_code": "policy_allowed",
+    "matched_rules": ["grant.active", "action.comment.create"],
+    "safe_to_show": "The application accepted the authorized comment action.",
+    "evaluated_at": "2026-06-25T16:30:00Z",
+    "policy_decision_hash": "sha-256:<app-policy-decision-digest>"
+  },
   "approved_by": {
     "type": "runtime_user_approval",
     "approval_id": "appr_123"
@@ -2141,20 +2609,147 @@ deduplicated under a grant.
     "id": "comment_789"
   },
   "timestamp": "2026-06-25T16:30:00Z",
-  "result": "success",
-  "links": {
-    "runtime_receipt_hash": "sha256:..."
+  "result": "success"
+}
+```
+
+### Receipt Signing Profile
+
+The optional `asp-jws-detached` profile lets an application, runtime, or both
+authenticate a receipt without changing `receipt_hash`. The base MVP permits
+unsigned receipts. Unsigned means that `receipt_signatures` is absent; it MUST
+NOT be represented by a JWS using `alg: none`.
+
+A grant that requires both runtime and application signatures carries:
+
+```json
+{
+  "audit": {
+    "local_receipt": "required",
+    "app_receipt": "required",
+    "receipt_signing": {
+      "profile": "asp-jws-detached",
+      "required_signers": ["runtime", "application"],
+      "signer_keys": [
+        {
+          "role": "runtime",
+          "kid": "runtime-receipt-key-2026-01",
+          "jwk_thumbprint": "<base64url-rfc7638-sha256-thumbprint>"
+        },
+        {
+          "role": "application",
+          "kid": "app-receipt-key-2026-01",
+          "jwk_thumbprint": "<base64url-rfc7638-sha256-thumbprint>"
+        }
+      ]
+    }
   }
 }
 ```
 
-Receipts MAY be signed by the app, runtime, or both. A future draft is expected
-to define canonicalization and signature profiles.
+For this profile, the signing view is the complete receipt with
+`receipt_signatures` omitted and with `receipt_hash` retained. The signer wraps
+that view as an object with `domain` equal to
+`https://github.com/0al-spec/agent-surface/signature/receipt/v1` and `receipt`
+equal to the signing view, then serializes the wrapper with RFC 8785 JCS. Those
+UTF-8 bytes are the JWS payload.
 
-How the application obtains the `runtime_receipt_hash` value for the `links`
-field — for example, in the action request itself or through a later
-submission to the receipt endpoint — is not defined in this draft; see Open
-Questions.
+The receipt carries a detached General JWS JSON Serialization as follows. The
+`payload` member is omitted according to RFC 7515 Appendix F; the verifier
+reconstructs it from the canonical signing view. Ordinary JWS base64url payload
+encoding is used, so the RFC 7797 `b64` extension MUST NOT be present.
+
+The decoded protected header for a runtime receipt has this form:
+
+```json
+{
+  "alg": "ES256",
+  "kid": "runtime-receipt-key-2026-01",
+  "typ": "asp-receipt+jws"
+}
+```
+
+The following envelope is schematic; angle-bracket strings mark values that a
+producer replaces with valid base64url JWS values.
+
+```json
+{
+  "receipt_signatures": {
+    "signatures": [
+      {
+        "protected": "<base64url-protected-header>",
+        "signature": "<base64url-es256-signature>"
+      }
+    ]
+  }
+}
+```
+
+The `receipt_signatures` object MUST contain exactly the non-empty `signatures`
+array; `payload` and every other member are forbidden in the transported
+envelope. Each signature object MUST contain exactly `protected` and
+`signature`; a JWS `header` member is forbidden. The
+decoded protected header MUST contain exactly three unique members: `alg`,
+`kid`, and `typ`. `typ` MUST be `asp-receipt+jws`; this is an ASP-private type
+string pending any media-type registration and MUST be compared exactly.
+Duplicate header members, `alg: none`, inline `jwk`, and any `jku`, `x5u`, or
+`x5c` key location MUST be rejected.
+
+Implementations of this profile MUST support `ES256` and MUST enforce an
+explicit algorithm allow-list. An ES256 JWK MUST use `kty: "EC"` and
+`crv: "P-256"`; when present, `alg` MUST be `ES256`, `use` MUST be `sig`, and
+`key_ops` MUST permit `verify`. The JWS signature decodes to the 64-octet `R ||
+S` form defined by RFC 7518, not an ASN.1 DER signature. ES256 signers SHOULD
+derive the nonce deterministically according to RFC 6979. A future profile MAY
+add a fully specified algorithm such as `Ed25519`; the polymorphic `EdDSA`
+identifier MUST NOT be substituted.
+
+`kid` is only a lookup hint. Application keys MUST be resolved through
+issuer-bound authenticated metadata such as the manifest
+`audit.receipt_signing.jwks_uri`; runtime keys MUST be resolved through the
+runtime identity or key registration bound to the grant. A verifier MUST ensure
+that the resolved key is authorized for the claimed signer and receipt role.
+For a required signer, the JWS `kid` MUST select an entry in the hashed grant's
+`audit.receipt_signing.signer_keys` whose `role` matches the receipt producer,
+and the resolved public JWK's RFC 7638 SHA-256 thumbprint MUST match
+`jwk_thumbprint`. A `kid` match without the role and pinned thumbprint is
+insufficient.
+
+An application advertising this profile MUST include `asp-jws-detached` in
+`audit.receipt_signing.profiles_supported`, `ES256` in
+`algorithms_supported`, and an issuer-bound HTTPS `jwks_uri`. A runtime signing
+receipt evidence MUST register or attest its verification key through the
+authenticated runtime relationship before a grant can require the `runtime`
+signer role. A receipt-supplied URL or inline key is never sufficient trust.
+Signers MUST retain or make their historical public keys available for at least
+the applicable receipt-retention period. Key rotation does not rewrite an old
+grant's pinned thumbprints; requiring a new key for future receipts requires a
+new grant hash or explicit grant renewal. Within one issuer and signer role, a
+`kid` MUST NOT be rebound to different key material. A compromise or revocation can make
+historical evidence indeterminate according to verifier policy because this
+profile does not provide an independent trusted timestamp.
+
+The manifest advertises supported algorithms and key metadata. A grant MAY
+make signatures mandatory through an `audit.receipt_signing` object containing
+`profile: "asp-jws-detached"` and `required_signers`, whose values are
+`runtime` and/or `application`. A listed role MUST sign the receipts it
+produces; listing both roles requires a signed runtime receipt and a signed
+application receipt, not two signatures on every receipt. Additional
+co-signatures over the same detached payload remain possible through General
+JWS. The requirement MUST include at least one pinned `signer_keys` entry for
+each required role. Because the requirement and key pins are inside the hashed
+grant rather than the removable signature envelope, they cannot be stripped
+without changing `grant_hash`. If the grant has no such requirement, an
+unsigned receipt remains conforming hash-linked audit material but MUST NOT be
+represented as authenticated portable evidence.
+
+A verifier MUST validate receipt structure and linked hashes first, reconstruct
+the canonical detached payload, enforce protected-header and key policy, verify
+the signature required for that receipt's producer role, and then validate the
+parent chain to a trusted anchor. A present but invalid, unknown, or
+unverifiable signature MUST NOT be downgraded to an unsigned receipt. Missing
+or invalid required signatures make the receipt invalid as evidence; they do
+not retroactively authorize or undo the underlying application action.
 
 ## Revocation Semantics
 
@@ -2203,7 +2798,9 @@ with this minimum envelope:
   "audience": "application_runtime_456",
   "payload": {
     "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
     "app_id": "code.example.com",
+    "surface_hash": "sha-256:<base64url-digest>",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
     "passport_hash": "sha256:...",
@@ -2217,8 +2814,9 @@ with this minimum envelope:
 ```
 
 Required event fields are `id`, `type`, `occurred_at`, `issuer`, `audience`, and
-`payload`. The payload MUST contain `grant_id`, `app_id`, `runtime_id`,
-`agent_id`, `passport_hash`, `revoked_at`, `effective_at`, `reason`, and
+`payload`. The payload MUST contain `grant_id`, `grant_hash`, `app_id`,
+`surface_hash`, `runtime_id`, `agent_id`, `passport_hash`, `revoked_at`,
+`effective_at`, `reason`, and
 `cascade`; `parent_grant_id` is REQUIRED for a child grant and otherwise MAY be
 null. Defined reason values are `user_revoked`, `application_revoked`,
 `runtime_revoked`, `credential_compromise`, `parent_revoked`, `policy_changed`,
@@ -2232,6 +2830,14 @@ it. Delivery of this control event MUST use event-channel authority independent
 of the revoked grant and MUST disclose no more grant data than the target
 runtime already possessed. A future signing profile MAY additionally define an
 application signature for portable event verification.
+
+The runtime MUST compare event `grant_hash` and `surface_hash` with its retained
+grant and manifest snapshot. If an authenticated event matches the stored
+`grant_id` and delegate tuple but either hash differs, the runtime MUST fail
+closed: mark the stored grant inactive, record `integrity_mismatch`, and
+resynchronize authoritative state. It MUST NOT replace its stored hash
+projections from the event, but it also MUST NOT ignore the revocation and keep
+using the grant.
 
 After accepting the event, the runtime MUST atomically mark the grant inactive,
 discard cached active introspection state, stop new actions and credential use,
@@ -2301,6 +2907,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `grant_expired` | Grant has expired. |
 | `grant_revoked` | Grant was revoked. |
 | `grant_proof_invalid` | Grant credential or proof is missing, invalid, or not bound correctly. |
+| `integrity_mismatch` | A supplied surface, grant, policy-decision, receipt, or parent hash does not match its complete hashing view or authoritative projection. |
 | `scope_denied` | Grant scope does not permit the action. |
 | `resource_denied` | Grant constraints do not permit the target resource. |
 | `approval_required` | Required approval is absent. |
@@ -2325,12 +2932,13 @@ debugging.
 
 ## Versioning and Compatibility
 
-Surface manifests SHOULD include:
+Surface manifests MUST include:
 
 ```json
 {
   "protocol": "agent-surface/0.1",
   "surface_version": "2026-06-25",
+  "surface_hash": "sha-256:<base64url-digest>",
   "compatibility": {
     "min_runtime": "application-runtime/0.1",
     "schema_dialect": "https://json-schema.org/draft/2020-12/schema"
@@ -2341,6 +2949,14 @@ Surface manifests SHOULD include:
 The `surface_version` value is an opaque identifier. Runtimes MUST compare
 surface versions for exact equality; this draft defines no ordering between
 surface versions.
+
+Any change to the manifest hashing view MUST produce both a new `surface_hash`
+and a new `surface_version`. Compatibility classification determines whether
+an existing grant requires renewal; it does not permit two different manifest
+objects to reuse one version. Applications SHOULD retain the exact old manifest
+snapshot identified by every active grant. If that snapshot is unavailable,
+the application MUST NOT interpret the action against the latest manifest and
+MUST reject the action as `surface_incompatible`.
 
 Compatibility rules:
 
@@ -2500,13 +3116,31 @@ risk. Side-effecting actions MUST be idempotent.
 ### Surface Downgrade
 
 A malicious network or compromised app path can present an older, less safe
-surface version. Runtimes SHOULD pin issuer, app id, and minimum accepted
-protocol versions where possible.
+surface version. Runtimes SHOULD pin issuer, app id, minimum accepted protocol
+versions, and the verified version/hash tuple. Reusing one `surface_version`
+with a different hash is an integrity failure. A self-declared `surface_hash`
+does not authenticate the publisher because an attacker able to replace the
+manifest can also recompute it; HTTPS, issuer binding, and local trust policy
+remain mandatory.
+
+`surface_hash` commits to schema URLs and other manifest values, not to the
+transitive content later served by those URLs. A deployment that needs that
+property must separately pin schema content hashes or use a future canonical
+surface-bundle profile.
 
 ### Receipt Forgery
 
-Receipts SHOULD be hash-linked to normalized inputs and outputs. Future drafts
-are expected to define signing and canonicalization profiles.
+Receipts are hash-linked with the Canonical Object Hash Profile. This detects a
+changed receipt or broken parent link relative to a retained chain head, but an
+attacker that controls the whole unsigned history can replace and rehash the
+chain. The optional Receipt Signing Profile authenticates a receipt only after
+the verifier resolves an authorized signer key and validates the detached JWS;
+`kid`, hash fields, and link fields are not trust anchors by themselves.
+
+A verifier MUST reject duplicate JSON members, hash mismatches, parent cycles,
+untrusted signature keys, disallowed algorithms, and a present invalid
+signature. It MUST NOT treat an unsigned optional receipt as signed evidence or
+downgrade an invalid signature to the unsigned MVP.
 
 ## Privacy Considerations
 
@@ -2523,6 +3157,12 @@ Runtimes SHOULD minimize agent and passport disclosure when possible. Receipts
 SHOULD support pseudonymous user references where legal and operationally
 appropriate.
 
+Cross-system trace correlation can reveal relationships between otherwise
+separate user actions, tenants, and services. `trace_id`, `span_id`, and
+`tracestate` MUST NOT encode semantic identifiers or secrets. Components SHOULD
+apply bounded retention, access control, and sampling independently of whether
+the incoming trace flags request recording.
+
 ## Conformance
 
 This draft defines conformance profiles instead of a single all-or-nothing
@@ -2533,6 +3173,8 @@ profile.
 An application conforms to the Surface-Only profile when it:
 
 - publishes an Agent Surface Manifest
+- computes and publishes a valid `surface_hash` and changes
+  `surface_version` whenever the manifest hashing view changes
 - declares actions, resources, events, scopes, and schemas
 - declares risk labels for actions
 - declares endpoints or explicitly marks the surface as proposal/documentation
@@ -2547,6 +3189,8 @@ An application conforms to the Grant-Enforcing profile when it:
 - issues, validates, or introspects Agent Grants
 - validates grant state for every action
 - validates credential binding to runtime, agent, and passport evidence
+- validates `grant_hash` and binds the grant to the exact verified
+  `surface_hash` snapshot
 - treats `grant_id` as an identifier, not authority
 - supports idempotency for side-effecting actions
 - supports grant revocation
@@ -2563,6 +3207,7 @@ it:
   Rich Authorization Request Profile
 - implements the OAuth Token Exchange Profile without privilege amplification
 - returns the active and inactive Grant Introspection Profile contracts
+- returns matching top-level and authorization-details hash projections
 - implements RFC 7009 semantic grant revocation, derivation cascade, and the
   authenticated `grant.revoked` control event when an event endpoint is declared
 
@@ -2572,9 +3217,24 @@ An application conforms to the Receipt-Producing profile when it:
 
 - satisfies the Grant-Enforcing profile
 - emits app receipts for required side-effecting actions
-- links receipts to grant id, session id, action id, agent id, runtime id, and
-  idempotency key
+- emits recomputable `receipt_hash`, `grant_hash`, `surface_hash`, and
+  `policy_decision_hash` values
+- includes the complete typed Policy Decision Object and requires its embedded
+  hash to match the receipt's `policy_decision_hash`
+- links an app receipt to the verified runtime receipt through
+  `parent_receipt_hash` when runtime receipt evidence is required
+- preserves trace id, session id, action id, agent id, runtime id, and
+  idempotency key while using a producer-specific span id
+- records session id, trace id, and producer span id in the corresponding local
+  action and receipt log entry
 - records denied or failed high-risk actions
+
+An application or runtime claims the `asp-jws-detached` Receipt Signing Profile
+only when it supports the canonical detached payload, ES256 verification,
+authenticated key resolution, grant-pinned signer roles and thumbprints,
+historical public-key retention, and the no-downgrade behavior defined above.
+It MUST emit every signature required for its producer role and reject required
+or present signatures that do not verify.
 
 ### Proof-Bound Grant-Enforcing Application
 
@@ -2594,6 +3254,7 @@ when it:
 An application runtime conforms to this profile when it:
 
 - discovers and validates Agent Surface Manifests
+- recomputes `surface_hash` and pins the exact manifest snapshot
 - verifies Agent Passport evidence before delegation
 - obtains explicit user consent before storing a grant
 - mediates agent actions instead of exposing raw authority
@@ -2610,6 +3271,10 @@ An application runtime conforms to this profile when it:
 - enforces local policy and approval rules
 - validates action input against schemas before sending to the app
 - records local audit events and runtime receipts
+- computes and validates grant, policy-decision, and receipt hashes; propagates
+  session and W3C-compatible trace context
+- records session id, trace id, and producer span id in local action and receipt
+  logs
 - stops actions when grants are revoked or expired
 
 ### Agent Adapter
@@ -2623,6 +3288,7 @@ An adapter conforms to this draft when it:
 - emits typed events
 - handles denials and approval waits
 - preserves session and grant identifiers in audit context
+- preserves valid trace ids and creates a new span id for each adapter operation
 
 ## Application MVP Mapping
 
@@ -2652,8 +3318,8 @@ To support Agent Surface Protocol, the next slices are:
 ## Example End-to-End Flow
 
 ```text
-1. App publishes /.well-known/agent-surface.json.
-2. Application runtime discovers and validates the surface.
+1. App publishes /.well-known/agent-surface.json with `surface_hash`.
+2. Application runtime recomputes the hash and pins the exact surface.
 3. User chooses "Connect my local agent".
 4. Runtime verifies the selected agent's Agent Passport.
 5. Runtime sends an Agent Grant `authorization_details` request.
@@ -2665,15 +3331,19 @@ To support Agent Surface Protocol, the next slices are:
    - duration: 2 hours
    - writes: require approval
 7. User approves a subset or the complete request.
-8. App issues or token-exchanges grant_123 and its bound Grant Credential.
+8. App issues or token-exchanges grant_123, its canonical `grant_hash`, and its
+   bound Grant Credential.
 9. Runtime stores the authoritative granted details and credential.
 10. App starts a pull-request review session.
 11. Agent reads typed PR context through runtime-mediated resources.
 12. Agent proposes a review comment.
 13. User or app approves the write.
-14. Runtime sends comment.create with an idempotency key and Grant Credential.
-15. App verifies or introspects current grant state and writes the comment.
-16. Runtime and app issue linked receipts.
+14. Runtime records its policy decision and receipt, then sends comment.create
+    with trace context, parent receipt hash, idempotency key, and Grant Credential.
+15. App verifies current grant, surface, decision, and receipt hashes and writes
+    the comment.
+16. Runtime and app receipts form a verified parent-hash chain and MAY carry
+    detached JWS signatures when required by the grant.
 17. User revokes grant_123; the app rejects it immediately.
 18. App emits authenticated `grant.revoked`; runtime stops affected work.
 ```
@@ -2686,10 +3356,6 @@ To support Agent Surface Protocol, the next slices are:
   runtime can request an Agent Grant?
 - Does grant binding require runtime attestation, or is a registered runtime id
   enough for early implementations?
-- Are receipts signed in the first version, or only hash-linked and
-  locally stored?
-- Which JSON canonicalization profile is used for signed grants and
-  receipts?
 - Is `/.well-known/agent-surface.json` public, authenticated, or both
   depending on app tenancy?
 - What is the minimal sender-constrained grant credential profile?
@@ -2698,8 +3364,6 @@ To support Agent Surface Protocol, the next slices are:
 - What happens to active sessions when an app changes surface versions?
 - What transport, ordering, acknowledgement, and replay semantics do event
   subscriptions use?
-- How does the application obtain the runtime receipt hash that an app receipt
-  links to?
 - How is `max_cost_usd` metered when runtime-side inference cost and app-side
   action cost diverge, and which side is authoritative?
 - How are runtime-side approvals proven to the application beyond an
@@ -2735,6 +3399,36 @@ To support Agent Surface Protocol, the next slices are:
   <https://www.rfc-editor.org/rfc/rfc8705>
 - OAuth 2.0 Demonstrating Proof-of-Possession at the Application Layer (DPoP):
   <https://www.rfc-editor.org/rfc/rfc9449>
+- The I-JSON Message Format:
+  <https://www.rfc-editor.org/rfc/rfc7493>
+- Base-N Encodings:
+  <https://www.rfc-editor.org/rfc/rfc4648>
+- Date and Time on the Internet: Timestamps:
+  <https://www.rfc-editor.org/rfc/rfc3339>
+- JSON Web Signature (JWS):
+  <https://www.rfc-editor.org/rfc/rfc7515>
+- JSON Web Key (JWK):
+  <https://www.rfc-editor.org/rfc/rfc7517>
+- JSON Web Algorithms (JWA):
+  <https://www.rfc-editor.org/rfc/rfc7518>
+- JSON Web Key (JWK) Thumbprint:
+  <https://www.rfc-editor.org/rfc/rfc7638>
+- Deterministic Usage of DSA and ECDSA:
+  <https://www.rfc-editor.org/rfc/rfc6979>
+- JSON Web Signature Unencoded Payload Option:
+  <https://www.rfc-editor.org/rfc/rfc7797>
+- JSON Canonicalization Scheme (JCS):
+  <https://www.rfc-editor.org/rfc/rfc8785>
+- Verified erratum 7920 for JSON Canonicalization Scheme:
+  <https://www.rfc-editor.org/errata/eid7920>
+- JSON Web Token Best Current Practices:
+  <https://www.rfc-editor.org/rfc/rfc8725>
+- Fully Specified Algorithms for JOSE:
+  <https://www.rfc-editor.org/rfc/rfc9864>
+- Secure Hash Standard (SHS), FIPS 180-4:
+  <https://csrc.nist.gov/pubs/fips/180-4/upd1/final>
+- W3C Trace Context:
+  <https://www.w3.org/TR/trace-context/>
 - Key words for use in RFCs to Indicate Requirement Levels:
   <https://www.rfc-editor.org/rfc/rfc2119>
 - Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words:
