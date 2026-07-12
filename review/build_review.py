@@ -59,7 +59,7 @@ def render_rfc() -> tuple[str, dict[str, str]]:
 
 def load_reviews(heading_ids: dict[str, str]) -> list[dict[str, object]]:
     payload = load_review_payload(DATA_PATH)
-    validate_review_payload(payload, heading_ids)
+    validate_review_payload(payload, heading_ids, required_planning_mode="required")
     return normalize_reviews(payload, heading_ids)
 
 

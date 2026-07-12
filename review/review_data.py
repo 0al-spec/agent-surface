@@ -34,10 +34,20 @@ def load_review_payload(path: Path = DATA_PATH) -> dict[str, Any]:
 def validate_review_payload(
     payload: Mapping[str, Any],
     heading_ids: Mapping[str, str],
+    *,
+    required_planning_mode: str | None = None,
 ) -> None:
     """Validate the JSON shape and cross-object planning invariants."""
 
     _validate_schema(payload)
+    if (
+        required_planning_mode is not None
+        and payload["planning_metadata_mode"] != required_planning_mode
+    ):
+        raise ValueError(
+            "Canonical review data must use planning_metadata_mode "
+            f"{required_planning_mode!r}"
+        )
     profiles = payload["profiles"]
     releases = payload["releases"]
     reviews = payload["reviews"]

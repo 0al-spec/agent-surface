@@ -176,6 +176,19 @@ class ReviewDataValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "does not match review-data.schema.json"):
             validate_review_payload(payload, self.heading_ids)
 
+    def test_canonical_gate_rejects_transitional_mode(self) -> None:
+        payload = load_review_payload()
+        payload["planning_metadata_mode"] = "transitional"
+        for field in ("profile", "depends_on", "target_release", "maturity", "evidence"):
+            del payload["reviews"][0][field]
+        validate_review_payload(payload, self.heading_ids)
+        with self.assertRaisesRegex(ValueError, "must use planning_metadata_mode 'required'"):
+            validate_review_payload(
+                payload,
+                self.heading_ids,
+                required_planning_mode="required",
+            )
+
     def test_long_reverse_order_dependency_chain_is_valid(self) -> None:
         payload = self.valid_payload()
         template = payload["reviews"][0]
