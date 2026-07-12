@@ -13,7 +13,12 @@ from pathlib import Path
 
 from markdown_it import MarkdownIt
 
-from review_data import load_review_payload, normalize_reviews, validate_review_payload
+from review_data import (
+    MATURITY_ORDER,
+    load_review_payload,
+    normalize_reviews,
+    validate_review_payload,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +27,8 @@ RFC_PATH = ROOT / "drafts" / "agent-surface.md"
 DATA_PATH = REVIEW_DIR / "review-data.json"
 TEMPLATE_PATH = REVIEW_DIR / "review-template.html"
 STYLESHEET_PATH = REVIEW_DIR / "standalone.css"
+STATE_PATH = REVIEW_DIR / "dashboard-state.js"
+UI_PATH = REVIEW_DIR / "dashboard-ui.js"
 OUTPUT_PATH = REVIEW_DIR / "agent-surface-rfc-review.html"
 
 
@@ -57,21 +64,61 @@ def render_rfc() -> tuple[str, dict[str, str]]:
     return markdown.renderer.render(tokens, markdown.options, {}), heading_ids
 
 
-def load_reviews(heading_ids: dict[str, str]) -> list[dict[str, object]]:
+def load_dashboard_data(heading_ids: dict[str, str]) -> dict[str, object]:
     payload = load_review_payload(DATA_PATH)
     validate_review_payload(payload, heading_ids, required_planning_mode="required")
-    return normalize_reviews(payload, heading_ids)
+    return {
+        "schema_version": payload["schema_version"],
+        "maturity_order": list(MATURITY_ORDER),
+        "profiles": payload["profiles"],
+        "releases": payload["releases"],
+        "reviews": normalize_reviews(payload, heading_ids),
+    }
+
+
+def serialize_inline_json(value: object) -> str:
+    """Serialize JSON without allowing tracked text to terminate the inline script."""
+
+    serialized = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    for character, escape in (
+        ("&", "\\u0026"),
+        ("<", "\\u003c"),
+        (">", "\\u003e"),
+        ("\u2028", "\\u2028"),
+        ("\u2029", "\\u2029"),
+    ):
+        serialized = serialized.replace(character, escape)
+    return serialized
+
+
+def replace_placeholders(template: str, replacements: dict[str, str]) -> str:
+    """Replace every required build marker exactly once."""
+
+    for placeholder in replacements:
+        count = template.count(placeholder)
+        if count != 1:
+            raise ValueError(
+                f"review template must contain exactly one {placeholder}; found {count}"
+            )
+    pattern = re.compile("|".join(re.escape(placeholder) for placeholder in replacements))
+    return pattern.sub(lambda match: replacements[match.group(0)], template)
 
 
 def build_document() -> str:
     rfc_html, heading_ids = render_rfc()
-    reviews = load_reviews(heading_ids)
+    dashboard_data = load_dashboard_data(heading_ids)
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
-    fragment = template.replace("<!--__RFC_HTML__-->", rfc_html).replace(
-        "/*__REVIEW_DATA__*/", json.dumps(reviews, ensure_ascii=False, separators=(",", ":"))
+    state_source = STATE_PATH.read_text(encoding="utf-8")
+    ui_source = UI_PATH.read_text(encoding="utf-8")
+    fragment = replace_placeholders(
+        template,
+        {
+            "<!--__RFC_HTML__-->": rfc_html,
+            "/*__DASHBOARD_STATE__*/": state_source,
+            "/*__DASHBOARD_UI__*/": ui_source,
+            "/*__DASHBOARD_DATA__*/": serialize_inline_json(dashboard_data),
+        },
     )
-    if "<!--__RFC_HTML__-->" in fragment or "/*__REVIEW_DATA__*/" in fragment:
-        raise ValueError("review template placeholders were not fully replaced")
     stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
     return f"""<!doctype html>
 <html lang=\"en\">
@@ -105,7 +152,7 @@ def main() -> int:
     try:
         if args.check_data:
             _, heading_ids = render_rfc()
-            load_reviews(heading_ids)
+            load_dashboard_data(heading_ids)
             print(f"Review data is valid: {DATA_PATH.relative_to(ROOT)}")
             return 0
         document = build_document()

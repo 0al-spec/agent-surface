@@ -101,6 +101,11 @@ The canonical file keeps `planning_metadata_mode` set to `required`;
 `transitional` exists only so schema v2 can validate the stacked migration
 without silently changing the v2 contract.
 
+The generated dashboard can filter by profile, priority, coverage, maturity,
+target release, and readiness. Its counters and Next/Previous navigation use
+the filtered card set. Dependency chips select the referenced card and relax
+only filters that would otherwise hide it.
+
 ## Status
 
 The specification is experimental and subject to change. The current draft is

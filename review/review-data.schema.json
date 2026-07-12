@@ -72,7 +72,12 @@
   "$defs": {
     "identifier": {
       "type": "string",
-      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "not": {
+        "enum": [
+          "all"
+        ]
+      }
     },
     "anchorSlug": {
       "type": "string",
@@ -121,7 +126,14 @@
         "id": {
           "type": "string",
           "minLength": 1,
-          "pattern": "\\S"
+          "pattern": "\\S",
+          "not": {
+            "enum": [
+              "all",
+              "__all__",
+              "__unassigned__"
+            ]
+          }
         },
         "title": {
           "$ref": "#/$defs/nonEmptyString"

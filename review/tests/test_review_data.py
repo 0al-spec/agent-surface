@@ -12,7 +12,12 @@ REVIEW_DIR = Path(__file__).resolve().parents[1]
 FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 sys.path.insert(0, str(REVIEW_DIR))
 
-from build_review import render_rfc  # noqa: E402
+from build_review import (  # noqa: E402
+    load_dashboard_data,
+    replace_placeholders,
+    render_rfc,
+    serialize_inline_json,
+)
 from review_data import (  # noqa: E402
     load_review_payload,
     normalize_reviews,
@@ -262,6 +267,50 @@ class ReviewDataValidationTests(unittest.TestCase):
         for review in load_review_payload()["reviews"]:
             self.assertNotIn("blocks", review)
             self.assertNotIn("readiness", review)
+
+    def test_dashboard_payload_contains_registries_and_derived_state(self) -> None:
+        dashboard_data = load_dashboard_data(self.heading_ids)
+        self.assertEqual(dashboard_data["schema_version"], 2)
+        self.assertEqual(len(dashboard_data["profiles"]), 10)
+        self.assertEqual(len(dashboard_data["releases"]), 1)
+        self.assertEqual(len(dashboard_data["maturity_order"]), 6)
+        self.assertEqual(len(dashboard_data["reviews"]), 60)
+        self.assertIn("blocks", dashboard_data["reviews"][0])
+        self.assertIn("readiness", dashboard_data["reviews"][0])
+
+    def test_inline_json_escapes_script_breakout_characters(self) -> None:
+        value = {"text": "</script><tag>&\u2028\u2029"}
+        serialized = serialize_inline_json(value)
+        for unsafe in ("</script>", "<", ">", "&", "\u2028", "\u2029"):
+            self.assertNotIn(unsafe, serialized)
+        self.assertEqual(json.loads(serialized), value)
+
+    def test_placeholder_replacement_requires_exactly_one_marker(self) -> None:
+        self.assertEqual(
+            replace_placeholders("before __ONE__ after", {"__ONE__": "value"}),
+            "before value after",
+        )
+        self.assertEqual(
+            replace_placeholders(
+                "__ONE__ then __TWO__",
+                {"__ONE__": "literal __TWO__", "__TWO__": "second"},
+            ),
+            "literal __TWO__ then second",
+        )
+        for template in ("marker missing", "__ONE__ and __ONE__"):
+            with self.subTest(template=template):
+                with self.assertRaisesRegex(ValueError, "exactly one"):
+                    replace_placeholders(template, {"__ONE__": "value"})
+
+    def test_filter_sentinel_registry_ids_are_rejected(self) -> None:
+        profile_payload = self.valid_payload()
+        profile_payload["profiles"][0]["id"] = "all"
+        profile_payload["reviews"][0]["profile"] = "all"
+        self.assert_invalid(profile_payload, "does not match review-data.schema.json")
+
+        release_payload = self.valid_payload()
+        release_payload["releases"][0]["id"] = "__unassigned__"
+        self.assert_invalid(release_payload, "does not match review-data.schema.json")
 
 
 if __name__ == "__main__":
