@@ -34,9 +34,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         validate_review_payload(load_review_payload(), self.heading_ids)
 
     def test_valid_v2_planning_bundle_is_accepted(self) -> None:
-        validate_review_payload(
-            self.valid_payload(), self.heading_ids, require_planning_metadata=True
-        )
+        validate_review_payload(self.valid_payload(), self.heading_ids)
 
     def test_invalid_schema_version_is_rejected(self) -> None:
         payload = self.valid_payload()
@@ -135,48 +133,26 @@ class ReviewDataValidationTests(unittest.TestCase):
         review["evidence"] = []
         self.assert_invalid(payload, "requires rfc_anchor evidence")
 
-    def test_machine_validated_maturity_requires_machine_evidence(self) -> None:
+    def test_unresolved_evidence_kind_is_rejected(self) -> None:
         payload = self.valid_payload()
-        review = payload["reviews"][0]
-        review["status"] = "present"
-        review["maturity"] = "machine_validated"
-        self.assert_invalid(payload, "requires schema or test evidence")
-
-    def test_implementation_tested_maturity_requires_implementation_evidence(self) -> None:
-        payload = self.valid_payload()
-        review = payload["reviews"][0]
-        review["status"] = "present"
-        review["maturity"] = "implementation_tested"
-        review["evidence"].append({"kind": "schema", "ref": "schema.json"})
-        self.assert_invalid(payload, "requires implementation evidence")
-
-    def test_interop_tested_maturity_requires_interop_evidence(self) -> None:
-        payload = self.valid_payload()
-        review = payload["reviews"][0]
-        review["status"] = "present"
-        review["maturity"] = "interop_tested"
-        review["evidence"].extend(
-            [
-                {"kind": "schema", "ref": "schema.json"},
-                {"kind": "implementation", "ref": "implementation"},
-            ]
+        payload["reviews"][0]["evidence"].append(
+            {"kind": "schema", "ref": "does-not-exist.schema.json"}
         )
-        self.assert_invalid(payload, "requires interop_test evidence")
+        self.assert_invalid(payload, "authoritative resolver")
 
-    def test_stable_maturity_requires_released_target(self) -> None:
+    def test_unverifiable_maturity_levels_are_rejected(self) -> None:
         payload = self.valid_payload()
         review = payload["reviews"][0]
         review["status"] = "present"
-        review["maturity"] = "stable"
-        review["target_release"] = "0.2"
-        review["evidence"].extend(
-            [
-                {"kind": "schema", "ref": "schema.json"},
-                {"kind": "implementation", "ref": "implementation"},
-                {"kind": "interop_test", "ref": "interop-suite"},
-            ]
-        )
-        self.assert_invalid(payload, "requires a released target_release")
+        for maturity in (
+            "machine_validated",
+            "implementation_tested",
+            "interop_tested",
+            "stable",
+        ):
+            with self.subTest(maturity=maturity):
+                review["maturity"] = maturity
+                self.assert_invalid(payload, "authoritative evidence resolvers")
 
     def test_partial_specified_fixture_is_rejected(self) -> None:
         self.assert_invalid(
@@ -190,10 +166,22 @@ class ReviewDataValidationTests(unittest.TestCase):
 
     def test_required_planning_metadata_rejects_legacy_card(self) -> None:
         payload = load_review_payload()
-        with self.assertRaisesRegex(ValueError, "missing planning metadata"):
-            validate_review_payload(
-                payload, self.heading_ids, require_planning_metadata=True
-            )
+        payload["planning_metadata_mode"] = "required"
+        with self.assertRaisesRegex(ValueError, "does not match review-data.schema.json"):
+            validate_review_payload(payload, self.heading_ids)
+
+    def test_long_reverse_order_dependency_chain_is_valid(self) -> None:
+        payload = self.valid_payload()
+        template = payload["reviews"][0]
+        reviews = []
+        for review_id in range(1100, 0, -1):
+            review = copy.deepcopy(template)
+            review["id"] = review_id
+            review["title"] = f"Review {review_id}"
+            review["depends_on"] = [] if review_id == 1 else [review_id - 1]
+            reviews.append(review)
+        payload["reviews"] = reviews
+        validate_review_payload(payload, self.heading_ids)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@
   "additionalProperties": false,
   "required": [
     "schema_version",
+    "planning_metadata_mode",
     "profiles",
     "releases",
     "reviews"
@@ -13,6 +14,12 @@
   "properties": {
     "schema_version": {
       "const": 2
+    },
+    "planning_metadata_mode": {
+      "enum": [
+        "transitional",
+        "required"
+      ]
     },
     "profiles": {
       "type": "array",
@@ -36,6 +43,32 @@
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "planning_metadata_mode": {
+            "const": "required"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviews": {
+            "items": {
+              "required": [
+                "profile",
+                "depends_on",
+                "target_release",
+                "maturity",
+                "evidence"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "identifier": {
       "type": "string",

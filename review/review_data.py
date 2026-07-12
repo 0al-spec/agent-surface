@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter, deque
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -33,8 +34,6 @@ def load_review_payload(path: Path = DATA_PATH) -> dict[str, Any]:
 def validate_review_payload(
     payload: Mapping[str, Any],
     heading_ids: Mapping[str, str],
-    *,
-    require_planning_metadata: bool = False,
 ) -> None:
     """Validate the JSON shape and cross-object planning invariants."""
 
@@ -42,10 +41,10 @@ def validate_review_payload(
     profiles = payload["profiles"]
     releases = payload["releases"]
     reviews = payload["reviews"]
+    require_planning_metadata = payload["planning_metadata_mode"] == "required"
 
     profile_ids = _unique_ids(profiles, "profile")
     release_ids = _unique_ids(releases, "release")
-    releases_by_id = {release["id"]: release for release in releases}
     review_ids = _unique_ids(reviews, "review")
     if sorted(review_ids) != list(range(1, len(reviews) + 1)):
         raise ValueError("Review ids must be unique and sequential, starting at 1")
@@ -100,7 +99,10 @@ def validate_review_payload(
         evidence_kinds = {item["kind"] for item in evidence}
         for item in evidence:
             if item["kind"] != "rfc_anchor":
-                continue
+                raise ValueError(
+                    f"Review #{review_id} evidence kind {item['kind']!r} is not supported "
+                    "until an authoritative resolver is configured"
+                )
             ref = item["ref"]
             if ref not in actual_anchor_ids:
                 raise ValueError(f"Review #{review_id} evidence references unknown RFC anchor: {ref}")
@@ -116,13 +118,6 @@ def validate_review_payload(
                     f"Review #{review_id} status {review['status']!r} cannot exceed proposal maturity"
                 )
             _validate_maturity_evidence(review_id, maturity, evidence_kinds)
-            if maturity == "stable":
-                if target_release is None:
-                    raise ValueError(f"Review #{review_id} maturity 'stable' requires target_release")
-                if releases_by_id[target_release]["status"] != "released":
-                    raise ValueError(
-                        f"Review #{review_id} maturity 'stable' requires a released target_release"
-                    )
 
 
 def normalize_reviews(
@@ -160,7 +155,7 @@ def _validate_schema(payload: Mapping[str, Any]) -> None:
 
 def _unique_ids(items: Sequence[Mapping[str, Any]], label: str) -> set[Any]:
     identifiers = [item["id"] for item in items]
-    duplicates = sorted({item_id for item_id in identifiers if identifiers.count(item_id) > 1})
+    duplicates = sorted(item_id for item_id, count in Counter(identifiers).items() if count > 1)
     if duplicates:
         raise ValueError(f"Duplicate {label} ids: {', '.join(map(str, duplicates))}")
     return set(identifiers)
@@ -180,43 +175,43 @@ def _validate_dependency_graph(
                 f"{', '.join(map(str, unknown))}"
             )
 
-    visiting: list[Any] = []
-    visited: set[Any] = set()
+    dependent_ids: dict[Any, list[Any]] = {item_id: [] for item_id in graph}
+    remaining_dependencies = {
+        item_id: len(dependencies) for item_id, dependencies in graph.items()
+    }
+    for item_id, dependencies in graph.items():
+        for dependency in dependencies:
+            dependent_ids[dependency].append(item_id)
 
-    def visit(item_id: Any) -> None:
-        if item_id in visited:
-            return
-        if item_id in visiting:
-            cycle_start = visiting.index(item_id)
-            cycle = visiting[cycle_start:] + [item_id]
-            raise ValueError(
-                f"{label.title()} dependency cycle: " + " -> ".join(map(str, cycle))
-            )
-        visiting.append(item_id)
-        for dependency in graph[item_id]:
-            visit(dependency)
-        visiting.pop()
-        visited.add(item_id)
+    ready = deque(
+        sorted(item_id for item_id, count in remaining_dependencies.items() if count == 0)
+    )
+    visited_count = 0
+    while ready:
+        item_id = ready.popleft()
+        visited_count += 1
+        for dependent_id in sorted(dependent_ids[item_id]):
+            remaining_dependencies[dependent_id] -= 1
+            if remaining_dependencies[dependent_id] == 0:
+                ready.append(dependent_id)
 
-    for item_id in graph:
-        visit(item_id)
+    if visited_count != len(graph):
+        cyclic_ids = sorted(
+            item_id for item_id, count in remaining_dependencies.items() if count > 0
+        )
+        raise ValueError(
+            f"{label.title()} dependency cycle involving: "
+            + ", ".join(map(str, cyclic_ids))
+        )
 
 
 def _validate_maturity_evidence(
     review_id: int, maturity: str, evidence_kinds: set[str]
 ) -> None:
-    maturity_index = MATURITY_ORDER.index(maturity)
-    if maturity_index >= MATURITY_ORDER.index("specified") and "rfc_anchor" not in evidence_kinds:
+    if maturity not in {"proposal", "specified"}:
+        raise ValueError(
+            f"Review #{review_id} maturity {maturity!r} is not supported until "
+            "authoritative evidence resolvers are configured"
+        )
+    if maturity == "specified" and "rfc_anchor" not in evidence_kinds:
         raise ValueError(f"Review #{review_id} maturity {maturity!r} requires rfc_anchor evidence")
-    if maturity_index >= MATURITY_ORDER.index("machine_validated") and not evidence_kinds.intersection(
-        {"schema", "test"}
-    ):
-        raise ValueError(
-            f"Review #{review_id} maturity {maturity!r} requires schema or test evidence"
-        )
-    if maturity_index >= MATURITY_ORDER.index("implementation_tested") and "implementation" not in evidence_kinds:
-        raise ValueError(
-            f"Review #{review_id} maturity {maturity!r} requires implementation evidence"
-        )
-    if maturity_index >= MATURITY_ORDER.index("interop_tested") and "interop_test" not in evidence_kinds:
-        raise ValueError(f"Review #{review_id} maturity {maturity!r} requires interop_test evidence")
