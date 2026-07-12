@@ -34,10 +34,20 @@ def load_review_payload(path: Path = DATA_PATH) -> dict[str, Any]:
 def validate_review_payload(
     payload: Mapping[str, Any],
     heading_ids: Mapping[str, str],
+    *,
+    required_planning_mode: str | None = None,
 ) -> None:
     """Validate the JSON shape and cross-object planning invariants."""
 
     _validate_schema(payload)
+    if (
+        required_planning_mode is not None
+        and payload["planning_metadata_mode"] != required_planning_mode
+    ):
+        raise ValueError(
+            "Canonical review data must use planning_metadata_mode "
+            f"{required_planning_mode!r}"
+        )
     profiles = payload["profiles"]
     releases = payload["releases"]
     reviews = payload["reviews"]
@@ -132,7 +142,37 @@ def normalize_reviews(
             for anchor in review["anchors"]
         ]
         normalized.append({**review, "anchors": anchors})
-    return normalized
+    return derive_review_planning_state(normalized)
+
+
+def derive_review_planning_state(
+    reviews: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Derive reverse dependencies and readiness without persisting either field."""
+
+    reviews_by_id = {review["id"]: review for review in reviews}
+    blocks_by_id: dict[int, list[int]] = {review_id: [] for review_id in reviews_by_id}
+    for review in reviews:
+        for dependency_id in review["depends_on"]:
+            blocks_by_id[dependency_id].append(review["id"])
+
+    specified_index = MATURITY_ORDER.index("specified")
+    derived: list[dict[str, Any]] = []
+    for review in reviews:
+        dependencies_ready = all(
+            reviews_by_id[dependency_id]["status"] == "present"
+            and MATURITY_ORDER.index(reviews_by_id[dependency_id]["maturity"])
+            >= specified_index
+            for dependency_id in review["depends_on"]
+        )
+        derived.append(
+            {
+                **review,
+                "blocks": sorted(blocks_by_id[review["id"]]),
+                "readiness": "ready" if dependencies_ready else "blocked",
+            }
+        )
+    return derived
 
 
 def _validate_schema(payload: Mapping[str, Any]) -> None:

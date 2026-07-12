@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "planning_metadata_mode": "transitional",
+  "planning_metadata_mode": "required",
   "profiles": [
     {
       "id": "core",
@@ -124,7 +124,29 @@
       ],
       "status": "present",
       "rationale": "RFC теперь определяет runtime как reference monitor: каждое agent-initiated действие к Agent Surface проходит через runtime, а app-side verification остаётся обязательной.",
-      "priority": "P0"
+      "priority": "P0",
+      "profile": "core",
+      "depends_on": [],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "abstract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "app-exposes-runtime-mediates-agent-executes"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-does-not-receive-raw-authority"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-runtime-profile"
+        }
+      ]
     },
     {
       "id": 2,
@@ -152,7 +174,32 @@
       ],
       "status": "present",
       "rationale": "RFC требует app-verifiable binding grant credential к grant, audience, runtime, agent и passport hash; introspection и session profiles не могут подменяться runtime assertion.",
-      "priority": "P0"
+      "priority": "P0",
+      "profile": "oauth-grants",
+      "depends_on": [
+        1,
+        6
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-grant-2"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-credentials-and-proof"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        }
+      ]
     },
     {
       "id": 3,
@@ -184,7 +231,36 @@
       ],
       "status": "present",
       "rationale": "Proof-Bound Credential и Proof-Bound Grant-Enforcing profiles требуют per-request possession proof; DPoP, mTLS и server-session проверки имеют отдельную корректную replay semantics.",
-      "priority": "P0"
+      "priority": "P0",
+      "profile": "oauth-grants",
+      "depends_on": [
+        2,
+        6
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-credential"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-credentials-and-proof"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-request"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "stolen-grant-credential"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "proof-bound-grant-enforcing-application"
+        }
+      ]
     },
     {
       "id": 4,
@@ -212,7 +288,33 @@
       ],
       "status": "present",
       "rationale": "Raw credential release — default-deny capability `credential.release`; выдаётся только новый attenuated credential для non-Agent-Surface audience, который app обязана отклонять на Surface endpoints.",
-      "priority": "P0"
+      "priority": "P0",
+      "profile": "core",
+      "depends_on": [
+        1,
+        2,
+        6
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-does-not-receive-raw-authority"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "raw-token-leakage"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-adapter"
+        }
+      ]
     },
     {
       "id": 5,
@@ -244,7 +346,37 @@
       ],
       "status": "present",
       "rationale": "Компоненты без отдельного grant проходят parent runtime; отдельно granted child runtime использует собственный binding и direct app route, с parent linkage, attenuation и cascade revocation.",
-      "priority": "P0"
+      "priority": "P0",
+      "profile": "core",
+      "depends_on": [
+        1,
+        2,
+        6
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "subdelegation"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "model-context-protocol"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "4-agent-adapter-protocol"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "malicious-or-compromised-agent"
+        }
+      ]
     },
     {
       "id": 6,
@@ -272,7 +404,31 @@
       ],
       "status": "present",
       "rationale": "Спецификация уже требует app-verifiable authorization для каждого действия и запрещает доверять одному runtime assertion.",
-      "priority": "P3"
+      "priority": "P3",
+      "profile": "core",
+      "depends_on": [
+        1
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "app-side-enforcement-is-mandatory"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "model-a-app-issued-grant"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "malicious-or-compromised-runtime"
+        }
+      ]
     },
     {
       "id": 7,
@@ -308,7 +464,40 @@
       ],
       "status": "present",
       "rationale": "RFC задаёт collision-resistant Agent Grant authorization-details type, обязательные поля, consent/subset semantics, ошибки RFC 9396 и возврат authoritative granted object.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "oauth-grants",
+      "depends_on": [
+        1,
+        6
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "oauth"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "oauth-grant-lifecycle-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "rich-authorization-request-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-grant-2"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-issuance-models"
+        }
+      ]
     },
     {
       "id": 8,
@@ -340,7 +529,36 @@
       ],
       "status": "present",
       "rationale": "RFC профилирует RFC 8693 request/response, runtime/actor authentication, resource restriction, attenuation, proof binding и explicit derivation/revocation linkage.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "oauth-grants",
+      "depends_on": [
+        1,
+        6
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "oauth"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "oauth-token-exchange-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-issuance-models"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "model-a-app-issued-grant"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-credentials-and-proof"
+        }
+      ]
     },
     {
       "id": 9,
@@ -368,7 +586,31 @@
       ],
       "status": "present",
       "rationale": "Текст прямо и нормативно определяет grant_id как correlation identifier, а не authority.",
-      "priority": "P3"
+      "priority": "P3",
+      "profile": "oauth-grants",
+      "depends_on": [
+        2
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-credential"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-identifier-is-not-authority"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-credentials-and-proof"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-request"
+        }
+      ]
     },
     {
       "id": 10,
@@ -396,7 +638,29 @@
       ],
       "status": "present",
       "rationale": "RFC определяет canonical grant_hash над authoritative Grant Object, связывает его с action context и receipts и требует отклонять несовпадение с текущим grant state.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "oauth-grants",
+      "depends_on": [],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-hash"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "canonical-object-hash-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-request"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-hash-chain"
+        }
+      ]
     },
     {
       "id": 11,
@@ -428,7 +692,37 @@
       ],
       "status": "present",
       "rationale": "RFC задаёт authenticated RFC 7662 request, privacy-preserving inactive response и минимальный active contract со scope, tuple, constraints, surface, expiry и credential binding.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "oauth-grants",
+      "depends_on": [
+        2,
+        6,
+        9
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "oauth"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-introspection-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "endpoints"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-credentials-and-proof"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        }
+      ]
     },
     {
       "id": 12,
@@ -460,7 +754,36 @@
       ],
       "status": "present",
       "rationale": "RFC определяет RFC 7009 grant transition, cascade revocation, authenticated `grant.revoked` envelope, reason codes, idempotent runtime processing и границу с общей event delivery model.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "oauth-grants",
+      "depends_on": [
+        2,
+        6
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "event"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "events"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "revocation-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "oauth-grant-revocation-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-revoked"
+        }
+      ]
     },
     {
       "id": 13,
@@ -488,7 +811,29 @@
       ],
       "status": "present",
       "rationale": "Manifest уже объявляет grant request/introspection/revocation, actions, events и receipts URLs.",
-      "priority": "P3"
+      "priority": "P3",
+      "profile": "manifest",
+      "depends_on": [],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-surface-manifest-2"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "endpoints"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "example-manifest"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "discovery"
+        }
+      ]
     },
     {
       "id": 14,
@@ -516,7 +861,31 @@
       ],
       "status": "present",
       "rationale": "RFC определяет canonical surface_hash над точным manifest object, связывает его с grant и receipts, требует отклонять подмену/downgrade и явно отделяет внешнее содержимое schema URLs.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "manifest",
+      "depends_on": [
+        13
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-hash"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "canonical-object-hash-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-downgrade"
+        }
+      ]
     },
     {
       "id": 15,
@@ -536,7 +905,23 @@
       ],
       "status": "present",
       "rationale": "Breaking и non-breaking изменения уже классифицированы, включая schema, actions, risks, receipts и endpoint semantics.",
-      "priority": "P3"
+      "priority": "P3",
+      "profile": "manifest",
+      "depends_on": [
+        14
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-version-changed"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "versioning-and-compatibility"
+        }
+      ]
     },
     {
       "id": 16,
@@ -564,7 +949,29 @@
       ],
       "status": "partial",
       "rationale": "Surface отделён от API endpoint list и не заменяет existing APIs, но curated/selective exposure и запрет зеркалирования API не сформулированы явно.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "manifest",
+      "depends_on": [],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "non-goals"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-surface"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "model-context-protocol"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-mvp-mapping"
+        }
+      ]
     },
     {
       "id": 17,
@@ -592,7 +999,14 @@
       ],
       "status": "missing",
       "rationale": "JSON Schema URLs поддерживаются, но import/generation и x-agent-surface annotations для OpenAPI/AsyncAPI отсутствуют.",
-      "priority": "P3"
+      "priority": "P3",
+      "profile": "manifest",
+      "depends_on": [
+        16
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 18,
@@ -620,7 +1034,31 @@
       ],
       "status": "partial",
       "rationale": "Proposal-only actions полностью описаны, но нет формального top-level surface mode, запрещающего все direct writes.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "manifest",
+      "depends_on": [
+        19
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "proposal-mode-is-the-default"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "proposal-only-support"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "proposal-flow"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-only-application"
+        }
+      ]
     },
     {
       "id": 19,
@@ -648,7 +1086,32 @@
       ],
       "status": "present",
       "rationale": "RFC задаёт семь static execution modes, отдельные companion actions и reciprocal transitions; каждый stage независимо связан с action id, scope, approval, grant и canonical execution context.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "action-execution",
+      "depends_on": [
+        1,
+        6
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "actions"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "static-execution-modes"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "companion-actions-and-transitions"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "execution-context-and-binding"
+        }
+      ]
     },
     {
       "id": 20,
@@ -676,7 +1139,31 @@
       ],
       "status": "present",
       "rationale": "Нормативный Effect Model разделяет visibility, boundary, reversibility, domain, operation и resource type, связывает их с risk floor и различает declared, expected и actual effects с canonical hashes.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "action-execution",
+      "depends_on": [
+        19
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "risk-taxonomy"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "effect-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "approval-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "execution-mode-confusion-toctou-and-reservation-abuse"
+        }
+      ]
     },
     {
       "id": 21,
@@ -700,7 +1187,27 @@
       ],
       "status": "partial",
       "rationale": "RFC задаёт canonical hash точного wire input для receipt binding, но semantic normalization, defaults, set ordering и schema equivalence для idempotency остаются action-specific.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "action-execution",
+      "depends_on": [
+        19
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "every-write-is-idempotent"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "idempotency"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "replay-and-duplicate-actions"
+        }
+      ]
     },
     {
       "id": 22,
@@ -728,7 +1235,32 @@
       ],
       "status": "present",
       "rationale": "Actions могут объявлять preconditions_schema, expected_effects_schema и actual_effects_schema; dry-run возвращает immutable time-bounded preview, а commit атомарно перепроверяет state и approved effect hashes.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "action-execution",
+      "depends_on": [
+        19,
+        20
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "actions"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "preconditions-and-effect-preview"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-request"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-response"
+        }
+      ]
     },
     {
       "id": 23,
@@ -756,7 +1288,31 @@
       ],
       "status": "present",
       "rationale": "RFC отделяет reservation от authority и задаёт canonical target identity, shared/exclusive conflict matrix, atomic acquire, optional renew и mandatory release actions, holder binding, bounded TTL, idempotency, consume и invalidation lifecycle.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "action-execution",
+      "depends_on": [
+        19
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "resource-reservation"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "resource-reservations"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "idempotency"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-revoked"
+        }
+      ]
     },
     {
       "id": 24,
@@ -784,7 +1340,33 @@
       ],
       "status": "present",
       "rationale": "Commit и recovery actions имеют reciprocal effect-level links и recovery window; recovery независимо авторизуется, агрегирует cumulative limits, проверяет target surface/receipt, а revert требует receipt-bound prior-state evidence и atomic revision check.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "action-execution",
+      "depends_on": [
+        19,
+        20,
+        32
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "compensation"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "compensation-and-revert"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "effect-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-hash-chain"
+        }
+      ]
     },
     {
       "id": 25,
@@ -812,7 +1394,14 @@
       ],
       "status": "missing",
       "rationale": "ASP определяет typed events со schema и scope, но CloudEvents envelope или эквивалентный canonical envelope отсутствует.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "events-sessions",
+      "depends_on": [
+        13
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 26,
@@ -840,7 +1429,14 @@
       ],
       "status": "missing",
       "rationale": "Transport hints присутствуют, но delivery guarantee, ordering, cursor, replay, retention, ack и backpressure не определены.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "events-sessions",
+      "depends_on": [
+        13
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 27,
@@ -868,7 +1464,16 @@
       ],
       "status": "missing",
       "rationale": "Разделение transport и ASP semantics уже намечено для ACP/runtime bridge, но AHP binding нигде не определён.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "events-sessions",
+      "depends_on": [
+        26,
+        28,
+        30
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 28,
@@ -896,7 +1501,31 @@
       ],
       "status": "partial",
       "rationale": "App или runtime MAY start session, а cancel/resume упомянуты, но права start/observe/cancel/resume по ролям не формализованы.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "events-sessions",
+      "depends_on": [
+        1
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "3-runtime-bridge-protocol"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "session-start"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-disconnected"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "user-session-expired"
+        }
+      ]
     },
     {
       "id": 29,
@@ -924,7 +1553,32 @@
       ],
       "status": "partial",
       "rationale": "Есть approval required/resolved, но clarify, options, edit/redline и step-up auth message types отсутствуют.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "events-sessions",
+      "depends_on": [
+        28,
+        35
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "3-runtime-bridge-protocol"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "approval-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "proposal-flow"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "error-model"
+        }
+      ]
     },
     {
       "id": 30,
@@ -952,7 +1606,33 @@
       ],
       "status": "present",
       "rationale": "Два типа receipts уже явно разделены по observed intent/policy и фактически committed/denied app mutation и связаны хешем.",
-      "priority": "P3"
+      "priority": "P3",
+      "profile": "receipts-provenance",
+      "depends_on": [
+        1,
+        6,
+        19
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "app-receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-requirements"
+        }
+      ]
     },
     {
       "id": 31,
@@ -980,7 +1660,32 @@
         }
       ],
       "rationale": "Approval уже связан с action receipt, но отдельного receipt type для approve/deny нет.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "receipts-provenance",
+      "depends_on": [
+        30,
+        35
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "approval-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-requirements"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "app-receipt"
+        }
+      ]
     },
     {
       "id": 32,
@@ -1008,7 +1713,34 @@
         }
       ],
       "rationale": "Runtime/App receipts образуют проверяемую цепочку через receipt_hash и parent_receipt_hash и несут surface_hash, grant_hash, policy_decision_hash и trace context.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "receipts-provenance",
+      "depends_on": [
+        10,
+        14,
+        30,
+        35
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-hash-chain"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "app-receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-forgery"
+        }
+      ]
     },
     {
       "id": 33,
@@ -1036,7 +1768,31 @@
         }
       ],
       "rationale": "RFC задаёт concrete JCS canonicalization и detached JWS profile, signing input, algorithm/key verification и downgrade behavior; unsigned receipts остаются допустимы в MVP.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "receipts-provenance",
+      "depends_on": [
+        32
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-signing-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "canonical-object-hash-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "app-receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-forgery"
+        }
+      ]
     },
     {
       "id": 34,
@@ -1064,7 +1820,32 @@
         }
       ],
       "rationale": "Требование уже закреплено как design principle, app semantics и conformance requirement.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "receipts-provenance",
+      "depends_on": [
+        30,
+        35
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipts-are-first-class"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-requirements"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "app-receipt"
+        }
+      ]
     },
     {
       "id": 35,
@@ -1092,7 +1873,31 @@
         }
       ],
       "rationale": "RFC задаёт типизированный policy.decision с outcome, reason_code, matched_rules, safe-to-show explanation, policy version и проверяемым policy_decision_hash.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "receipts-provenance",
+      "depends_on": [
+        30
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "policy-decision-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "app-receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "error-model"
+        }
+      ]
     },
     {
       "id": 36,
@@ -1116,7 +1921,27 @@
         }
       ],
       "rationale": "Для resources есть redaction и retention hooks, но нет классов данных и per-action exposure contract.",
-      "priority": "P0"
+      "priority": "P0",
+      "profile": "privacy-consent",
+      "depends_on": [
+        20
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "resources"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "actions"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "privacy-considerations"
+        }
+      ]
     },
     {
       "id": 37,
@@ -1132,7 +1957,14 @@
         }
       ],
       "rationale": "Training, model improvement и transient-only processing в RFC не рассматриваются.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "privacy-consent",
+      "depends_on": [
+        36
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 38,
@@ -1160,7 +1992,31 @@
         }
       ],
       "rationale": "Deployment locations перечислены, но для local, managed и remote agents не заданы разные exposure defaults.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "privacy-consent",
+      "depends_on": [
+        41
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "user-owned-agent"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "malicious-or-compromised-application"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "privacy-considerations"
+        }
+      ]
     },
     {
       "id": 39,
@@ -1180,7 +2036,23 @@
         }
       ],
       "rationale": "Stable pseudonymous user references уже явно разрешены в receipts и privacy requirements.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "privacy-consent",
+      "depends_on": [
+        30
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-requirements"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "privacy-considerations"
+        }
+      ]
     },
     {
       "id": 40,
@@ -1208,7 +2080,32 @@
         }
       ],
       "rationale": "Secrets и credentials остаются вне agent-visible context; `credential.release` допускает только новый attenuated non-Surface credential с обязательным rejection на Agent Surface endpoints.",
-      "priority": "P0"
+      "priority": "P0",
+      "profile": "privacy-consent",
+      "depends_on": [
+        1,
+        4
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-does-not-receive-raw-authority"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "raw-token-leakage"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "privacy-considerations"
+        }
+      ]
     },
     {
       "id": 41,
@@ -1236,7 +2133,14 @@
         }
       ],
       "rationale": "Runtime описан концептуально, но registered_device, SPIFFE, OIDC workload и другие identity classes отсутствуют.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "identity-passport",
+      "depends_on": [
+        1
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 42,
@@ -1264,7 +2168,14 @@
         }
       ],
       "rationale": "Набор обязательных passport fields не определён и прямо оставлен open question.",
-      "priority": "P0"
+      "priority": "P0",
+      "profile": "identity-passport",
+      "depends_on": [
+        2
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 43,
@@ -1288,7 +2199,28 @@
         }
       ],
       "rationale": "RFC уже задаёт поведение для новых запусков, active sessions и связанных grants.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "identity-passport",
+      "depends_on": [
+        2,
+        12
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-passport-revoked-or-expired"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-revoked"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        }
+      ]
     },
     {
       "id": 44,
@@ -1304,7 +2236,20 @@
         }
       ],
       "rationale": "Все требуемые смысловые outputs перечислены, но нет нормативного wire object или schema.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "identity-passport",
+      "depends_on": [
+        20,
+        42
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "capability-matching"
+        }
+      ]
     },
     {
       "id": 45,
@@ -1328,7 +2273,27 @@
         }
       ],
       "rationale": "Attestation предусмотрена как возможность и open question, но optional profile и MVP boundary не описаны.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "identity-passport",
+      "depends_on": [
+        41
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "malicious-or-compromised-runtime"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "error-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "open-questions"
+        }
+      ]
     },
     {
       "id": 46,
@@ -1356,7 +2321,33 @@
         }
       ],
       "rationale": "Есть хороший пример consent summary, но нет полного нормативного contract, особенно для data exposure.",
-      "priority": "P0"
+      "priority": "P0",
+      "profile": "privacy-consent",
+      "depends_on": [
+        7,
+        20,
+        36
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-lifecycle"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "capability-matching"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "malicious-or-compromised-application"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "example-end-to-end-flow"
+        }
+      ]
     },
     {
       "id": 47,
@@ -1376,7 +2367,15 @@
         }
       ],
       "rationale": "Consent flow не показывает simulated allowed/denied examples или прогноз impact.",
-      "priority": "P3"
+      "priority": "P3",
+      "profile": "privacy-consent",
+      "depends_on": [
+        22,
+        46
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 48,
@@ -1400,7 +2399,27 @@
         }
       ],
       "rationale": "Machine-readable risk labels и matching summary есть, human-readable manifest hints отсутствуют.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "privacy-consent",
+      "depends_on": [
+        20
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "actions"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "risk-taxonomy"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "capability-matching"
+        }
+      ]
     },
     {
       "id": 49,
@@ -1424,7 +2443,27 @@
         }
       ],
       "rationale": "Proposal-first уже закреплён как design principle и RECOMMENDED integration flow.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "privacy-consent",
+      "depends_on": [
+        19
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "proposal-mode-is-the-default"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "proposal-only-support"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "proposal-flow"
+        }
+      ]
     },
     {
       "id": 50,
@@ -1452,7 +2491,32 @@
         }
       ],
       "rationale": "Protocol plumbing и post-revocation behavior есть, но active-grants UI и latency expectation не определены.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "privacy-consent",
+      "depends_on": [
+        12,
+        46
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "endpoints"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "revocation-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-revoked"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "malicious-or-compromised-application"
+        }
+      ]
     },
     {
       "id": 51,
@@ -1480,7 +2544,32 @@
         }
       ],
       "rationale": "Action и cost budgets есть; token, runtime, tool-call, write и parallel-session limits отсутствуют.",
-      "priority": "P1"
+      "priority": "P1",
+      "profile": "operations-safety",
+      "depends_on": [
+        19,
+        28
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "capability-lease"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "malicious-or-compromised-agent"
+        }
+      ]
     },
     {
       "id": 52,
@@ -1500,7 +2589,15 @@
         }
       ],
       "rationale": "Event mechanism существует, но budget.warning, budget.exceeded и session.paused_budget не определены.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "operations-safety",
+      "depends_on": [
+        26,
+        51
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 53,
@@ -1524,7 +2621,14 @@
         }
       ],
       "rationale": "Manifest не имеет rate-limit или quota declarations для actions и event delivery.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "operations-safety",
+      "depends_on": [
+        13
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 54,
@@ -1552,7 +2656,33 @@
         }
       ],
       "rationale": "Idempotency и общие limits снижают ущерб, но обязательных repeat/retry/event-loop guards нет.",
-      "priority": "P0"
+      "priority": "P0",
+      "profile": "operations-safety",
+      "depends_on": [
+        21,
+        26,
+        51
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "every-write-is-idempotent"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "malicious-or-compromised-agent"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "replay-and-duplicate-actions"
+        }
+      ]
     },
     {
       "id": 55,
@@ -1580,7 +2710,32 @@
         }
       ],
       "rationale": "RFC задаёт W3C-compatible creation и propagation semantics для trace_id, span_id и session_id через sessions, actions, receipts и adapter/log context и отделяет correlation от authority.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "operations-safety",
+      "depends_on": [
+        19,
+        30
+      ],
+      "target_release": null,
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "observability-context"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "sessions-and-actions"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-request"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-requirements"
+        }
+      ]
     },
     {
       "id": 56,
@@ -1608,7 +2763,33 @@
         }
       ],
       "rationale": "Role profiles уже есть, но Grant Issuer и Action Executor объединены, а именование ролей не унифицировано.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        1,
+        6,
+        30
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "conformance"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-enforcing-application"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-runtime-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-adapter"
+        }
+      ]
     },
     {
       "id": 57,
@@ -1636,7 +2817,17 @@
         }
       ],
       "rationale": "Проверяемые требования существуют, но linter, ruleset и diagnostics contract отсутствуют.",
-      "priority": "P3"
+      "priority": "P3",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        13,
+        15,
+        19,
+        20
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 58,
@@ -1660,7 +2851,18 @@
         }
       ],
       "rationale": "Есть architecture и implementation roadmap, но reference fixtures или mock implementations не заявлены.",
-      "priority": "P3"
+      "priority": "P3",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        13,
+        19,
+        28,
+        30,
+        56
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 59,
@@ -1688,7 +2890,19 @@
         }
       ],
       "rationale": "Session/event/receipt primitives есть, но portable replay bundle format и tool отсутствуют.",
-      "priority": "P3"
+      "priority": "P3",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        25,
+        26,
+        28,
+        30,
+        32,
+        55
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     },
     {
       "id": 60,
@@ -1716,7 +2930,20 @@
         }
       ],
       "rationale": "Нормативные области для тестов определены, но обязательных test cases и interop suite нет.",
-      "priority": "P2"
+      "priority": "P2",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        2,
+        3,
+        12,
+        21,
+        30,
+        34,
+        56
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     }
   ]
 }
