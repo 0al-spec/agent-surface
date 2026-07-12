@@ -360,6 +360,14 @@ obligations that apply after disclosure. It describes and constrains exposure;
 it does not grant authority to read a resource, invoke an action, receive an
 event, or release a credential.
 
+### Consent Preview Projection
+
+A user-facing, runtime-derived projection of the exact proposed Agent Grant,
+the verified runtime-agent-passport tuple, and the pinned manifest semantics
+that materially affect authority, effects, and data exposure. The projection
+helps a user decide whether to continue; it is not a credential, approval
+object, or substitute for authorization-server consent.
+
 ### Execution Preview
 
 An application-produced prediction of the preconditions and expected effects
@@ -2691,8 +2699,9 @@ discover surface
   -> verify manifest
   -> choose agent
   -> verify Agent Passport
-  -> request grant with authorization_details
-  -> user consent
+  -> derive and confirm local consent preview
+  -> request grant through the selected issuance model
+  -> grant-issuer consent
   -> issue or exchange Grant Credential
   -> store grant in runtime
   -> start session
@@ -2700,6 +2709,174 @@ discover surface
   -> issue receipts
   -> expire / revoke / notify / renew
 ```
+
+### Consent Preview Contract
+
+Before initiating issuance of, storing, or using a new Agent Grant, a runtime
+conforming to the Application Runtime Profile MUST present a local consent
+preview and obtain an affirmative user confirmation. The preview is derived
+from verified protocol state; it is not a client-authored authorization object
+and MUST NOT be treated as evidence of consent by the grant issuer or resource
+server. The grant issuer independently obtains the consent required by its
+issuance model. A co-located runtime and grant issuer MAY use one physical
+screen only when it satisfies both logical responsibilities and preserves the
+exact verified sources defined below.
+
+The runtime MUST derive the preview exclusively from:
+
+- the verified manifest snapshot identified by issuer, `app_id`,
+  `surface_version`, and `surface_hash`;
+- the exact proposed semantic Agent Grant request; the OAuth profile represents
+  this request as `authorization_details`, while another issuance model MUST
+  preserve the same Grant Object field semantics;
+- the verified runtime, agent, and passport tuple; and
+- the complete Data Exposure Contract projection recomputed for the requested
+  actions and scopes.
+
+Application-authored labels, descriptions, risk summaries, redaction summaries,
+and recovery descriptions are untrusted display hints. A runtime MAY display
+them, but MUST preserve the corresponding machine identifier, classification,
+mode, or effect value and MUST NOT let prose replace or contradict verified
+semantics.
+
+The preview MUST make the following material semantics visible before the user
+confirms:
+
+- application identity, issuer, surface version, and an inspectable surface
+  hash;
+- runtime identity, agent identity, passport hash, and the kind of passport
+  evidence verified;
+- exact action identifiers, scopes, locations, and resource filters;
+- absolute expiration time, human-readable duration, budgets, and other
+  constraints;
+- each selected action's risk, static execution mode, approval requirement,
+  and required companion stages;
+- maximum effect envelopes, highlighting write, shared, external, and
+  irreversible effects; actions with an external effect MUST also warn that
+  their actual outcome can be partial or unknown;
+- required dry-run or reservation stages and available compensation or revert
+  actions with their limitations;
+- requested credential profile, credential-release policy, any parent or child
+  grant fields actually present in the proposed request, and receipt
+  requirements; and
+- effective data-exposure sources, class identifiers and classifications,
+  redaction policy, and retention obligations.
+
+The runtime SHOULD additionally identify its locally known operator and
+processing environment. Such operator, model-provider, tool-recipient, and
+concrete proof-method statements are runtime-local assertions unless backed by
+separate verified evidence. They MUST be labeled with their verification status
+and MUST NOT be presented as application-verified Grant Object fields. This
+profile does not claim complete downstream-recipient coverage; remote-agent and
+training-use policies remain separate profiles.
+
+A runtime MAY group or summarize repeated entries, but every selected action,
+companion stage, resource filter, material effect, and exposure source MUST
+remain inspectable before confirmation. Progressive disclosure MUST NOT hide an
+irreversible or external effect, an unknown value, an incomplete exposure
+contract, credential release, or a material recovery limitation behind a
+benign aggregate label. A scope-only summary is insufficient because action
+and execution-stage allow-lists are independently authoritative.
+
+The user MAY select a strict subset only when the resulting request remains
+valid and closed over every required companion action. The runtime MUST derive
+and present a new projection from that exact reduced request. It MUST NOT repair
+an invalid selection by silently adding an action, scope, location, resource,
+or data path. If local policy narrows the request, the narrowed exact request is
+the one that MUST be shown and confirmed.
+
+The local preview lifecycle is:
+
+```text
+derived -> presented -> confirmed | declined
+   ^           |
+   +--- stale -+
+confirmed -> request sent -> granted | rejected
+```
+
+Any change to issuer, application, surface hash, runtime-agent-passport tuple,
+actions, scopes, locations, resource filters, constraints, budgets, expiration,
+credential profile, receipt requirements, execution or effect declarations,
+or resolved exposure contracts makes the preview stale. A stale preview MUST
+be regenerated and confirmed again before a request is sent or a returned grant
+is stored or used. Decline terminates the local flow; the runtime MUST NOT
+continue authorization in the background.
+Changing a runtime-local operator, processing-path, concrete proof-method, or
+proof-key assertion that was shown to the user also makes the local preview
+stale, even when it does not alter the semantic Grant request. That local
+assertion is not sent as authority to the grant issuer.
+
+Presentation timestamps, UI session identifiers, authentication gestures, and
+local confirmation timeouts are local policy and are not portable consent
+evidence.
+
+After authorization, the runtime MUST compare the returned authoritative Grant
+Object with the exact locally confirmed request and the same pinned manifest.
+Immediately before storing or using the result, it MUST also re-evaluate every
+semantic and runtime-local input that produced the preview. A changed issuer,
+surface, request, tuple, or passport validity state invalidates the issuance
+result and requires a new issuer consent flow. If only a labeled runtime-local
+operator, processing-path, concrete proof-method, or proof-key assertion
+changed, the runtime MUST regenerate the local preview for the returned grant
+and obtain fresh local confirmation before storage or use; it does not treat
+that assertion as new grant authority.
+The returned object adds grant-issuer output such as `grant_id`,
+subject, credential binding, effective exposure projection, and `grant_hash`.
+It MAY be a semantically narrower valid subset under this comparison:
+
+- issuer, `app_id`, surface version and hash, runtime id, agent id, passport
+  hash, and requested credential profile MUST remain exactly equal;
+- returned actions, scopes, and locations MUST be set subsets of the confirmed
+  values and MUST remain closed over required companion actions;
+- `expires_at` MAY be no later, and `max_actions` and `max_cost_usd` MAY be no
+  greater. Every other constraint MUST remain structurally equal unless its
+  defining profile supplies an explicit attenuation order understood by the
+  runtime; implementations MUST NOT guess that an unknown array, enum, or
+  extension value is more restrictive;
+- requested audit profile and required signer roles MUST remain equal;
+  issuer-derived signer keys can be added only when the selected issuance and
+  receipt-signing profiles define that output;
+- returned credential binding MUST repeat the confirmed tuple and satisfy the
+  requested credential profile; a `proof_bound` request MUST NOT become a
+  bearer credential. Its confirmation key, certificate thumbprint, or channel
+  binding MUST match the evidence authenticated or registered for that runtime
+  during issuance; merely recognizing the method or key format is insufficient.
+  If the local preview displayed a concrete intended proof method or key, the
+  returned binding MUST match it or the runtime MUST reject the result and
+  obtain fresh confirmation; and
+- effective `data_exposure` MUST be the exact deterministic projection
+  recomputed for the returned action and scope subsets.
+
+Manifest-declared action modes, effects, risks, and recovery semantics are not
+grant fields that the issuer can rewrite; they remain fixed by the returned
+grant's pinned surface hash. Subject, grant id, credential binding details,
+effective projection, and hash are expected server output, not authority
+widening. Any value that is wider, incomparable under these rules, or bound to
+a different tuple or surface MUST be rejected without storing or using its
+credential, and the user MUST be sent through a fresh consent flow.
+
+The grant issuer's consent view MUST present the common material semantics it
+can independently derive from the verified request, manifest, tuple, and
+exposure projection. It is not required to repeat runtime-local operator or
+processing-path assertions. It MUST NOT trust client-supplied human-readable
+prose as the authoritative description. Its final approved subset remains
+authoritative for issuance. The local runtime preview reduces surprise and
+app-controlled UI risk, but it does not replace issuer authentication, consent,
+or the application's obligation to enforce the issued grant.
+
+Expected effects and previews MUST be identified as maximum or predicted
+semantics rather than a guarantee that a commit will occur. Compensation MUST
+NOT be described as exact rollback; only a declared `revert` action with
+enforceable prior-state preconditions can make that narrower claim. Missing or
+unknown actions, exposure classes, source contracts, risk values, or effect
+values fail closed as `surface_incompatible`; omission MUST NOT be rendered as
+"no access", "no risk", or "no exposure".
+
+This contract standardizes the semantic inputs and staleness rules for a
+preview, not layout, localization, icons, ordering, accessibility mechanisms,
+biometric confirmation, or example simulations. It deliberately defines no
+`preview_id`, consent hash, signed approval object, or portable human-readable
+wire payload. Such evidence requires a separate approval profile.
 
 ### Grant Issuance Models
 
@@ -2893,15 +3070,10 @@ legacy resource-server integration. If present, it MUST contain exactly that
 projection; the granted `authorization_details` remains authoritative. A
 resource server MUST reject a credential when the two representations conflict.
 
-Consent MUST present the application, runtime, agent, passport evidence,
-requested actions and scopes, resources, expiration and budgets, approval
-requirements, execution modes, maximum effect envelopes, required dry-run or
-reservation stages, available recovery actions and their limitations,
-credential profile, data exposure, and receipt requirements. A preview shown
-during consent MUST be identified as a prediction rather than a commit
-guarantee. Compensation MUST NOT be presented as exact rollback unless the
-declared action uses `revert` and the application can enforce its prior-state
-preconditions. The user MAY approve a strict subset. The authorization server
+The authorization server's consent view MUST satisfy the Consent Preview
+Contract's material-semantics and untrusted-label requirements using its own
+verified copy of the request and pinned manifest. The user MAY approve a strict
+subset. The authorization server
 MUST present each required companion closure as one approval group. It MUST
 materialize the exact approved action stages in the returned `actions`
 allow-list, reject a selection that breaks required closure, compare the
@@ -3439,7 +3611,9 @@ Matching outputs:
 - effective data exposure and any unsupported retention obligations
 - expected sandbox constraints
 
-The matching result is shown to the user before grant issuance.
+The matching result is advisory input to the local Consent Preview Contract. It
+MUST be reconciled with the exact request and pinned manifest; a stale matching
+summary cannot substitute for the required preview.
 
 ## Observability Context
 
@@ -4463,6 +4637,8 @@ Mitigations:
 
 - runtime derives grant and exposure details from the verified manifest rather
   than trusting application-authored labels alone
+- runtime derives and confirms the complete local consent preview before
+  sending the exact authorization request
 - runtime presents grant details clearly
 - local policy can deny high-risk surfaces
 - user can revoke app grants locally
@@ -4603,6 +4779,12 @@ deletion by an undeclared external processor. Training use and remote-agent
 defaults require separate policy profiles and are not implied by a retention
 declaration in this draft.
 
+Consent previews contain sensitive relationship metadata even when they omit
+application payloads. Implementations SHOULD avoid placing rendered previews in
+telemetry, browser history, or general-purpose logs. A local preview is not
+portable consent evidence and SHOULD be retained only as long as local policy
+needs it to complete and audit the authorization flow.
+
 Cross-system trace correlation can reveal relationships between otherwise
 separate user actions, tenants, and services. `trace_id`, `span_id`, and
 `tracestate` MUST NOT encode semantic identifiers or secrets. Components SHOULD
@@ -4683,6 +4865,8 @@ it:
 - returns matching top-level and authorization-details hash projections
 - implements RFC 7009 semantic grant revocation, derivation cascade, and the
   authenticated `grant.revoked` control event when an event endpoint is declared
+- presents authorization-server consent from the exact verified request,
+  manifest semantics, and effective exposure projection
 
 ### Receipt-Producing Application
 
@@ -4737,6 +4921,10 @@ An application runtime conforms to this profile when it:
 - recomputes `surface_hash` and pins the exact manifest snapshot
 - verifies Agent Passport evidence before delegation
 - obtains explicit user consent before storing a grant
+- derives and confirms the local Consent Preview Contract projection before
+  sending a grant issuance request, regenerates it after any material change,
+  and rejects a returned grant that is not equal to or narrower than the exact
+  confirmed request
 - recomputes the grant's effective data-exposure projection, refuses missing or
   inconsistent contracts, and selects only runtime-agent paths that can enforce
   redaction and retention obligations
@@ -4822,36 +5010,46 @@ To support Agent Surface Protocol, the next slices are:
 2. Application runtime recomputes the hash and pins the exact surface.
 3. User chooses "Connect my local agent".
 4. Runtime verifies the selected agent's Agent Passport.
-5. Runtime sends an Agent Grant `authorization_details` request.
-6. The app authorization server shows consent:
+5. Runtime derives and the user confirms a local preview from the exact request,
+   verified tuple, pinned manifest, effects, exposure contracts, and labeled
+   local operator/processing-path assertions.
+6. Runtime sends that exact Agent Grant `authorization_details` request.
+7. The app authorization server independently shows consent:
    - app: code.example.com
+   - runtime: application-runtime-456
    - agent: local-agent
+   - passport: sha256:...
    - scopes: pull_request.read, pull_request.comment
+   - actions: pull_request.get, comment.create
    - repository: example-org/example-repo
    - duration: 2 hours
    - commit effects: shared, internal communication
    - commit: requires approval
-7. User approves a subset or the complete request.
-8. App issues or token-exchanges grant_123, its canonical `grant_hash`, and its
+   - data classes: repository.content, user.identifier
+   - retention: 2 hours, delete on grant end
+8. User approves a subset or the complete request.
+9. App issues or token-exchanges grant_123, its canonical `grant_hash`, and its
    bound Grant Credential.
-9. Runtime stores the authoritative granted details and credential.
-10. App starts a pull-request review session.
-11. Agent reads typed PR context through runtime-mediated resources.
-12. Agent proposes a review comment.
-13. When declared, runtime requests a dry run and the app returns immutable
+10. Runtime verifies that the result is equal to or narrower than the confirmed
+    request, recomputes its exposure projection, and stores the authoritative
+    details and credential.
+11. App starts a pull-request review session.
+12. Agent reads typed PR context through runtime-mediated resources.
+13. Agent proposes a review comment.
+14. When declared, runtime requests a dry run and the app returns immutable
     preconditions, expected effects, and time-bounded preview evidence.
-14. User or app approves the exact commit input and expected effects.
-15. Runtime records its policy decision and receipt, then sends comment.create
+15. User or app approves the exact commit input and expected effects.
+16. Runtime records its policy decision and receipt, then sends comment.create
     with trace context, parent receipt hash, idempotency key, execution context
     and hash, and Grant Credential.
-16. App verifies current grant, surface, decision, input, execution, preview,
+17. App verifies current grant, surface, decision, input, execution, preview,
     and receipt hashes, rechecks preconditions, and commits the comment.
-17. App returns actual effects and an app receipt. Runtime and app receipts form
+18. App returns actual effects and an app receipt. Runtime and app receipts form
     a verified parent-hash chain and MAY carry
     detached JWS signatures when required by the grant.
-18. User revokes grant_123; the app rejects it immediately and invalidates
+19. User revokes grant_123; the app rejects it immediately and invalidates
     outstanding preview evidence and reservations.
-19. App emits authenticated `grant.revoked`; runtime stops affected work.
+20. App emits authenticated `grant.revoked`; runtime stops affected work.
 ```
 
 ## Open Questions
