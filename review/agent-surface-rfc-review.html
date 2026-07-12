@@ -1400,9 +1400,11 @@ omit <code>execution.persisted</code> or set it to <code>false</code>.</p>
 <p>This allows early adopters to become agent-native without allowing direct writes.</p>
 <h3 id="events" data-asp-heading="Events">Events</h3>
 <p>Events let applications notify runtimes and agents about app context changes.</p>
-<p>Events SHOULD be scoped. A grant that permits <code>pull_request.read</code> MAY receive
-<code>pull_request.updated</code>, but SHOULD NOT receive unrelated financial, HR, or admin
-events.</p>
+<p>Every non-control event MUST declare a non-empty <code>scope</code>. A grant that permits
+<code>pull_request.read</code> MAY receive <code>pull_request.updated</code>, but MUST NOT receive an
+unrelated financial, HR, or admin event or an event whose scope is absent. An
+unscoped non-control event declaration is an invalid surface, not an event
+implicitly available to every grant.</p>
 <p>Example:</p>
 <pre><code class="language-json">{
   &quot;id&quot;: &quot;ci.failed&quot;,

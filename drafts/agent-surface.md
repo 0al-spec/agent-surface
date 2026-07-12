@@ -1438,9 +1438,11 @@ This allows early adopters to become agent-native without allowing direct writes
 
 Events let applications notify runtimes and agents about app context changes.
 
-Events SHOULD be scoped. A grant that permits `pull_request.read` MAY receive
-`pull_request.updated`, but SHOULD NOT receive unrelated financial, HR, or admin
-events.
+Every non-control event MUST declare a non-empty `scope`. A grant that permits
+`pull_request.read` MAY receive `pull_request.updated`, but MUST NOT receive an
+unrelated financial, HR, or admin event or an event whose scope is absent. An
+unscoped non-control event declaration is an invalid surface, not an event
+implicitly available to every grant.
 
 Example:
 
