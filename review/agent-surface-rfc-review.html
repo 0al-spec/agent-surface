@@ -2442,8 +2442,19 @@ implicitly.</p>
 <p>The authoritative action allow-list MUST satisfy the required companion closure
 defined by the Action Execution Model. A list that contains a commit or
 reservation acquisition without its required stages is an invalid Grant Object,
-not a partially usable delegation.
-OAuth <code>authorization_details</code> uses this same shape with the additional RFC 9396
+not a partially usable delegation.</p>
+<p>This draft defines <code>constraints.repositories</code> and
+<code>constraints.pull_requests</code> as resource allow-lists. <code>repositories</code>, when
+present, MUST be a non-empty array of unique non-empty application repository
+identifiers. <code>pull_requests</code>, when present, MUST be a non-empty array of unique
+positive integer identifiers. Each list restricts the corresponding resource
+dimension; absence means that this core profile adds no restriction for that
+dimension. A grant issuer MAY return a non-empty set subset of a requested list
+but MUST NOT add an entry or drop the member entirely, because omission would
+widen the request. Other application resource-filter members are extension
+constraints and require their defining profile to specify any attenuation
+order.</p>
+<p>OAuth <code>authorization_details</code> uses this same shape with the additional RFC 9396
 <code>type</code> discriminator; it does not define aliases for Grant Object fields.
 <code>credential_binding</code> is authorization-server output and MUST repeat the bound
 runtime, agent, and passport tuple. A DPoP binding MUST additionally contain
@@ -2603,8 +2614,8 @@ result and requires a new issuer consent flow. If only a labeled runtime-local
 operator, processing-path, concrete proof-method, or proof-key assertion
 changed, the runtime MUST regenerate the local preview for the returned grant
 and obtain fresh local confirmation before storage or use; it does not treat
-that assertion as new grant authority.
-The returned object adds grant-issuer output such as <code>grant_id</code>,
+that assertion as new grant authority.</p>
+<p>The returned object adds grant-issuer output such as <code>grant_id</code>,
 subject, credential binding, effective exposure projection, and <code>grant_hash</code>.
 It MAY be a semantically narrower valid subset under this comparison:</p>
 <ul>
@@ -2613,10 +2624,11 @@ hash, and requested credential profile MUST remain exactly equal;</li>
 <li>returned actions, scopes, and locations MUST be set subsets of the confirmed
 values and MUST remain closed over required companion actions;</li>
 <li><code>expires_at</code> MAY be no later, and <code>max_actions</code> and <code>max_cost_usd</code> MAY be no
-greater. Every other constraint MUST remain structurally equal unless its
-defining profile supplies an explicit attenuation order understood by the
-runtime; implementations MUST NOT guess that an unknown array, enum, or
-extension value is more restrictive;</li>
+greater. Returned <code>repositories</code> and <code>pull_requests</code> MUST remain present when
+requested and MUST be non-empty set subsets. Every other constraint MUST
+remain structurally equal unless its defining profile supplies an explicit
+attenuation order understood by the runtime; implementations MUST NOT guess
+that an unknown array, enum, or extension value is more restrictive;</li>
 <li>requested audit profile and required signer roles MUST remain equal;
 issuer-derived signer keys can be added only when the selected issuance and
 receipt-signing profiles define that output;</li>

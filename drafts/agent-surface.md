@@ -2638,6 +2638,19 @@ The authoritative action allow-list MUST satisfy the required companion closure
 defined by the Action Execution Model. A list that contains a commit or
 reservation acquisition without its required stages is an invalid Grant Object,
 not a partially usable delegation.
+
+This draft defines `constraints.repositories` and
+`constraints.pull_requests` as resource allow-lists. `repositories`, when
+present, MUST be a non-empty array of unique non-empty application repository
+identifiers. `pull_requests`, when present, MUST be a non-empty array of unique
+positive integer identifiers. Each list restricts the corresponding resource
+dimension; absence means that this core profile adds no restriction for that
+dimension. A grant issuer MAY return a non-empty set subset of a requested list
+but MUST NOT add an entry or drop the member entirely, because omission would
+widen the request. Other application resource-filter members are extension
+constraints and require their defining profile to specify any attenuation
+order.
+
 OAuth `authorization_details` uses this same shape with the additional RFC 9396
 `type` discriminator; it does not define aliases for Grant Object fields.
 `credential_binding` is authorization-server output and MUST repeat the bound
@@ -2820,6 +2833,7 @@ operator, processing-path, concrete proof-method, or proof-key assertion
 changed, the runtime MUST regenerate the local preview for the returned grant
 and obtain fresh local confirmation before storage or use; it does not treat
 that assertion as new grant authority.
+
 The returned object adds grant-issuer output such as `grant_id`,
 subject, credential binding, effective exposure projection, and `grant_hash`.
 It MAY be a semantically narrower valid subset under this comparison:
@@ -2829,10 +2843,11 @@ It MAY be a semantically narrower valid subset under this comparison:
 - returned actions, scopes, and locations MUST be set subsets of the confirmed
   values and MUST remain closed over required companion actions;
 - `expires_at` MAY be no later, and `max_actions` and `max_cost_usd` MAY be no
-  greater. Every other constraint MUST remain structurally equal unless its
-  defining profile supplies an explicit attenuation order understood by the
-  runtime; implementations MUST NOT guess that an unknown array, enum, or
-  extension value is more restrictive;
+  greater. Returned `repositories` and `pull_requests` MUST remain present when
+  requested and MUST be non-empty set subsets. Every other constraint MUST
+  remain structurally equal unless its defining profile supplies an explicit
+  attenuation order understood by the runtime; implementations MUST NOT guess
+  that an unknown array, enum, or extension value is more restrictive;
 - requested audit profile and required signer roles MUST remain equal;
   issuer-derived signer keys can be added only when the selected issuance and
   receipt-signing profiles define that output;
