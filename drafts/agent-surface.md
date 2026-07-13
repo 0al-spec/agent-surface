@@ -4810,10 +4810,11 @@ The runtime MUST derive the preview exclusively from:
 
 A Capability Match Result MAY identify the locally selected candidate, but it
 is not an additional authoritative preview source. Before deriving the preview,
-the runtime MUST validate the result's profile, `grant_request_hash`, complete
-bindings, candidate status, and freshness, then independently recompute the
-request semantics, effects, approvals, and exposure projection from the primary
-verified sources above. Copied matching summaries MUST NOT replace that work.
+the runtime MUST validate the result's profile, the selected candidate's
+`grant_request_hash`, complete bindings, candidate status, and freshness, then
+independently recompute the request semantics, effects, approvals, and exposure
+projection from the primary verified sources above. Copied matching summaries
+MUST NOT replace that work.
 
 Application-authored labels, descriptions, risk summaries, redaction summaries,
 and recovery descriptions are untrusted display hints. A runtime MAY display
@@ -5823,13 +5824,20 @@ https://github.com/0al-spec/agent-surface/hash/grant-request/v1
 
 ### Semantic Grant Request Hash
 
-The hashing view is the complete semantic Agent Grant request before any
-authorization-server output is added. For RFC 9396, the runtime starts with the
-sole Agent Grant authorization-details object and removes only its `type`
-member. `locations`, `actions`, `delegate`, `resource_server`, `scopes`,
-`constraints`, `credential_profile`, and `audit`, including every selected
-Passport and runtime-identity profile, remain in the hashing view. Another
-issuance model MUST construct the same semantic object.
+The hashing view is one complete candidate-specific semantic Agent Grant request
+before any authorization-server output is added. For RFC 9396, the runtime
+starts with the sole Agent Grant authorization-details object and removes only
+its `type` member. `locations`, `actions`, `delegate`, `resource_server`,
+`scopes`, `constraints`, `credential_profile`, and `audit`, including the exact
+candidate agent and Passport tuple and every selected profile, remain in the
+hashing view. Another issuance model MUST construct the same semantic object.
+
+A multi-candidate match MUST construct and hash one complete request for each
+candidate. All non-candidate request semantics and the controlling runtime
+binding MUST be identical across those requests; `delegate.agent` and the
+Passport tuple MUST equal that candidate. The matcher MUST NOT hash a
+candidate-independent template or one candidate's delegate and represent the
+result as binding the other candidates.
 
 `grant_id`, `grant_hash`, `subject`, `credential_binding`, `data_exposure`, and
 server-derived `delegate.runtime_identity` are invalid in a request and MUST
@@ -5838,10 +5846,12 @@ parameters, redirect URIs, PKCE values, client authentication, user-interface
 labels, raw Passport artifacts, and local policy state are not semantic Grant
 Object members and are not included.
 
-The runtime computes `grant_request_hash` with the Canonical Object Hash Profile
-and the domain above. The value identifies the exact authority request that was
-matched; it does not authorize that request or prove consent. Any semantic
-change requires a new hash and a new match result.
+The runtime computes each candidate's `grant_request_hash` with the Canonical
+Object Hash Profile and the domain above. The value identifies the exact
+authority request for that candidate; it does not authorize that request or
+prove consent. A change to common request semantics requires every candidate
+hash and the complete match result to be recomputed. A candidate tuple change
+requires a new candidate entry and hash.
 
 For the hash-layer test view `{"delegate":{"runtime":"r"}}`, the canonical
 wrapper is:
@@ -5872,7 +5882,6 @@ A Capability Match Result is a closed I-JSON object with this wire shape:
       "surface_version": "2026-06-25",
       "surface_hash": "sha-256:<base64url-digest>"
     },
-    "grant_request_hash": "sha-256:<base64url-digest>",
     "runtime": {
       "runtime_id": "application_runtime_456",
       "runtime_identity_profile": "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
@@ -5898,6 +5907,7 @@ A Capability Match Result is a closed I-JSON object with this wire shape:
         "integrity_profile": null,
         "capability_names": ["comment.create", "pull_request.get"]
       },
+      "grant_request_hash": "sha-256:<base64url-digest>",
       "status": "compatible",
       "reasons": [],
       "missing_capabilities": [],
@@ -5964,7 +5974,7 @@ key, or stable user or agent identifier. `profile` MUST exactly equal the
 Capability Match Result Profile identifier, and `match_id` MUST be unique among
 results retained by that runtime.
 
-`bindings` contains exactly `surface`, `grant_request_hash`, `runtime`,
+`bindings` contains exactly `surface`, `runtime`,
 `agent_inventory_revision`, `adapter_inventory_revision`,
 `local_policy_revision`, `enterprise_policy_revision`, and
 `user_preferences_revision`; every member is REQUIRED. `bindings.surface`
@@ -5992,6 +6002,12 @@ unavailable and the candidate is not `compatible`. `agent_binding` is
 non-null only for `code_hash_verified` and MUST otherwise be `null`.
 `capability_names` is the exact sorted unique set extracted under the selected
 Passport profile; it is declaration evidence, not authority.
+
+Every candidate also contains `grant_request_hash`. It is the hash of that
+candidate's complete request and MUST be non-null whenever `passport` is
+non-null. For a null-Passport candidate it MUST be `null`, the candidate MUST be
+`incompatible` with `passport_missing`, and it cannot be selected for a Consent
+Preview or Grant request.
 
 Every candidate contains all fields shown above. `missing_capabilities`,
 `required_scopes`, `execution.supported_stages`, and
@@ -6068,10 +6084,14 @@ Blocking `passport_profile_unsupported`, `passport_status_unavailable`,
 `indeterminate` when no definitive blocking reason exists. Every other core
 blocking reason produces `incompatible`. An extension reason code MUST be a
 collision-resistant URI and its defining profile MUST classify it as definitive
-or indeterminate. Unknown extension codes and subjects MUST be preserved; an
-unknown blocking reason defaults to indeterminate and prevents `compatible`.
-It MUST NOT be ignored or rewritten as advisory. Reasons are sorted by blocking
-before advisory, then code, subject kind, and subject id.
+or indeterminate. Only `code` is extensible in this profile: an extension reason
+MUST use one of the closed core `subject.kind` values above. Extending the
+subject taxonomy requires a different Capability Match Result profile identifier
+and complete processing rules. Unknown extension codes with a recognized
+subject kind MUST be preserved; an unknown blocking reason defaults to
+indeterminate and prevents `compatible`. It MUST NOT be ignored or rewritten as
+advisory. Reasons are sorted by blocking before advisory, then code, subject
+kind, and subject id.
 
 ### Freshness, Privacy, and Consent Boundary
 
@@ -6079,9 +6099,9 @@ before advisory, then code, subject kind, and subject id.
 policy or inventory freshness deadline, runtime-identity freshness deadline,
 or local maximum matching TTL used by any candidate decision. The complete
 result becomes stale when that time passes or when the manifest tuple, semantic
-Grant request hash, runtime identity tuple, candidate Passport tuple or status,
-agent or adapter inventory, local or enterprise policy, or user preferences no
-longer exactly match the recorded binding.
+Grant request semantics or any candidate hash, runtime identity tuple, candidate
+Passport tuple or status, agent or adapter inventory, local or enterprise
+policy, or user preferences no longer exactly match the recorded binding.
 
 A stale result MUST NOT be used to select a candidate, populate a new Consent
 Preview, or justify a Grant request. The runtime recomputes the complete result;
@@ -6094,8 +6114,10 @@ the application its candidate list, local inventory revisions, other Passport
 tuples, sandbox inventory, policy revisions, or user preferences.
 It sends only the exact selected semantic Grant request and evidence required by
 that request's negotiated profiles. Logs and telemetry SHOULD retain only the
-`match_id`, profile, surface tuple, request hash, selected candidate reference,
-status, and reason codes unless local policy explicitly requires more.
+`match_id`, profile, surface tuple, selected candidate request hash and
+reference, status, and reason codes unless local policy explicitly requires
+more. Before a candidate is selected, telemetry SHOULD omit candidate request
+hashes rather than record the complete set.
 
 An application-operated or app-embedded runtime has no confidentiality boundary
 from that application. It MUST disclose that fact before enumerating local
@@ -6104,10 +6126,12 @@ agents, and local or enterprise policy MAY prohibit matching in that deployment.
 The result is advisory input to the local Consent Preview Contract. A
 `compatible` status is not consent, approval, a Grant, a credential, Passport
 verification by the application, or permission to add scopes. After selection,
-the runtime MUST recompute the exact semantic request and data-exposure
-projection, verify that their hash and all bindings still match, and derive a
-fresh Consent Preview. Adding a suggested scope, action, or candidate changes
-the request hash and requires a new match result. The authorization server
+the runtime MUST recompute the exact semantic request and its hash, independently
+recompute the data-exposure projection, verify that the hash equals the selected
+candidate's `grant_request_hash` and that all bindings still match, and derive a
+fresh Consent Preview. Adding a suggested scope or action changes every
+candidate hash; adding or changing a candidate requires a new result entry.
+Either change requires a fresh match result. The authorization server
 independently verifies the selected tuple and obtains issuer-side consent.
 
 ## Observability Context
