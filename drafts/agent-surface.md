@@ -1250,6 +1250,7 @@ surface discoverable.
       "grant_id",
       "grant_hash",
       "session_id",
+      "session_generation",
       "trace_id",
       "span_id",
       "action_id",
