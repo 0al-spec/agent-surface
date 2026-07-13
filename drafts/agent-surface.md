@@ -396,6 +396,9 @@ A typed notification exposed by an Agent Surface or runtime. Examples:
 - `review.requested`
 - `ci.failed`
 - `task.created`
+- `budget.warning`
+- `budget.exceeded`
+- `session.paused_budget`
 - `grant.revoked`
 
 ASP application events use the CloudEvents 1.0.2 information model and JSON
@@ -780,6 +783,8 @@ The application-published affordance contract:
 - receipt requirements
 - auth endpoints
 - action endpoints
+- budget state endpoints
+- session control endpoints
 - event endpoints
 - receipt endpoints
 - revocation endpoints
@@ -814,8 +819,11 @@ kind of channel using typed session and approval messages such as:
 - `event.replay`
 - `event.flow`
 - `event.gap`
+- `budget.query`
+- `budget.state`
 - `session.start`
 - `session.event`
+- `session.pause`
 - `session.cancel`
 - `session.resume`
 - `session.state`
@@ -1062,10 +1070,14 @@ Example:
     "revocation_url": "https://example.com/oauth/revoke"
   },
   "agent_api": {
+    "credential_audience": "https://example.com/agent-api",
     "grant_request_url": "https://example.com/agent-grants/request",
     "grant_introspection_url": "https://example.com/agent-grants/introspect",
     "grant_revocation_url": "https://example.com/agent-grants/revoke",
     "action_url": "https://example.com/agent-actions",
+    "budget_state_url": "https://example.com/agent-budgets/state",
+    "budget_query_retention_seconds": 300,
+    "session_control_url": "https://example.com/agent-sessions/control",
     "event_subscription_url": "https://example.com/agent-events",
     "event_delivery": {
       "profile": "at_least_once",
@@ -1083,6 +1095,17 @@ Example:
 }
 ```
 
+`agent_api.credential_audience` is REQUIRED and MUST be an absolute HTTPS URI
+identifying the application's logical ASP protected resource. The authorization
+server issues every Agent Grant Credential with exactly this audience, and each
+credential-protected endpoint in `agent_api` MUST reject a credential for
+another audience. The URI need not be an invocation endpoint: DPoP still binds
+each proof to the actual request method and target URI. One audience lets the
+same exact grant tuple authenticate Action Requests and the closed budget and
+session safety operations without treating those control operations as granted
+actions. Changing it changes the manifest hashing view and requires a new
+`surface_version` and `surface_hash`.
+
 When `event_subscription_url` is present, `agent_api.event_delivery` is
 REQUIRED. This draft defines only the `at_least_once` profile. Its
 `ack_deadline_seconds`, `max_in_flight`, and `retention_seconds` members MUST be
@@ -1094,6 +1117,28 @@ MUST repeat the advertised acknowledgement deadline and retention window and
 MUST NOT return a larger in-flight window. Changing any of these values changes
 the manifest hashing view and requires a new `surface_version` and
 `surface_hash`.
+
+`agent_api.budget_state_url` and `agent_api.budget_query_retention_seconds` are
+REQUIRED when the application can accept `max_write_actions`,
+`max_parallel_sessions`, or the application-cost partition in an Agent Grant.
+The URL MUST be absolute HTTPS. The retention value MUST be a positive integer
+and fixes how long an accepted `budget.query` idempotency record remains
+replayable. Together they expose the authenticated `budget.query` /
+`budget.state` contract defined below. An already negotiated Runtime Bridge MAY
+carry the identical typed messages, but support remains discoverable through
+the manifest and cannot be inferred from an action or event endpoint. Changing
+either value changes the manifest hashing view and requires a new
+`surface_version` and `surface_hash`.
+
+`agent_api.session_control_url` is REQUIRED when the application can accept a
+Grant containing `max_tool_calls`, `max_model_tokens`, `max_runtime_seconds`, or
+the runtime-cost partition. It MUST be an absolute HTTPS URL and MUST accept the
+typed `session.pause` request and return `session.state` as defined below. An
+already negotiated Runtime Bridge MAY carry the identical messages, but it does
+not replace this discoverable HTTP binding. The endpoint uses the Grant
+Credential and its required credential-binding proof; fields inside a message
+are not authentication. Changing the URL changes the manifest hashing view and
+requires a new `surface_version` and `surface_hash`.
 
 Implementations MAY collapse these endpoints when the application already has
 equivalent OAuth or API infrastructure, but the manifest MUST make the wire-level
@@ -1130,10 +1175,14 @@ surface discoverable.
     "pkce_required": true
   },
   "agent_api": {
+    "credential_audience": "https://example.com/agent-api",
     "grant_request_url": "https://example.com/agent-grants/request",
     "grant_introspection_url": "https://example.com/agent-grants/introspect",
     "grant_revocation_url": "https://example.com/agent-grants/revoke",
     "action_url": "https://example.com/agent-actions",
+    "budget_state_url": "https://example.com/agent-budgets/state",
+    "budget_query_retention_seconds": 300,
+    "session_control_url": "https://example.com/agent-sessions/control",
     "event_subscription_url": "https://example.com/agent-events",
     "event_delivery": {
       "profile": "at_least_once",
@@ -1169,6 +1218,12 @@ surface discoverable.
       "classification": "private",
       "label": "Repository content",
       "description": "Content visible to the connected repository user."
+    },
+    {
+      "id": "session.metadata",
+      "classification": "sensitive",
+      "label": "Session metadata",
+      "description": "Identifiers and lifecycle state for an ASP session."
     },
     {
       "id": "user.identifier",
@@ -1293,11 +1348,41 @@ surface discoverable.
       }
     },
     {
+      "id": "budget.warning",
+      "control": true,
+      "schema": "https://example.com/schemas/budget-warning.event.schema.json",
+      "data_exposure": {
+        "classes": ["grant.metadata"],
+        "redaction": {"mode": "none"},
+        "retention": {"mode": "transient", "delete_on_grant_end": true}
+      }
+    },
+    {
+      "id": "budget.exceeded",
+      "control": true,
+      "schema": "https://example.com/schemas/budget-exceeded.event.schema.json",
+      "data_exposure": {
+        "classes": ["grant.metadata"],
+        "redaction": {"mode": "none"},
+        "retention": {"mode": "transient", "delete_on_grant_end": true}
+      }
+    },
+    {
       "id": "grant.revoked",
       "control": true,
       "schema": "https://example.com/schemas/grant-revoked.event.schema.json",
       "data_exposure": {
         "classes": ["grant.metadata"],
+        "redaction": {"mode": "none"},
+        "retention": {"mode": "transient", "delete_on_grant_end": true}
+      }
+    },
+    {
+      "id": "session.paused_budget",
+      "control": true,
+      "schema": "https://example.com/schemas/session-paused-budget.event.schema.json",
+      "data_exposure": {
+        "classes": ["grant.metadata", "session.metadata"],
         "redaction": {"mode": "none"},
         "retention": {"mode": "transient", "delete_on_grant_end": true}
       }
@@ -1582,13 +1667,20 @@ repositories, even when the event scope matches.
 An event declaration MAY set `control: true` only for an application control
 event whose delivery authority and closure are defined by this specification or
 another profile understood by the runtime. A control event omits `scope`; it is
-not authorized by the affected grant. This draft defines `grant.revoked` as the
-only core control event. A manifest that advertises `grant.revoked` MUST list it
-in `events` with `control: true` and a `data_exposure` contract.
+not authorized by the affected grant. This draft defines `budget.warning`,
+`budget.exceeded`, `session.paused_budget`, and `grant.revoked` as core control
+events. A manifest that advertises one of them MUST list it in `events` with
+`control: true` and a `data_exposure` contract.
 
 `grant.revoked` is an application control event rather than an event authorized
 by the revoked grant. Its payload, authentication, and processing requirements
 are defined in the OAuth Grant Revocation Profile.
+
+The three budget-related control events are application events. Their producer
+MUST be the application bound by the manifest `issuer`; a runtime MUST NOT
+fabricate them from its local counters because the CloudEvents `source` binding
+would falsely attribute that state to the application. Their payload and
+session-fencing requirements are defined in Budget Control Events.
 
 ### CloudEvents 1.0.2 Event Binding
 
@@ -1753,8 +1845,11 @@ Before accepting or acknowledging an ASP CloudEvent, a runtime MUST:
 3. require `source` to equal the authenticated pinned manifest issuer and
    `type`, `dataschema`, `aspscope`, and `aspcontrol` to match exactly one event
    declaration;
-4. require `aspsurfacehash` and all delivery attributes to match the
-   authenticated subscription or control-channel record;
+4. for a non-control event, require `aspsurfacehash` and all delivery attributes
+   to match the authenticated grant-bound subscription; for a control event,
+   require the delivery attributes to match the issuer/runtime-bound control
+   record, then validate `aspsurfacehash` independently against the retained
+   affected Grant and manifest snapshot under that event's rules;
 5. validate `data` against the exact declared schema, apply the complete
    current grant and resource-filter projection for non-control events, and
    enforce the Data Exposure Contract over `data` and every context attribute
@@ -1940,10 +2035,10 @@ Defined outcomes are:
   unacknowledged and an optional bounded retry delay is only a hint
 
 `processed` means accepted by the runtime, not that an agent completed a task
-or an application action succeeded. `discarded` MUST NOT be used for
-`grant.revoked` until the runtime has fail-closed the matching grant and begun
-authoritative resynchronization; a valid control event is normally acknowledged
-as `processed` only after its required state transition.
+or an application action succeeded. `discarded` MUST NOT be used for a valid
+core control event before the runtime durably applies its required fail-closed,
+scheduling, or reconciliation state. Such an event is normally acknowledged as
+`processed` only after that state and its deduplication decision are durable.
 
 A terminal acknowledgement is valid only on the authenticated subscription
 and when its delivery id and cursor exactly match the delivery record. It is
@@ -2076,11 +2171,407 @@ including event payloads.
 
 Application-event backpressure MUST NOT starve the runtime control
 subscription. The application MUST reserve independent capacity for
-`grant.revoked` or deliver it on a separate authenticated channel. If the
-control path is unavailable, application-side revocation remains immediately
-authoritative; the runtime MUST stop new use when it cannot re-establish or
-introspect authoritative grant state rather than assuming that the absence of a
-control event means the grant is active.
+core control events or deliver them on a separate authenticated channel. If the
+control path is unavailable, application-side revocation, budget state, and
+session fences remain immediately authoritative; the runtime MUST stop affected
+new use when it cannot re-establish or introspect authoritative state rather
+than assuming that the absence of a control event means capacity or authority
+still exists.
+
+### Budget Control Events
+
+`budget.warning`, `budget.exceeded`, and `session.paused_budget` are
+application-authored control notifications. They use the logically separate
+control subscription, carry `aspcontrol: true` and `aspaudience`, omit
+`aspscope`, and satisfy every CloudEvents binding, integrity, exposure,
+delivery, replay, and acknowledgement rule above. The affected grant does not
+authorize their delivery, but their payload MUST identify only a grant and
+delegate tuple already known to the target runtime.
+
+When an application publishes `event_subscription_url` and accepts an
+application-authoritative budget, its manifest MUST declare
+`budget.exceeded`; it MUST also declare `budget.warning` when it configures a
+warning threshold. Independently, an application with
+`event_subscription_url` MUST declare `session.paused_budget` when application
+policy can interrupt a session for a budget condition or the application
+accepts `session.pause`. Absence or failure of the control channel never delays
+the underlying counter or session transition; delivery is notification, not
+authority.
+
+An application MUST emit `budget.warning` and `budget.exceeded` only for
+application-authoritative `write_actions`, `parallel_sessions`, and
+`application_cost` counters. It MUST NOT copy or estimate runtime-authoritative
+tool, token, time, or runtime-cost state into an application CloudEvent. A
+runtime observes those counters locally and uses the authenticated
+`session.pause` operation below when its own budget state requires an
+application session fence.
+
+The event-producing state machines are:
+
+```text
+consumptive: absent -> available <-> warning <-> exhausted
+                            \-----------------> exhausted
+occupancy:   absent -> available <-> saturated
+session:                active  -> interrupted
+```
+
+Every authoritative counter transition occurs whether or not event delivery is
+configured. After a local or ancestor transition, the application recomputes
+effective lineage state and retryability separately for each affected grant.
+When the corresponding event is declared, `budget.warning` is produced exactly
+when that effective consumptive state enters `warning`, and `budget.exceeded`
+is produced exactly when effective state enters `exhausted` or `saturated`.
+`budget.exceeded` is also produced when effective retryability changes while
+state remains exhausted or saturated. A counter transition that an already
+stricter ledger masks produces no occurrence and no effective state revision
+for that affected grant.
+
+Creation directly in a non-available effective state counts as entry from
+`absent`, and a transition MAY skip `warning`. The name `budget.exceeded`
+reports that no further matching admission currently fits; it does not mean the
+hard limit was overdrawn. Because `remaining` includes durable reservations,
+releasing unused capacity can move a consumptive counter back to `warning` or
+`available`; settled `used` never decreases. Repeated denied attempts without
+an effective change MUST NOT create more events.
+
+For each event-producing transition and affected delegate, the application
+creates exactly one immutable occurrence with a distinct CloudEvents `id`.
+Delivery retry and replay preserve its `(source, id)`, `aspeventhash`, and
+stable data; they MUST NOT produce another counter transition, session
+transition, charge, or receipt. `effective_at` is the authoritative counter
+transition time, `observed_at` is when the immutable event projection was
+recorded, and CloudEvents `time` MUST equal `observed_at`.
+
+The application MUST commit the authoritative transition record and a durable
+outbox record containing the stable occurrence key and immutable redacted
+projection atomically, or with an equivalent recoverable transaction, before it
+acknowledges the transition-causing operation or session fence. A crash after
+the transition but before network delivery resumes the same occurrence from
+that outbox; it MUST NOT omit the event, reconstruct it from later mutable
+state, or allocate a second event id. Network delivery remains the independent
+at-least-once process defined above.
+
+For each `(affected_grant_hash, budget_id)`, the application maintains a
+positive safe-integer `effective_state_revision`, starting at `1` and
+increasing by exactly one whenever effective state or effective retryability
+changes. It is scoped to the target grant and reveals no ancestor ledger
+revision. Every `budget.warning` and `budget.exceeded` occurrence and every
+`budget.state` response carries it so a delayed event cannot overwrite a newer
+query result. Overflow fails closed as `budget_state_unavailable`; the revision
+MUST NOT wrap or reset under the same affected grant and budget id.
+
+The runtime durably retains the highest effective revision seen across budget
+events and query responses. A lower revision is historical and cannot change
+current scheduling. An equal revision with different effective state or
+retryability is `integrity_mismatch` and fails closed; projection detail MAY
+differ because an event can contain a complete local counter while
+`budget.state` is always lineage-minimized.
+
+This is a minimum `budget.exceeded` delivery:
+
+```json
+{
+  "specversion": "1.0",
+  "id": "event_01J2BUDGET",
+  "source": "https://code.example.com",
+  "type": "budget.exceeded",
+  "time": "2026-06-25T18:20:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "https://code.example.com/schemas/budget-exceeded.event.schema.json",
+  "aspcontrol": true,
+  "aspaudience": "application_runtime_456",
+  "aspsurfacehash": "sha-256:<base64url-digest>",
+  "aspeventhash": "sha-256:<event-digest>",
+  "aspsubid": "control_application_runtime_456",
+  "aspdeliveryid": "delivery_01J2BUDGET",
+  "aspattempt": 1,
+  "aspstream": "grant:grant_123",
+  "aspsequence": 7,
+  "aspcursor": "opaque:control-position-after-7",
+  "data": {
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
+    "app_id": "code.example.com",
+    "runtime_id": "application_runtime_456",
+    "agent_id": "local_agent_789",
+    "passport_hash": "sha256:...",
+    "previous_state": "warning",
+    "effective_state_revision": 3,
+    "budget": {
+      "budget_id": "write_actions",
+      "authority": "application",
+      "scope": "grant",
+      "mode": "consumptive",
+      "unit": "actions",
+      "limit": 20,
+      "used": 19,
+      "reserved": 1,
+      "remaining": 0,
+      "state": "exhausted",
+      "warning_at_remaining": 2,
+      "revision": 42
+    },
+    "effective_at": "2026-06-25T18:19:59Z",
+    "observed_at": "2026-06-25T18:20:00Z",
+    "retryable": true
+  }
+}
+```
+
+Both budget event payloads MUST contain `grant_id`, `grant_hash`, `app_id`,
+`runtime_id`, `agent_id`, `passport_hash`, `previous_state`, `budget`,
+`effective_state_revision`, `effective_at`, and `observed_at`. The grant and
+complete tuple identify the affected grant bound to the target delegate; they
+are not part of the grant-agnostic control-subscription authority. The delivery
+channel, `source`, `aspaudience`, and `aspsubid` MUST match the control
+subscription's application issuer and authenticated target runtime, and
+`data.runtime_id` MUST equal `aspaudience`. Independently, the runtime MUST
+match the complete payload tuple and `aspsurfacehash` against its retained
+authoritative Grant and pinned manifest snapshot. `budget_id` MUST name an
+application-authoritative dimension retained in that grant.
+
+When the transitioned counter belongs to the affected grant and its complete
+local state and retryability equal the effective lineage result, `budget` MAY be
+the complete canonical Budget Counter State with `scope: "grant"`, as shown
+above. Otherwise, including when an ancestor or stricter local/ancestor counter
+determines the effective result, the event MUST use this minimized projection:
+
+```json
+{
+  "budget_id": "write_actions",
+  "authority": "application",
+  "scope": "effective_lineage",
+  "mode": "consumptive",
+  "unit": "actions",
+  "state": "exhausted"
+}
+```
+
+The minimized projection MUST omit ancestor grant identifiers and hashes,
+`limit`, `used`, `reserved`, `remaining`, warning threshold, and ledger
+revision. The authenticated application source is authoritative for the
+effective application-owned state; the projection is not a reusable ledger
+credential. When one ancestor transition affects grants bound to multiple
+runtimes, the application emits a separately identified occurrence for each
+affected grant and `aspaudience` and MUST NOT disclose ancestor or sibling
+delegate identities or aggregate consumption.
+
+The application computes both `previous_state` and the new state over the
+complete lineage: consumptive `exhausted` dominates `warning`, which dominates
+`available`, and occupancy `saturated` dominates `available`.
+If multiple ledgers block admission, non-retryable settled-hard exhaustion
+dominates a retryable reservation or occupancy blocker. An ancestor warning
+MUST NOT make an already exhausted descendant appear to recover, and releasing
+one blocker MUST NOT emit availability while another blocker remains.
+
+For `budget.warning`, state MUST be consumptive `warning`, and a complete local
+projection MUST carry `warning_at_remaining`; `previous_state` is `absent`,
+`available`, or `exhausted`. For `budget.exceeded`, state MUST be consumptive
+`exhausted` or occupancy `saturated`. Its `retryable` is REQUIRED. For a
+complete consumptive projection it is `true` exactly when `reserved` is
+positive and `used` is smaller than `limit`, and `false` for settled hard
+exhaustion where `used` equals `limit` and `reserved` is zero. For a minimized
+projection the application derives the same value without disclosing its
+inputs. For occupancy saturation it is `true` only when every blocking
+occupancy ledger has a positive limit and currently occupied or reserved
+capacity that can be authoritatively released; a zero-slot limit is
+non-retryable. A true value only says capacity can return after authoritative
+reservation or slot release; the runtime still requires a fresher authenticated
+`budget.state` before retry. The field never authorizes automatic retry or
+reserves future capacity.
+
+The runtime obtains that fresher state without exposing ancestor totals through
+an authenticated control-plane query. It sends the complete typed envelope as
+an `application/json` POST to the manifest `budget_state_url`, using the grant's
+required credential-binding proof, or carries the identical message on an
+already authenticated Runtime Bridge:
+
+```json
+{
+  "type": "budget.query",
+  "payload": {
+    "query_id": "budget_query_01J2AVAILABLE",
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
+    "surface_hash": "sha-256:<base64url-digest>",
+    "budget_id": "write_actions"
+  }
+}
+```
+
+Before consulting an idempotency record or returning state, the application
+MUST authenticate the runtime and presented credential, resolve an active,
+unexpired current grant, and match its subject, runtime, agent, passport,
+credential binding, `grant_id`, `grant_hash`, and `surface_hash`. It MUST then
+require `budget_id` to name an application-authoritative dimension retained by
+that grant. Revocation, expiry, a superseded surface, or any mismatched or
+unknown authority dominates an earlier cached response. Every failure of these
+checks, including an unknown or runtime-authoritative `budget_id`, returns the
+same terminal, non-enumerating `budget_query_invalid` error and no
+`budget.state`; the response MUST NOT disclose which check failed. Only after
+all checks pass does the application evaluate the local and every ancestor
+ledger and return the effective admission state for that target grant:
+
+```json
+{
+  "type": "budget.state",
+  "payload": {
+    "query_id": "budget_query_01J2AVAILABLE",
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
+    "surface_hash": "sha-256:<base64url-digest>",
+    "budget": {
+      "budget_id": "write_actions",
+      "authority": "application",
+      "scope": "effective_lineage",
+      "mode": "consumptive",
+      "unit": "actions",
+      "state": "available"
+    },
+    "effective_state_revision": 4,
+    "observed_at": "2026-06-25T18:21:00Z",
+    "query_expires_at": "2026-06-25T18:26:00Z"
+  }
+}
+```
+
+For consumptive state, `exhausted` dominates `warning`, which dominates
+`available`; for occupancy, `saturated` dominates `available`. When the
+effective state is `exhausted` or `saturated`, the `budget` projection MUST also
+carry `retryable`. It is `false` if any currently blocking consumptive ledger
+is settled-hard and is `true` only when every blocker can recover through an
+authoritative reservation or occupancy release. It is absent for `available`
+or `warning`. The response MUST omit every ancestor identifier, hash, limit,
+counter value, threshold, and revision. A runtime MUST allocate a `query_id`
+unique for the lifetime of the target grant and MUST NOT deliberately reuse an
+expired id. On first acceptance, the application binds the complete request to
+its response through `query_expires_at`, computed from the manifest
+`budget_query_retention_seconds`, and retains that full idempotency record until
+the timestamp. After the current-authority checks above, it consults this record
+before evaluating live ledger state. An exact duplicate received before expiry
+therefore returns the immutable cached response and effective revision even if
+the live ledger later becomes unavailable; the response remains only the
+point-in-time observation it claims. A caller needing fresher state uses a new
+id, whose evaluation fails as `budget_state_unavailable` when current ledger
+state is missing or uncertain, never as synthetic availability.
+
+At `query_expires_at`, the application MUST delete the cached state payload and
+compact the record to `(query_id, request_hash, query_expires_at)` for one
+additional `budget_query_retention_seconds` interval. Any exact or conflicting
+reuse during that tombstone interval fails as the same terminal,
+non-enumerating `budget_query_invalid` error with no state. After the tombstone
+deadline the application MUST evict it; a later occurrence is processed as a
+new query, but a conforming runtime never relies on that fallback. A conflicting
+reuse before either deadline also fails as `budget_query_invalid`.
+`request_hash` is the Canonical Object Hash Profile digest of the complete typed
+`budget.query` envelope; it is local bookkeeping and is not inserted into that
+envelope. The application MUST enforce finite per-grant
+cardinality and authenticated-caller rate limits over live records and
+tombstones; rejection at either bound returns `rate_limited` without allocating
+a record. Because tombstones have a mandatory eviction deadline, reaching the
+bound cannot permanently consume the grant's query namespace.
+
+`budget.state` is point-in-time application authority, not a reservation. A
+runtime MAY reconsider an unchanged operation after a response of `available`
+or `warning`, subject to local policy and ordinary atomic admission at the
+application. It MUST use bounded backoff for another query after a retryable
+exhaustion or saturation, MUST stop same-grant recovery queries after a
+non-retryable result, and MUST NOT query or retry from an agent-controlled loop.
+`budget.query` and `budget.state` use the safety control plane, consume no grant
+budget, require no active session, and MUST NOT be exposed to an agent.
+
+Budget exhaustion does not itself interrupt a session. If application policy
+chooses to fence an active session because of settled exhaustion of an
+application-owned consumptive `write_actions` or `application_cost` counter,
+the application MUST first atomically transition that session from `active` to
+`interrupted`, without changing its generation, and, when the event is declared,
+then emit exactly one `session.paused_budget` occurrence for that transition.
+`parallel_sessions` saturation MUST NOT pause or cancel a session that already
+owns a slot. A runtime-owned budget can cause an application transition only
+through an accepted `session.pause` request. A duplicate pause request or event
+delivery does not create a second transition or occurrence.
+
+A `session.paused_budget` event MUST carry matching `aspsessionid` and
+`aspsessiongen` attributes. This is the minimum data for the
+controlling-runtime variant:
+
+```json
+{
+  "grant_id": "grant_123",
+  "grant_hash": "sha-256:<base64url-digest>",
+  "budget_grant_id": "grant_123",
+  "budget_grant_hash": "sha-256:<base64url-digest>",
+  "app_id": "code.example.com",
+  "runtime_id": "application_runtime_456",
+  "agent_id": "local_agent_789",
+  "passport_hash": "sha256:...",
+  "pause_id": "pause_01J2BUDGET",
+  "session_id": "sess_456",
+  "session_generation": 1,
+  "previous_state": "active",
+  "state": "interrupted",
+  "transition_reason": "budget_exceeded",
+  "budget_id": "runtime_seconds",
+  "budget_authority": "controlling_runtime",
+  "budget_scope": "grant",
+  "reported_budget_revision": 31,
+  "effective_at": "2026-06-25T18:20:00Z",
+  "observed_at": "2026-06-25T18:20:01Z",
+  "automatic_resume": false
+}
+```
+
+Every variant contains `grant_id`, `grant_hash`, `app_id`, `runtime_id`,
+`agent_id`, `passport_hash`, `pause_id`, `session_id`, `session_generation`,
+`previous_state`, `state`, `transition_reason`, `budget_id`,
+`budget_authority`, `budget_scope`, `effective_at`, `observed_at`, and
+`automatic_resume`. The event's session attributes, data, tuple, and hashes
+MUST match the authoritative interrupted record. `budget_authority` is
+`application` or `controlling_runtime`; `budget_scope` is `grant` or
+`ancestor`. For a local application-owned counter, `budget_scope` is `grant`,
+`budget_revision` is REQUIRED, and all `budget_grant_*` and
+`reported_budget_revision` members are absent. For an ancestor application-owned
+counter, `budget_scope` is `ancestor` and every causal ancestor identifier,
+hash, counter value, and revision MUST be omitted. The application remains
+authoritative for the effective fence without exposing aggregate lineage state.
+
+For a runtime-owned counter, `budget_grant_id` and `budget_grant_hash` MUST
+identify the session grant or an ancestor containing `budget_id`,
+`budget_scope` reflects which, and `reported_budget_revision` MUST repeat the
+causal grant and revision from the accepted pause request. `budget_revision`
+is absent, and the application MUST NOT represent that runtime report as its
+own counter state. `automatic_resume` is the literal `false`: only an explicit,
+independently authorized resume after the budget condition is resolved can
+return the session to `active`.
+`effective_at` records the authoritative fence, `observed_at` and CloudEvents
+`time` record the immutable event projection, and an application-initiated
+fence MUST allocate a `pause_id` unique in that session generation.
+
+The runtime MUST validate and durably deduplicate a budget control occurrence
+before changing local scheduling. Channel authentication proves only the
+application issuer and target runtime. If no locally retained authoritative
+Grant matches the event's complete affected tuple, the runtime MUST apply one
+non-enumerating unknown-authority disposition, accept no payload state, and
+MUST NOT disclose whether the tuple was unknown, ended, or outside local
+authority. If `grant_id` resolves locally but any delegate member,
+`grant_hash`, or `aspsurfacehash` differs, the runtime MUST stop scheduling on
+the affected local grant, record `integrity_mismatch`, and begin authoritative
+grant and manifest resynchronization without replacing retained authority from
+the event. The control-delivery acknowledgement MUST NOT echo the mismatched
+value or distinguish which binding failed.
+
+After those checks, the runtime MUST NOT deliver any core control event to an
+agent as a task, treat it as authority for an Action Request, automatically
+retry denied work, or infer that pausing rolled back an in-flight effect. A
+`budget.warning` or `budget.exceeded` occurrence MUST NOT replace a newer
+effective state revision with an older event or query result. A valid duplicate
+or older effective revision receives a terminal `processed` acknowledgement
+without repeating local side effects. For `session.paused_budget`, the runtime
+stops matching local scheduling and reconciles in-flight outcomes before
+terminal acknowledgement. A historical pause replay for an older session
+generation MUST NOT interrupt or downgrade a later generation; the runtime
+validates it against retained transition history and acknowledges it without
+changing current session state.
 
 ### Data Exposure Contract
 
@@ -2158,15 +2649,30 @@ applies. Hashes and data-minimized audit metadata MAY outlive the plaintext
 only when another grant or policy requirement explicitly permits their
 retention.
 
+For a core control event, `transient` applies to the raw CloudEvent and its
+application-originated payload; it does not prohibit the receiver from durably
+projecting the minimum safety state that this protocol requires before terminal
+acknowledgement. That projection MUST be data-minimized and limited to delivery
+deduplication keys or hashes, the affected-grant hash, effective state revision,
+state and retryability, and the session id, generation, and fence state when
+applicable. It MUST NOT retain raw event data, ancestor identifiers, counter
+values, thresholds, or unrelated session metadata. The receiver MUST retain
+deduplication state through the effective replay window and safety state while
+the affected grant or session can still admit or resume work. Once both the
+effective replay window is closed and the affected authority can no longer
+admit or resume work, the receiver MUST delete that projection; only a
+non-reversible tombstone permitted by an independently declared bounded audit
+policy MAY remain.
+
 The resource contract applies to every representation and query result of that
 resource. The action contract applies to all application-originated
 agent-visible output from that action, including dry-run or proposal output,
 success responses, partial results, and structured error details. It does not
 describe application retention of agent-supplied action input. The event
-contract applies to its payload. Control events such as `grant.revoked` MUST
-also appear in the manifest `events` array with `control: true` and an exposure
-contract; they cannot bypass these rules merely because their delivery
-authority is independent of the affected grant.
+contract applies to its payload. Core control events MUST also appear in the
+manifest `events` array with `control: true` and an exposure contract; they
+cannot bypass these rules merely because their delivery authority is
+independent of the affected grant.
 
 The application is responsible for classifying source fields and enforcing the
 declared post-redaction envelope before delivery. This draft does not define a
@@ -2183,13 +2689,13 @@ using this conservative source closure:
 2. include every action whose `id` is an exact member of the granted `actions`;
 3. include every non-control event whose `scope` is an exact member of the
    granted `scopes`; and
-4. include the core `grant.revoked` event when the manifest advertises it with
-   `control: true`, regardless of the revoked grant's scopes.
+4. include every core control event advertised with `control: true`, regardless
+   of the affected grant's scopes.
 
 The conservative resource and event rules may display a class that a narrower
 resource filter never returns, but they MUST NOT omit a class that remains
-reachable. Future control events require their own explicit closure rule; an
-unknown `control: true` event makes the surface incompatible with this profile.
+reachable. An unknown `control: true` event makes the surface incompatible with
+this profile unless another negotiated profile defines its closure rule.
 Every selected source is included, including one with an empty `classes` array.
 Duplicate source pairs are invalid. Projection entries MUST be ordered first by
 source kind in the order `resource`, `action`, `event`, then by ascending Unicode
@@ -3356,6 +3862,12 @@ select an action. The authorization server derives the issued arrays from the
 exact user-approved endpoints and stages and MUST NOT add companion actions
 implicitly.
 
+`locations` restricts only Action Requests; it is not an OAuth credential
+audience and does not list `budget_state_url` or `session_control_url`. Those
+endpoints accept only their closed safety operations, authenticate the same
+exact Grant and delegate tuple under `agent_api.credential_audience`, and MUST
+NOT infer action authority merely because the credential is valid there.
+
 The authoritative action allow-list MUST satisfy the required companion closure
 defined by the Action Execution Model. A list that contains a commit or
 reservation acquisition without its required stages is an invalid Grant Object,
@@ -3556,11 +4068,16 @@ monotonic consumption. For occupancy, `used` is the current active-slot count
 and decreases only after the authoritative session fence releases a slot.
 `reserved` is a durable in-flight admission amount; successful settlement moves
 the applicable amount to `used`, and an authoritative rejection releases it.
-A consumptive state MUST be `available` exactly when `remaining` is positive
-and `exhausted` exactly when it is zero. An occupancy state MUST likewise be
-`available` exactly when `remaining` is positive and `saturated` exactly when it
-is zero. Mutable state is not part of `grant_hash` and MUST NOT be copied from
-an untrusted caller.
+A consumptive counter MAY include `warning_at_remaining`, a positive safe
+integer smaller than `limit` that the authority fixes for the counter's ledger
+lifetime. When it is absent, consumptive state MUST be `available` exactly when
+`remaining` is positive. When present, state MUST be `available` when
+`remaining` is greater than the threshold and `warning` when it is positive and
+no greater than the threshold. Consumptive state MUST be `exhausted` exactly
+when `remaining` is zero. An occupancy counter does not carry a warning
+threshold and MUST be `available` exactly when `remaining` is positive and
+`saturated` exactly when it is zero. The warning threshold and mutable state are
+not part of `grant_hash` and MUST NOT be copied from an untrusted caller.
 
 Before new consumption, the authority MUST calculate a conservative maximum
 increment and atomically verify and reserve it against the local grant and
@@ -3600,15 +4117,20 @@ Every `cost.currency` present in one budget lineage MUST exactly equal the
 currency of every ancestor cost budget. Mixed-currency derivation MUST be
 rejected rather than converted or treated as an independent allowance.
 
-Exhaustion MUST NOT block grant revocation, session cancellation, introspection,
-receipt retrieval, explicit reservation release, authoritative reconciliation,
-or an exact idempotent replay. Hard consumptive exhaustion is not retryable
-under the same grant. Occupancy saturation MAY become retryable after a slot is
-authoritatively released, but a retry hint is advisory and never reserves that
-future slot. These operations are the closed set of mandatory safety and
-cleanup operations in this profile. They do not consume a grant budget; an
-implementation bears their control-plane cost separately and MUST NOT route
-them through an exhausted agent-work counter.
+Exhaustion MUST NOT block grant revocation, `session.pause`, session
+cancellation, authenticated `budget.query`, introspection, receipt retrieval,
+explicit reservation release, authoritative reconciliation, or an exact
+idempotent replay. Settled hard
+consumptive exhaustion, where `used` equals `limit` and `reserved` is zero, is
+not retryable under the same grant. Temporary admission exhaustion MAY recover
+only after an authoritative reservation release. Occupancy saturation MAY
+recover after an authoritative slot or occupancy reservation release only when
+its limit is positive; a zero-slot limit is non-retryable under that grant. A
+retry hint is advisory and never reserves that future capacity. These
+operations are the closed set of mandatory safety and cleanup operations in
+this profile. They do not consume a grant budget; an implementation bears their
+control-plane cost separately and MUST NOT route them through an exhausted
+agent-work counter.
 
 ### Grant Lifecycle
 
@@ -3878,8 +4400,10 @@ details type defined by this draft.
 
 The authorization server and resource server MAY be operated by the same
 application, but they retain their OAuth roles. The authorization server issues
-and manages Grant Credentials. The application action endpoint is the resource
-server and continues to enforce the semantic Agent Grant for every action.
+and manages Grant Credentials. The credential-protected `agent_api` endpoints
+form one logical resource server under `credential_audience`; the action
+endpoint additionally enforces the semantic Agent Grant for every action, while
+budget and session endpoints expose only their closed safety operations.
 
 #### Rich Authorization Request Profile
 
@@ -4027,7 +4551,7 @@ Content-Type: application/x-www-form-urlencoded
 DPoP: <proof-jwt>
 
 grant_type=urn:ietf:params:oauth:grant-type:token-exchange
-&resource=https%3A%2F%2Fcode.example.com%2Fagent-actions
+&resource=https%3A%2F%2Fcode.example.com%2Fagent-api
 &requested_token_type=urn:ietf:params:oauth:token-type:access_token
 &subject_token=<user-authorized-token>
 &subject_token_type=urn:ietf:params:oauth:token-type:access_token
@@ -4048,9 +4572,11 @@ The Token Exchange request has these additional ASP requirements:
   the token request; it does not use the example's DPoP header.
 - `subject_token` MUST represent the authenticated user's authorization for the
   requested application and MUST be valid at the time of exchange.
-- `resource` MUST contain exactly the published Agent Surface action resource
-  URI. An `audience` value MAY additionally name the same logical resource
-  server but MUST NOT add another target.
+- `resource` MUST contain exactly the pinned manifest
+  `agent_api.credential_audience`. An `audience` value MAY additionally name
+  that same logical protected resource but MUST NOT add another target. Action
+  `locations` remain a separate RAR allow-list and MUST NOT replace or widen
+  the credential audience.
 - `requested_token_type` MUST be
   `urn:ietf:params:oauth:token-type:access_token` for the OAuth Grant Credential
   profile in this draft.
@@ -4202,7 +4728,8 @@ proof-bound credential MUST additionally include the method-specific standard
 `cnf` confirmation member. The `sub` value SHOULD be a stable app-scoped
 pseudonymous user identifier. `client_id` identifies the OAuth client;
 `delegate.runtime` is the authoritative ASP runtime binding and MAY differ from
-`client_id`.
+`client_id`. `aud` MUST equal the `agent_api.credential_audience` in the
+manifest snapshot selected by the returned Grant's `surface_hash`.
 
 The `authorization_details` member MUST contain the granted Agent Grant object,
 filtered only to data the authenticated caller may receive. Top-level `sub`,
@@ -4229,7 +4756,7 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
   "exp": 1782417600,
   "iat": 1782415800,
   "sub": "app-user-7f3a",
-  "aud": "https://code.example.com/agent-actions",
+  "aud": "https://code.example.com/agent-api",
   "iss": "https://code.example.com",
   "cnf": {
     "jkt": "<base64url-thumbprint>"
@@ -4436,6 +4963,8 @@ cross-runtime shared-accounting or allocation profile.
 Applications MUST verify every action against grant state:
 
 - grant exists and is active
+- the credential audience exactly matches `agent_api.credential_audience` in
+  the verified manifest snapshot selected by the grant
 - recomputed `grant_hash` matches both the presented action context and current
   authoritative Grant Object
 - `resource_server.surface_hash` matches the retained, verified manifest
@@ -4664,7 +5193,7 @@ ASP assigns the following authority to session participants:
 | --- | --- |
 | User | MAY request start, observe state, cancel, or approve resume through an authenticated application or runtime UI. A user-facing gesture is not itself a bridge credential. |
 | Application | Creates or accepts the authoritative record, verifies every transition and action against the current grant and tuple, exposes an authorized user view, and MAY cancel or interrupt a session to enforce application policy. |
-| Runtime | MAY request start for its authenticated grant-bound tuple, observe that tuple's sessions, stop local work, request cancellation, and request resume after interruption. It MUST enforce application state in addition to local policy. |
+| Runtime | MAY request start for its authenticated grant-bound tuple, observe that tuple's sessions, stop local work, request an application fence for an authoritative local budget, request cancellation, and request resume after interruption. It MUST enforce application state in addition to local policy. |
 | Agent | MAY express task intent only through its runtime. It has no direct authority to start, enumerate, observe, cancel, or resume application sessions, and MUST receive session data only through runtime-mediated, exposure-authorized paths. |
 
 An application-started session MUST arise from an authenticated user action or
@@ -4681,7 +5210,7 @@ The normative application-side states and transitions are:
 | Current state | Trigger | Next state | Requirements |
 | --- | --- | --- | --- |
 | absent | accepted start | `active` | Current grant, tuple, surface, authenticated channel, and an available parallel-session slot across the grant lineage all verify; generation becomes `1`. |
-| `active` | channel loss, runtime pause, or application safety fence | `interrupted` | New actions are rejected until an explicit resume succeeds; the slot is released only after that fence. |
+| `active` | channel loss, runtime pause, or application safety fence | `interrupted` | New agent work is rejected until an explicit resume succeeds; the closed safety and cleanup path remains available, and the slot is released only after the fence. |
 | `interrupted` | accepted resume | `active` | Same tuple, current grant and surface, fresh channel authentication, exact prior generation, and a newly acquired lineage slot; generation increments by one. |
 | `active` or `interrupted` | accepted cancel | `cancelled` | Application fences new actions before acknowledging the transition and the runtime stops local work. |
 | `active` | successful task completion | `completed` | Runtime reports completion and the application reconciles any outstanding action outcomes. |
@@ -4700,13 +5229,14 @@ does not increment generation, expose the occupying sessions, or disturb work
 already active under the grant. Credential rotation, reconnect, or a duplicate
 transition request MUST NOT allocate another slot or reset lineage occupancy.
 
-`session.cancel` and `session.resume` requests MUST contain `session_id`, the
-caller's current `session_generation`, `grant_id`, `grant_hash`, and
-`surface_hash`. The channel authenticates the runtime or application actor; an
-agent-supplied field inside the payload does not. A `session.state` response
-MUST repeat those binding fields, report the authoritative state and generation,
-and include a stable transition reason. Receipt or event transport can record
-the transition, but neither is authority to create it.
+`session.pause`, `session.cancel`, and `session.resume` requests MUST contain
+`session_id`, the caller's current `session_generation`, `grant_id`,
+`grant_hash`, and `surface_hash`. The channel authenticates the runtime or
+application actor; an agent-supplied field inside the payload does not. A
+`session.state` response MUST repeat those binding fields, report the
+authoritative state and generation, and include a stable transition reason.
+Receipt or event transport can record the transition, but neither is authority
+to create it.
 
 Cancellation fences future work; it is not a transactional rollback. Before
 acknowledging `cancelled`, the application MUST reject new Action Requests for
@@ -4797,6 +5327,129 @@ application to push its data during session start. An application that wants to
 suggest a task MUST use an authorized event; the runtime decides whether to
 construct a local task after applying user and local policy.
 
+### Session Pause
+
+A controlling runtime whose authoritative budget reaches `exhausted` MUST stop
+matching new local work before asking the application to fence the affected
+sessions. Because the counter scope is `grant`, exhaustion applies to every
+active session controlled by that same runtime whose Grant lineage contains the
+causal `budget_grant_id`, including sessions on same-runtime descendant Grants.
+It does not affect a sibling whose lineage excludes that causal Grant or a
+session controlled by another runtime. The controlling runtime sends a distinct
+pause request for each affected active session and MUST NOT leave another
+matching worker eligible for scheduling. It sends the complete typed envelope
+as an `application/json` POST to the manifest `session_control_url`, using the
+Grant Credential and its required credential-binding proof, or carries the
+identical message on an already authenticated Runtime Bridge:
+
+```json
+{
+  "type": "session.pause",
+  "payload": {
+    "pause_id": "pause_01J2BUDGET",
+    "session_id": "sess_456",
+    "session_generation": 1,
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
+    "budget_grant_id": "grant_123",
+    "budget_grant_hash": "sha-256:<base64url-digest>",
+    "surface_hash": "sha-256:<base64url-digest>",
+    "reason": "budget_exceeded",
+    "budget_id": "runtime_seconds",
+    "budget_revision": 31
+  }
+}
+```
+
+`pause_id` is a non-empty identifier unique within the session generation.
+`reason` is the literal `budget_exceeded` in this profile. `budget_grant_id` and
+`budget_grant_hash` MUST identify the session grant or one of its authoritative
+ancestors. `budget_id` MUST name one runtime-authoritative counter in that
+causal ledger, and `budget_revision` MUST be the safe non-negative revision of
+the runtime's durably recorded `exhausted` state. The values are an
+authenticated report by the bound runtime; they do not make the application
+authoritative for the runtime counter and do not permit the runtime to change
+application budget state.
+
+Before either idempotency lookup or a state response, the application MUST
+authenticate the channel as the runtime bound to the complete session tuple,
+verify an active, unexpired current grant and the current surface hashes, require
+the exact current generation, and verify the causal grant hash and ancestor
+relation. Revocation, expiry, or a changed authority dominates a cached pause
+response. After those checks, an exact `pause_id` match to an accepted record
+returns that record as described below even though the session is already
+`interrupted`. A new pause is accepted only for an `active` session. The
+application atomically fences new Action Requests, changes the authoritative
+state to `interrupted` with reason `budget_exceeded`, records `pause_id`, causal
+grant and budget id, reported revision, and effective time, and releases the
+parallel-session slot. The generation does not change. Only after that
+transition does it return the authoritative state:
+
+```json
+{
+  "type": "session.state",
+  "payload": {
+    "pause_id": "pause_01J2BUDGET",
+    "session_id": "sess_456",
+    "session_generation": 1,
+    "state": "interrupted",
+    "transition_reason": "budget_exceeded",
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
+    "budget_grant_id": "grant_123",
+    "budget_grant_hash": "sha-256:<base64url-digest>",
+    "runtime_id": "application_runtime_456",
+    "agent_id": "local_agent_789",
+    "passport_hash": "sha256:...",
+    "surface_hash": "sha-256:<base64url-digest>",
+    "budget_id": "runtime_seconds",
+    "reported_budget_revision": 31
+  }
+}
+```
+
+An exact duplicate request under still-current authority returns the same state
+without another transition, slot release, or control event. Reuse of `pause_id`
+with different content, a different pause for an already interrupted session, a
+terminal session, a stale generation, or a tuple/hash mismatch fails uniformly as
+`session_transition_invalid` and reveals no other session. A timeout leaves the
+runtime locally paused; it MAY repeat the exact request or query authoritative
+session state, but MUST NOT resume or create a new generation by itself.
+
+An interrupted budget-paused session retains a closed safety and cleanup path
+for grant revocation, session cancellation, `budget.query`, introspection,
+receipt retrieval, authoritative outcome reconciliation, explicit reservation
+release, and an exact completed idempotent replay. These operations require the
+current grant, exact interrupted session tuple and generation, ordinary actor
+authentication, and their operation-specific authorization. They do not make
+the session active, allocate a parallel-session slot, or admit unrelated agent
+work.
+
+When exact replay or reservation release uses the Action Request envelope, the
+application evaluates this closed exception before rejecting the session as
+non-active, but after tuple, generation, grant, surface, schema, normalization,
+and idempotency validation. An exact replay MUST match a completed record from
+that session and return only its stored response and receipts without a new
+policy decision, effect, charge, or revision. A release MUST name the
+manifest-declared reservation action whose static operation is `release`, match
+an existing reservation bound to that session and grant, and perform only its
+idempotent release effect. The first release attempt uses one new
+release-specific idempotency key bound to that reservation and normalized input;
+every retry reuses that same key and record. No other action id, mode, changed
+input, unknown-outcome retry, or new idempotency key qualifies. Reconciliation
+that could create a new effect requires resume and ordinary active-session
+admission.
+
+When the manifest declares `session.paused_budget`, the application emits the
+control event defined above after the accepted transition. The event records
+the fence but does not create it. Explicit `session.resume` remains the only
+way back to `active`. Before requesting resume, the runtime MUST independently
+verify that its authoritative budget condition is resolved. The application
+increments generation only after the current grant, surface, application-owned
+budget availability, parallel-session occupancy, and its local policy verify;
+it does not invent runtime counter state. Pause neither cancels the grant nor
+rewrites an in-flight action or receipt outcome.
+
 ### Action Request
 
 The agent requests an action through the runtime. The runtime sends the action to
@@ -4809,9 +5462,13 @@ a credential.
 The application MUST also verify that the supplied `session_id` and
 `session_generation` identify an `active` session bound to the complete subject,
 runtime, agent, passport, grant, application, and surface tuple selected by the
-presented credential. Otherwise a valid grant credential could be replayed
-against sessions created under other grants or against a stale generation,
-corrupting session accounting and receipt linkage. Unknown, non-active,
+presented credential, unless an interrupted session request satisfies the exact
+closed safety and cleanup exception in Session Pause. Before returning a
+non-active failure, the application MAY perform only the validation and record
+lookup required to decide that exception; it MUST NOT admit an effect
+speculatively. Otherwise a valid grant credential could be replayed against
+sessions created under other grants or against a stale generation, corrupting
+session accounting and receipt linkage. Unknown, non-qualifying non-active,
 mismatched, and stale sessions fail uniformly as `session_invalid` so the
 action endpoint does not become a session-enumeration oracle.
 
@@ -5807,6 +6464,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `event_cursor_expired` | Replay position is no longer available under the effective retention window and requires explicit gap recovery. |
 | `action_unknown` | Action id is not part of the surface version the grant was issued against. |
 | `limit_exceeded` | A named consumptive grant budget is exhausted or the parallel-session occupancy limit is saturated. |
+| `budget_query_invalid` | A budget query id or its active, current grant, delegate, credential, surface, or application-authoritative budget binding cannot be validated; the response intentionally does not distinguish which check failed. |
 | `budget_state_unavailable` | The accounting authority cannot prove the durable grant-lineage ledger or a required reservation and therefore fails closed. |
 | `rate_limited` | The request was throttled independently of grant caveats. |
 
@@ -5823,15 +6481,18 @@ admit an effect. `execution_mode_invalid`, `execution_transition_invalid`,
 `execution_token_invalid`, `reservation_invalid`, `recovery_not_supported`,
 `recovery_already_applied`, `session_transition_invalid`,
 `event_delivery_conflict`, and `event_cursor_invalid` are not blindly retryable.
+`budget_query_invalid` is terminal for that query id; a caller MUST NOT assume
+that changing only the id repairs invalid authority.
 `event_cursor_expired` requires explicit gap recovery rather than substitution
 of another cursor. An expired token or failed precondition requires a new read
 or dry run and any required approval. A
 reservation conflict MAY be retried after a safe `retry_after` interval without
 disclosing the holder; an expired reservation requires a new acquisition.
-`limit_exceeded` for a consumptive budget is not retryable under the same grant;
-parallel-session saturation MAY be retried after authoritative slot release
-when a non-identifying `retry_after` is available. `budget_state_unavailable`
-requires authoritative resynchronization and MUST NOT reset counters.
+`limit_exceeded` for settled consumptive exhaustion is not retryable under the
+same grant. Temporary reservation exhaustion and parallel-session saturation
+MAY be retried only after authoritative capacity release when a non-identifying
+`retry_after` is available. `budget_state_unavailable` requires authoritative
+resynchronization and MUST NOT reset counters.
 After an effect was attempted, drift or uncertainty is represented by
 `effect_outcome: "partially_applied"` or `"unknown"`, not a retryable
 `effect_mismatch`. `outcome_unknown` MUST NOT be retried under a new
@@ -5930,6 +6591,13 @@ non-Agent-Surface audience and MUST be rejected at Agent Surface endpoints.
 
 Applications MUST NOT trust runtime claims blindly. Every app action MUST be
 authorized by app-verifiable grant state.
+
+A runtime budget report can safely request a fence for its own bound session,
+but it MUST NOT change application counters, grant authority, or another
+session. The application authenticates the complete tuple and performs the
+fence itself. Conversely, a runtime accepts application budget state only from
+the authenticated control subscription and MUST NOT let an agent fabricate a
+control event or pause request.
 
 Mitigations:
 
@@ -6159,6 +6827,10 @@ accounting authority, and authorized audit consumers, and SHOULD retain
 fine-grained revisions no longer than reconciliation and audit require. Errors
 and events MUST identify the budget dimension without disclosing another
 session, tenant, model prompt, tool argument, or provider billing record.
+For a descendant delegate, control events and `budget.state` MUST use the
+effective lineage projection and per-target revision defined above; ancestor
+identifiers, limits, counters, revisions, and sibling consumption are not part
+of that delegate's disclosure.
 
 Cross-system trace correlation can reveal relationships between otherwise
 separate user actions, tenants, and services. `trace_id`, `span_id`, and
@@ -6209,12 +6881,16 @@ An application conforms to the Grant-Enforcing profile when it:
 
 - satisfies the Surface-Only profile
 - issues, validates, or introspects Agent Grants
+- validates the manifest-pinned `credential_audience` at every
+  credential-protected `agent_api` endpoint
 - validates grant state for every action
 - validates credential binding to runtime, agent, and passport evidence
 - creates or accepts an authoritative session record and validates its active
   state, complete tuple binding, and current generation for every action
-- creates event subscriptions only as an attenuation of the current grant,
-  rechecks authorization and exposure before delivery, and implements
+- creates non-control event subscriptions only as an attenuation of the current
+  grant, and binds the logically separate control subscription to the manifest
+  issuer and authenticated runtime rather than to an affected grant
+- rechecks applicable authority and exposure before delivery and implements
   at-least-once retry, per-stream ordering, acknowledgement, replay, retention,
   explicit gaps, and bounded in-flight delivery
 - emits valid CloudEvents 1.0.2 JSON event objects, recomputable
@@ -6240,6 +6916,17 @@ An application conforms to the Grant-Enforcing profile when it:
   `input_hash` and execution context
 - durably enforces write, parallel-session, and application-cost budgets across
   the grant lineage and fails closed when ledger state is uncertain
+- declares and emits application-authoritative budget control events when an
+  event endpoint is present, without fabricating runtime-owned counter state
+- when it accepts an application-authoritative budget dimension, advertises
+  `budget_state_url` and `budget_query_retention_seconds` and returns
+  authenticated, privacy-minimized effective lineage state for `budget.query`
+  without exposing ancestor or sibling accounting totals
+- when it accepts a runtime-authoritative budget dimension, advertises
+  `session_control_url`, accepts authenticated `session.pause` for the exact
+  active tuple, fences new actions before returning `interrupted`, preserves
+  generation, and, when that control event is declared, emits exactly one
+  `session.paused_budget` occurrence for the transition and otherwise emits none
 - invalidates preview evidence and reservations when their grant or surface
   binding becomes invalid
 - does not accept `reserve`, `commit`, `compensate`, or `revert` unless it also
@@ -6257,6 +6944,8 @@ it:
 - satisfies the Grant-Enforcing Application profile
 - advertises the Agent Grant authorization-details type and supported standard
   OAuth grant types
+- uses `agent_api.credential_audience` as the sole OAuth resource indicator and
+  issued Grant Credential audience while keeping action `locations` separate
 - validates and returns Agent Grant `authorization_details` according to the
   Rich Authorization Request Profile
 - implements the OAuth Token Exchange Profile without privilege amplification
@@ -6346,12 +7035,17 @@ An application runtime conforms to this profile when it:
   preserves parent linkage, attenuation, and cascade revocation
 - implements RAR, Token Exchange, introspection, and revocation processing when
   using the OAuth Grant Lifecycle Application profile
+- requests and validates the manifest-pinned `credential_audience` without
+  treating it as action or control-operation authority
 - implements the Proof-Bound Credential Profile when the application requires
   the Proof-Bound Grant-Enforcing Application profile
 - enforces local policy and approval rules
 - durably enforces `tool_calls`, `model_tokens`, `runtime_seconds`, and
   `runtime_cost` across the grant lineage, retaining conservative reservations
   when usage is uncertain
+- stops matching local work before reporting runtime budget exhaustion through
+  an exact, idempotent `session.pause` request and requires authoritative
+  application state before any resume
 - validates action input against schemas, applies the pinned idempotency
   normalization before approval and hashing, verifies the self-contained input
   schema against `input_schema_hash`, and sends only the fixed-point wire value
@@ -6371,6 +7065,12 @@ An application runtime conforms to this profile when it:
 - validates the CloudEvents 1.0.2 JSON binding, ASP extension combinations,
   event hash, manifest mapping, schema, authority, and exposure before exposing
   event data to an agent
+- durably orders and deduplicates budget control revisions, never exposes a
+  core control event as an agent task, and never treats delivery or replay as
+  authority for an action, automatic retry, or automatic resume
+- uses authenticated `budget.query` with bounded backoff for retryable
+  application-owned capacity recovery and rejects any event or query result
+  older than its highest retained effective state revision
 - computes and validates grant, execution, effect, policy-decision, and receipt
   hashes; propagates session id and generation and W3C-compatible trace context
 - records session id and generation, trace id, and producer span id in local
@@ -6424,11 +7124,13 @@ To support Agent Surface Protocol, the next slices are:
    hashes for state-changing actions.
 10. Add durable grant-lineage accounting for writes, tools, tokens, runtime
     time, parallel sessions, and partitioned cost.
-11. Add bounded reservation and recovery actions only where the application can
+11. Add authenticated budget control events and idempotent `session.pause`
+    fencing without exposing control events to agents.
+12. Add bounded reservation and recovery actions only where the application can
     enforce their lifecycle and semantics.
-12. Produce local runtime receipts and app-visible receipts with execution and
+13. Produce local runtime receipts and app-visible receipts with execution and
     actual-effect evidence.
-13. Integrate Agent Passport verification as an admission precondition.
+14. Integrate Agent Passport verification as an admission precondition.
 
 ## Example End-to-End Flow
 

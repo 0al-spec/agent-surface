@@ -2824,18 +2824,22 @@
       "description": "стандартизировать `budget.warning`, `budget.exceeded`, `session.paused_budget`.",
       "category": "Economics / limits / operations",
       "side": "right",
-      "status": "missing",
+      "status": "present",
       "anchors": [
         {
           "heading": "Events",
           "anchorId": "events"
         },
         {
-          "heading": "Grant Revoked",
-          "anchorId": "grant-revoked"
+          "heading": "Budget Control Events",
+          "anchorId": "budget-control-events"
+        },
+        {
+          "heading": "Session Pause",
+          "anchorId": "session-pause"
         }
       ],
-      "rationale": "Event mechanism существует, но budget.warning, budget.exceeded и session.paused_budget не определены.",
+      "rationale": "RFC определяет application-authoritative budget state transitions и control CloudEvents, privacy-minimized budget.query/state recovery, отдельный authenticated session.pause для runtime-owned counters, idempotent fencing и запрет передачи control events агенту.",
       "priority": "P2",
       "profile": "operations-safety",
       "depends_on": [
@@ -2843,8 +2847,21 @@
         51
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "events"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "budget-control-events"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "session-pause"
+        }
+      ]
     },
     {
       "id": 53,
