@@ -532,6 +532,9 @@ Any action that changes domain or coordination state MUST support idempotency.
 This includes `reserve`, `commit`, `compensate`, and `revert`. Retries, network
 reconnects, agent loops, and duplicate messages MUST NOT create ten
 reservations, comments, branches, refund requests, compensations, or approvals.
+The pinned action declaration defines one normalized wire input for approval,
+hashing, duplicate lookup, and receipts; components MUST NOT deduplicate against
+an application-local representation that those other checks did not bind.
 
 ### Receipts Are First-Class
 
@@ -838,9 +841,10 @@ The adapter layer turns a concrete agent into a runtime-mediated worker.
 
 ### Canonical Object Hash Profile
 
-ASP manifests, grants, events, action inputs, action execution contexts, policy
-decisions, and receipts use the `asp-jcs-sha-256` profile when a field in this
-draft is named `surface_hash`, `grant_hash`, `aspeventhash`, `input_hash`,
+ASP manifests, grants, events, action input schemas, action inputs, action
+execution contexts, policy decisions, and receipts use the
+`asp-jcs-sha-256` profile when a field in this draft is named `surface_hash`,
+`grant_hash`, `aspeventhash`, `input_schema_hash`, `input_hash`,
 `execution_hash`, `preconditions_hash`,
 `expected_effects_hash`, `actual_effects_hash`, `policy_decision_hash`,
 `receipt_hash`, or `parent_receipt_hash`. The profile identifies exact JSON
@@ -868,7 +872,8 @@ To compute an ASP object hash, an implementation MUST:
 | Agent Surface Manifest | `https://github.com/0al-spec/agent-surface/hash/manifest/v1` | top-level `surface_hash` |
 | authoritative Agent Grant | `https://github.com/0al-spec/agent-surface/hash/grant/v1` | top-level `grant_hash`; the RFC 9396 `type` discriminator when starting from an OAuth authorization-details object |
 | ASP CloudEvent occurrence | `https://github.com/0al-spec/agent-surface/hash/event/v1` | `aspeventhash`; delivery-only `aspsubid`, `aspdeliveryid`, `aspattempt`, `aspstream`, `aspsequence`, and `aspcursor`; diagnostic `traceparent` and `tracestate` |
-| Action Request `input` | `https://github.com/0al-spec/agent-surface/hash/action-input/v1` | none; the hashing view is exactly `payload.input` after schema validation and before default insertion, coercion, or other semantic normalization |
+| Action Input Schema | `https://github.com/0al-spec/agent-surface/hash/action-input-schema/v1` | none; the hashing view is the complete self-contained JSON Schema document |
+| Action Request `input` | `https://github.com/0al-spec/agent-surface/hash/action-input/v1` | none; the hashing view is exactly the schema-valid `payload.input`; an idempotency-required input has already passed the action's fixed-point normalization check, and the hash performs no further transform |
 | Action Execution Context | `https://github.com/0al-spec/agent-surface/hash/action-execution/v1` | `execution_token`; the hashing view is `payload.execution` after structural validation with the confidential raw token omitted |
 | Action Preconditions | `https://github.com/0al-spec/agent-surface/hash/action-preconditions/v1` | none; the hashing view is exactly the validated `preconditions` object |
 | Expected Effects | `https://github.com/0al-spec/agent-surface/hash/expected-effects/v1` | none; the hashing view is exactly the validated `expected_effects` array |
@@ -883,9 +888,24 @@ MAY carry its hash as an opaque reference but MUST NOT claim to have recomputed
 it without the complete hashing view.
 
 The Action Input hash commits to the exact validated wire input and prevents a
-receipt from being attached to different input. It is distinct from the
-action-specific semantic normalization used for idempotency; JCS does not
-define default insertion, equivalence, or set ordering.
+receipt from being attached to different input. For an idempotency-required
+action, the runtime first applies the manifest-pinned Idempotency Input
+Normalization profile and sends that fixed-point value as the wire input. The
+hash function itself still performs no default insertion, equivalence, or set
+ordering: it commits to the already-normalized wire value so approval,
+idempotency, execution evidence, and receipts cannot select different views.
+
+For an idempotency-required action, `input_schema_hash` commits to the complete
+I-JSON document retrieved from `input_schema` using the Action Input Schema
+domain above. That schema MUST be self-contained: every `$ref` or `$dynamicRef`
+MUST be a same-document fragment reference, and retrieval redirects MUST NOT
+change the final authenticated origin. The runtime and application MUST verify
+the declared hash before using the schema for normalization, approval, hashing,
+or execution. A missing or mismatching document is `integrity_mismatch` and
+MUST NOT fall back to a cached or newly fetched interpretation. Changing the
+schema JSON data model changes `input_schema_hash`, the manifest hashing view,
+`surface_version`, and `surface_hash`. A future surface-bundle profile can
+define transitive external schema references; this profile does not.
 
 The Action Execution Context hash independently commits to the mode and any
 preview, precondition, expected-effect, reservation, or target-receipt
@@ -1009,7 +1029,8 @@ check before embedding the value in a grant.
 
 `surface_version` remains the application's opaque compatibility label;
 `surface_hash` identifies the exact manifest object published under that label,
-including schema URLs but not the transitive bytes served by those URLs. A
+including schema URLs and any explicit schema hashes. It does not commit
+transitive schema content for which the manifest declares no content hash. A
 runtime MUST key cached surface state by issuer, app id, surface version, and
 surface hash. A publisher MUST issue a new `surface_version` whenever the
 manifest hashing view changes, including for a backward-compatible addition.
@@ -1183,6 +1204,10 @@ surface discoverable.
       "side_effect": false,
       "approval": "none",
       "idempotency": "required",
+      "idempotency_normalization": {
+        "profile": "asp-json-normalization-v1"
+      },
+      "input_hash_profile": "asp-jcs-sha-256",
       "execution": {
         "mode": "propose",
         "operation_id": "comment.publish",
@@ -1190,6 +1215,7 @@ surface discoverable.
         "commit_action": "comment.create"
       },
       "input_schema": "https://example.com/schemas/comment-propose.input.schema.json",
+      "input_schema_hash": "sha-256:<input-schema-digest>",
       "output_schema": "https://example.com/schemas/comment-propose.output.schema.json",
       "data_exposure": {
         "classes": ["repository.content"],
@@ -1215,6 +1241,9 @@ surface discoverable.
       ],
       "approval": "user_or_app",
       "idempotency": "required",
+      "idempotency_normalization": {
+        "profile": "asp-json-normalization-v1"
+      },
       "input_hash_profile": "asp-jcs-sha-256",
       "execution_hash_profile": "asp-jcs-sha-256",
       "execution": {
@@ -1223,6 +1252,7 @@ surface discoverable.
         "proposal_action": "comment.propose"
       },
       "input_schema": "https://example.com/schemas/comment-create.input.schema.json",
+      "input_schema_hash": "sha-256:<input-schema-digest>",
       "output_schema": "https://example.com/schemas/comment-create.output.schema.json",
       "data_exposure": {
         "classes": ["repository.content"],
@@ -1369,20 +1399,35 @@ Each action SHOULD include the following fields as applicable.
 - `risk`
 - `approval`
 - `input_schema`
+- `input_schema_hash` for every idempotency-required action and linked dry run
 - `output_schema`
 - `side_effect`
 - `effects` for actions that change domain or coordination state
 - `execution`
 - optional `capability_hint`
 - `idempotency` for side-effecting actions
+- `idempotency_normalization` whenever `idempotency` is `required`
 - `receipt` for side-effecting actions
-- `input_hash_profile` for actions requiring receipt-linked input evidence
+- `input_hash_profile` for every idempotency-required action and every action
+  requiring receipt- or preview-linked input evidence
 - `execution_hash_profile` for `reserve`, `commit`, `compensate`, and `revert`
 - `data_exposure`
 
 An action whose receipt chain binds the exact request input MUST set
 `input_hash_profile` to `asp-jcs-sha-256`. Other profile identifiers are not
 defined by this draft.
+
+An action with `idempotency: "required"` MUST declare an
+`idempotency_normalization` object whose `profile` is
+`asp-json-normalization-v1` and MUST set `input_hash_profile` to
+`asp-jcs-sha-256`, including when the action is a persisted proposal that does
+not require a receipt. It MUST also publish `input_schema_hash` for the
+self-contained schema document. The optional `defaults` and
+`unordered_arrays` members and their fail-closed processing rules are defined
+in Idempotency Input Normalization. Other profile identifiers are not defined
+by this draft; a runtime that does not understand the declared profile MUST
+treat the surface as incompatible for that action rather than guess
+equivalence.
 
 Every action MUST declare exactly one standard `execution.mode` and a stable
 `execution.operation_id`. The mode, companion-action references, effect model,
@@ -1412,6 +1457,9 @@ Example:
   ],
   "approval": "user_or_app",
   "idempotency": "required",
+  "idempotency_normalization": {
+    "profile": "asp-json-normalization-v1"
+  },
   "input_hash_profile": "asp-jcs-sha-256",
   "execution_hash_profile": "asp-jcs-sha-256",
   "execution": {
@@ -1420,6 +1468,7 @@ Example:
     "proposal_action": "pull_request.review.propose"
   },
   "input_schema": "https://example.com/schemas/pr-review-submit.input.schema.json",
+  "input_schema_hash": "sha-256:<input-schema-digest>",
   "output_schema": "https://example.com/schemas/pr-review-submit.output.schema.json",
   "data_exposure": {
     "classes": ["repository.content"],
@@ -1444,8 +1493,10 @@ proposals as drafts — as the proposal flow in this draft assumes — repeated
 proposal requests can still accumulate duplicate drafts under retries and
 agent loops. An action that persists proposals MUST declare
 `execution.persisted: true` and `idempotency: "required"`, accept idempotency
-keys, and deduplicate stored drafts accordingly. A non-persisted proposal MUST
-omit `execution.persisted` or set it to `false`.
+keys, declare `idempotency_normalization` using
+`asp-json-normalization-v1`, set `input_hash_profile` to
+`asp-jcs-sha-256`, and deduplicate stored drafts by the resulting hash. A
+non-persisted proposal MUST omit `execution.persisted` or set it to `false`.
 
 Example:
 
@@ -1457,6 +1508,10 @@ Example:
   "side_effect": false,
   "approval": "none",
   "idempotency": "required",
+  "idempotency_normalization": {
+    "profile": "asp-json-normalization-v1"
+  },
+  "input_hash_profile": "asp-jcs-sha-256",
   "execution": {
     "mode": "propose",
     "operation_id": "pull_request.review.publish",
@@ -1464,6 +1519,7 @@ Example:
     "commit_action": "pull_request.review.submit"
   },
   "input_schema": "https://example.com/schemas/pr-review-propose.input.schema.json",
+  "input_schema_hash": "sha-256:<input-schema-digest>",
   "output_schema": "https://example.com/schemas/pr-review-propose.output.schema.json",
   "data_exposure": {
     "classes": ["repository.content"],
@@ -2236,6 +2292,7 @@ does not need to implement every standard mode.
 Actions in mode `read`, `dry_run`, or `propose` MUST declare
 `side_effect: false`. Actions in mode `reserve`, `commit`, `compensate`, or
 `revert` MUST declare `side_effect: true`, `idempotency: "required"`,
+an `idempotency_normalization` object using `asp-json-normalization-v1`,
 `receipt: "required"`, a non-empty `effects` array,
 `input_hash_profile: "asp-jcs-sha-256"`, and
 `execution_hash_profile: "asp-jcs-sha-256"`. Persisted proposals remain
@@ -2326,6 +2383,9 @@ separate declarations in the same surface:
   "side_effect": true,
   "approval": "user_or_app",
   "idempotency": "required",
+  "idempotency_normalization": {
+    "profile": "asp-json-normalization-v1"
+  },
   "input_hash_profile": "asp-jcs-sha-256",
   "execution_hash_profile": "asp-jcs-sha-256",
   "execution": {
@@ -2359,6 +2419,7 @@ separate declarations in the same surface:
     }
   ],
   "input_schema": "https://example.com/schemas/branch-create.input.schema.json",
+  "input_schema_hash": "sha-256:<input-schema-digest>",
   "output_schema": "https://example.com/schemas/branch-create.output.schema.json",
   "receipt": "required"
 }
@@ -2374,6 +2435,9 @@ Its reciprocal revert declaration can be:
   "side_effect": true,
   "approval": "runtime_and_app",
   "idempotency": "required",
+  "idempotency_normalization": {
+    "profile": "asp-json-normalization-v1"
+  },
   "input_hash_profile": "asp-jcs-sha-256",
   "execution_hash_profile": "asp-jcs-sha-256",
   "execution": {
@@ -2400,6 +2464,7 @@ Its reciprocal revert declaration can be:
     }
   ],
   "input_schema": "https://example.com/schemas/branch-delete.input.schema.json",
+  "input_schema_hash": "sha-256:<input-schema-digest>",
   "output_schema": "https://example.com/schemas/branch-delete.output.schema.json",
   "receipt": "required"
 }
@@ -2471,13 +2536,19 @@ optimistic-concurrency fields through its `input_schema`. A state-changing
 action MAY declare `actual_effects_schema` to further constrain the mandatory
 core Effect Model. A linked dry-run action MUST set
 `input_hash_profile: "asp-jcs-sha-256"`, use the same `input_schema` as its
-target commit, and identify that commit through `execution.commit_action`. It
-MUST NOT change target-domain or coordination state.
+target commit, repeat the same `input_schema_hash` and structurally identical
+`idempotency_normalization` declaration, and identify that commit through
+`execution.commit_action`. The runtime MUST apply that declaration before
+requesting approval, hashing, or sending the dry run, and the application MUST
+perform the same fixed-point check. The dry run MUST NOT change target-domain
+or coordination state.
 
 The dry-run request MUST carry `input_hash`, and the application MUST recompute
 it from the exact validated wire input. A preview-bound commit MUST present the
-same exact input and matching `input_hash`; schema equivalence or application
-normalization does not make a different wire input the previewed input.
+same exact normalized input and matching `input_hash`. A mismatched
+normalization declaration is an invalid companion relationship; schema
+equivalence or post-preview application normalization does not make a different
+wire input the previewed input.
 
 A successful dry run returns application-produced preconditions and expected
 effects, their canonical hashes, and time-bounded evidence:
@@ -2578,6 +2649,9 @@ operation id. The declared effect operation MUST be `reserve`, `renew`, or
   "side_effect": true,
   "approval": "none",
   "idempotency": "required",
+  "idempotency_normalization": {
+    "profile": "asp-json-normalization-v1"
+  },
   "input_hash_profile": "asp-jcs-sha-256",
   "execution_hash_profile": "asp-jcs-sha-256",
   "execution": {
@@ -2606,6 +2680,7 @@ operation id. The declared effect operation MUST be `reserve`, `renew`, or
     }
   ],
   "input_schema": "https://example.com/schemas/branch-reservation.input.schema.json",
+  "input_schema_hash": "sha-256:<input-schema-digest>",
   "output_schema": "https://example.com/schemas/branch-reservation.output.schema.json",
   "receipt": "required"
 }
@@ -3031,11 +3106,105 @@ Example:
 }
 ```
 
-The application MUST ensure repeated requests with the same idempotency key and
-same normalized input do not repeat the side effect.
+### Idempotency Input Normalization
 
-If the same key is reused with different normalized input, the application SHOULD
-return an idempotency conflict error.
+Every action with `idempotency: "required"` MUST publish a manifest-pinned
+normalization declaration. This draft defines one profile:
+
+```json
+{
+  "profile": "asp-json-normalization-v1",
+  "defaults": {
+    "/notify_subscribers": false
+  },
+  "unordered_arrays": ["/labels"]
+}
+```
+
+`defaults` is an optional object whose member names are RFC 6901 JSON Pointers
+and whose values are literal I-JSON defaults. `unordered_arrays` is an optional
+array of unique RFC 6901 JSON Pointers. An omitted member has the same meaning
+as an empty object or array. The v1 declaration contains exactly `profile` and
+those two optional members; an unknown member invalidates the action rather
+than being ignored as a transform. The declaration is part of the manifest
+hashing view; changing a rule requires a new `surface_version` and
+`surface_hash`.
+
+The `asp-json-normalization-v1` algorithm is:
+
+1. Parse the action input as I-JSON and validate it against the exact pinned
+   `input_schema` without coercion, default insertion, or member removal.
+2. Deep-copy that JSON value. Process default pointers by increasing pointer
+   depth and then unsigned lexicographic order of their UTF-8 pointer bytes. A
+   pointer MUST traverse object members only and name an object member. When
+   its parent exists and the member is absent, insert the declared literal
+   value. An explicit `null` is present and MUST NOT be replaced. An absent
+   parent is unchanged. A present non-object ancestor contradicts the
+   declaration and makes the action surface incompatible.
+3. Process `unordered_arrays` pointers in unsigned lexicographic order of their
+   UTF-8 bytes. A present target MUST be an array. Serialize each element
+   independently with RFC 8785 JCS and sort the elements by unsigned
+   lexicographic order of those canonical UTF-8 bytes. Preserve duplicate
+   elements; an action requiring uniqueness MUST express it in `input_schema`.
+   A present non-array target contradicts the declaration and makes the action
+   surface incompatible.
+4. Validate the resulting value against the same `input_schema` again.
+5. Compare the result with the received JSON data model, ignoring only object
+   member serialization order. The application MUST reject a non-fixed-point
+   value as `input_not_normalized` before idempotency lookup, budget admission,
+   policy approval, receipt creation, or any effect. It MUST NOT silently
+   replace the received input.
+
+A surface is invalid when a pointer is malformed, traverses an array, a default
+pointer is an ancestor of another default pointer, a default pointer descends
+through an unordered array, or applying its declarations can produce a value
+that violates the pinned input schema. The schema MUST guarantee that every
+present ancestor traversed by a default pointer is an object and every present
+`unordered_arrays` target is an array; admitting `null`, a scalar, or another
+type at those positions is an invalid action declaration. An
+unordered-array rule is valid only when element order cannot change validation,
+authorization, approval, target selection, or effects. A default is valid only
+when application behavior for omission is exactly the behavior of the declared
+literal. A contradiction discovered while loading or processing the pinned
+surface fails as `surface_incompatible` before lookup, budget admission, or
+effect; an implementation MUST NOT ignore the offending rule. Publishers MUST
+NOT use these rules to hide a material choice from consent or approval.
+
+The profile performs no trimming, case folding, Unicode normalization, URI or
+timestamp normalization, numeric-string coercion, member removal, array
+deduplication, or implicit use of JSON Schema `default` annotations. Absent and
+explicit `null` remain distinct. Future profiles that add transforms MUST use a
+collision-resistant URI identifier and define deterministic validation,
+ordering, and fixed-point rules. A runtime MUST reject an unsupported profile
+as `surface_incompatible` rather than approximate it.
+
+The runtime MUST normalize before deriving approval input, computing
+`input_hash`, producing its receipt, or transmitting the Action Request. Every
+idempotency-required Action Request MUST carry that `input_hash`, including a
+persisted proposal request. The
+application independently recomputes the fixed point before trusting the hash
+or consulting an idempotency record. For example, declarations for a default
+`/notify_subscribers: false` and unordered `/labels` make these caller inputs
+equivalent:
+
+```json
+{"body":"x","labels":["urgent","bug"]}
+```
+
+```json
+{"body":"x","labels":["bug","urgent"],"notify_subscribers":false}
+```
+
+Both are sent on the wire in the second fixed-point form. The existing
+`input_hash` therefore commits to the normalized value; no second semantic hash
+is introduced. A request that omits the default or sends the array out of order
+is retryable after local normalization because rejection does not claim its
+idempotency key.
+
+The application MUST ensure repeated requests with the same idempotency key and
+same normalized-wire `input_hash` do not repeat the side effect. If the same key
+is reused with a different normalized-wire `input_hash`, the application MUST
+return `idempotency_conflict` without performing an effect.
 
 Idempotency keys are scoped to the grant and action: the application MUST
 treat a request as a duplicate only when the same key is presented under the
@@ -3077,12 +3246,6 @@ idempotency key, and normalized input arrives with a different parent hash, the
 application MUST NOT repeat the side effect and MUST report
 `integrity_mismatch` rather than attaching the original result to a competing
 provenance chain.
-
-Applications SHOULD define the semantic input-normalization procedure per
-action. After that procedure, they MAY use the Canonical Object Hash Profile's
-JCS rules to obtain stable JSON bytes. JCS does not define action-specific
-normalization, default insertion, set ordering, or schema equivalence, so its
-availability does not remove that requirement.
 
 ## Agent Grant
 
@@ -4425,6 +4588,17 @@ present, they MUST match, and the application MUST reject a mismatch as
 would let app-side deduplication and runtime receipts refer to different
 idempotency identifiers.
 
+For an idempotency-required action, the runtime MUST apply the pinned
+`idempotency_normalization` declaration before approval, hashing, receipt
+creation, and transmission, and MUST carry the resulting `input_hash` even when
+the action does not require a receipt. The application MUST verify the pinned
+`input_schema_hash`, validate the received input, independently reapply the same
+declaration, require a fixed point, and recompute the `input_hash` before
+consulting the idempotency record or admitting any work. A non-fixed-point
+request fails as `input_not_normalized`; the application does not reserve the
+key, charge a budget, or create policy or action receipts for that rejected
+attempt.
+
 Example:
 
 ```http
@@ -4483,10 +4657,11 @@ policy requires verification of the runtime decision.
 For an action requiring runtime receipt evidence, the action declaration MUST
 set `input_hash_profile` to `asp-jcs-sha-256`. The runtime and application MUST
 compute the Action Input hash over the exact validated wire `input` and require
-equality with both the action request and verified parent runtime receipt. A
-receipt for one input MUST NOT be attached to a different input even when the
-grant, action id, and idempotency key match. The semantic normalization used
-for idempotency remains a separate action contract.
+equality with both the action request and verified parent runtime receipt. For
+an idempotency-required action that wire value is already the fixed point of
+the manifest-pinned normalization declaration. A receipt for one normalized
+input MUST NOT be attached to a different input even when the grant, action id,
+and idempotency key match.
 
 For `reserve`, `commit`, `compensate`, or `revert`, the runtime and application
 MUST also compute `execution_hash` over the structurally validated execution
@@ -5326,6 +5501,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `resource_denied` | Grant constraints do not permit the target resource. |
 | `approval_required` | Required approval is absent. |
 | `schema_invalid` | Input, output, preconditions, expected effects, actual effects, or mode-specific context does not match its declared or core schema. |
+| `input_not_normalized` | Input is schema-valid but is not the fixed point required by the action's manifest-pinned idempotency normalization profile. |
 | `idempotency_conflict` | Idempotency key was reused with different input or execution context. |
 | `execution_mode_invalid` | Request mode does not match the manifest-declared mode for the action. |
 | `execution_transition_invalid` | Required companion stage or reciprocal action relationship is absent or invalid. |
@@ -5344,7 +5520,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `data_exposure_violation` | An application-originated payload contains an undeclared data class or violates its redaction or retention contract. |
 | `passport_invalid` | Agent Passport is missing, expired, revoked, or invalid. |
 | `runtime_untrusted` | Runtime binding or attestation is not accepted. |
-| `surface_incompatible` | Runtime does not support the surface version. |
+| `surface_incompatible` | A required surface version, profile, or action declaration is unsupported or internally inconsistent and cannot be interpreted safely. |
 | `proposal_required` | The app only supports proposal mode for this action or grant. |
 | `session_invalid` | Session is unknown, non-active, stale-generation, or not bound to the complete tuple selected by the presented credential. |
 | `session_transition_invalid` | Requested session transition, prior generation, target state, or idempotent replay binding is invalid. |
@@ -5363,7 +5539,9 @@ Mapping error codes to HTTP status codes is left to a future draft.
 Errors SHOULD be safe to show to users and precise enough for runtime policy
 debugging.
 
-`execution_mode_invalid`, `execution_transition_invalid`,
+`input_not_normalized` is retryable only after the runtime applies the pinned
+normalization rules; the rejected attempt does not claim the idempotency key or
+admit an effect. `execution_mode_invalid`, `execution_transition_invalid`,
 `execution_token_invalid`, `reservation_invalid`, `recovery_not_supported`,
 `recovery_already_applied`, `session_transition_invalid`,
 `event_delivery_conflict`, and `event_cursor_invalid` are not blindly retryable.
@@ -5572,6 +5750,15 @@ weaken approval requirements, or alter local policy.
 Idempotency keys, timestamps, nonce binding, and grant expiration reduce replay
 risk. Side-effecting actions MUST be idempotent.
 
+Normalization is part of the pinned action contract, not an application-local
+heuristic. A runtime and application MUST use the same supported profile and
+MUST NOT infer equivalence from mutable schema defaults or business logic. An
+attacker can otherwise reuse a key with two representations that policy,
+approval, hashing, and execution interpret differently. Fixed-point wire input
+ensures those components bind one value; a changed normalized value or
+execution context remains `idempotency_conflict`, and a competing verified
+parent receipt remains `integrity_mismatch`.
+
 ### Execution Mode Confusion, TOCTOU, and Reservation Abuse
 
 A malicious agent can request a benign preview and then attempt to relabel it as
@@ -5618,10 +5805,12 @@ does not authenticate the publisher because an attacker able to replace the
 manifest can also recompute it; HTTPS, issuer binding, and local trust policy
 remain mandatory.
 
-`surface_hash` commits to schema URLs and other manifest values, not to the
-transitive content later served by those URLs. A deployment that needs that
-property must separately pin schema content hashes or use a future canonical
-surface-bundle profile.
+`surface_hash` commits to schema URLs, explicit schema hashes, and other
+manifest values. The required `input_schema_hash` pins the self-contained input
+schema for idempotency-required and linked dry-run actions. Other schema URLs
+remain references rather than commitments to their transitive content. A
+deployment that needs that property must separately pin those schema hashes or
+use a future canonical surface-bundle profile.
 
 ### Receipt Forgery
 
@@ -5712,6 +5901,9 @@ An application conforms to the Surface-Only profile when it:
   resources, actions, and events
 - declares risk labels for actions
 - declares one static execution mode and operation id per action
+- declares valid fixed-point input-normalization rules for every
+  idempotency-required action and publishes a valid hash of its self-contained
+  input schema
 - declares maximum effects for state-changing actions and internally consistent
   companion-action, precondition, reservation, and recovery metadata
 - declares endpoints or explicitly marks the surface as proposal/documentation
@@ -5753,7 +5945,10 @@ An application conforms to the Grant-Enforcing profile when it:
 - enforces cumulative per-target recovery limits independently of request
   idempotency keys
 - treats `grant_id` as an identifier, not authority
-- supports idempotency for `reserve`, `commit`, `compensate`, and `revert`
+- supports idempotency for `reserve`, `commit`, `compensate`, and `revert`,
+  verifies the pinned input schema, independently checks normalized-wire fixed
+  points before lookup or effect, and binds each record to the normalized
+  `input_hash` and execution context
 - invalidates preview evidence and reservations when their grant or surface
   binding becomes invalid
 - does not accept `reserve`, `commit`, `compensate`, or `revert` unless it also
@@ -5859,7 +6054,10 @@ An application runtime conforms to this profile when it:
 - implements the Proof-Bound Credential Profile when the application requires
   the Proof-Bound Grant-Enforcing Application profile
 - enforces local policy and approval rules
-- validates action input against schemas before sending to the app
+- validates action input against schemas, applies the pinned idempotency
+  normalization before approval and hashing, verifies the self-contained input
+  schema against `input_schema_hash`, and sends only the fixed-point wire value
+  to the app
 - validates request mode against the pinned declaration and computes input and
   execution hashes
 - presents expected effects and recovery limitations, and binds approval to the
@@ -5924,7 +6122,8 @@ To support Agent Surface Protocol, the next slices are:
    `comment.propose` from the `comment.create` commit action.
 8. Declare effect envelopes and add preview/precondition schemas for selected
    commit actions.
-9. Require idempotency keys and execution hashes for state-changing actions.
+9. Require manifest-pinned input normalization, idempotency keys, and execution
+   hashes for state-changing actions.
 10. Add bounded reservation and recovery actions only where the application can
     enforce their lifecycle and semantics.
 11. Produce local runtime receipts and app-visible receipts with execution and
@@ -6059,6 +6258,8 @@ To support Agent Surface Protocol, the next slices are:
   <https://www.rfc-editor.org/rfc/rfc7797>
 - JSON Canonicalization Scheme (JCS):
   <https://www.rfc-editor.org/rfc/rfc8785>
+- JavaScript Object Notation (JSON) Pointer:
+  <https://www.rfc-editor.org/rfc/rfc6901>
 - Verified erratum 7920 for JSON Canonicalization Scheme:
   <https://www.rfc-editor.org/errata/eid7920>
 - JSON Web Token Best Current Practices:
