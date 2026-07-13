@@ -1189,19 +1189,23 @@
           "anchorId": "idempotency"
         },
         {
+          "heading": "Idempotency Input Normalization",
+          "anchorId": "idempotency-input-normalization"
+        },
+        {
           "heading": "Replay and Duplicate Actions",
           "anchorId": "replay-and-duplicate-actions"
         }
       ],
-      "status": "partial",
-      "rationale": "RFC задаёт canonical hash точного wire input для receipt binding, но semantic normalization, defaults, set ordering и schema equivalence для idempotency остаются action-specific.",
+      "status": "present",
+      "rationale": "RFC задаёт manifest-pinned fixed-point normalization: content-hashed self-contained input schema, literal defaults по RFC 6901, deterministic JCS ordering для declared unordered arrays, fail-closed wire validation и единый normalized input_hash для approval, idempotency и receipts.",
       "priority": "P1",
       "profile": "action-execution",
       "depends_on": [
         19
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -1210,6 +1214,10 @@
         {
           "kind": "rfc_anchor",
           "ref": "idempotency"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "idempotency-input-normalization"
         },
         {
           "kind": "rfc_anchor",
