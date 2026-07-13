@@ -1431,20 +1431,78 @@
           "anchorId": "events"
         },
         {
+          "heading": "Event Subscription Authority",
+          "anchorId": "event-subscription-authority"
+        },
+        {
+          "heading": "Event Delivery Semantics",
+          "anchorId": "event-delivery-semantics"
+        },
+        {
+          "heading": "Ordering and Acknowledgement",
+          "anchorId": "ordering-and-acknowledgement"
+        },
+        {
+          "heading": "Replay Cursors and Gaps",
+          "anchorId": "replay-cursors-and-gaps"
+        },
+        {
+          "heading": "Retention and Backpressure",
+          "anchorId": "retention-and-backpressure"
+        },
+        {
           "heading": "Runtime Disconnected",
           "anchorId": "runtime-disconnected"
         }
       ],
-      "status": "missing",
-      "rationale": "Transport hints присутствуют, но delivery guarantee, ordering, cursor, replay, retention, ack и backpressure не определены.",
+      "status": "present",
+      "rationale": "RFC определяет grant-bound и control subscriptions, conditional at-least-once delivery, per-stream ordering, durable acknowledgements, opaque replay cursors, explicit gaps, bounded retention и negotiated backpressure.",
       "priority": "P1",
       "profile": "events-sessions",
       "depends_on": [
-        13
+        13,
+        28
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "conceptual-architecture"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "3-runtime-bridge-protocol"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "events"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "event-subscription-authority"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "event-delivery-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "ordering-and-acknowledgement"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "replay-cursors-and-gaps"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "retention-and-backpressure"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-disconnected"
+        }
+      ]
     },
     {
       "id": 27,

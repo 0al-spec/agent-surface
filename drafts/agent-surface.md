@@ -799,6 +799,13 @@ kind of channel using typed session and approval messages such as:
 
 - `runtime.hello`
 - `runtime.accepted`
+- `event.subscribe`
+- `event.subscribed`
+- `event.delivery`
+- `event.ack`
+- `event.replay`
+- `event.flow`
+- `event.gap`
 - `session.start`
 - `session.event`
 - `session.cancel`
@@ -1032,6 +1039,12 @@ Example:
     "grant_revocation_url": "https://example.com/agent-grants/revoke",
     "action_url": "https://example.com/agent-actions",
     "event_subscription_url": "https://example.com/agent-events",
+    "event_delivery": {
+      "profile": "at_least_once",
+      "ack_deadline_seconds": 30,
+      "max_in_flight": 32,
+      "retention_seconds": 86400
+    },
     "receipt_url": "https://example.com/agent-receipts"
   },
   "revocation": {
@@ -1041,6 +1054,18 @@ Example:
   }
 }
 ```
+
+When `event_subscription_url` is present, `agent_api.event_delivery` is
+REQUIRED. This draft defines only the `at_least_once` profile. Its
+`ack_deadline_seconds`, `max_in_flight`, and `retention_seconds` members MUST be
+positive integers. `ack_deadline_seconds` is the retry deadline,
+`max_in_flight` is the largest negotiable application-event window, and
+`retention_seconds` is the conditional replay commitment defined below. A
+runtime MAY request a smaller in-flight window. An `event.subscribed` response
+MUST repeat the advertised acknowledgement deadline and retention window and
+MUST NOT return a larger in-flight window. Changing any of these values changes
+the manifest hashing view and requires a new `surface_version` and
+`surface_hash`.
 
 Implementations MAY collapse these endpoints when the application already has
 equivalent OAuth or API infrastructure, but the manifest MUST make the wire-level
@@ -1082,6 +1107,12 @@ surface discoverable.
     "grant_revocation_url": "https://example.com/agent-grants/revoke",
     "action_url": "https://example.com/agent-actions",
     "event_subscription_url": "https://example.com/agent-events",
+    "event_delivery": {
+      "profile": "at_least_once",
+      "ack_deadline_seconds": 30,
+      "max_in_flight": 32,
+      "retention_seconds": 86400
+    },
     "receipt_url": "https://example.com/agent-receipts"
   },
   "scopes": [
@@ -1491,8 +1522,279 @@ in `events` with `control: true` and a `data_exposure` contract.
 by the revoked grant. Its payload, authentication, and processing requirements
 are defined in the OAuth Grant Revocation Profile.
 
-Event delivery semantics — transport, ordering, acknowledgement, and replay —
-are not defined in this draft; see Open Questions.
+### Event Subscription Authority
+
+An event subscription is an application-authoritative delivery record bound to
+one authenticated runtime and one exact grant tuple. It does not widen the
+grant and is not a session. A non-control subscription MUST bind:
+
+- `subscription_id`, application issuer, and pinned `surface_hash`
+- grant subject, `grant_id`, and `grant_hash`
+- runtime id, agent id, and passport hash
+- the accepted event type allow-list and resource-filter projection
+- negotiated delivery profile, acknowledgement deadline, in-flight window, and
+  retention window
+
+The runtime requests a subscription through the manifest
+`event_subscription_url` or an equivalent authenticated bridge operation:
+
+```json
+{
+  "type": "event.subscribe",
+  "payload": {
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
+    "surface_hash": "sha-256:<base64url-digest>",
+    "runtime_id": "application_runtime_456",
+    "agent_id": "local_agent_789",
+    "passport_hash": "sha256:...",
+    "requested_events": ["ci.failed", "pull_request.updated"],
+    "max_in_flight": 16
+  }
+}
+```
+
+The application MUST select the subject and resource filters from the
+authoritative grant; caller-supplied identifiers or filters cannot replace
+that state. It MUST reject an event type absent from the pinned manifest, a
+type outside the grant's scope or constraints, a mismatched tuple or hash, and
+an in-flight request above the advertised maximum. It MAY accept a strict
+subset but MUST NOT add an event type. An unsuccessful request creates no
+subscription.
+
+The application returns the accepted immutable binding and an initial opaque
+cursor representing the position before any delivery:
+
+```json
+{
+  "type": "event.subscribed",
+  "payload": {
+    "subscription_id": "sub_01J2EVENTS",
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
+    "surface_hash": "sha-256:<base64url-digest>",
+    "runtime_id": "application_runtime_456",
+    "agent_id": "local_agent_789",
+    "passport_hash": "sha256:...",
+    "accepted_events": ["ci.failed", "pull_request.updated"],
+    "profile": "at_least_once",
+    "ack_deadline_seconds": 30,
+    "max_in_flight": 16,
+    "retention_seconds": 86400,
+    "cursor": "opaque:initial-position"
+  }
+}
+```
+
+Before both enqueue and delivery, the application MUST recheck current grant
+state, event scope, resource constraints, surface binding, and the effective
+Data Exposure Contract. A queued event that no longer passes MUST NOT cross the
+application boundary. Changing the accepted event set, tuple, grant hash,
+surface hash, or resource-filter projection requires a new subscription; an
+implementation MUST NOT reinterpret an old cursor under wider authority.
+
+Control events use a logically separate application-to-runtime control
+subscription bound to the application issuer and authenticated runtime, not to
+the affected grant. It MAY share one physical connection with non-control
+events, but its authority, flow-control capacity, and closure rules remain
+separate. A guessed `subscription_id` or cursor is never authority, and an
+unauthorized query MUST NOT reveal whether either exists.
+
+### Event Delivery Semantics
+
+The `at_least_once` profile separates an occurrence from its delivery. The
+application creates one stable event object for the authorized, redacted
+occurrence and one stable `delivery_id` for that event in each subscription.
+Every transmission of the same delivery increments `attempt` but preserves the
+subscription id, delivery id, event object, stream, sequence, and cursor:
+
+```json
+{
+  "type": "event.delivery",
+  "payload": {
+    "subscription_id": "sub_01J2EVENTS",
+    "delivery_id": "delivery_01J2FAILED",
+    "attempt": 1,
+    "stream": "repository:example-org/example-repo",
+    "sequence": 42,
+    "cursor": "opaque:position-after-42",
+    "event": {
+      "id": "evt_01J2FAILED",
+      "source": "https://code.example.com",
+      "type": "ci.failed",
+      "time": "2026-06-25T16:20:00Z",
+      "subject": "example-org/example-repo/pull/13",
+      "scope": "pull_request.read",
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "data": {
+        "repository": "example-org/example-repo",
+        "pull_request": 13,
+        "check": "tests"
+      }
+    }
+  }
+}
+```
+
+While the subscription is active and the delivery remains inside its effective
+retention window, the application MUST retransmit an unacknowledged delivery
+after the acknowledgement deadline. Retries SHOULD use bounded backoff and
+MUST NOT change the event projection to include newly available data. If
+current authorization or redaction policy can no longer permit the immutable
+projection, the application expires that delivery rather than sending a
+different object under the same `delivery_id`.
+
+The runtime MUST deduplicate on `(subscription_id, delivery_id)` and retain
+enough identity state to distinguish a retry from a conflicting reuse. Seeing
+the same delivery id with a different event identity, content, stream,
+sequence, or cursor is `event_delivery_conflict`; the runtime MUST NOT process
+either version as a new occurrence and MUST resynchronize. Duplicate delivery
+can still happen after a crash or loss of local deduplication state, so this
+profile does not provide exactly-once processing. Any Action Request triggered
+by an event remains subject to the action's independent authorization,
+idempotency, session, and effect rules.
+
+Delivery authentication establishes the application and bound subscription;
+fields inside `event` do not. The runtime MUST match the event type to the
+pinned manifest and effective grant projection before exposing its data to an
+agent. Event content is untrusted application data, not an instruction that can
+bypass runtime policy or the Data Exposure Contract.
+
+### Ordering and Acknowledgement
+
+Ordering is defined only inside a `stream` of one subscription. The application
+starts at sequence `1`, increments by exactly one for each event eligible for
+that stream, and MUST keep an event in the same stream across every retry and
+replay. It MUST NOT first-deliver sequence `N + 1` until sequence `N` has a
+terminal acknowledgement. Different streams have no defined total order and
+MAY progress concurrently up to the negotiated in-flight window. A runtime
+MUST NOT infer cross-stream causality from arrival time.
+
+Sequence numbers describe only events authorized for that subscription. Gaps
+in an application's source log, filtered events, or events for another subject
+MUST NOT be exposed through the subscription sequence. A replay preserves the
+original stream and sequence; it does not allocate a new position.
+
+The runtime acknowledges each delivery explicitly:
+
+```json
+{
+  "type": "event.ack",
+  "payload": {
+    "subscription_id": "sub_01J2EVENTS",
+    "delivery_id": "delivery_01J2FAILED",
+    "cursor": "opaque:position-after-42",
+    "outcome": "processed",
+    "reason": "durably_recorded"
+  }
+}
+```
+
+Defined outcomes are:
+
+- `processed`: the runtime durably recorded its deduplication decision and any
+  required local state before acknowledging
+- `discarded`: local policy or unsupported event semantics made deliberate
+  non-processing terminal; a stable reason is REQUIRED
+- `retry`: processing is temporarily unavailable; the delivery remains
+  unacknowledged and an optional bounded retry delay is only a hint
+
+`processed` means accepted by the runtime, not that an agent completed a task
+or an application action succeeded. `discarded` MUST NOT be used for
+`grant.revoked` until the runtime has fail-closed the matching grant and begun
+authoritative resynchronization; a valid control event is normally acknowledged
+as `processed` only after its required state transition.
+
+A terminal acknowledgement is valid only on the authenticated subscription
+and when its delivery id and cursor exactly match the delivery record. It is
+idempotent for the same outcome and reason. Conflicting terminal outcomes,
+unknown response state, connection loss, or a timeout leave the delivery
+unacknowledged. The application MUST NOT advance ordering or discard retained
+delivery state merely because it sent a message.
+
+### Replay Cursors and Gaps
+
+A cursor is an opaque, integrity-protected application value bound to the
+issuer, applicable subject and delegate tuple, subscription, accepted event and
+filter projection, surface hash, and delivery position. It is neither an event
+identifier nor a credential. The runtime MUST store and return it unchanged and
+MUST NOT infer ordering by comparing cursor bytes.
+
+The runtime requests replay after a previously issued cursor:
+
+```json
+{
+  "type": "event.replay",
+  "payload": {
+    "subscription_id": "sub_01J2EVENTS",
+    "after_cursor": "opaque:last-durable-position",
+    "limit": 100
+  }
+}
+```
+
+The application MUST authenticate the subscription before resolving the
+cursor. Replayed records retain their original event and delivery identities,
+stream, sequence, and cursor; `attempt` increments for another transmission.
+The runtime applies ordinary deduplication and acknowledgement rules. Replay
+does not reactivate an interrupted or terminal ASP session, and receiving an
+event does not authorize a session transition.
+
+A malformed, tampered, wrong-subscription, wrong-tuple, or wrong-surface cursor
+fails as `event_cursor_invalid`. A position no longer available under the
+effective retention window fails as `event_cursor_expired`. The application
+MUST NOT silently substitute the latest or earliest position. It returns an
+authenticated `event.gap` containing the subscription id, last accepted
+cursor, earliest currently available cursor when disclosure is permitted, and
+reason `retention_expired` or `authorization_changed`. The gap MUST NOT reveal
+filtered event identities or counts.
+
+After a gap, the runtime MUST pause automation that depends on complete event
+history and reconcile authoritative application state through granted resource
+reads or an application-defined snapshot operation. Continuing from the
+earliest cursor requires an explicit local policy decision; it cannot be
+represented as complete replay. A new or widened grant always requires a new
+subscription and initial cursor.
+
+### Retention and Backpressure
+
+For an otherwise active and authorized subscription, the application MUST keep
+the delivery record, immutable redacted event projection, and replay position
+available for `retention_seconds` after the event first becomes eligible for
+that subscription. Earlier deletion is permitted only when required by grant
+expiry or revocation, a stricter Data Exposure Contract, subject deletion, or
+security response. Such deletion creates an explicit gap; it never permits
+silent cursor advancement.
+
+The effective replay window is the shortest applicable delivery-retention,
+grant-lifetime, and data-exposure limit. `delete_on_grant_end` applies to queued
+and replayable projections when the grant ends. A runtime SHOULD keep compact
+deduplication metadata for at least the same effective window but MUST apply
+its own retention policy to payloads; acknowledgement does not authorize
+indefinite local storage.
+
+`max_in_flight` counts distinct, non-terminally acknowledged deliveries. A
+retry of the same `delivery_id` consumes the same slot. The application MUST
+NOT exceed the negotiated window. The runtime MAY use authenticated
+`event.flow` to lower the window, pause new non-control deliveries with a value
+of zero, or restore a value no greater than the negotiated maximum. Pausing
+does not terminally acknowledge existing deliveries, extend retention, or
+permit the application to ignore their outcomes.
+
+When the window is full, the application queues eligible events within the
+effective retention window rather than exceeding the limit. If an event expires
+before first delivery, the next delivery or replay response MUST carry an
+`event.gap`; silent loss is forbidden. Implementations SHOULD expose bounded
+metrics for queued, in-flight, retried, expired, and gap states without
+including event payloads.
+
+Application-event backpressure MUST NOT starve the runtime control
+subscription. The application MUST reserve independent capacity for
+`grant.revoked` or deliver it on a separate authenticated channel. If the
+control path is unavailable, application-side revocation remains immediately
+authoritative; the runtime MUST stop new use when it cannot re-establish or
+introspect authoritative grant state rather than assuming that the absence of a
+control event means the grant is active.
 
 ### Data Exposure Contract
 
@@ -4663,8 +4965,11 @@ bound to the manifest issuer and target runtime. The runtime MUST verify
 `issuer`, `audience`, tuple binding, and channel authenticity before acting on
 it. Delivery of this control event MUST use event-channel authority independent
 of the revoked grant and MUST disclose no more grant data than the target
-runtime already possessed. A future signing profile MAY additionally define an
-application signature for portable event verification.
+runtime already possessed. Under the Event Delivery Semantics profile it is
+carried in `event.delivery` on the logically separate control subscription and
+retains the same event and delivery identity across retries. A future signing
+profile MAY additionally define an application signature for portable event
+verification.
 
 The runtime MUST compare event `grant_hash` and `surface_hash` with its retained
 grant and manifest snapshot. If an authenticated event matches the stored
@@ -4678,16 +4983,19 @@ After accepting the event, the runtime MUST atomically mark the grant inactive,
 discard cached active introspection state, stop new actions and credential use,
 discard cached execution tokens and reservation state, cancel or downgrade
 affected sessions according to app policy, cascade the state to locally tracked
-child grants, and record a runtime receipt. Event
-processing is idempotent by `id`; a duplicate event MUST NOT create duplicate
-receipts or repeat external side effects.
+child grants, and record a runtime receipt. Event processing is idempotent by
+`issuer` and `id`, while transport retry is deduplicated by subscription and
+delivery id. A duplicate event MUST NOT create duplicate receipts or repeat
+external side effects. The runtime terminally acknowledges the control delivery
+only after this fail-closed transition or authoritative resynchronization has
+begun.
 
 The event is notification, not the enforcement mechanism. The application MUST
 reject the revoked grant immediately even if delivery is delayed or lost. A
 runtime that misses the event learns the inactive state from introspection or a
 rejected action. General event ordering, acknowledgement, replay cursor,
-retention, and backpressure remain outside this profile and are defined by the
-future Event Delivery Semantics work.
+retention, and backpressure follow Event Delivery Semantics. Loss or expiry of
+the control delivery never reactivates the grant.
 
 ### Grant Revoked
 
@@ -4701,8 +5009,9 @@ If a grant is revoked:
   app policy
 - receipt generation SHOULD record the revocation event
 - when the manifest declares an event subscription endpoint, the app MUST emit
-  `grant.revoked` according to the OAuth Grant Revocation Profile before it
-  closes the subscription
+  `grant.revoked` on the runtime control subscription according to the OAuth
+  Grant Revocation Profile; closing the affected grant's non-control
+  subscription MUST NOT close or suppress that control path
 
 ### Runtime Disconnected
 
@@ -4720,6 +5029,9 @@ If the runtime disconnects:
   same tuple reconnects with a current Grant Credential, matching surface, exact
   prior generation, and required proof; acceptance increments the generation
 - a reconnect or local worker restart by itself MUST NOT reactivate a session
+- unacknowledged event deliveries remain pending subject to retention and are
+  retried with their original identities after the runtime restores the same
+  subscription or requests replay from its last durable cursor
 
 ### Agent Passport Revoked or Expired
 
@@ -4788,6 +5100,10 @@ Agent Surface Protocol SHOULD define structured errors:
 | `proposal_required` | The app only supports proposal mode for this action or grant. |
 | `session_invalid` | Session is unknown, non-active, stale-generation, or not bound to the complete tuple selected by the presented credential. |
 | `session_transition_invalid` | Requested session transition, prior generation, target state, or idempotent replay binding is invalid. |
+| `event_subscription_invalid` | Event subscription is unknown, inactive, or not bound to the authenticated tuple and current authority. |
+| `event_delivery_conflict` | A delivery id was reused with different event content, stream, sequence, or cursor. |
+| `event_cursor_invalid` | Replay cursor is malformed, tampered, or bound to another subscription, tuple, projection, or surface. |
+| `event_cursor_expired` | Replay position is no longer available under the effective retention window and requires explicit gap recovery. |
 | `action_unknown` | Action id is not part of the surface version the grant was issued against. |
 | `limit_exceeded` | A grant budget caveat such as `max_actions` or `max_cost_usd` is exhausted. |
 | `rate_limited` | The request was throttled independently of grant caveats. |
@@ -4801,9 +5117,11 @@ debugging.
 
 `execution_mode_invalid`, `execution_transition_invalid`,
 `execution_token_invalid`, `reservation_invalid`, `recovery_not_supported`,
-`recovery_already_applied`, and `session_transition_invalid` are not blindly
-retryable. An expired token or failed precondition requires a new read or dry
-run and any required approval. A
+`recovery_already_applied`, `session_transition_invalid`,
+`event_delivery_conflict`, and `event_cursor_invalid` are not blindly retryable.
+`event_cursor_expired` requires explicit gap recovery rather than substitution
+of another cursor. An expired token or failed precondition requires a new read
+or dry run and any required approval. A
 reservation conflict MAY be retried after a safe `retry_after` interval without
 disclosing the holder; an expired reservation requires a new acquisition.
 After an effect was attempted, drift or uncertainty is represented by
@@ -5150,6 +5468,8 @@ An application conforms to the Surface-Only profile when it:
   companion-action, precondition, reservation, and recovery metadata
 - declares endpoints or explicitly marks the surface as proposal/documentation
   only
+- declares the `at_least_once` delivery contract whenever it publishes an event
+  subscription endpoint
 - provides `propose` actions or read-only resources
 
 ### Grant-Enforcing Application
@@ -5162,6 +5482,10 @@ An application conforms to the Grant-Enforcing profile when it:
 - validates credential binding to runtime, agent, and passport evidence
 - creates or accepts an authoritative session record and validates its active
   state, complete tuple binding, and current generation for every action
+- creates event subscriptions only as an attenuation of the current grant,
+  rechecks authorization and exposure before delivery, and implements
+  at-least-once retry, per-stream ordering, acknowledgement, replay, retention,
+  explicit gaps, and bounded in-flight delivery
 - validates `grant_hash` and binds the grant to the exact verified
   `surface_hash` snapshot
 - validates static execution mode, companion authority, execution context and
@@ -5292,6 +5616,9 @@ An application runtime conforms to this profile when it:
 - handles stale previews, reservation conflicts, and partial or unknown recovery
   outcomes without blind retry
 - records local audit events and runtime receipts
+- durably deduplicates event deliveries, acknowledges only after its processing
+  decision is stable, preserves opaque cursors, applies explicit gap recovery,
+  and enforces negotiated event backpressure
 - computes and validates grant, execution, effect, policy-decision, and receipt
   hashes; propagates session id and generation and W3C-compatible trace context
 - records session id and generation, trace id, and producer span id in local
@@ -5413,8 +5740,6 @@ To support Agent Surface Protocol, the next slices are:
 - How do users compare two agents with overlapping Agent Passport
   capabilities during grant consent?
 - What happens to active sessions when an app changes surface versions?
-- What transport, ordering, acknowledgement, and replay semantics do event
-  subscriptions use?
 - How is `max_cost_usd` metered when runtime-side inference cost and app-side
   action cost diverge, and which side is authoritative?
 - How are runtime-side approvals proven to the application beyond an
