@@ -802,6 +802,8 @@ kind of channel using typed session and approval messages such as:
 - `session.start`
 - `session.event`
 - `session.cancel`
+- `session.resume`
+- `session.state`
 - `approval.required`
 - `approval.resolved`
 
@@ -3647,18 +3649,19 @@ JSON envelopes that carry observability context use `trace_id` and `span_id`.
 `trace_id` MUST be 32 lowercase hexadecimal characters representing 16 bytes
 and MUST NOT be all zero. `span_id` MUST be 16 lowercase hexadecimal characters
 representing 8 bytes and MUST NOT be all zero. These are projections of the W3C
-`trace-id` and `parent-id` formats. `session_id` remains the ASP lifecycle and
-accounting identifier and MUST continue to be validated independently.
+`trace-id` and `parent-id` formats. `session_id` and `session_generation` remain
+the ASP lifecycle and accounting context and MUST continue to be validated
+independently.
 
 When an implementation claims the Application Runtime or Receipt-Producing
 profile, its `session.start`, `action.request`, `action.result`, and receipt
-envelopes MUST carry `session_id`, `trace_id`, and the producer's `span_id` as
-shown below. Each runtime and application MUST record the identifiers from the
-envelope or receipt it produces in the corresponding local log entry so those
-logs can be joined without parsing human-readable messages. Trace and session
-ids can match across components while each producer records its own span id.
-This draft defines correlation fields, not a telemetry export protocol or
-vendor backend.
+envelopes MUST carry `session_id`, `session_generation`, `trace_id`, and the
+producer's `span_id` as shown below. Each runtime and application MUST record
+the identifiers from the envelope or receipt it produces in the corresponding
+local log entry so those logs can be joined without parsing human-readable
+messages. Trace and session ids can match across components while each producer
+records its own span id. This draft defines correlation fields, not a telemetry
+export protocol or vendor backend.
 
 For an HTTP binding, a component carrying valid ASP observability context MUST
 send `traceparent`. A component participating in an incoming W3C trace MUST
@@ -3667,7 +3670,8 @@ to its defined trust-boundary privacy policy. It preserves a valid incoming
 `trace_id`, creates a fresh `span_id` for its own operation, and propagates that
 child context downstream. A receipt records the span of the component that
 produced it. Runtime and application receipts for one action therefore normally
-share `trace_id` and `session_id` but have different `span_id` values.
+share `trace_id`, `session_id`, and `session_generation` but have different
+`span_id` values.
 
 An intermediary is allowed to create another span, so a receiver MUST NOT
 require the JSON `span_id` to equal the `parent-id` in the HTTP header after
@@ -3694,6 +3698,92 @@ its boundary and creates a new `span_id` for each adapter operation.
 
 ## Sessions and Actions
 
+### Session Authority and Lifecycle
+
+An ASP session is a bounded orchestration record for work performed under one
+Agent Grant. A session does not mint authority, widen a grant, keep an expired
+grant alive, or make an agent a protocol principal. Every session is bound to
+exactly one authoritative tuple consisting of:
+
+- the grant `subject.user`, `grant_id`, and `grant_hash`
+- the grant-bound `runtime`, `agent`, and `passport_hash`
+- the application `app_id`, `surface_version`, and `surface_hash`
+
+The application is authoritative for the application-side session record and
+state. The runtime is authoritative for whether the corresponding local worker
+is still running, but a local process state MUST NOT cause the application to
+accept an action for a session that is absent, interrupted, or terminal in the
+application record. The application MUST either assign `session_id` or validate
+a caller-proposed value for uniqueness before creating the record. A
+`session_id` is a correlation identifier, not a credential, and MUST NOT be
+accepted as evidence of the bound user or delegate tuple.
+
+The application record MUST contain the bound tuple, `session_id`, a positive
+integer `session_generation`, the initiating role, the current state, and the
+latest transition reason. The initial generation is `1`. Every accepted resume
+increments the generation by exactly one. All session-scoped bridge messages,
+Action Requests, Action Responses, and receipts MUST carry the current
+`session_generation`. The application and runtime MUST reject a message from an
+older or future generation rather than copying its generation into local state.
+
+ASP assigns the following authority to session participants:
+
+| Participant | Session authority |
+| --- | --- |
+| User | MAY request start, observe state, cancel, or approve resume through an authenticated application or runtime UI. A user-facing gesture is not itself a bridge credential. |
+| Application | Creates or accepts the authoritative record, verifies every transition and action against the current grant and tuple, exposes an authorized user view, and MAY cancel or interrupt a session to enforce application policy. |
+| Runtime | MAY request start for its authenticated grant-bound tuple, observe that tuple's sessions, stop local work, request cancellation, and request resume after interruption. It MUST enforce application state in addition to local policy. |
+| Agent | MAY express task intent only through its runtime. It has no direct authority to start, enumerate, observe, cancel, or resume application sessions, and MUST receive session data only through runtime-mediated, exposure-authorized paths. |
+
+An application-started session MUST arise from an authenticated user action or
+an application policy that the user authorized independently of the agent. The
+application MUST deliver any proposed task through an authorized event path;
+it MUST NOT use `session.start` to bypass the Data Exposure Contract. A runtime
+MUST identify itself as the initiator for a runtime-originated request and MUST
+NOT assert `initiated_by: "user"` merely because it observed a local gesture.
+The receiving application derives the authoritative initiating role from its
+authenticated context and verified policy evidence.
+
+The normative application-side states and transitions are:
+
+| Current state | Trigger | Next state | Requirements |
+| --- | --- | --- | --- |
+| absent | accepted start | `active` | Current grant, tuple, surface, and authenticated channel all verify; generation becomes `1`. |
+| `active` | channel loss, runtime pause, or application safety fence | `interrupted` | New actions are rejected until an explicit resume succeeds. |
+| `interrupted` | accepted resume | `active` | Same tuple, current grant and surface, fresh channel authentication, and exact prior generation; generation increments by one. |
+| `active` or `interrupted` | accepted cancel | `cancelled` | Application fences new actions before acknowledging the transition and the runtime stops local work. |
+| `active` | successful task completion | `completed` | Runtime reports completion and the application reconciles any outstanding action outcomes. |
+| `active` | unrecoverable task failure | `failed` | Runtime or application records a stable reason without treating unknown action outcomes as rolled back. |
+
+`cancelled`, `completed`, and `failed` are terminal. A terminal `session_id`
+MUST NOT be resumed or reused for new work. A duplicate request for an already
+accepted transition is idempotent only when its session id, prior generation,
+target state, and bound hashes are identical. A conflicting reuse MUST fail as
+`session_transition_invalid` and MUST NOT move the session.
+
+`session.cancel` and `session.resume` requests MUST contain `session_id`, the
+caller's current `session_generation`, `grant_id`, `grant_hash`, and
+`surface_hash`. The channel authenticates the runtime or application actor; an
+agent-supplied field inside the payload does not. A `session.state` response
+MUST repeat those binding fields, report the authoritative state and generation,
+and include a stable transition reason. Receipt or event transport can record
+the transition, but neither is authority to create it.
+
+Cancellation fences future work; it is not a transactional rollback. Before
+acknowledging `cancelled`, the application MUST reject new Action Requests for
+the session and invalidate unconsumed execution tokens and reservations bound
+to it. An already-started irreversible effect retains its Action Response and
+receipt outcome, including `unknown` or `partially_applied`; cancellation MUST
+NOT rewrite that outcome as if no effect occurred. Cancelling a session does
+not by itself revoke its Agent Grant or cancel another session under that grant.
+
+Observation is also scoped authority. The application MAY show a user sessions
+for that user's authenticated account. A runtime MAY observe only sessions for
+its verified grant-bound tuple. Responses to an unauthorized or mismatched
+observer MUST NOT reveal whether a guessed `session_id` exists. An agent can
+receive only the current task, authorized event or action data, and state needed
+for its local execution; ASP does not grant it a session-list operation.
+
 ### Session Start
 
 Once a grant exists, an application or runtime MAY start a session.
@@ -3703,11 +3793,15 @@ Once a grant exists, an application or runtime MAY start a session.
   "type": "session.start",
   "payload": {
     "session_id": "sess_456",
+    "session_generation": 1,
     "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
     "span_id": "a3ce929d0e0e4736",
     "grant_id": "grant_123",
     "grant_hash": "sha-256:<base64url-digest>",
+    "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
+    "passport_hash": "sha256:...",
+    "initiated_by": "runtime",
     "surface": {
       "app_id": "code.example.com",
       "surface_version": "2026-06-25",
@@ -3721,6 +3815,32 @@ Once a grant exists, an application or runtime MAY start a session.
         "pull_request": 13
       }
     }
+  }
+}
+```
+
+The sender treats this message as a request until the application returns an
+authenticated `session.state` with state `active`, the accepted binding, and
+generation `1`. A timeout or ambiguous response does not authorize the runtime
+to assume that the session exists; it MAY query authoritative state using the
+same tuple and proposed identifier. Retrying an identical start MUST return the
+existing record, while reuse of the identifier with different bindings or task
+content MUST fail as `session_transition_invalid`.
+
+```json
+{
+  "type": "session.state",
+  "payload": {
+    "session_id": "sess_456",
+    "session_generation": 1,
+    "state": "active",
+    "transition_reason": "start_accepted",
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
+    "runtime_id": "application_runtime_456",
+    "agent_id": "local_agent_789",
+    "passport_hash": "sha256:...",
+    "surface_hash": "sha-256:<base64url-digest>"
   }
 }
 ```
@@ -3747,10 +3867,14 @@ The action request MUST be authorized by the HTTP authorization layer or an
 equivalent proof. The `grant_id` inside the body is a correlation identifier, not
 a credential.
 
-The application MUST also verify that the supplied `session_id` belongs to the
-presented grant. Otherwise a valid grant credential could be replayed against
-sessions created under other grants, corrupting session accounting and receipt
-linkage.
+The application MUST also verify that the supplied `session_id` and
+`session_generation` identify an `active` session bound to the complete subject,
+runtime, agent, passport, grant, application, and surface tuple selected by the
+presented credential. Otherwise a valid grant credential could be replayed
+against sessions created under other grants or against a stale generation,
+corrupting session accounting and receipt linkage. Unknown, non-active,
+mismatched, and stale sessions fail uniformly as `session_invalid` so the
+action endpoint does not become a session-enumeration oracle.
 
 The application MUST also verify that body `grant_hash` matches the complete
 authoritative grant selected by the credential and that `surface_hash` matches
@@ -3780,6 +3904,7 @@ Content-Type: application/json
   "type": "action.request",
   "payload": {
     "session_id": "sess_456",
+    "session_generation": 1,
     "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
     "span_id": "b7ad6b7169203331",
     "grant_id": "grant_123",
@@ -3840,6 +3965,7 @@ state, but MUST NOT copy the token into its receipt.
   "type": "action.result",
   "payload": {
     "session_id": "sess_456",
+    "session_generation": 1,
     "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
     "span_id": "00f067aa0ba902b7",
     "grant_id": "grant_123",
@@ -3878,9 +4004,10 @@ state, but MUST NOT copy the token into its receipt.
 }
 ```
 
-An Action Response MUST repeat `session_id`, grant and surface hashes,
-`action_id`, and the idempotency key from the request. For a state-changing
-action it MUST repeat the sanitized execution context and `execution_hash`.
+An Action Response MUST repeat `session_id`, `session_generation`, grant and
+surface hashes, `action_id`, and the idempotency key from the request. For a
+state-changing action it MUST repeat the sanitized execution context and
+`execution_hash`.
 When an effect was or may have been attempted, it MUST return
 `effect_outcome`, `actual_effects`, and `actual_effects_hash` as defined by the
 Effect Model. A response MUST distinguish `partially_applied` and `unknown`
@@ -3921,6 +4048,7 @@ Receipts produced under the Receipt-Producing Application profile MUST include:
 - grant id
 - grant hash
 - session id
+- session generation
 - trace id
 - producer span id
 - linked parent trace id when a trust boundary restarted tracing
@@ -3975,8 +4103,9 @@ This single-parent model permits branches but does not represent multi-parent
 causal joins; a future profile may define a DAG representation.
 
 A parent and child receipt for one action MUST carry identical `grant_hash`,
-`surface_hash`, `session_id`, `action_id`, `idempotency_key`, `input_hash`,
-sanitized `execution`, and `execution_hash`. Conditional `preview_id`,
+`surface_hash`, `session_id`, `session_generation`, `action_id`,
+`idempotency_key`, `input_hash`, sanitized `execution`, and `execution_hash`.
+Conditional `preview_id`,
 `execution_token_hash`, `preconditions_hash`, `expected_effects_hash`,
 `reservation_id`, and `target_receipt_hash` values inside that request context
 MUST therefore also match. An app-only `reservation_result`,
@@ -4022,6 +4151,7 @@ redactions.
   "grant_id": "grant_123",
   "grant_hash": "sha-256:<base64url-digest>",
   "session_id": "sess_456",
+  "session_generation": 1,
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "span_id": "b7ad6b7169203331",
   "action_id": "comment.create",
@@ -4087,6 +4217,7 @@ deduplicated under a grant.
   "grant_id": "grant_123",
   "grant_hash": "sha-256:<base64url-digest>",
   "session_id": "sess_456",
+  "session_generation": 1,
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "span_id": "00f067aa0ba902b7",
   "action_id": "comment.create",
@@ -4576,13 +4707,18 @@ If a grant is revoked:
 
 If the runtime disconnects:
 
-- app SHOULD mark active runtime-mediated sessions as interrupted
+- when the app detects loss of the authenticated runtime channel, it MUST mark
+  sessions bound to that channel as `interrupted` before accepting an action on
+  a replacement channel
 - app MUST NOT treat pending runtime approvals as approved
 - app MUST apply each acquisition declaration's `disconnect_behavior`; a
   retained reservation remains bounded by its existing expiry and MUST NOT be
   consumed until the same tuple reconnects with a current Grant Credential and
   required proof
-- app MAY allow resumable sessions when the same runtime reconnects
+- app MAY accept `session.resume` only for an `interrupted` session when the
+  same tuple reconnects with a current Grant Credential, matching surface, exact
+  prior generation, and required proof; acceptance increments the generation
+- a reconnect or local worker restart by itself MUST NOT reactivate a session
 
 ### Agent Passport Revoked or Expired
 
@@ -4607,7 +4743,12 @@ If the Agent Surface changes incompatibly:
 
 If the user's ordinary app session expires, app policy decides whether existing
 agent grants continue. High-risk grants SHOULD expire with or before the user
-session unless explicitly configured otherwise.
+session unless explicitly configured otherwise. If policy ends the grant or
+session, the app MUST cancel the affected ASP sessions and fence new actions.
+If policy allows them to continue, the ordinary login expiry does not change the
+ASP session generation. A later user login MAY observe or cancel those sessions
+only after authenticating the same application subject; it is not session-resume
+authority for a runtime with a different tuple.
 
 ## Error Model
 
@@ -4644,7 +4785,8 @@ Agent Surface Protocol SHOULD define structured errors:
 | `runtime_untrusted` | Runtime binding or attestation is not accepted. |
 | `surface_incompatible` | Runtime does not support the surface version. |
 | `proposal_required` | The app only supports proposal mode for this action or grant. |
-| `session_invalid` | Session is unknown, ended, or not associated with the presented grant. |
+| `session_invalid` | Session is unknown, non-active, stale-generation, or not bound to the complete tuple selected by the presented credential. |
+| `session_transition_invalid` | Requested session transition, prior generation, target state, or idempotent replay binding is invalid. |
 | `action_unknown` | Action id is not part of the surface version the grant was issued against. |
 | `limit_exceeded` | A grant budget caveat such as `max_actions` or `max_cost_usd` is exhausted. |
 | `rate_limited` | The request was throttled independently of grant caveats. |
@@ -4657,9 +4799,10 @@ Errors SHOULD be safe to show to users and precise enough for runtime policy
 debugging.
 
 `execution_mode_invalid`, `execution_transition_invalid`,
-`execution_token_invalid`, `reservation_invalid`, `recovery_not_supported`, and
-`recovery_already_applied` are not blindly retryable. An expired token or
-failed precondition requires a new read or dry run and any required approval. A
+`execution_token_invalid`, `reservation_invalid`, `recovery_not_supported`,
+`recovery_already_applied`, and `session_transition_invalid` are not blindly
+retryable. An expired token or failed precondition requires a new read or dry
+run and any required approval. A
 reservation conflict MAY be retried after a safe `retry_after` interval without
 disclosing the holder; an expired reservation requires a new acquisition.
 After an effect was attempted, drift or uncertainty is represented by
@@ -5016,6 +5159,8 @@ An application conforms to the Grant-Enforcing profile when it:
 - issues, validates, or introspects Agent Grants
 - validates grant state for every action
 - validates credential binding to runtime, agent, and passport evidence
+- creates or accepts an authoritative session record and validates its active
+  state, complete tuple binding, and current generation for every action
 - validates `grant_hash` and binds the grant to the exact verified
   `surface_hash` snapshot
 - validates static execution mode, companion authority, execution context and
@@ -5073,8 +5218,8 @@ An application conforms to the Receipt-Producing profile when it:
   hash to match the receipt's `policy_decision_hash`
 - links an app receipt to the verified runtime receipt through
   `parent_receipt_hash` when runtime receipt evidence is required
-- preserves trace id, session id, action id, agent id, runtime id, and
-  idempotency key while using a producer-specific span id
+- preserves trace id, session id and generation, action id, agent id, runtime
+  id, and idempotency key while using a producer-specific span id
 - preserves sanitized execution context across the runtime/app receipt edge,
   omits raw execution tokens, and uses `target_receipt_hash` rather than a
   parent edge for recovery causality
@@ -5082,8 +5227,8 @@ An application conforms to the Receipt-Producing profile when it:
   outcomes
 - records and retains receipt-bound revert evidence for effects advertised as
   reversible
-- records session id, trace id, and producer span id in the corresponding local
-  action and receipt log entry
+- records session id and generation, trace id, and producer span id in the
+  corresponding local action and receipt log entry
 - records denied or failed high-risk actions
 
 An application or runtime claims the `asp-jws-detached` Receipt Signing Profile
@@ -5122,6 +5267,9 @@ An application runtime conforms to this profile when it:
   inconsistent contracts, and selects only runtime-agent paths that can enforce
   redaction and retention obligations
 - mediates agent actions instead of exposing raw authority
+- enforces the Session Authority and Lifecycle state machine, including
+  complete tuple binding, generation changes on resume, and terminal-state
+  rejection
 - denies credential release unless an explicit `credential.release` capability
   and its constraints are satisfied
 - preserves parent-runtime mediation for subagents, tools, adapters, remote
@@ -5144,9 +5292,9 @@ An application runtime conforms to this profile when it:
   outcomes without blind retry
 - records local audit events and runtime receipts
 - computes and validates grant, execution, effect, policy-decision, and receipt
-  hashes; propagates session and W3C-compatible trace context
-- records session id, trace id, and producer span id in local action and receipt
-  logs
+  hashes; propagates session id and generation and W3C-compatible trace context
+- records session id and generation, trace id, and producer span id in local
+  action and receipt logs
 - stops actions when grants are revoked or expired
 - provides a local grant view with the trusted application management link,
   freezes local use while revocation confirmation is unknown, and treats

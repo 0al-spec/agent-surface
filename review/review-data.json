@@ -1495,6 +1495,10 @@
           "anchorId": "3-runtime-bridge-protocol"
         },
         {
+          "heading": "Session Authority and Lifecycle",
+          "anchorId": "session-authority-and-lifecycle"
+        },
+        {
           "heading": "Session Start",
           "anchorId": "session-start"
         },
@@ -1507,19 +1511,23 @@
           "anchorId": "user-session-expired"
         }
       ],
-      "status": "partial",
-      "rationale": "App или runtime MAY start session, а cancel/resume упомянуты, но права start/observe/cancel/resume по ролям не формализованы.",
+      "status": "present",
+      "rationale": "RFC определяет authoritative app-side session record, права user/app/runtime/agent, complete tuple binding, generation-fenced start/resume/cancel/observe semantics, terminal states и fail-closed negative cases.",
       "priority": "P1",
       "profile": "events-sessions",
       "depends_on": [
         1
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
           "ref": "3-runtime-bridge-protocol"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "session-authority-and-lifecycle"
         },
         {
           "kind": "rfc_anchor",
