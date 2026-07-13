@@ -397,6 +397,10 @@ A typed notification exposed by an Agent Surface or runtime. Examples:
 - `task.created`
 - `grant.revoked`
 
+ASP application events use the CloudEvents 1.0.2 information model and JSON
+structured format with ASP extension attributes for scope, control, integrity,
+and delivery context. The event envelope itself carries no authority.
+
 ### Receipt
 
 Portable evidence that an action occurred, including the grant, session, agent,
@@ -834,9 +838,10 @@ The adapter layer turns a concrete agent into a runtime-mediated worker.
 
 ### Canonical Object Hash Profile
 
-ASP manifests, grants, action inputs, action execution contexts, policy decisions, and receipts use the
-`asp-jcs-sha-256` profile when a field in this draft is named `surface_hash`,
-`grant_hash`, `input_hash`, `execution_hash`, `preconditions_hash`,
+ASP manifests, grants, events, action inputs, action execution contexts, policy
+decisions, and receipts use the `asp-jcs-sha-256` profile when a field in this
+draft is named `surface_hash`, `grant_hash`, `aspeventhash`, `input_hash`,
+`execution_hash`, `preconditions_hash`,
 `expected_effects_hash`, `actual_effects_hash`, `policy_decision_hash`,
 `receipt_hash`, or `parent_receipt_hash`. The profile identifies exact JSON
 content; it does not by itself authenticate the producer or grant authority.
@@ -862,6 +867,7 @@ To compute an ASP object hash, an implementation MUST:
 | --- | --- | --- |
 | Agent Surface Manifest | `https://github.com/0al-spec/agent-surface/hash/manifest/v1` | top-level `surface_hash` |
 | authoritative Agent Grant | `https://github.com/0al-spec/agent-surface/hash/grant/v1` | top-level `grant_hash`; the RFC 9396 `type` discriminator when starting from an OAuth authorization-details object |
+| ASP CloudEvent occurrence | `https://github.com/0al-spec/agent-surface/hash/event/v1` | `aspeventhash`; delivery-only `aspsubid`, `aspdeliveryid`, `aspattempt`, `aspstream`, `aspsequence`, and `aspcursor`; diagnostic `traceparent` and `tracestate` |
 | Action Request `input` | `https://github.com/0al-spec/agent-surface/hash/action-input/v1` | none; the hashing view is exactly `payload.input` after schema validation and before default insertion, coercion, or other semantic normalization |
 | Action Execution Context | `https://github.com/0al-spec/agent-surface/hash/action-execution/v1` | `execution_token`; the hashing view is `payload.execution` after structural validation with the confidential raw token omitted |
 | Action Preconditions | `https://github.com/0al-spec/agent-surface/hash/action-preconditions/v1` | none; the hashing view is exactly the validated `preconditions` object |
@@ -1486,6 +1492,10 @@ This allows early adopters to become agent-native without allowing direct writes
 
 Events let applications notify runtimes and agents about app context changes.
 
+Every event declaration MUST contain a non-empty `id` and an absolute `schema`
+URI. The CloudEvents binding uses them without aliasing as `type` and
+`dataschema`.
+
 Every non-control event MUST declare a non-empty `scope`. A grant that permits
 `pull_request.read` MAY receive `pull_request.updated`, but MUST NOT receive an
 unrelated financial, HR, or admin event or an event whose scope is absent. An
@@ -1521,6 +1531,203 @@ in `events` with `control: true` and a `data_exposure` contract.
 `grant.revoked` is an application control event rather than an event authorized
 by the revoked grant. Its payload, authentication, and processing requirements
 are defined in the OAuth Grant Revocation Profile.
+
+### CloudEvents 1.0.2 Event Binding
+
+The ASP core event format is the CloudEvents 1.0.2 information model serialized
+with the CloudEvents JSON Event Format 1.0.2. Every non-control and control event
+delivered by this profile MUST be a valid CloudEvent with `specversion` equal to
+the literal `1.0`. CloudEvents defines the interoperable occurrence envelope;
+ASP continues to define grant authority, exposure, subscription, delivery,
+acknowledgement, replay, and control-event semantics.
+
+The core mapping is:
+
+| ASP meaning | CloudEvents member | ASP requirement |
+| --- | --- | --- |
+| event identity | `id` | REQUIRED non-empty string; stable across retries and replay |
+| application event source | `source` | REQUIRED absolute URI equal to the pinned manifest `issuer` in this core profile |
+| manifest event id | `type` | REQUIRED exact match to one declared `events[].id` |
+| CloudEvents version | `specversion` | REQUIRED literal `1.0` |
+| occurrence time | `time` | REQUIRED RFC 3339 timestamp for the occurrence, not a retry or delivery time |
+| declared event schema | `dataschema` | REQUIRED absolute URI exactly equal to the matched declaration's `schema` |
+| payload media type | `datacontenttype` | REQUIRED literal `application/json` |
+| authorized, redacted payload | `data` | REQUIRED JSON value conforming to `dataschema` |
+| application resource key | `subject` | OPTIONAL non-empty string scoped by `source` and covered by exposure rules |
+
+The core profile does not permit `data_base64`, CloudEvents batch mode, or a
+non-JSON data content type. A future profile can add those representations only
+with explicit schema, exposure, hashing, acknowledgement, and replay rules.
+Omitting `datacontenttype` is valid in generic CloudEvents JSON, but is invalid
+in ASP because an explicit media type prevents translation ambiguity.
+
+The pair `(source, id)` identifies one immutable ASP event occurrence. The same
+pair MUST carry the same `aspeventhash` wherever it is delivered. If
+authorization, resource filtering, redaction, or another material member causes
+two subscribers to receive different projections of one underlying application
+occurrence, the application MUST assign distinct event ids. It MAY reuse one id
+across subscriptions only when the complete occurrence hashing view is equal.
+
+CloudEvents `id`, `source`, `type`, `subject`, and extension attributes are
+descriptive context, not authority. A runtime still authenticates the channel,
+subscription, grant or control binding, and current manifest before acting on
+the event.
+
+### ASP CloudEvents Extension Attributes
+
+ASP defines the following CloudEvents 1.0 extension attributes. Their names use
+the CloudEvents lower-case attribute namespace and their values use the
+CloudEvents type system.
+
+| Attribute | Type | Presence | Meaning |
+| --- | --- | --- | --- |
+| `aspscope` | String | REQUIRED for non-control; absent for control | Exact scope from the matched manifest event declaration. |
+| `aspcontrol` | Boolean | REQUIRED | `false` for grant-authorized application events; `true` only for a defined control event. |
+| `aspsurfacehash` | String | REQUIRED | Exact pinned manifest hash used to interpret `type`, schema, scope, and exposure. |
+| `aspeventhash` | String | REQUIRED | `asp-jcs-sha-256` hash of the immutable occurrence view. |
+| `aspsubid` | String | REQUIRED on delivery | Bound Event Delivery subscription id. |
+| `aspdeliveryid` | String | REQUIRED on delivery | Stable per-subscription delivery id. |
+| `aspattempt` | Integer | REQUIRED on delivery | Positive transmission attempt, starting at `1` and increasing by one. |
+| `aspstream` | String | REQUIRED on delivery | Ordering stream assigned by the application. |
+| `aspsequence` | Integer | REQUIRED on delivery | Positive per-stream sequence from Event Delivery Semantics. |
+| `aspcursor` | String | REQUIRED on delivery | Opaque replay position accompanying this delivery. |
+| `aspaudience` | String | REQUIRED for control; absent for non-control | Authenticated runtime id targeted by the control event. |
+| `aspsessionid` | String | conditional | Session correlation when the occurrence belongs to a specific ASP session. |
+| `aspsessiongen` | Integer | conditional | Positive generation paired with `aspsessionid`. |
+
+`aspsessionid` and `aspsessiongen` MUST appear together or both be absent. They
+are correlation context and MUST match the authoritative session record when a
+current session is required; they never resume or create a session. A control
+event has `aspcontrol: true`, omits `aspscope`, and carries `aspaudience`. A
+non-control event has `aspcontrol: false`, carries `aspscope`, and omits
+`aspaudience`. Null does not satisfy any ASP-required attribute.
+
+Every ASP Integer extension MUST be in the CloudEvents signed 32-bit range and,
+where defined as positive, between `1` and `2147483647` inclusive. Before an
+attempt, stream sequence, or session generation would overflow, the authority
+MUST end the affected delivery, subscription, or session and allocate a new
+identifier. It MUST NOT wrap or reset the value under the same identifier.
+
+When observability context is present, the event uses the standard CloudEvents
+Distributed Tracing `traceparent` and optional `tracestate` extension
+attributes. It MUST NOT define duplicate `asptraceid` or `aspspanid`
+projections. Trace attributes remain diagnostic and never participate in grant,
+session, subscription, or delivery authority.
+
+To compute `aspeventhash`, the producer applies the Canonical Object Hash
+Profile to the complete CloudEvent while omitting `aspeventhash`, the
+delivery-only attributes `aspsubid`, `aspdeliveryid`, `aspattempt`, `aspstream`,
+`aspsequence`, and `aspcursor`, and the diagnostic `traceparent` and
+`tracestate` attributes. All other core and extension attributes and the
+complete `data` value are included. The consumer MUST recompute the hash before
+acknowledging the event as processed.
+
+Only the authenticated application delivery authority may set or change the
+excluded delivery attributes, and the receiver still validates them against
+subscription state. An intermediary may handle the excluded diagnostic
+attributes only as permitted by the CloudEvents Distributed Tracing extension.
+Adding, removing, or changing any other member requires a new `id` and
+recomputed `aspeventhash`; otherwise the result is an integrity failure.
+Unknown extension attributes are never interpreted as ASP authority and MUST
+NOT substitute for a required ASP attribute.
+
+### Serialization and Transport Mapping
+
+An HTTP event endpoint conforming to this profile MUST support CloudEvents JSON
+structured content mode. Its request or delivery body is the complete
+CloudEvent JSON object and its media type is `application/cloudevents+json`.
+Transport authentication, Grant Credentials, proof-of-possession, and
+acknowledgement responses remain outside the CloudEvent body.
+
+The Runtime Bridge JSON binding carries the same object as the complete
+`payload` of the `event.delivery` frame:
+
+```json
+{
+  "type": "event.delivery",
+  "payload": {
+    "specversion": "1.0",
+    "id": "evt_01J2FAILED",
+    "source": "https://code.example.com",
+    "type": "ci.failed",
+    "time": "2026-06-25T16:20:00Z",
+    "subject": "example-org/example-repo/pull/13",
+    "datacontenttype": "application/json",
+    "dataschema": "https://code.example.com/schemas/ci-failed.event.schema.json",
+    "aspscope": "pull_request.read",
+    "aspcontrol": false,
+    "aspsurfacehash": "sha-256:<base64url-digest>",
+    "aspeventhash": "sha-256:<event-digest>",
+    "aspsubid": "sub_01J2EVENTS",
+    "aspdeliveryid": "delivery_01J2FAILED",
+    "aspattempt": 1,
+    "aspstream": "repository:example-org/example-repo",
+    "aspsequence": 42,
+    "aspcursor": "opaque:position-after-42",
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "data": {
+      "repository": "example-org/example-repo",
+      "pull_request": 13,
+      "check": "tests"
+    }
+  }
+}
+```
+
+The frame type is Runtime Bridge routing metadata; `payload` itself is the
+CloudEvent. A direct HTTP structured delivery sends that payload without the
+outer frame. Both forms have identical ASP event and delivery semantics, and an
+acknowledgement repeats the values of `aspsubid`, `aspdeliveryid`, and
+`aspcursor` as `subscription_id`, `delivery_id`, and `cursor`.
+
+CloudEvents HTTP binary content mode and JSON batch mode are outside the core
+ASP binding. An implementation MUST NOT silently translate a structured ASP
+event into either form unless a future negotiated profile defines lossless
+placement of all required attributes and per-delivery acknowledgement state.
+
+### Binding Validation and Security
+
+Before accepting or acknowledging an ASP CloudEvent, a runtime MUST:
+
+1. reject duplicate JSON members and validate the CloudEvents 1.0 required
+   attributes, JSON types, and structured-format rules;
+2. require the ASP core members and extension-presence combinations above;
+3. require `source` to equal the authenticated pinned manifest issuer and
+   `type`, `dataschema`, `aspscope`, and `aspcontrol` to match exactly one event
+   declaration;
+4. require `aspsurfacehash` and all delivery attributes to match the
+   authenticated subscription or control-channel record;
+5. validate `data` against the exact declared schema, apply the complete
+   current grant and resource-filter projection for non-control events, and
+   enforce the Data Exposure Contract over `data` and every context attribute
+   that contains application, user, tenant, or resource semantics;
+6. recompute `aspeventhash`, enforce one hash per `(source, id)`, and apply
+   delivery deduplication before exposing the event to an agent.
+
+A malformed CloudEvent or ASP extension combination fails as `schema_invalid`.
+A supplied event hash, surface hash, issuer, or immutable binding mismatch fails
+as `integrity_mismatch`. Reuse of `(source, id)` with a different valid event
+hash, or reuse of `aspdeliveryid` with different source, id, event hash, stream,
+sequence, or cursor, fails as `event_delivery_conflict`. None of these failures
+MAY fall back to trusting the event payload, a cursor, or a transport header as
+authority.
+
+For a direct single-hop HTTP delivery, CloudEvents `traceparent` and
+`tracestate`, when present, MUST carry the same trace information as their HTTP
+header counterparts. A mismatch makes the tracing binding `schema_invalid`; it
+does not select alternate authorization state. On a multi-hop path the
+CloudEvents attributes preserve the starting event trace while protocol headers
+describe the current hop, as defined by the CloudEvents Distributed Tracing
+extension.
+
+Context attributes can disclose data even when `data` is minimal. The
+application MUST apply declared redaction before placing semantic values in
+`subject`, application-defined extensions, tracing attributes, or other
+occurrence metadata, and MUST declare every disclosed data class. Required ASP
+delivery metadata MUST be opaque or minimally identifying and remains subject
+to the same access-control and retention boundary even when it adds no event
+data class. CloudEvents compatibility never permits an intermediary to route an
+event to a runtime, agent, subject, or grant that ASP would not authorize.
 
 ### Event Subscription Authority
 
@@ -1605,36 +1812,11 @@ unauthorized query MUST NOT reveal whether either exists.
 The `at_least_once` profile separates an occurrence from its delivery. The
 application creates one stable event object for the authorized, redacted
 occurrence and one stable `delivery_id` for that event in each subscription.
-Every transmission of the same delivery increments `attempt` but preserves the
-subscription id, delivery id, event object, stream, sequence, and cursor:
-
-```json
-{
-  "type": "event.delivery",
-  "payload": {
-    "subscription_id": "sub_01J2EVENTS",
-    "delivery_id": "delivery_01J2FAILED",
-    "attempt": 1,
-    "stream": "repository:example-org/example-repo",
-    "sequence": 42,
-    "cursor": "opaque:position-after-42",
-    "event": {
-      "id": "evt_01J2FAILED",
-      "source": "https://code.example.com",
-      "type": "ci.failed",
-      "time": "2026-06-25T16:20:00Z",
-      "subject": "example-org/example-repo/pull/13",
-      "scope": "pull_request.read",
-      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
-      "data": {
-        "repository": "example-org/example-repo",
-        "pull_request": 13,
-        "check": "tests"
-      }
-    }
-  }
-}
-```
+Every transmission of the same delivery increments the CloudEvents
+`aspattempt` value by one but preserves `aspsubid`, `aspdeliveryid`, the
+occurrence view and `aspeventhash`, `aspstream`, `aspsequence`, and `aspcursor`.
+The canonical Runtime Bridge representation is shown in Serialization and
+Transport Mapping.
 
 While the subscription is active and the delivery remains inside its effective
 retention window, the application MUST retransmit an unacknowledged delivery
@@ -1644,9 +1826,9 @@ current authorization or redaction policy can no longer permit the immutable
 projection, the application expires that delivery rather than sending a
 different object under the same `delivery_id`.
 
-The runtime MUST deduplicate on `(subscription_id, delivery_id)` and retain
+The runtime MUST deduplicate on `(aspsubid, aspdeliveryid)` and retain
 enough identity state to distinguish a retry from a conflicting reuse. Seeing
-the same delivery id with a different event identity, content, stream,
+the same delivery id with a different `(source, id)`, `aspeventhash`, stream,
 sequence, or cursor is `event_delivery_conflict`; the runtime MUST NOT process
 either version as a new occurrence and MUST resynchronize. Duplicate delivery
 can still happen after a crash or loss of local deduplication state, so this
@@ -1735,7 +1917,7 @@ The runtime requests replay after a previously issued cursor:
 
 The application MUST authenticate the subscription before resolving the
 cursor. Replayed records retain their original event and delivery identities,
-stream, sequence, and cursor; `attempt` increments for another transmission.
+stream, sequence, and cursor; `aspattempt` increments for another transmission.
 The runtime applies ordinary deduplication and acknowledgement rules. Replay
 does not reactivate an interrupted or terminal ASP session, and receiving an
 event does not authorize a session transition.
@@ -4002,6 +4184,12 @@ representing 8 bytes and MUST NOT be all zero. These are projections of the W3C
 the ASP lifecycle and accounting context and MUST continue to be validated
 independently.
 
+The CloudEvents event binding is the exception to those JSON projection names:
+an event uses the standard CloudEvents `traceparent` and optional `tracestate`
+extensions and MUST NOT also carry `trace_id` or `span_id`. A runtime derives
+the starting trace and producer span from valid `traceparent` when it records
+the event locally.
+
 When an implementation claims the Application Runtime or Receipt-Producing
 profile, its `session.start`, `action.request`, `action.result`, and receipt
 envelopes MUST carry `session_id`, `session_generation`, `trace_id`, and the
@@ -4024,11 +4212,12 @@ share `trace_id`, `session_id`, and `session_generation` but have different
 
 An intermediary is allowed to create another span, so a receiver MUST NOT
 require the JSON `span_id` to equal the `parent-id` in the HTTP header after
-intermediation. For local processing, a valid `traceparent` takes precedence
-over the JSON projection. If no valid header exists and a verified parent
-receipt is available, the receiver continues the parent receipt's `trace_id`
-with a new span. Otherwise it uses a valid JSON `trace_id` or starts a new
-trace, in that order.
+intermediation. For non-CloudEvent ASP JSON, a valid `traceparent` takes
+precedence over the JSON projection. If no valid header exists and a verified
+parent receipt is available, the receiver continues the parent receipt's
+`trace_id` with a new span. Otherwise it uses a valid JSON `trace_id` or starts
+a new trace, in that order. Direct CloudEvents delivery instead follows the
+single-hop and multi-hop consistency rules in Binding Validation and Security.
 
 If the selected processing trace differs from a verified parent receipt's
 trace because an intermediary or trust boundary restarted it, the child receipt
@@ -4974,16 +5163,27 @@ with this minimum envelope:
 
 ```json
 {
+  "specversion": "1.0",
   "id": "event_01J2ABCDEF",
+  "source": "https://code.example.com",
   "type": "grant.revoked",
-  "occurred_at": "2026-06-25T18:30:00Z",
-  "issuer": "https://code.example.com",
-  "audience": "application_runtime_456",
-  "payload": {
+  "time": "2026-06-25T18:30:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "https://code.example.com/schemas/grant-revoked.event.schema.json",
+  "aspcontrol": true,
+  "aspaudience": "application_runtime_456",
+  "aspsurfacehash": "sha-256:<base64url-digest>",
+  "aspeventhash": "sha-256:<event-digest>",
+  "aspsubid": "control_application_runtime_456",
+  "aspdeliveryid": "delivery_01J2REVOKED",
+  "aspattempt": 1,
+  "aspstream": "runtime:application_runtime_456",
+  "aspsequence": 7,
+  "aspcursor": "opaque:control-position-after-7",
+  "data": {
     "grant_id": "grant_123",
     "grant_hash": "sha-256:<base64url-digest>",
     "app_id": "code.example.com",
-    "surface_hash": "sha-256:<base64url-digest>",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
     "passport_hash": "sha256:...",
@@ -4996,19 +5196,21 @@ with this minimum envelope:
 }
 ```
 
-Required event fields are `id`, `type`, `occurred_at`, `issuer`, `audience`, and
-`payload`. The payload MUST contain `grant_id`, `grant_hash`, `app_id`,
-`surface_hash`, `runtime_id`, `agent_id`, `passport_hash`, `revoked_at`,
-`effective_at`, `reason`, and
-`cascade`; `parent_grant_id` is REQUIRED for a child grant and otherwise MAY be
-null. Defined reason values are `user_revoked`, `application_revoked`,
+The event MUST satisfy the CloudEvents 1.0.2 Event Binding and control-event
+extension rules. `source` is the manifest issuer, `time` is the revocation
+occurrence time, `aspaudience` identifies the target runtime, and
+`aspsurfacehash` identifies the retained manifest snapshot. `data` MUST contain
+`grant_id`, `grant_hash`, `app_id`, `runtime_id`, `agent_id`, `passport_hash`,
+`revoked_at`, `effective_at`, `reason`, and `cascade`; `parent_grant_id` is
+REQUIRED for a child grant and otherwise MAY be null. `data.runtime_id` MUST
+equal `aspaudience`. Defined reason values are `user_revoked`, `application_revoked`,
 `runtime_revoked`, `credential_compromise`, `parent_revoked`, `policy_changed`,
 and `superseded`. A runtime MUST still enforce revocation when it receives an
 unknown future reason value and MAY preserve that value as opaque audit data.
 
 The event MUST be delivered over an application-authenticated event channel
 bound to the manifest issuer and target runtime. The runtime MUST verify
-`issuer`, `audience`, tuple binding, and channel authenticity before acting on
+`source`, `aspaudience`, tuple binding, and channel authenticity before acting on
 it. Delivery of this control event MUST use event-channel authority independent
 of the revoked grant and MUST disclose no more grant data than the target
 runtime already possessed. Under the Event Delivery Semantics profile it is
@@ -5017,7 +5219,7 @@ retains the same event and delivery identity across retries. A future signing
 profile MAY additionally define an application signature for portable event
 verification.
 
-The runtime MUST compare event `grant_hash` and `surface_hash` with its retained
+The runtime MUST compare `data.grant_hash` and `aspsurfacehash` with its retained
 grant and manifest snapshot. If an authenticated event matches the stored
 `grant_id` and delegate tuple but either hash differs, the runtime MUST fail
 closed: mark the stored grant inactive, record `integrity_mismatch`, and
@@ -5030,8 +5232,8 @@ discard cached active introspection state, stop new actions and credential use,
 discard cached execution tokens and reservation state, cancel or downgrade
 affected sessions according to app policy, cascade the state to locally tracked
 child grants, and record a runtime receipt. Event processing is idempotent by
-`issuer` and `id`, while transport retry is deduplicated by subscription and
-delivery id. A duplicate event MUST NOT create duplicate receipts or repeat
+`source` and `id`, while transport retry is deduplicated by `aspsubid` and
+`aspdeliveryid`. A duplicate event MUST NOT create duplicate receipts or repeat
 external side effects. The runtime terminally acknowledges the control delivery
 only after this fail-closed transition or authoritative resynchronization has
 begun.
@@ -5119,7 +5321,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `grant_expired` | Grant has expired. |
 | `grant_revoked` | Grant was revoked. |
 | `grant_proof_invalid` | Grant credential or proof is missing, invalid, or not bound correctly. |
-| `integrity_mismatch` | A supplied surface, grant, input, execution, precondition, effect, policy-decision, receipt, or parent hash does not match its complete hashing view or authoritative projection. |
+| `integrity_mismatch` | A supplied surface, grant, event, input, execution, precondition, effect, policy-decision, receipt, or parent hash does not match its complete hashing view or authoritative projection. |
 | `scope_denied` | Grant scope does not permit the action. |
 | `resource_denied` | Grant constraints do not permit the target resource. |
 | `approval_required` | Required approval is absent. |
@@ -5516,6 +5718,8 @@ An application conforms to the Surface-Only profile when it:
   only
 - declares the `at_least_once` delivery contract whenever it publishes an event
   subscription endpoint
+- declares every event type and schema so it can be mapped without ambiguity to
+  the CloudEvents 1.0.2 ASP binding
 - provides `propose` actions or read-only resources
 
 ### Grant-Enforcing Application
@@ -5532,6 +5736,9 @@ An application conforms to the Grant-Enforcing profile when it:
   rechecks authorization and exposure before delivery, and implements
   at-least-once retry, per-stream ordering, acknowledgement, replay, retention,
   explicit gaps, and bounded in-flight delivery
+- emits valid CloudEvents 1.0.2 JSON event objects, recomputable
+  `aspeventhash` values, and extension attributes consistent with the pinned
+  manifest and authoritative subscription or control record
 - validates `grant_hash` and binds the grant to the exact verified
   `surface_hash` snapshot
 - validates static execution mode, companion authority, execution context and
@@ -5665,6 +5872,9 @@ An application runtime conforms to this profile when it:
 - durably deduplicates event deliveries, acknowledges only after its processing
   decision is stable, preserves opaque cursors, applies explicit gap recovery,
   and enforces negotiated event backpressure
+- validates the CloudEvents 1.0.2 JSON binding, ASP extension combinations,
+  event hash, manifest mapping, schema, authority, and exposure before exposing
+  event data to an agent
 - computes and validates grant, execution, effect, policy-decision, and receipt
   hashes; propagates session id and generation and W3C-compatible trace context
 - records session id and generation, trace id, and producer span id in local
@@ -5798,6 +6008,14 @@ To support Agent Surface Protocol, the next slices are:
   <https://modelcontextprotocol.io/specification/2025-06-18>
 - Agent Client Protocol Overview:
   <https://agentclientprotocol.com/protocol/v1/overview>
+- CloudEvents 1.0.2:
+  <https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md>
+- CloudEvents JSON Event Format 1.0.2:
+  <https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/formats/json-format.md>
+- CloudEvents HTTP Protocol Binding 1.0.2:
+  <https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/bindings/http-protocol-binding.md>
+- CloudEvents Distributed Tracing extension 1.0.2:
+  <https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/extensions/distributed-tracing.md>
 - OAuth 2.0:
   <https://www.rfc-editor.org/rfc/rfc6749>
 - OAuth 2.0 Proof Key for Code Exchange:

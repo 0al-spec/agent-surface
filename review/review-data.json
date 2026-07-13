@@ -1396,20 +1396,70 @@
           "anchorId": "events"
         },
         {
+          "heading": "CloudEvents 1.0.2 Event Binding",
+          "anchorId": "cloudevents-1-0-2-event-binding"
+        },
+        {
+          "heading": "ASP CloudEvents Extension Attributes",
+          "anchorId": "asp-cloudevents-extension-attributes"
+        },
+        {
+          "heading": "Serialization and Transport Mapping",
+          "anchorId": "serialization-and-transport-mapping"
+        },
+        {
+          "heading": "Binding Validation and Security",
+          "anchorId": "binding-validation-and-security"
+        },
+        {
           "heading": "Sessions and Actions",
           "anchorId": "sessions-and-actions"
         }
       ],
-      "status": "missing",
-      "rationale": "ASP определяет typed events со schema и scope, но CloudEvents envelope или эквивалентный canonical envelope отсутствует.",
+      "status": "present",
+      "rationale": "RFC pin-ит CloudEvents 1.0.2 JSON structured mode, задаёт exact core mapping и ASP extensions, occurrence hash, HTTP/bridge serialization, validation order, conflict rules и authority boundary.",
       "priority": "P2",
       "profile": "events-sessions",
       "depends_on": [
-        13
+        13,
+        26
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "event"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "3-runtime-bridge-protocol"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "events"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "cloudevents-1-0-2-event-binding"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "asp-cloudevents-extension-attributes"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "serialization-and-transport-mapping"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "binding-validation-and-security"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "sessions-and-actions"
+        }
+      ]
     },
     {
       "id": 26,
