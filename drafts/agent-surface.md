@@ -6248,10 +6248,9 @@ result as binding the other candidates.
 `grant_id`, `grant_hash`, `subject`, `credential_binding`, `data_exposure`, and
 server-derived `delegate.runtime_identity` and `delegate.runtime_attestation`
 are invalid in a request and MUST NOT be silently removed from malformed input
-merely to compute a hash. OAuth
-parameters, redirect URIs, PKCE values, client authentication, user-interface
-labels, raw Passport artifacts, and local policy state are not semantic Grant
-Object members and are not included.
+merely to compute a hash. OAuth parameters, redirect URIs, PKCE values, client
+authentication, user-interface labels, raw Passport artifacts, and local policy
+state are not semantic Grant Object members and are not included.
 
 The runtime computes each candidate's `grant_request_hash` with the Canonical
 Object Hash Profile and the domain above. The value identifies the exact
@@ -6508,12 +6507,12 @@ kind, and subject id.
 `valid_until` MUST be no later than the earliest Passport status deadline,
 policy or inventory freshness deadline, runtime-identity freshness deadline,
 locally evaluated Runtime Attestation input deadline, or local maximum matching
-TTL used by any candidate decision. The complete
-result becomes stale when that time passes or when the manifest tuple, semantic
-Grant request semantics or any candidate hash, runtime identity tuple, selected
-attestation profile or proof-key capability, candidate Passport tuple or status,
-agent or adapter inventory, local or enterprise policy, or user preferences no
-longer exactly match the recorded binding.
+TTL used by any candidate decision. The complete result becomes stale when that
+time passes or when the manifest tuple, common Grant request semantics or any
+candidate hash, runtime identity tuple, selected attestation profile or
+proof-key capability, candidate Passport tuple or status, agent or adapter
+inventory, local or enterprise policy, or user preferences no longer exactly
+match the recorded binding.
 
 A stale result MUST NOT be used to select a candidate, populate a new Consent
 Preview, or justify a Grant request. The runtime recomputes the complete result;
@@ -6546,8 +6545,9 @@ independently recompute the data-exposure projection, verify that the hash
 equals the selected candidate's `grant_request_hash` and that all bindings still
 match, and derive a fresh Consent Preview. Adding a suggested scope or action
 changes every candidate hash; adding or changing a candidate requires a new
-result entry. Either change requires a fresh match result. The authorization server
-independently verifies the selected tuple and obtains issuer-side consent.
+result entry. Either change requires a fresh match result. The authorization
+server independently verifies the selected tuple and obtains issuer-side
+consent.
 
 ## Observability Context
 
