@@ -249,10 +249,14 @@ application does not own or silently choose it.
 
 ### Runtime
 
-The local or user-controlled system that hosts, launches, supervises, or mediates
-the user's agent. A runtime can be embedded in an application, delivered as a
-companion bridge or daemon, provided by an operating system service, implemented
-by a browser extension, or hosted in a user-controlled environment.
+The system that hosts, launches, supervises, or mediates the user's selected
+agent. A runtime can be local, user-controlled, enterprise-managed,
+application-operated, or supplied by a remote service. A runtime can be embedded
+in an application, delivered as a companion bridge or daemon, provided by an
+operating system service, implemented by a browser extension, or hosted in a
+separate execution environment. Deployment location, operator, authentication
+method, management posture, and assurance are distinct properties; none is
+implied merely by calling a component a Runtime.
 
 When the runtime is part of a concrete application implementation, this draft
 refers to it as an **application runtime**.
@@ -1165,7 +1169,10 @@ surface discoverable.
   "surface_url": "https://example.com/.well-known/agent-surface.json",
   "compatibility": {
     "min_runtime": "application-runtime/0.1",
-    "schema_dialect": "https://json-schema.org/draft/2020-12/schema"
+    "schema_dialect": "https://json-schema.org/draft/2020-12/schema",
+    "runtime_identity_profiles": [
+      "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1"
+    ]
   },
   "auth": {
     "type": "oauth2",
@@ -1439,6 +1446,15 @@ surface discoverable.
   }
 }
 ```
+
+`compatibility.runtime_identity_profiles`, when present, MUST be a non-empty
+array of unique collision-resistant profile identifiers. It advertises the
+runtime identity profiles the authorization server can authenticate, project
+into an Agent Grant, and revalidate at protected-resource time. A runtime MUST
+NOT infer support from an OAuth client registration, a credential format, or a
+human-readable deployment label. Absence means that this manifest requires only
+the base app-scoped `delegate.runtime` binding; it does not mean that the
+runtime is anonymous or attested.
 
 `audit.required_fields` advertises the non-conditional minimum for application
 receipts and MUST NOT weaken the Receipt Requirements profile. Conditional
@@ -3787,6 +3803,240 @@ application MUST NOT repeat the side effect and MUST report
 `integrity_mismatch` rather than attaching the original result to a competing
 provenance chain.
 
+## Runtime Identity Profile
+
+The base protocol identifies a runtime with the application-scoped
+`delegate.runtime` value. Applications that need interoperable information
+about how that runtime was authenticated, managed, or deployed MAY additionally
+use the Runtime Identity Profile defined here. Its collision-resistant profile
+identifier is:
+
+```text
+https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1
+```
+
+The profile separates five properties that implementations MUST NOT flatten
+into one ranked "identity class":
+
+1. the stable application binding for the runtime;
+2. the authentication method used for that binding;
+3. the runtime's verified management posture;
+4. the declared or verified execution locality; and
+5. optional assurance results such as hardware-backed attestation.
+
+Authentication, management, locality, and assurance are evidence inputs to
+authorization policy. They do not grant actions, locations, scopes, resources,
+or approval bypasses. A policy MAY require an exact combination, but this
+profile defines no ordering such as SPIFFE being stronger than device
+registration or enterprise management implying hardware assurance.
+
+### Runtime Identity Projection
+
+When this profile is selected, the authorization server MUST derive the
+following output-only `delegate.runtime_identity` object from its authenticated
+runtime record:
+
+```json
+{
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
+  "binding_id": "rbind_01J2D7M2V6Z91Y2R3B4C5D6E7F",
+  "claims_revision": 3,
+  "authentication": {
+    "method": "spiffe",
+    "format": "x509_svid"
+  },
+  "management": {
+    "posture": "enterprise_managed",
+    "authority_id": "org_7f3a"
+  },
+  "execution": {
+    "locality": "shared_remote",
+    "verification": "registered"
+  },
+  "assurance": []
+}
+```
+
+`binding_id` MUST be a collision-resistant, opaque, application-and-tenant
+scoped identifier. It is immutable and MUST NOT be reassigned to another
+runtime identity. `claims_revision` MUST be a positive integer no greater than
+`9007199254740991`. It changes only when a material projected claim changes;
+ordinary rotation of a short-lived credential with the same verified subject
+and projection does not change it.
+
+The authorization server MUST maintain an authoritative record that maps the
+pair (`delegate.runtime`, `binding_id`) to the exact external issuer and
+subject, current authentication credentials, complete projected object,
+revision, and active, suspended, or revoked state. External subjects and raw
+credentials are not Grant Object fields. The same `binding_id` MUST NOT be
+accepted under another runtime, tenant, or application.
+
+The profile object is closed. `profile`, `binding_id`, `claims_revision`,
+`authentication`, `management`, `execution`, and `assurance` are REQUIRED, and
+unknown members are forbidden. An extension that adds members or enum values
+MUST use a different collision-resistant profile identifier and define its
+complete validation and comparison rules.
+
+### Authentication Methods
+
+`authentication.method` is exactly one of `registered_device`, `spiffe`, or
+`oidc_workload`. A new method requires a new collision-resistant Runtime
+Identity Profile identifier with complete validation rules. One Grant selects
+exactly one active authentication binding. A runtime or application MUST NOT
+fall back to a different method or subject while retaining the Grant; it
+requires renewal and fresh consent.
+
+For `registered_device`, `authentication.format` MUST be `public_key`. The
+`authentication` object MUST contain exactly `method` and `format`. The
+enrollment procedure MUST bind `delegate.runtime` and `binding_id` to a public
+key after proof of possession and explicit confirmation by the authenticated
+application account or user. A display name, model, serial number, cookie, or
+OAuth Device Authorization Grant alone is not proof of device identity or key
+possession. RFC 8628 MAY supply the user interaction for enrollment, but the
+application still performs the binding and proof checks. Key rotation preserves
+the binding only through an authenticated continuity or recovery procedure;
+otherwise the application creates a new `binding_id`.
+
+For `spiffe`, `authentication.format` MUST be `x509_svid` or `jwt_svid`, the
+`authentication` object MUST contain exactly `method` and `format`, and the
+stable external subject in the authoritative record is the exact SPIFFE ID. An
+X.509-SVID validator MUST validate the certificate chain against the applicable
+trust-domain bundle, the leaf constraints, and the requirement for exactly one
+URI SAN containing the SPIFFE ID. It MUST also authenticate proof of possession
+of the corresponding private key through successful mutual TLS at the intended
+authorization-server endpoint or through another negotiated profile that binds
+a fresh challenge, endpoint context, and selected SPIFFE ID. Merely receiving a
+copy of a valid certificate does not authenticate a runtime. A JWT-SVID
+validator MUST validate the signature, exact `sub`, narrowly scoped exact
+`aud`, and expiration under the applicable trust domain. A JWT-SVID is a bearer
+credential and MUST NOT be represented as sender-constrained merely because it
+is an SVID. The SPIFFE path is opaque to ASP: an implementation MUST NOT infer
+tenant, operator, management posture, locality, or hardware assurance from path
+segments or arbitrary claims.
+
+For `oidc_workload`, `authentication.assertion_profile` is REQUIRED and MUST be
+a collision-resistant identifier for a concrete workload or client-assertion
+profile. The `authentication` object MUST contain exactly `method` and
+`assertion_profile` and MUST omit `format`. A generic OpenID Connect ID Token is
+defined for End-User authentication and MUST NOT by itself be accepted as
+workload identity. The
+named assertion profile MUST define trusted issuer or federation-anchor
+resolution, allowed signature algorithms, exact `iss`, stable exact `sub`,
+narrow exact `aud`, time validation, and replay handling. Email addresses,
+display names, and other mutable claims MUST NOT be stable runtime subjects. An
+RFC 7523 client assertion or another explicitly profiled workload assertion can
+satisfy this method; an arbitrary signed JWT cannot.
+
+The selected runtime authentication key and the Grant Credential
+proof-of-possession key are logically separate. They MAY be the same key only
+when both profiles permit that use, but implementations MUST NOT assume or infer
+that equality.
+
+### Management, Locality, and Assurance
+
+`management.posture` is exactly one of `unmanaged`, `user_managed`,
+`enterprise_managed`, `application_managed`, or `third_party_managed`.
+`enterprise_managed`, `application_managed`, and `third_party_managed` require
+an opaque, application-scoped `authority_id` derived from verified management
+evidence. The `management` object MUST contain exactly `posture` and, for those
+three values, `authority_id`. `unmanaged` and `user_managed` MUST omit
+`authority_id`; self-asserted management labels MUST NOT produce a managed
+posture.
+
+`execution.locality` is exactly one of `user_device`, `dedicated_remote`,
+`shared_remote`, or `application_embedded`. `execution.verification` is exactly
+one of `declared`, `registered`, or `attested`. `declared` cannot satisfy a
+policy that requires verified locality. `registered` means only that the
+application has recorded and authenticated the locality claim; it is not
+continuous attestation. `attested` requires at least one current `assurance`
+entry whose named profile explicitly covers execution locality.
+The `execution` object MUST contain exactly `locality` and `verification`.
+
+`assurance` is a unique array of objects ordered lexicographically by the UTF-8
+values of `type`, then `profile`, then `verifier_id`. An assurance object MUST
+contain exactly those three non-empty strings and no raw evidence. The reserved
+`hardware_attested` type can appear only when the application has evaluated a
+separately negotiated Runtime Attestation Profile that defines the verifier,
+evidence format, freshness, reference values, and revocation behavior. SPIFFE,
+device registration, an MDM record, a TPM-backed key, or a managed posture alone
+MUST NOT produce `hardware_attested`.
+
+### Issuance and Grant Binding
+
+A client selects this profile in a semantic Grant request with the request-only
+member:
+
+```json
+{
+  "delegate": {
+    "runtime": "application_runtime_456",
+    "runtime_identity_profile": "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
+    "agent": "local_agent_789",
+    "passport_hash": "sha256:..."
+  }
+}
+```
+
+The client MUST NOT supply `delegate.runtime_identity`, `binding_id`,
+`claims_revision`, a management posture, locality verification, or assurance.
+The authorization server authenticates the runtime, verifies that the requested
+profile was advertised, derives the exact projection, removes the request-only
+`runtime_identity_profile` selector, and returns `delegate.runtime_identity` in
+the authoritative Grant Object. It MUST reject a selector it cannot satisfy;
+it MUST NOT silently issue an unprofiled or differently profiled Grant.
+
+When `delegate.runtime_identity` is present, `credential_binding` MUST repeat
+its `binding_id` as `runtime_identity_binding_id` and its `claims_revision` as
+`runtime_identity_claims_revision`. The server MUST include the complete
+projection and both repeated values in `grant_hash`. Returned Rich Authorization
+Request details, token-exchange responses, introspection responses, and
+server-side session state MUST preserve the exact projection. A mismatch among
+those copies is `integrity_mismatch`.
+
+Before issuance, the authorization server MUST verify that the exact
+(`delegate.runtime`, `binding_id`) record is active, belongs to the authenticated
+client and tenant context, and has the projected revision and claims. It MUST
+perform the same current-state check before every protected action. Identity
+evidence can deny or constrain a Grant, but the issuer MUST NOT add scopes,
+actions, resources, or approval exceptions because a method, posture, locality,
+or assurance appears stronger.
+
+A child Grant for the same runtime MAY retain the exact projection subject to
+ordinary attenuation. A child Grant that names a different runtime MUST have
+that runtime's independently authenticated `runtime_identity`; it MUST NOT copy
+the parent runtime's binding, claims, management posture, or assurance.
+
+### Rotation, Suspension, and Revocation
+
+Refreshing a credential, SVID, or assertion for the same verified external
+subject and exact projected claims retains `binding_id` and `claims_revision`.
+A change of authentication method or external subject creates a new binding. A
+change of management posture or authority, locality, verification level, or
+assurance creates a new revision at minimum. A material downgrade MUST suspend
+affected Grants and sessions until the user completes renewal and fresh
+consent; it MUST NOT be treated as a transparent refresh.
+
+Expired or temporarily unavailable identity evidence makes the binding
+inactive and causes protected actions and introspection to fail closed. A later
+successful refresh for the same subject and projection MAY restore the same
+binding and Grant without changing `grant_hash`. Permanent revocation of the
+runtime binding MUST reject new actions, fence or cancel affected sessions,
+apply the Semantic Grant Revocation Transition to every bound Grant and derived
+Grant, and make introspection return `{"active":false}`. Revocation of one
+binding MUST NOT affect an unrelated runtime merely because both use the same
+authentication method or management authority.
+
+### Runtime Identity Privacy
+
+The Grant, introspection response, receipts, events, traces, consent records,
+and ordinary logs MUST NOT contain the external workload subject, raw SVID,
+certificate, JWT, MDM record, attestation evidence, device serial, hardware key
+handle, or reusable enrollment or recovery material. The application MAY expose
+only the app-scoped runtime identifier, opaque binding identifier, sanitized
+facets, claims revision, and a user-meaningful operator label derived from its
+authenticated local state. A display label is not authority and MUST NOT replace
+`authority_id` or another verified machine value.
+
 ## Agent Grant
 
 ### Grant Object
@@ -3915,6 +4165,12 @@ OAuth `authorization_details` uses this same shape with the additional RFC 9396
 runtime, agent, and passport tuple. A DPoP binding MUST additionally contain
 `jkt`; an mTLS binding MUST instead contain `x5t#S256`. Those values use the
 same encoding and semantics as the corresponding standard `cnf` members.
+When the Runtime Identity Profile is selected, `delegate.runtime_identity` is
+also authorization-server output and `credential_binding` MUST repeat its
+binding id and claims revision as defined by that profile. The request-only
+`delegate.runtime_identity_profile` selector is the sole exception to the
+otherwise shared request and Grant Object field shape; it MUST NOT remain in the
+authoritative Grant.
 `data_exposure` is also authorization-server output. It is the complete
 effective projection derived under the Data Exposure Contract and does not
 grant authority independent of the action, scope, location, and resource
@@ -4198,7 +4454,9 @@ The runtime MUST derive the preview exclusively from:
 - the exact proposed semantic Agent Grant request; the OAuth profile represents
   this request as `authorization_details`, while another issuance model MUST
   preserve the same Grant Object field semantics;
-- the verified runtime, agent, and passport tuple; and
+- the verified runtime, agent, and passport tuple, including the selected
+  Runtime Identity Profile and locally authenticated projection when present;
+  and
 - the complete Data Exposure Contract projection recomputed for the requested
   actions and scopes.
 
@@ -4214,7 +4472,12 @@ confirms:
 - application identity, issuer, surface version, and an inspectable surface
   hash;
 - runtime identity, agent identity, passport hash, and the kind of passport
-  evidence verified;
+  evidence verified; when a Runtime Identity Profile is selected, the preview
+  MUST show the requested profile and every locally authenticated identity
+  facet; if the app-scoped binding id, claims revision, or complete server
+  projection is not yet available, the preview MUST label it unresolved and
+  state that a second local confirmation of the returned projection is required
+  before storage or use;
 - exact action identifiers, scopes, locations, and resource filters;
 - absolute expiration time, human-readable duration, budgets, and other
   constraints;
@@ -4264,12 +4527,13 @@ confirmed -> request sent -> granted | rejected
 ```
 
 Any change to issuer, application, surface hash, runtime-agent-passport tuple,
-actions, scopes, locations, resource filters, constraints, budgets, expiration,
-credential profile, receipt requirements, execution or effect declarations,
-or resolved exposure contracts makes the preview stale. A stale preview MUST
-be regenerated and confirmed again before a request is sent or a returned grant
-is stored or used. Decline terminates the local flow; the runtime MUST NOT
-continue authorization in the background.
+Runtime Identity Profile, binding id, claims revision or projected identity
+facet, actions, scopes, locations, resource filters, constraints, budgets,
+expiration, credential profile, receipt requirements, execution or effect
+declarations, or resolved exposure contracts makes the preview stale. A stale
+preview MUST be regenerated and confirmed again before a request is sent or a
+returned grant is stored or used. Decline terminates the local flow; the runtime
+MUST NOT continue authorization in the background.
 Changing a runtime-local operator, processing-path, concrete proof-method, or
 proof-key assertion that was shown to the user also makes the local preview
 stale, even when it does not alter the semantic Grant request. That local
@@ -4289,13 +4553,22 @@ operator, processing-path, concrete proof-method, or proof-key assertion
 changed, the runtime MUST regenerate the local preview for the returned grant
 and obtain fresh local confirmation before storage or use; it does not treat
 that assertion as new grant authority.
+If the pre-request preview marked any Runtime Identity Profile output
+unresolved, the runtime MUST likewise regenerate the preview with the complete
+returned projection and obtain fresh local confirmation before storage or use.
+The grant issuer still derives its own consent view from that exact projection;
+neither local confirmation is issuer-side authorization evidence.
 
 The returned object adds grant-issuer output such as `grant_id`,
 subject, credential binding, effective exposure projection, and `grant_hash`.
 It MAY be a semantically narrower valid subset under this comparison:
 
 - issuer, `app_id`, surface version and hash, runtime id, agent id, passport
-  hash, and requested credential profile MUST remain exactly equal;
+  hash, and requested credential profile MUST remain exactly equal; when the
+  Runtime Identity Profile was selected, a returned projection that was already
+  locally authenticated MUST remain exactly equal, an unresolved projection
+  requires the second confirmation above, and its repeated credential-binding
+  values MUST always match;
 - returned actions, scopes, and locations MUST be set subsets of the confirmed
   values and MUST remain closed over required companion actions;
 - `expires_at` MAY be no later. A returned `budgets` object MUST retain every
@@ -4459,6 +4732,7 @@ Example, shown decoded from its form-encoded authorization request parameter:
     "actions": ["pull_request.get", "comment.create"],
     "delegate": {
       "runtime": "application_runtime_456",
+      "runtime_identity_profile": "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
       "agent": "local_agent_789",
       "passport_ref": "agent-passport://local-agent",
       "passport_hash": "sha256:..."
@@ -4495,7 +4769,9 @@ are the authoritative Grant Object wire shape defined above:
 - `type`, `delegate`, `resource_server`, `scopes`, `constraints`,
   `credential_profile`, and `audit` are REQUIRED.
 - `delegate` MUST contain `runtime`, `agent`, and `passport_hash`; it MAY contain
-  `passport_ref`.
+  `passport_ref` and the request-only `runtime_identity_profile` selector. It
+  MUST NOT contain the server-derived `runtime_identity` projection in a
+  request.
 - `resource_server` MUST contain `app_id`, `issuer`, `surface_version`, and the
   verified `surface_hash`.
 - `constraints` MUST contain `expires_at`; other fields use the semantics of the
@@ -4509,10 +4785,9 @@ are the authoritative Grant Object wire shape defined above:
   invoked action MUST be a member. The authorization applies to the product of
   the granted actions, locations, scopes, and resource filters; every allowed
   combination MUST be published by the surface and semantically compatible.
-- `grant_id`, `grant_hash`, `subject`, `credential_binding`, and
-  `data_exposure` MUST NOT be supplied by the client in an authorization
-  request; they are
-  authorization-server output.
+- `grant_id`, `grant_hash`, `subject`, `credential_binding`, `data_exposure`,
+  and `delegate.runtime_identity` MUST NOT be supplied by the client in an
+  authorization request; they are authorization-server output.
 - A client MAY request an `audit.receipt_signing` profile and signer roles, but
   it MUST NOT supply authoritative `signer_keys`. Before issuance, the
   authorization server MUST reject a request containing those entries, derive
@@ -4525,9 +4800,10 @@ are the authoritative Grant Object wire shape defined above:
 The authorization server MUST reject unknown fields, unknown action or scope
 values, a mismatched `resource_server.app_id` or
 `resource_server.surface_version`, a mismatched `resource_server.surface_hash`,
-an unverified passport hash, an action set that is not closed over required
-companion dependencies, or constraints that are invalid for the published
-surface. It MUST use the RFC 9396
+an unverified passport hash, an unadvertised or unsatisfied runtime identity
+profile, a client-supplied runtime identity projection, an action set that is
+not closed over required companion dependencies, or constraints that are
+invalid for the published surface. It MUST use the RFC 9396
 `invalid_authorization_details` error for malformed or unsupported Agent Grant
 authorization details.
 
@@ -4550,8 +4826,10 @@ resource server MUST reject a credential when the two representations conflict.
 
 The authorization server's consent view MUST satisfy the Consent Preview
 Contract's material-semantics and untrusted-label requirements using its own
-verified copy of the request and pinned manifest. The user MAY approve a strict
-subset. The authorization server
+verified copy of the request and pinned manifest. When a Runtime Identity
+Profile is selected, that view MUST include the complete sanitized projection
+the server derived from the authenticated runtime record; raw identity evidence
+remains hidden. The user MAY approve a strict subset. The authorization server
 MUST present each required companion closure as one approval group. It MUST
 materialize the exact approved action stages in the returned `actions`
 allow-list, reject a selection that breaks required closure, compare the
@@ -4566,6 +4844,9 @@ authoritative `grant_id`, `subject`, delegate binding, effective constraints,
 the authorization server. The
 authorization server and resource server MUST retain or receive the same
 granted object for later action verification and introspection.
+When the request selected a Runtime Identity Profile, the returned object MUST
+remove the request-only selector and contain the exact server-derived
+`delegate.runtime_identity` and repeated credential-binding values.
 
 #### OAuth Token Exchange Profile
 
@@ -4748,6 +5029,12 @@ For an inactive, unknown, or undisclosable credential, the response MUST be:
 
 It MUST NOT reveal whether the credential was unknown, expired, revoked, or
 outside the caller's authority.
+
+A credential bound to a Runtime Identity Profile is inactive whenever the
+authorization server cannot prove that the exact runtime binding and claims
+revision remain active. Temporary evidence unavailability, suspension, and
+revocation all use the same `{"active":false}` response and do not disclose
+which identity check failed.
 
 For an active Grant Credential, the response MUST include the RFC 7662 fields
 `active`, `client_id`, `scope`, `token_type`, `exp`, `iat`, `sub`, `aud`, and
@@ -4976,6 +5263,13 @@ grant when the parent grant expires, is revoked, or loses the authority from
 which the child grant was derived. A parent grant or credential MUST NOT be
 forwarded as implicit subdelegation.
 
+When the parent selected a Runtime Identity Profile, a child bound to the same
+runtime MUST retain the exact active runtime identity projection or obtain a
+new Grant after a material identity change. A child bound to another runtime
+MUST use that runtime's independently authenticated projection and binding; it
+MUST NOT inherit the parent's authentication method, management posture,
+locality, assurance, binding id, or claims revision.
+
 Child budget limits MUST retain every inherited member with an equal or smaller
 limit, and every charge or occupied slot consumes the child and ancestor
 ledgers. A child MAY add a supported standard dimension as a further
@@ -5001,6 +5295,9 @@ Applications MUST verify every action against grant state:
 - grant credential or proof is valid
 - grant is bound to the user
 - grant is bound to the runtime
+- when `delegate.runtime_identity` is present, its complete projection and
+  repeated credential-binding values match the authoritative active runtime
+  record at the exact claims revision
 - grant is bound to the agent/passport hash
 - credential-binding method and proof-of-possession requirements are satisfied
 - for DPoP, the proof is request-bound and within the limited acceptance window;
@@ -6803,7 +7100,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `risk_denied` | Local or app policy denied the risk class. |
 | `data_exposure_violation` | An application-originated payload contains an undeclared data class or violates its redaction or retention contract. |
 | `passport_invalid` | Agent Passport is missing, expired, revoked, or invalid. |
-| `runtime_untrusted` | Runtime binding or attestation is not accepted. |
+| `runtime_untrusted` | Runtime authentication cannot be mapped to the exact active runtime identity projection, or a required posture, locality, or assurance is absent, stale, suspended, revoked, or mismatched. |
 | `surface_incompatible` | A required surface version, profile, or action declaration is unsupported or internally inconsistent and cannot be interpreted safely. |
 | `proposal_required` | The app only supports proposal mode for this action or grant. |
 | `session_invalid` | Session is unknown, non-active, stale-generation, or not bound to the complete tuple selected by the presented credential. |
@@ -6825,6 +7122,15 @@ Mapping error codes to HTTP status codes is left to a future draft.
 
 Errors SHOULD be safe to show to users and precise enough for runtime policy
 debugging.
+
+`runtime_untrusted` intentionally does not reveal which issuer, subject,
+credential, posture, locality, or assurance check failed. It is not retryable
+with an unchanged request. Re-authentication, evidence refresh, enrollment, or
+Grant renewal can establish new state. The application MUST return it before
+idempotency lookup, budget admission, receipt creation, or any effect. A Grant
+Credential or proof failure remains `grant_proof_invalid`; a mismatch between a
+stored runtime projection and the hashed Grant remains `integrity_mismatch`;
+and an unsupported requested profile remains `surface_incompatible`.
 
 `input_not_normalized` is retryable only after the runtime applies the pinned
 normalization rules; the rejected attempt does not claim the idempotency key or
@@ -6945,6 +7251,14 @@ non-Agent-Surface audience and MUST be rejected at Agent Surface endpoints.
 
 Applications MUST NOT trust runtime claims blindly. Every app action MUST be
 authorized by app-verifiable grant state.
+
+A Runtime Identity Profile projection is an application-derived description of
+an authenticated binding, not a runtime self-assertion. The application MUST
+revalidate its current authoritative record for the exact binding id and claims
+revision on every action. It MUST NOT infer enterprise management or hardware
+assurance from a SPIFFE ID, OIDC claim, device name, key storage mechanism, or
+network location, and MUST NOT accept a fallback identity when the Grant-bound
+method becomes unavailable.
 
 A runtime budget report can safely request a fence for its own bound session,
 but it MUST NOT change application counters, grant authority, or another
@@ -7155,6 +7469,14 @@ Runtimes SHOULD minimize agent and passport disclosure when possible. Receipts
 SHOULD support pseudonymous user references where legal and operationally
 appropriate.
 
+Runtime identity metadata requires the same minimization. Grants and their
+derived protocol artifacts use only the app-scoped runtime id, opaque binding
+id, sanitized profile facets, claims revision, and policy-relevant assurance
+references. External subjects, raw certificates, SVIDs, JWTs, management
+records, attestation evidence, device serials, hardware handles, and recovery
+material MUST remain in the authoritative verifier boundary and MUST NOT enter
+receipts, events, traces, ordinary logs, prompts, or agent-visible context.
+
 Data Exposure Contracts make application-to-agent disclosure inspectable but
 do not prove that a publisher classified its data correctly. A runtime MUST
 treat application-authored labels and descriptions as untrusted hints, preserve
@@ -7249,6 +7571,10 @@ An application conforms to the Grant-Enforcing profile when it:
   credential-protected `agent_api` endpoint
 - validates grant state for every action
 - validates credential binding to runtime, agent, and passport evidence
+- when it advertises the Runtime Identity Profile, derives only server-side
+  projections, binds them into the Grant and credential binding, maintains the
+  authoritative binding lifecycle, and revalidates the exact active revision
+  before every action
 - creates or accepts an authoritative session record and validates its active
   state, complete tuple binding, and current generation for every action
 - creates non-control event subscriptions only as an attenuation of the current
@@ -7320,6 +7646,9 @@ it:
   issued Grant Credential audience while keeping action `locations` separate
 - validates and returns Agent Grant `authorization_details` according to the
   Rich Authorization Request Profile
+- treats `runtime_identity_profile` only as a request selector and returns the
+  exact server-derived runtime identity projection without identity-method
+  fallback
 - implements the OAuth Token Exchange Profile without privilege amplification
 - preserves member-wise budget attenuation, lineage accounting, and the
   cross-runtime issuance restriction through authorization and token exchange
@@ -7387,6 +7716,10 @@ An application runtime conforms to this profile when it:
 - discovers and validates Agent Surface Manifests
 - recomputes `surface_hash` and pins the exact manifest snapshot
 - verifies Agent Passport evidence before delegation
+- when selecting the Runtime Identity Profile, shows every locally authenticated
+  facet, re-previews and confirms any initially unresolved server projection,
+  rejects a returned projection or credential binding that conflicts with known
+  state, and treats every material identity change as stale
 - obtains explicit user consent before storing a grant
 - derives and confirms the local Consent Preview Contract projection before
   sending a grant issuance request, regenerates it after any material change,
@@ -7580,8 +7913,6 @@ To support Agent Surface Protocol, the next slices are:
   runtime-held grants for compatibility with existing OAuth APIs?
 - What is the minimal Agent Passport verification profile required before a
   runtime can request an Agent Grant?
-- Does grant binding require runtime attestation, or is a registered runtime id
-  enough for early implementations?
 - Is `/.well-known/agent-surface.json` public, authenticated, or both
   depending on app tenancy?
 - What is the minimal sender-constrained grant credential profile?
@@ -7610,6 +7941,11 @@ To support Agent Surface Protocol, the next slices are:
   <https://www.rfc-editor.org/rfc/rfc6749>
 - OAuth 2.0 Proof Key for Code Exchange:
   <https://www.rfc-editor.org/rfc/rfc7636>
+- OAuth 2.0 Device Authorization Grant:
+  <https://www.rfc-editor.org/rfc/rfc8628>
+- JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and
+  Authorization Grants:
+  <https://www.rfc-editor.org/rfc/rfc7523>
 - OAuth 2.0 Token Revocation:
   <https://www.rfc-editor.org/rfc/rfc7009>
 - OAuth 2.0 Token Introspection:
@@ -7629,6 +7965,14 @@ To support Agent Surface Protocol, the next slices are:
   <https://www.rfc-editor.org/rfc/rfc8705>
 - OAuth 2.0 Demonstrating Proof-of-Possession at the Application Layer (DPoP):
   <https://www.rfc-editor.org/rfc/rfc9449>
+- OpenID Connect Core 1.0:
+  <https://openid.net/specs/openid-connect-core-1_0-final.html>
+- SPIFFE Identity and Verifiable Identity Document specifications:
+  <https://spiffe.io/docs/latest/spiffe-specs/spiffe-id/>
+- SPIFFE X.509-SVID specification:
+  <https://spiffe.io/docs/latest/spiffe-specs/x509-svid/>
+- SPIFFE JWT-SVID specification:
+  <https://spiffe.io/docs/latest/spiffe-specs/jwt-svid/>
 - The I-JSON Message Format:
   <https://www.rfc-editor.org/rfc/rfc7493>
 - Base-N Encodings:

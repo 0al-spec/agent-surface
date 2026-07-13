@@ -2263,34 +2263,83 @@
       "description": "описать `registered_device`, `spiffe`, `oidc_workload`, `hardware_attested`, `enterprise_managed`.",
       "category": "Runtime / Agent Passport / identity",
       "side": "left",
-      "status": "missing",
+      "status": "present",
       "anchors": [
         {
           "heading": "Runtime",
           "anchorId": "runtime"
         },
         {
+          "heading": "Runtime Identity Profile",
+          "anchorId": "runtime-identity-profile"
+        },
+        {
           "heading": "Grant Object",
           "anchorId": "grant-object"
+        },
+        {
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        },
+        {
+          "heading": "Grant Verification",
+          "anchorId": "grant-verification"
         },
         {
           "heading": "Error Model",
           "anchorId": "error-model"
         },
         {
-          "heading": "Open Questions",
-          "anchorId": "open-questions"
+          "heading": "Privacy Considerations",
+          "anchorId": "privacy-considerations"
+        },
+        {
+          "heading": "Application Runtime Profile",
+          "anchorId": "application-runtime-profile"
         }
       ],
-      "rationale": "Runtime описан концептуально, но registered_device, SPIFFE, OIDC workload и другие identity classes отсутствуют.",
+      "rationale": "Runtime identity нормализован как независимые authentication, management, locality и assurance facets со stable binding, lifecycle, privacy и Grant verification rules.",
       "priority": "P2",
       "profile": "identity-passport",
       "depends_on": [
         1
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-identity-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "error-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "privacy-considerations"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-runtime-profile"
+        }
+      ]
     },
     {
       "id": 42,
