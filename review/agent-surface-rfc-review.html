@@ -2223,10 +2223,13 @@ complete consumptive projection it is <code>true</code> exactly when <code>reser
 positive and <code>used</code> is smaller than <code>limit</code>, and <code>false</code> for settled hard
 exhaustion where <code>used</code> equals <code>limit</code> and <code>reserved</code> is zero. For a minimized
 projection the application derives the same value without disclosing its
-inputs. It is <code>true</code> for occupancy saturation. A true value only says capacity
-can return after authoritative reservation or slot release; the runtime still
-requires a fresher authenticated <code>budget.state</code> before retry. The field never
-authorizes automatic retry or reserves future capacity.</p>
+inputs. For occupancy saturation it is <code>true</code> only when every blocking
+occupancy ledger has a positive limit and currently occupied or reserved
+capacity that can be authoritatively released; a zero-slot limit is
+non-retryable. A true value only says capacity can return after authoritative
+reservation or slot release; the runtime still requires a fresher authenticated
+<code>budget.state</code> before retry. The field never authorizes automatic retry or
+reserves future capacity.</p>
 <p>The runtime obtains that fresher state without exposing ancestor totals through
 an authenticated control-plane query. It sends the complete typed envelope as
 an <code>application/json</code> POST to the manifest <code>budget_state_url</code>, using the grant's
@@ -2329,7 +2332,8 @@ owns a slot. A runtime-owned budget can cause an application transition only
 through an accepted <code>session.pause</code> request. A duplicate pause request or event
 delivery does not create a second transition or occurrence.</p>
 <p>A <code>session.paused_budget</code> event MUST carry matching <code>aspsessionid</code> and
-<code>aspsessiongen</code> attributes and this minimum data:</p>
+<code>aspsessiongen</code> attributes. This is the minimum data for the
+controlling-runtime variant:</p>
 <pre><code class="language-json">{
   &quot;grant_id&quot;: &quot;grant_123&quot;,
   &quot;grant_hash&quot;: &quot;sha-256:&lt;base64url-digest&gt;&quot;,
@@ -2354,15 +2358,19 @@ delivery does not create a second transition or occurrence.</p>
   &quot;automatic_resume&quot;: false
 }
 </code></pre>
-<p>The event's session attributes, data, tuple, and hashes MUST match the
-authoritative interrupted record. <code>budget_authority</code> is <code>application</code> or
-<code>controlling_runtime</code>; <code>budget_scope</code> is <code>grant</code> or <code>ancestor</code>. For a local
-application-owned counter, <code>budget_scope</code> is <code>grant</code>, <code>budget_revision</code> is
-REQUIRED, and all <code>budget_grant_*</code> and <code>reported_budget_revision</code> members are
-absent. For an ancestor application-owned counter, <code>budget_scope</code> is
-<code>ancestor</code> and every causal ancestor identifier, hash, counter value, and
-revision MUST be omitted. The application remains authoritative for the
-effective fence without exposing aggregate lineage state.</p>
+<p>Every variant contains <code>grant_id</code>, <code>grant_hash</code>, <code>app_id</code>, <code>runtime_id</code>,
+<code>agent_id</code>, <code>passport_hash</code>, <code>pause_id</code>, <code>session_id</code>, <code>session_generation</code>,
+<code>previous_state</code>, <code>state</code>, <code>transition_reason</code>, <code>budget_id</code>,
+<code>budget_authority</code>, <code>budget_scope</code>, <code>effective_at</code>, <code>observed_at</code>, and
+<code>automatic_resume</code>. The event's session attributes, data, tuple, and hashes
+MUST match the authoritative interrupted record. <code>budget_authority</code> is
+<code>application</code> or <code>controlling_runtime</code>; <code>budget_scope</code> is <code>grant</code> or
+<code>ancestor</code>. For a local application-owned counter, <code>budget_scope</code> is <code>grant</code>,
+<code>budget_revision</code> is REQUIRED, and all <code>budget_grant_*</code> and
+<code>reported_budget_revision</code> members are absent. For an ancestor application-owned
+counter, <code>budget_scope</code> is <code>ancestor</code> and every causal ancestor identifier,
+hash, counter value, and revision MUST be omitted. The application remains
+authoritative for the effective fence without exposing aggregate lineage state.</p>
 <p>For a runtime-owned counter, <code>budget_grant_id</code> and <code>budget_grant_hash</code> MUST
 identify the session grant or an ancestor containing <code>budget_id</code>,
 <code>budget_scope</code> reflects which, and <code>reported_budget_revision</code> MUST repeat the
@@ -3758,11 +3766,13 @@ idempotent replay. Settled hard
 consumptive exhaustion, where <code>used</code> equals <code>limit</code> and <code>reserved</code> is zero, is
 not retryable under the same grant. Temporary admission exhaustion MAY recover
 only after an authoritative reservation release. Occupancy saturation MAY
-recover after an authoritative slot release. A retry hint is advisory and never
-reserves that future capacity. These operations are the closed set of mandatory
-safety and cleanup operations in this profile. They do not consume a grant
-budget; an implementation bears their control-plane cost separately and MUST
-NOT route them through an exhausted agent-work counter.</p>
+recover after an authoritative slot or occupancy reservation release only when
+its limit is positive; a zero-slot limit is non-retryable under that grant. A
+retry hint is advisory and never reserves that future capacity. These
+operations are the closed set of mandatory safety and cleanup operations in
+this profile. They do not consume a grant budget; an implementation bears their
+control-plane cost separately and MUST NOT route them through an exhausted
+agent-work counter.</p>
 <h3 id="grant-lifecycle" data-asp-heading="Grant Lifecycle">Grant Lifecycle</h3>
 <pre><code class="language-text">discover surface
   -&gt; verify manifest

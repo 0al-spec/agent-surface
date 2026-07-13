@@ -2372,10 +2372,13 @@ complete consumptive projection it is `true` exactly when `reserved` is
 positive and `used` is smaller than `limit`, and `false` for settled hard
 exhaustion where `used` equals `limit` and `reserved` is zero. For a minimized
 projection the application derives the same value without disclosing its
-inputs. It is `true` for occupancy saturation. A true value only says capacity
-can return after authoritative reservation or slot release; the runtime still
-requires a fresher authenticated `budget.state` before retry. The field never
-authorizes automatic retry or reserves future capacity.
+inputs. For occupancy saturation it is `true` only when every blocking
+occupancy ledger has a positive limit and currently occupied or reserved
+capacity that can be authoritatively released; a zero-slot limit is
+non-retryable. A true value only says capacity can return after authoritative
+reservation or slot release; the runtime still requires a fresher authenticated
+`budget.state` before retry. The field never authorizes automatic retry or
+reserves future capacity.
 
 The runtime obtains that fresher state without exposing ancestor totals through
 an authenticated control-plane query. It sends the complete typed envelope as
@@ -2489,7 +2492,8 @@ through an accepted `session.pause` request. A duplicate pause request or event
 delivery does not create a second transition or occurrence.
 
 A `session.paused_budget` event MUST carry matching `aspsessionid` and
-`aspsessiongen` attributes and this minimum data:
+`aspsessiongen` attributes. This is the minimum data for the
+controlling-runtime variant:
 
 ```json
 {
@@ -2517,15 +2521,19 @@ A `session.paused_budget` event MUST carry matching `aspsessionid` and
 }
 ```
 
-The event's session attributes, data, tuple, and hashes MUST match the
-authoritative interrupted record. `budget_authority` is `application` or
-`controlling_runtime`; `budget_scope` is `grant` or `ancestor`. For a local
-application-owned counter, `budget_scope` is `grant`, `budget_revision` is
-REQUIRED, and all `budget_grant_*` and `reported_budget_revision` members are
-absent. For an ancestor application-owned counter, `budget_scope` is
-`ancestor` and every causal ancestor identifier, hash, counter value, and
-revision MUST be omitted. The application remains authoritative for the
-effective fence without exposing aggregate lineage state.
+Every variant contains `grant_id`, `grant_hash`, `app_id`, `runtime_id`,
+`agent_id`, `passport_hash`, `pause_id`, `session_id`, `session_generation`,
+`previous_state`, `state`, `transition_reason`, `budget_id`,
+`budget_authority`, `budget_scope`, `effective_at`, `observed_at`, and
+`automatic_resume`. The event's session attributes, data, tuple, and hashes
+MUST match the authoritative interrupted record. `budget_authority` is
+`application` or `controlling_runtime`; `budget_scope` is `grant` or
+`ancestor`. For a local application-owned counter, `budget_scope` is `grant`,
+`budget_revision` is REQUIRED, and all `budget_grant_*` and
+`reported_budget_revision` members are absent. For an ancestor application-owned
+counter, `budget_scope` is `ancestor` and every causal ancestor identifier,
+hash, counter value, and revision MUST be omitted. The application remains
+authoritative for the effective fence without exposing aggregate lineage state.
 
 For a runtime-owned counter, `budget_grant_id` and `budget_grant_hash` MUST
 identify the session grant or an ancestor containing `budget_id`,
@@ -4116,11 +4124,13 @@ idempotent replay. Settled hard
 consumptive exhaustion, where `used` equals `limit` and `reserved` is zero, is
 not retryable under the same grant. Temporary admission exhaustion MAY recover
 only after an authoritative reservation release. Occupancy saturation MAY
-recover after an authoritative slot release. A retry hint is advisory and never
-reserves that future capacity. These operations are the closed set of mandatory
-safety and cleanup operations in this profile. They do not consume a grant
-budget; an implementation bears their control-plane cost separately and MUST
-NOT route them through an exhausted agent-work counter.
+recover after an authoritative slot or occupancy reservation release only when
+its limit is positive; a zero-slot limit is non-retryable under that grant. A
+retry hint is advisory and never reserves that future capacity. These
+operations are the closed set of mandatory safety and cleanup operations in
+this profile. They do not consume a grant budget; an implementation bears their
+control-plane cost separately and MUST NOT route them through an exhausted
+agent-work counter.
 
 ### Grant Lifecycle
 
