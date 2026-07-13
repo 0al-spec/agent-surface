@@ -317,7 +317,8 @@ actions is never releasable under this capability.
 
 An informal term for a time-limited, attenuated grant. A capability lease grants
 only specific capabilities, under caveats such as duration, resource bounds,
-approval requirements, max actions, or max spend.
+approval requirements, write actions, tool calls, model tokens, runtime time,
+parallel sessions, or partitioned application and runtime spend.
 
 ### Action
 
@@ -1348,8 +1349,9 @@ surface discoverable.
 `audit.required_fields` advertises the non-conditional minimum for application
 receipts and MUST NOT weaken the Receipt Requirements profile. Conditional
 fields such as `parent_receipt_hash`, `output_hash`, approval evidence, error
-classification, and required signatures remain mandatory when their receipt
-semantics require them even if they are not repeated in this list.
+classification, producer-authoritative budget charges, and required signatures
+remain mandatory when their receipt semantics require them even if they are not
+repeated in this list.
 
 ### Resources
 
@@ -3214,6 +3216,14 @@ so a retrying runtime can converge on the outcome of the first attempt.
 Applications SHOULD retain idempotency state at least for the remaining
 lifetime of the grant and SHOULD document their retention window.
 
+The application checks an exact completed record before reserving an
+application-authoritative write or cost budget. The runtime likewise reuses its
+existing logical tool/model dispatch record instead of charging a transport
+retry. A conflict or pre-admission denial consumes no application write or
+application-cost budget, although a runtime tool dispatch that already reached
+the application remains one runtime-authoritative tool call. Unknown outcomes
+retain their original reservations until authoritative reconciliation.
+
 Because one action id has exactly one static execution mode, the action id also
 binds the mode for idempotency. The application's stored idempotency record for
 a state-changing action MUST additionally bind `input_hash` and
@@ -3284,8 +3294,18 @@ surface, scopes, and caveats.
     "pull_requests": [13],
     "expires_at": "2026-06-25T20:00:00Z",
     "write_approval": "required",
-    "max_actions": 20,
-    "max_cost_usd": 5,
+    "budgets": {
+      "max_write_actions": 20,
+      "max_tool_calls": 100,
+      "max_model_tokens": 50000,
+      "max_runtime_seconds": 1800,
+      "max_parallel_sessions": 2,
+      "cost": {
+        "currency": "USD",
+        "max_runtime_microunits": 4000000,
+        "max_application_microunits": 1000000
+      }
+    },
     "credential_release": {
       "mode": "deny"
     }
@@ -3391,21 +3411,204 @@ hashes and retain their explicit derivation linkage.
 remaining stateful budget. Those mutable checks still use authoritative grant
 state on every action.
 
-Numeric caveats need defined accounting. In this draft, `max_actions` counts
-requests in mode `reserve`, `commit`, `compensate`, or `revert` accepted by the
-application under the grant. Reservation acquisition and renewal count when
-they are separate accepted actions. An explicit release is idempotent cleanup:
-it does not consume `max_actions` and remains allowed while the grant is active
-even when that budget is exhausted; revocation or expiry invalidates the
-reservation without a release action. Reads, dry runs, proposals, and denied
-requests do not consume this budget, and neither do idempotent replays:
-a retry deduplicated under a previously accepted idempotency key
-MUST NOT consume the budget again, or lost responses and transport retries
-could exhaust a grant without producing new side effects. `max_cost_usd` is
-advisory in the MVP profile: the runtime SHOULD meter agent-side cost against
-it, and applications MAY additionally meter app-side cost where actions carry
-a price. When a budget caveat is exhausted, further matching requests MUST be
-rejected with `limit_exceeded`.
+### Budget Caveats and Accounting
+
+`constraints.budgets` is the authoritative immutable limit declaration for the
+Operations Safety profile. When present, it MUST contain at least one limit
+from this object:
+
+```json
+{
+  "max_write_actions": 20,
+  "max_tool_calls": 100,
+  "max_model_tokens": 50000,
+  "max_runtime_seconds": 1800,
+  "max_parallel_sessions": 2,
+  "cost": {
+    "currency": "USD",
+    "max_runtime_microunits": 4000000,
+    "max_application_microunits": 1000000
+  }
+}
+```
+
+Every count, duration, and microunit limit MUST be an integer from `0` through
+`9007199254740991`. Absence means this ASP profile imposes no cap for that
+dimension; `0` prohibits new consumption. `cost`, when present, MUST contain
+`currency` and at least one of `max_runtime_microunits` or
+`max_application_microunits`, and MUST NOT contain other members. An omitted
+partition is uncapped by this ASP profile. `currency` is an uppercase
+three-letter ISO 4217 code, and one microunit is one millionth of that currency
+unit. Implementations MUST use integer arithmetic, MUST NOT perform currency
+conversion, and MUST NOT borrow unused runtime allowance for application cost
+or vice versa. When both partitions are present, their sum is a displayable
+maximum, not a shared counter.
+
+The legacy flat members `constraints.max_actions` and
+`constraints.max_cost_usd` are not aliases and are invalid in this profile.
+Separating the two cost partitions is required because no single component
+authoritatively observes both runtime inference/tool spend and application-side
+charges. A deployment needing a shared distributed spend ledger requires a
+future authenticated accounting profile.
+
+The issuer chooses and hashes the limits, but mutable accounting belongs to the
+component that authoritatively observes each dimension:
+
+| Budget id | Authority | Unit and charge boundary |
+| --- | --- | --- |
+| `write_actions` | application | One accepted logical invocation in mode `reserve`, `commit`, `compensate`, or `revert`; reservation acquisition and renewal count, explicit release does not. |
+| `tool_calls` | controlling runtime | One distinct dispatch to a runtime-mediated tool or ASP action endpoint; transport attempts for the same dispatch do not add charges. |
+| `model_tokens` | controlling runtime | Provider-reported input plus output tokens for one model invocation, without double-counting cached or reasoning subsets. |
+| `runtime_seconds` | controlling runtime | Aggregate monotonic active-work seconds across sessions under the grant. |
+| `parallel_sessions` | application | Current number of authoritative sessions in `active`; this is occupancy, not cumulative consumption. |
+| `runtime_cost` | controlling runtime | Provider or tool cost charged to the runtime partition, in declared microunits. |
+| `application_cost` | application | Application-side price charged to the application partition, in declared microunits. |
+
+Agent-supplied counters, token estimates, timestamps, prices, and remaining
+values are never authoritative. A component MUST reject a grant when it cannot
+durably meter a dimension assigned to that component in the table above. It
+MUST preserve, display, and pass through limits assigned to the other authority
+without inventing mutable state for them. The application MUST NOT claim runtime
+token, tool, time, or runtime-cost enforcement merely because it can see Action
+Requests. The runtime MUST NOT claim application write, application-cost, or
+session-occupancy enforcement from local process state.
+
+`max_write_actions` is charged exactly once when the application atomically
+admits a new logical invocation after authorization, tuple, normalization,
+idempotency, approval, and precondition checks. A denial before admission is
+free. Once admitted, a later success, failure, partial effect, or unknown effect
+does not refund the charge. An explicit reservation-release action is
+idempotent safety cleanup and remains permitted while the grant is active even
+when the write budget is exhausted; revocation or expiry invalidates the
+reservation independently.
+
+`max_tool_calls` counts when the runtime commits to one distinct agent-work
+dispatch after local policy admits it, immediately before finalizing any parent
+runtime receipt and sending the first transport attempt. This includes a read,
+dry run, proposal, state-changing ASP request, or non-ASP tool call. The closed
+list of mandatory safety and cleanup operations below uses a separate
+control-plane dispatch path and is not `tool_calls`; those operations still
+require their ordinary authorization, binding, and idempotency checks and MUST
+NOT carry an unrelated agent-work effect. A local denial before the charge
+boundary is free; a crash, downstream denial, or failure afterward still
+counts. A transport retransmission preserving the same logical dispatch and
+idempotency context is not another tool call.
+
+For `max_model_tokens`, the runtime MUST reserve known input tokens plus the
+configured maximum output before starting a model call and settle against the
+provider's authoritative final usage. Cached-input, reasoning, or other detail
+is a subset unless the provider explicitly reports it outside input and output
+totals. When final usage is absent or uncertain, the runtime retains its
+conservative reservation or stops new work; it MUST NOT assume zero.
+
+For either cost partition, the accounting authority MUST reserve a conservative
+upper-bound charge before its admission or dispatch boundary and settle the
+integer microunit amount from authoritative billing or declared application
+pricing. If no safe upper bound exists, the operation is rejected before that
+boundary. Missing or disputed final billing retains the reservation; it is not
+rounded down or transferred to the other partition.
+
+`max_runtime_seconds` uses a monotonic clock. Within one session generation the
+runtime unions overlapping intervals in which the agent, model, or tool is
+actively working, including an outstanding dispatched operation, then sums
+those per-session intervals across concurrent sessions. Explicit user or policy
+waits and application-authoritative `interrupted` or terminal session time do
+not accrue. Each session contribution is the ceiling of its cumulative unioned
+duration in seconds, so splitting one interval cannot reduce usage and parallel
+sessions remain additive. Clock rollback, restart, or missing duration state
+fails closed and does not reset usage.
+
+An `active` application session occupies one `max_parallel_sessions` slot.
+Start and resume atomically acquire a slot across the grant and every ancestor;
+an exact replay does not acquire another. Transition to `interrupted` releases
+the slot only after the application fences new actions, and terminal states
+release it permanently. Saturation rejects a new start or resume as
+`limit_exceeded` without identifying the occupying sessions; it MUST NOT pause
+or cancel a session that already owns a slot.
+
+An accounting authority represents one counter with this canonical Budget
+Counter State projection:
+
+```json
+{
+  "budget_id": "write_actions",
+  "authority": "application",
+  "scope": "grant",
+  "mode": "consumptive",
+  "unit": "actions",
+  "limit": 20,
+  "used": 7,
+  "reserved": 1,
+  "remaining": 12,
+  "state": "available",
+  "revision": 18
+}
+```
+
+`scope` is `grant` in this profile. `mode` is `consumptive` except for
+`parallel_sessions`, which is `occupancy`. `unit` is respectively `actions`,
+`calls`, `tokens`, `seconds`, `sessions`, or `currency_microunits`; a cost state
+also carries the declared `currency`. `used`, `reserved`, `remaining`, and
+`revision` are safe non-negative integers, `revision` strictly increases on
+every authoritative state change, and `remaining` MUST equal
+`max(0, limit - used - reserved)`. For a consumptive counter, `used` is settled
+monotonic consumption. For occupancy, `used` is the current active-slot count
+and decreases only after the authoritative session fence releases a slot.
+`reserved` is a durable in-flight admission amount; successful settlement moves
+the applicable amount to `used`, and an authoritative rejection releases it.
+A consumptive state MUST be `available` exactly when `remaining` is positive
+and `exhausted` exactly when it is zero. An occupancy state MUST likewise be
+`available` exactly when `remaining` is positive and `saturated` exactly when it
+is zero. Mutable state is not part of `grant_hash` and MUST NOT be copied from
+an untrusted caller.
+
+Before new consumption, the authority MUST calculate a conservative maximum
+increment and atomically verify and reserve it against the local grant and
+every ancestor ledger. It then dispatches or linearizes the operation, settles
+authoritative actual usage no greater than that reservation, and releases only
+unused reservation. Exactly one of two races for the last unit can succeed.
+A proven insufficient remainder returns `limit_exceeded` without changing the
+counter. Arithmetic overflow, missing ledger state, or inability to calculate a
+bounded reservation returns `budget_state_unavailable` without advancing
+`used` or `revision`. If an external authoritative meter later reports usage
+greater than the reserved upper bound, the component MUST retain the
+reservation, stop matching new work, and report `budget_state_unavailable`; the
+already authoritative operation outcome is not rewritten, but usage beyond the
+hard limit is never treated as permitted budget consumption.
+
+The ledger is keyed by the grant and lineage, persists for their audit lifetime,
+and survives credential rotation, process restart, session interruption,
+resume, and generation change. Attenuation, renewal, token exchange,
+supersession that preserves authority, and child derivation remain in the same
+cumulative lineage: their used, reserved, and occupied state is retained and
+cannot be reset by changing a grant or credential identifier. Only a fresh
+independent root grant following distinct authorization and consent can begin a
+new ledger. An exact completed idempotent retry returns the original result and
+receipts without a new reservation or charge, even after a budget is exhausted,
+subject to current authorization and disclosure policy. An unknown outcome
+retains its original charge or reservation until reconciled. Changing the
+idempotency key MUST NOT create a refund or escape accounting.
+
+Every child charge is applied to the child and all ancestors. A child grant
+bound to the same controlling runtime shares its ancestors' runtime ledgers. A
+child bound to another runtime MUST NOT be issued while any runtime-authoritative
+budget is present unless a future authenticated shared-accounting or explicit
+allocation profile is selected; otherwise subdelegation would multiply tool,
+token, time, and runtime-cost allowances. Ungranted models, tools, adapters, and
+secondary runtimes remain mediated and charged by the controlling runtime.
+Every `cost.currency` present in one budget lineage MUST exactly equal the
+currency of every ancestor cost budget. Mixed-currency derivation MUST be
+rejected rather than converted or treated as an independent allowance.
+
+Exhaustion MUST NOT block grant revocation, session cancellation, introspection,
+receipt retrieval, explicit reservation release, authoritative reconciliation,
+or an exact idempotent replay. Hard consumptive exhaustion is not retryable
+under the same grant. Occupancy saturation MAY become retryable after a slot is
+authoritatively released, but a retry hint is advisory and never reserves that
+future slot. These operations are the closed set of mandatory safety and
+cleanup operations in this profile. They do not consume a grant budget; an
+implementation bears their control-plane cost separately and MUST NOT route
+them through an exhausted agent-work counter.
 
 ### Grant Lifecycle
 
@@ -3544,10 +3747,13 @@ It MAY be a semantically narrower valid subset under this comparison:
   hash, and requested credential profile MUST remain exactly equal;
 - returned actions, scopes, and locations MUST be set subsets of the confirmed
   values and MUST remain closed over required companion actions;
-- `expires_at` MAY be no later, and `max_actions` and `max_cost_usd` MAY be no
-  greater. Returned `repositories` and `pull_requests` MUST remain present when
-  requested and MUST be non-empty set subsets. Every other constraint MUST
-  remain structurally equal unless its defining profile supplies an explicit
+- `expires_at` MAY be no later. A returned `budgets` object MUST retain every
+  requested dimension with an equal or smaller limit; it MAY add a supported
+  standard dimension as a further restriction. Cost currency MUST remain equal
+  and each cost partition attenuates independently without borrowing. Returned
+  `repositories` and `pull_requests` MUST remain present when requested and
+  MUST be non-empty set subsets. Every other constraint MUST remain
+  structurally equal unless its defining profile supplies an explicit
   attenuation order understood by the runtime; implementations MUST NOT guess
   that an unknown array, enum, or extension value is more restrictive;
 - requested audit profile and required signer roles MUST remain equal;
@@ -3716,7 +3922,9 @@ Example, shown decoded from its form-encoded authorization request parameter:
       "pull_requests": [13],
       "expires_at": "2026-06-25T20:00:00Z",
       "write_approval": "required",
-      "max_actions": 20
+      "budgets": {
+        "max_write_actions": 20
+      }
     },
     "credential_profile": "proof_bound",
     "audit": {
@@ -3874,11 +4082,14 @@ or invalidating that source authority MUST revoke or suspend every derived Agent
 Grant unless an independently approved grant replaced it.
 
 Issuance also MUST preserve cumulative caveats across that derivation graph.
-Every accepted action or cost charge MUST atomically consume both the derived
-grant's local budget and the authoritative remaining budget of every ancestor
-authorization from which it derives. Repeating an exchange therefore cannot
-multiply `max_actions`, `max_cost_usd`, or another stateful budget. The
-authorization server MUST treat semantically equivalent exchanges with the
+Every application-authoritative charge or occupied session slot MUST apply to
+the derived grant and every ancestor application ledger; every
+runtime-authoritative charge MUST do the same in the controlling runtime's
+lineage ledger. The authorization server MUST preserve the complete lineage and
+MUST reject a cross-runtime child that cannot share or allocate the required
+runtime accounting. Repeating an exchange therefore cannot multiply write,
+tool, token, time, session, or partitioned cost budgets. The authorization
+server MUST treat semantically equivalent exchanges with the
 same source authorization, client and delegate tuple, target resource,
 normalized Agent Grant details, and proof-binding key as idempotent: it MUST
 reuse the same `grant_id`, `grant_hash`, and accounting state, although it MAY
@@ -3921,7 +4132,9 @@ Example successful response:
         "pull_requests": [13],
         "expires_at": "2026-06-25T20:00:00Z",
         "write_approval": "required",
-        "max_actions": 20
+        "budgets": {
+          "max_write_actions": 20
+        }
       },
       "credential_profile": "proof_bound",
       "credential_binding": {
@@ -4040,7 +4253,9 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
     "pull_requests": [13],
     "expires_at": "2026-06-25T20:00:00Z",
     "write_approval": "required",
-    "max_actions": 20
+    "budgets": {
+      "max_write_actions": 20
+    }
   },
   "credential_binding": {
     "method": "dpop",
@@ -4075,7 +4290,9 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
         "pull_requests": [13],
         "expires_at": "2026-06-25T20:00:00Z",
         "write_approval": "required",
-        "max_actions": 20
+        "budgets": {
+          "max_write_actions": 20
+        }
       },
       "credential_profile": "proof_bound",
       "credential_binding": {
@@ -4203,6 +4420,17 @@ grant when the parent grant expires, is revoked, or loses the authority from
 which the child grant was derived. A parent grant or credential MUST NOT be
 forwarded as implicit subdelegation.
 
+Child budget limits MUST retain every inherited member with an equal or smaller
+limit, and every charge or occupied slot consumes the child and ancestor
+ledgers. A child MAY add a supported standard dimension as a further
+restriction. Every child `cost.currency` MUST exactly equal every ancestor
+`cost.currency`; mixed-currency derivation is invalid. A child bound to the same
+runtime shares that runtime's lineage ledger. When the child would bind a
+different runtime and any `max_tool_calls`, `max_model_tokens`,
+`max_runtime_seconds`, or runtime-cost partition is present in its ancestry,
+the application MUST reject issuance because this draft defines no
+cross-runtime shared-accounting or allocation profile.
+
 ### Grant Verification
 
 Applications MUST verify every action against grant state:
@@ -4252,7 +4480,8 @@ Applications MUST verify every action against grant state:
 - scope permits the action
 - resource constraints permit the target object
 - expiration has not passed
-- action count and cost bounds have not been exceeded
+- every application-authoritative write, session-occupancy, and
+  application-cost reservation fits the grant and all ancestor ledgers
 - approval caveats are satisfied
 - idempotency key is valid
 
@@ -4271,6 +4500,8 @@ Runtimes SHOULD verify:
 - requested action is compatible with the Agent Passport capability set
 - local policy allows the action
 - local approval is present when required
+- every runtime-authoritative tool, model-token, runtime-time, and runtime-cost
+  reservation fits the grant and all ancestor ledgers
 - action input matches the declared schema
 - execution mode, context, and hashes match the pinned action declaration
 - preview evidence is current and any required reservation belongs to the
@@ -4449,9 +4680,9 @@ The normative application-side states and transitions are:
 
 | Current state | Trigger | Next state | Requirements |
 | --- | --- | --- | --- |
-| absent | accepted start | `active` | Current grant, tuple, surface, and authenticated channel all verify; generation becomes `1`. |
-| `active` | channel loss, runtime pause, or application safety fence | `interrupted` | New actions are rejected until an explicit resume succeeds. |
-| `interrupted` | accepted resume | `active` | Same tuple, current grant and surface, fresh channel authentication, and exact prior generation; generation increments by one. |
+| absent | accepted start | `active` | Current grant, tuple, surface, authenticated channel, and an available parallel-session slot across the grant lineage all verify; generation becomes `1`. |
+| `active` | channel loss, runtime pause, or application safety fence | `interrupted` | New actions are rejected until an explicit resume succeeds; the slot is released only after that fence. |
+| `interrupted` | accepted resume | `active` | Same tuple, current grant and surface, fresh channel authentication, exact prior generation, and a newly acquired lineage slot; generation increments by one. |
 | `active` or `interrupted` | accepted cancel | `cancelled` | Application fences new actions before acknowledging the transition and the runtime stops local work. |
 | `active` | successful task completion | `completed` | Runtime reports completion and the application reconciles any outstanding action outcomes. |
 | `active` | unrecoverable task failure | `failed` | Runtime or application records a stable reason without treating unknown action outcomes as rolled back. |
@@ -4461,6 +4692,13 @@ MUST NOT be resumed or reused for new work. A duplicate request for an already
 accepted transition is idempotent only when its session id, prior generation,
 target state, and bound hashes are identical. A conflicting reuse MUST fail as
 `session_transition_invalid` and MUST NOT move the session.
+
+When `max_parallel_sessions` is present, the application MUST acquire or
+release its occupancy atomically with the authoritative transition. A full
+limit leaves a proposed start absent and a proposed resume `interrupted`; it
+does not increment generation, expose the occupying sessions, or disturb work
+already active under the grant. Credential rotation, reconnect, or a duplicate
+transition request MUST NOT allocate another slot or reset lineage occupancy.
 
 `session.cancel` and `session.resume` requests MUST contain `session_id`, the
 caller's current `session_generation`, `grant_id`, `grant_hash`, and
@@ -4787,6 +5025,9 @@ Receipts produced under the Receipt-Producing Application profile MUST include:
   may have been attempted
 - approval reference
 - idempotency key
+- producer-authoritative `budget_charges` with budget id, non-negative amount,
+  and resulting receipt-grant-local ledger revision when the recorded operation
+  consumed budget
 - timestamp
 - result
 - error classification when failed
@@ -4795,6 +5036,18 @@ Fields that do not apply to the recorded outcome, such as `output_hash` for a
 denial before execution, MAY be omitted. The identity, authority, trace,
 decision, and result fields that do apply MUST be present and internally
 consistent.
+
+A producer MUST report only charges from ledgers for which it is the accounting
+authority. A pre-admission denial carries no application write or cost charge.
+An exact idempotent replay returns the original immutable charge evidence and
+MUST NOT create a second charge or revision. Budget evidence is audit data, not
+authority to increase a limit or overwrite current ledger state.
+
+For a child-grant operation, `ledger_revision` is the resulting revision of the
+named counter in the receipt's own `grant_id` ledger. The same atomic charge can
+also advance ancestor ledgers, but this field does not claim their revisions;
+their current state remains available only from each ancestor's accounting
+authority.
 
 A receipt MUST NOT contain the raw `execution_token`. It carries the sanitized
 execution context with `execution_token_hash`, allowing a verifier to recompute
@@ -4911,6 +5164,13 @@ redactions.
     "type": "runtime_user_approval",
     "approval_id": "appr_123"
   },
+  "budget_charges": [
+    {
+      "budget_id": "tool_calls",
+      "amount": 1,
+      "ledger_revision": 12
+    }
+  ],
   "timestamp": "2026-06-25T16:30:00Z",
   "result": "authorized_for_forwarding"
 }
@@ -4996,6 +5256,13 @@ deduplicated under a grant.
     "type": "comment",
     "id": "comment_789"
   },
+  "budget_charges": [
+    {
+      "budget_id": "write_actions",
+      "amount": 1,
+      "ledger_revision": 18
+    }
+  ],
   "timestamp": "2026-06-25T16:30:00Z",
   "result": "success"
 }
@@ -5175,8 +5442,9 @@ inspectable:
 - application and issuer, grant id and hash, pinned surface version and hash,
   and authoritative active or expiry state;
 - runtime id, agent id, passport hash, and available verified identity labels;
-- exact actions, scopes, locations, resource filters, expiration, budgets, and
-  approval caveats;
+- exact actions, scopes, locations, resource filters, expiration, immutable
+  budget limits, application-authoritative current budget states, and approval
+  caveats;
 - maximum effects, execution stages, and recovery limitations;
 - effective data-exposure classes, redaction, and retention obligations;
 - credential profile and receipt requirements; and
@@ -5190,6 +5458,15 @@ some historical display metadata is unavailable, the page MUST mark those
 details unavailable, preserve the stored machine identifiers and hashes, and
 still allow immediate revocation. Missing display metadata never makes a grant
 look less privileged.
+
+Current runtime-authoritative tool, token, time, and runtime-cost states MAY be
+shown only when obtained from a mutually authenticated accounting profile. In
+its absence the application page MUST label those current states unavailable;
+it MUST NOT derive or estimate them from observed Action Requests. Conversely,
+the runtime local view is authoritative only for its runtime-owned dimensions
+and MAY show current application-owned states only from authenticated
+application accounting or introspection. Both views MUST still show every
+immutable limit from the Grant Object.
 
 The page MUST NOT expose Grant Credentials, refresh tokens, cookies, raw
 credential-binding material, receipt-signing private material, application
@@ -5529,7 +5806,8 @@ Agent Surface Protocol SHOULD define structured errors:
 | `event_cursor_invalid` | Replay cursor is malformed, tampered, or bound to another subscription, tuple, projection, or surface. |
 | `event_cursor_expired` | Replay position is no longer available under the effective retention window and requires explicit gap recovery. |
 | `action_unknown` | Action id is not part of the surface version the grant was issued against. |
-| `limit_exceeded` | A grant budget caveat such as `max_actions` or `max_cost_usd` is exhausted. |
+| `limit_exceeded` | A named consumptive grant budget is exhausted or the parallel-session occupancy limit is saturated. |
+| `budget_state_unavailable` | The accounting authority cannot prove the durable grant-lineage ledger or a required reservation and therefore fails closed. |
 | `rate_limited` | The request was throttled independently of grant caveats. |
 
 Errors SHOULD be returned in a structured envelope containing at least the
@@ -5550,6 +5828,10 @@ of another cursor. An expired token or failed precondition requires a new read
 or dry run and any required approval. A
 reservation conflict MAY be retried after a safe `retry_after` interval without
 disclosing the holder; an expired reservation requires a new acquisition.
+`limit_exceeded` for a consumptive budget is not retryable under the same grant;
+parallel-session saturation MAY be retried after authoritative slot release
+when a non-identifying `retry_after` is available. `budget_state_unavailable`
+requires authoritative resynchronization and MUST NOT reset counters.
 After an effect was attempted, drift or uncertainty is represented by
 `effect_outcome: "partially_applied"` or `"unknown"`, not a retryable
 `effect_mismatch`. `outcome_unknown` MUST NOT be retried under a new
@@ -5688,8 +5970,8 @@ Mitigations:
 - risk-based approval
 - static execution modes and preview-bound approval
 - atomic precondition and reservation checks
-- action count limits
-- cost limits
+- durable grant-lineage budgets for writes, tools, tokens, runtime time,
+  parallel sessions, and partitioned cost
 - sandboxing
 - local audit log
 - Agent Passport verification
@@ -5726,7 +6008,7 @@ Mitigations:
 - credential-release default denial and explicit release receipts
 - token introspection
 - revocation
-- action count limits
+- application-authoritative write and session limits
 - resource constraints
 - anomaly detection
 - no tokens in URLs
@@ -5871,6 +6153,13 @@ and application payloads, and prevent caching or referrer leakage as defined by
 Active Grant Management. Historical summaries SHOULD retain only the metadata
 needed for user understanding, security audit, and applicable legal obligations.
 
+Budget states and charges reveal workload volume, model usage, session
+concurrency, and spend. Components MUST expose them only to the bound subject,
+accounting authority, and authorized audit consumers, and SHOULD retain
+fine-grained revisions no longer than reconciliation and audit require. Errors
+and events MUST identify the budget dimension without disclosing another
+session, tenant, model prompt, tool argument, or provider billing record.
+
 Cross-system trace correlation can reveal relationships between otherwise
 separate user actions, tenants, and services. `trace_id`, `span_id`, and
 `tracestate` MUST NOT encode semantic identifiers or secrets. Components SHOULD
@@ -5949,6 +6238,8 @@ An application conforms to the Grant-Enforcing profile when it:
   verifies the pinned input schema, independently checks normalized-wire fixed
   points before lookup or effect, and binds each record to the normalized
   `input_hash` and execution context
+- durably enforces write, parallel-session, and application-cost budgets across
+  the grant lineage and fails closed when ledger state is uncertain
 - invalidates preview evidence and reservations when their grant or surface
   binding becomes invalid
 - does not accept `reserve`, `commit`, `compensate`, or `revert` unless it also
@@ -5969,6 +6260,8 @@ it:
 - validates and returns Agent Grant `authorization_details` according to the
   Rich Authorization Request Profile
 - implements the OAuth Token Exchange Profile without privilege amplification
+- preserves member-wise budget attenuation, lineage accounting, and the
+  cross-runtime issuance restriction through authorization and token exchange
 - returns the active and inactive Grant Introspection Profile contracts
 - returns matching top-level and authorization-details hash projections
 - binds RFC 7009 token revocation to the Semantic Grant Revocation Transition
@@ -6002,6 +6295,8 @@ An application conforms to the Receipt-Producing profile when it:
   reversible
 - records session id and generation, trace id, and producer span id in the
   corresponding local action and receipt log entry
+- records application-authoritative budget charges and resulting ledger
+  revisions without treating receipt evidence as mutable ledger state
 - records denied or failed high-risk actions
 
 An application or runtime claims the `asp-jws-detached` Receipt Signing Profile
@@ -6054,6 +6349,9 @@ An application runtime conforms to this profile when it:
 - implements the Proof-Bound Credential Profile when the application requires
   the Proof-Bound Grant-Enforcing Application profile
 - enforces local policy and approval rules
+- durably enforces `tool_calls`, `model_tokens`, `runtime_seconds`, and
+  `runtime_cost` across the grant lineage, retaining conservative reservations
+  when usage is uncertain
 - validates action input against schemas, applies the pinned idempotency
   normalization before approval and hashing, verifies the self-contained input
   schema against `input_schema_hash`, and sends only the fixed-point wire value
@@ -6124,11 +6422,13 @@ To support Agent Surface Protocol, the next slices are:
    commit actions.
 9. Require manifest-pinned input normalization, idempotency keys, and execution
    hashes for state-changing actions.
-10. Add bounded reservation and recovery actions only where the application can
+10. Add durable grant-lineage accounting for writes, tools, tokens, runtime
+    time, parallel sessions, and partitioned cost.
+11. Add bounded reservation and recovery actions only where the application can
     enforce their lifecycle and semantics.
-11. Produce local runtime receipts and app-visible receipts with execution and
+12. Produce local runtime receipts and app-visible receipts with execution and
     actual-effect evidence.
-12. Integrate Agent Passport verification as an admission precondition.
+13. Integrate Agent Passport verification as an admission precondition.
 
 ## Example End-to-End Flow
 
@@ -6150,6 +6450,9 @@ To support Agent Surface Protocol, the next slices are:
    - actions: pull_request.get, comment.create
    - repository: example-org/example-repo
    - duration: 2 hours
+   - budgets: 20 writes, 100 tool calls, 50,000 model tokens, 30 active
+     runtime minutes, 2 parallel sessions, and separate runtime/application
+     cost partitions
    - commit effects: shared, internal communication
    - commit: requires approval
    - data classes: repository.content, user.identifier
@@ -6195,8 +6498,6 @@ To support Agent Surface Protocol, the next slices are:
 - How do users compare two agents with overlapping Agent Passport
   capabilities during grant consent?
 - What happens to active sessions when an app changes surface versions?
-- How is `max_cost_usd` metered when runtime-side inference cost and app-side
-  action cost diverge, and which side is authoritative?
 - How are runtime-side approvals proven to the application beyond an
   `approval_ref` identifier — signed approval objects, step-up verification,
   or app-rendered approval UI?
@@ -6244,6 +6545,8 @@ To support Agent Surface Protocol, the next slices are:
   <https://www.rfc-editor.org/rfc/rfc4648>
 - Date and Time on the Internet: Timestamps:
   <https://www.rfc-editor.org/rfc/rfc3339>
+- ISO 4217:2015 — Codes for the representation of currencies:
+  <https://www.iso.org/standard/64758.html>
 - JSON Web Signature (JWS):
   <https://www.rfc-editor.org/rfc/rfc7515>
 - JSON Web Key (JWK):
