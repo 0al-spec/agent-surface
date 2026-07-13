@@ -213,7 +213,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(len(reviews), 60)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 33, "proposal": 27}),
+            Counter({"specified": 34, "proposal": 26}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 115)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -234,7 +234,7 @@ class ReviewDataValidationTests(unittest.TestCase):
                 }
             ),
         )
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 192)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 193)
         for review in reviews:
             if review["status"] == "missing":
                 self.assertEqual(review["evidence"], [])
@@ -252,9 +252,9 @@ class ReviewDataValidationTests(unittest.TestCase):
         blocked_ids = set(reviews_by_id) - ready_ids
         self.assertEqual(
             blocked_ids,
-            {17, 27, 29, 38, 44, 45, 51, 52, 54, 58, 59, 60},
+            {17, 27, 38, 44, 45, 52, 54, 58, 59, 60},
         )
-        self.assertEqual(len(ready_ids), 48)
+        self.assertEqual(len(ready_ids), 50)
         self.assertEqual(reviews_by_id[26]["readiness"], "ready")
         self.assertEqual(reviews_by_id[36]["readiness"], "ready")
         self.assertEqual(reviews_by_id[25]["status"], "missing")
