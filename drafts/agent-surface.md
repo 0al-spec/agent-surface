@@ -4390,7 +4390,10 @@ surface, scopes, and caveats.
     "runtime": "application_runtime_456",
     "agent": "local_agent_789",
     "passport_ref": "agent-passport://local-agent",
-    "passport_hash": "sha-256:<base64url-digest>"
+    "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+    "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+    "passport_hash": "sha-256:<base64url-digest>",
+    "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01"
   },
   "resource_server": {
     "app_id": "code.example.com",
@@ -4452,7 +4455,10 @@ surface, scopes, and caveats.
     "method": "dpop",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
+    "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+    "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
     "passport_hash": "sha-256:<base64url-digest>",
+    "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01",
     "jkt": "<base64url-thumbprint>"
   },
   "audit": {
@@ -5082,7 +5088,10 @@ Example, shown decoded from its form-encoded authorization request parameter:
       "runtime": "application_runtime_456",
       "agent": "local_agent_789",
       "passport_ref": "agent-passport://local-agent",
-      "passport_hash": "sha-256:<base64url-digest>"
+      "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+      "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+      "passport_hash": "sha-256:<base64url-digest>",
+      "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01"
     },
     "resource_server": {
       "app_id": "code.example.com",
@@ -5311,7 +5320,10 @@ Example successful response:
         "runtime": "application_runtime_456",
         "agent": "local_agent_789",
         "passport_ref": "agent-passport://local-agent",
-        "passport_hash": "sha-256:<base64url-digest>"
+        "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+        "passport_hash": "sha-256:<base64url-digest>",
+        "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01"
       },
       "resource_server": {
         "app_id": "code.example.com",
@@ -5334,7 +5346,10 @@ Example successful response:
         "method": "dpop",
         "runtime_id": "application_runtime_456",
         "agent_id": "local_agent_789",
+        "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
         "passport_hash": "sha-256:<base64url-digest>",
+        "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01",
         "jkt": "<base64url-thumbprint>"
       },
       "audit": {
@@ -5451,7 +5466,10 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
     "runtime": "application_runtime_456",
     "agent": "local_agent_789",
     "passport_ref": "agent-passport://local-agent",
-    "passport_hash": "sha-256:<base64url-digest>"
+    "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+    "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+    "passport_hash": "sha-256:<base64url-digest>",
+    "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01"
   },
   "constraints": {
     "repositories": ["example-org/example-repo"],
@@ -5466,7 +5484,10 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
     "method": "dpop",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
+    "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+    "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
     "passport_hash": "sha-256:<base64url-digest>",
+    "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01",
     "jkt": "<base64url-thumbprint>"
   },
   "authorization_details": [
@@ -5481,7 +5502,10 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
         "runtime": "application_runtime_456",
         "agent": "local_agent_789",
         "passport_ref": "agent-passport://local-agent",
-        "passport_hash": "sha-256:<base64url-digest>"
+        "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+        "passport_hash": "sha-256:<base64url-digest>",
+        "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01"
       },
       "resource_server": {
         "app_id": "code.example.com",
@@ -5504,7 +5528,10 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
         "method": "dpop",
         "runtime_id": "application_runtime_456",
         "agent_id": "local_agent_789",
+        "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
         "passport_hash": "sha-256:<base64url-digest>",
+        "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01",
         "jkt": "<base64url-thumbprint>"
       },
       "audit": {
