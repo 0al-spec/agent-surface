@@ -213,11 +213,11 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(len(reviews), 60)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 41, "proposal": 19}),
+            Counter({"specified": 42, "proposal": 18}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 41, "partial": 9, "missing": 10}),
+            Counter({"present": 42, "partial": 9, "missing": 9}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 119)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -238,7 +238,7 @@ class ReviewDataValidationTests(unittest.TestCase):
                 }
             ),
         )
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 224)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 233)
         for review in reviews:
             if review["status"] == "missing":
                 self.assertEqual(review["evidence"], [])
@@ -256,15 +256,16 @@ class ReviewDataValidationTests(unittest.TestCase):
         blocked_ids = set(reviews_by_id) - ready_ids
         self.assertEqual(
             blocked_ids,
-            {17, 44, 58, 60},
+            {17, 58, 60},
         )
-        self.assertEqual(len(ready_ids), 56)
+        self.assertEqual(len(ready_ids), 57)
         self.assertEqual(reviews_by_id[26]["readiness"], "ready")
         self.assertEqual(reviews_by_id[36]["readiness"], "ready")
         self.assertEqual(reviews_by_id[25]["status"], "present")
         self.assertEqual(reviews_by_id[25]["readiness"], "ready")
         self.assertEqual(reviews_by_id[21]["maturity"], "specified")
         self.assertEqual(reviews_by_id[41]["maturity"], "specified")
+        self.assertEqual(reviews_by_id[42]["maturity"], "specified")
         self.assertEqual(reviews_by_id[51]["maturity"], "specified")
         self.assertEqual(reviews_by_id[52]["maturity"], "specified")
         self.assertEqual(reviews_by_id[54]["maturity"], "specified")

@@ -2347,34 +2347,91 @@
       "description": "определить минимальный набор passport fields, достаточный для grant issuance.",
       "category": "Runtime / Agent Passport / identity",
       "side": "right",
-      "status": "missing",
+      "status": "present",
       "anchors": [
         {
           "heading": "Agent Passport",
           "anchorId": "agent-passport"
         },
         {
+          "heading": "Minimal Agent Passport Grant-Issuance Profile",
+          "anchorId": "minimal-agent-passport-grant-issuance-profile"
+        },
+        {
           "heading": "Grant Object",
           "anchorId": "grant-object"
         },
         {
-          "heading": "Application Runtime Profile",
-          "anchorId": "application-runtime-profile"
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
         },
         {
-          "heading": "Open Questions",
-          "anchorId": "open-questions"
+          "heading": "Rich Authorization Request Profile",
+          "anchorId": "rich-authorization-request-profile"
+        },
+        {
+          "heading": "Grant Verification",
+          "anchorId": "grant-verification"
+        },
+        {
+          "heading": "Agent Passport Revoked or Expired",
+          "anchorId": "agent-passport-revoked-or-expired"
+        },
+        {
+          "heading": "Error Model",
+          "anchorId": "error-model"
+        },
+        {
+          "heading": "Application Runtime Profile",
+          "anchorId": "application-runtime-profile"
         }
       ],
-      "rationale": "Набор обязательных passport fields не определён и прямо оставлен open question.",
+      "rationale": "Определены required v1alpha1 source fields, exact-artifact hash, named crypto/trust/status profile, verification order, Grant tuple, lifecycle и authority boundary.",
       "priority": "P0",
       "profile": "identity-passport",
       "depends_on": [
         2
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-passport"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "minimal-agent-passport-grant-issuance-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "rich-authorization-request-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-passport-revoked-or-expired"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "error-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-runtime-profile"
+        }
+      ]
     },
     {
       "id": 43,

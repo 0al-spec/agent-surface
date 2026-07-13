@@ -284,6 +284,11 @@ capability evidence for an agent. It can describe the agent, its declared
 capabilities, resource requirements, security policies, integrity hashes,
 lifecycle, issuer, and signature.
 
+The presence or syntactic validity of those fields is not cryptographic
+verification. A consuming profile must separately define exact signed bytes,
+algorithm policy, authenticated key resolution, issuer trust, lifecycle status,
+and any executable-integrity binding it claims.
+
 An Agent Passport does **not** by itself grant authority inside an application.
 It answers "what is this agent and what has been attested about it?" A grant
 answers "what has this user allowed this runtime-agent-passport tuple to do in
@@ -718,7 +723,9 @@ runtime mediation:
 - What capabilities does it declare?
 - What runtime or resource constraints does it require?
 - Has the passport expired or been revoked?
-- Does the passport hash match the executable agent?
+- Does the exact Passport artifact hash match the verified artifact?
+- Has an independent integrity profile bound that artifact to the executable
+  agent, or is the evidence document-only?
 
 But the passport itself does not authorize application actions.
 
@@ -1172,6 +1179,16 @@ surface discoverable.
     "schema_dialect": "https://json-schema.org/draft/2020-12/schema",
     "runtime_identity_profiles": [
       "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1"
+    ],
+    "agent_passport_profiles": [
+      {
+        "profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        "hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+        "verification_profiles": [
+          "https://example.com/profiles/agent-passport-verification/2026-01"
+        ],
+        "max_artifact_bytes": 262144
+      }
     ]
   },
   "auth": {
@@ -1455,6 +1472,17 @@ NOT infer support from an OAuth client registration, a credential format, or a
 human-readable deployment label. Absence means that this manifest requires only
 the base app-scoped `delegate.runtime` binding; it does not mean that the
 runtime is anonymous or attested.
+
+`compatibility.agent_passport_profiles`, when present, MUST be a non-empty array
+of closed objects. Each object MUST contain `profile`, `hash_profile`,
+`verification_profiles`, and `max_artifact_bytes`. The first two values are
+collision-resistant identifiers; `verification_profiles` is a non-empty array
+of unique collision-resistant identifiers; and `max_artifact_bytes` is a
+positive integer no greater than `9007199254740991`. The object advertises only
+combinations the application can retrieve, independently verify, status-check,
+and bind into a Grant. A runtime MUST NOT infer production verification support
+from the source `apiVersion`, signature algorithm label, file extension, or
+presence of a validator.
 
 `audit.required_fields` advertises the non-conditional minimum for application
 receipts and MUST NOT weaken the Receipt Requirements profile. Conditional
@@ -1932,7 +1960,7 @@ The runtime requests a subscription through the manifest
     "surface_hash": "sha-256:<base64url-digest>",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
-    "passport_hash": "sha256:...",
+    "passport_hash": "sha-256:<base64url-digest>",
     "requested_events": ["ci.failed", "pull_request.updated"],
     "max_in_flight": 16
   }
@@ -1960,7 +1988,7 @@ cursor representing the position before any delivery:
     "surface_hash": "sha-256:<base64url-digest>",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
-    "passport_hash": "sha256:...",
+    "passport_hash": "sha-256:<base64url-digest>",
     "accepted_events": ["ci.failed", "pull_request.updated"],
     "profile": "at_least_once",
     "ack_deadline_seconds": 30,
@@ -2334,7 +2362,7 @@ This is a minimum `budget.exceeded` delivery:
     "app_id": "code.example.com",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
-    "passport_hash": "sha256:...",
+    "passport_hash": "sha-256:<base64url-digest>",
     "previous_state": "warning",
     "effective_state_revision": 3,
     "budget": {
@@ -2544,7 +2572,7 @@ controlling-runtime variant:
   "app_id": "code.example.com",
   "runtime_id": "application_runtime_456",
   "agent_id": "local_agent_789",
-  "passport_hash": "sha256:...",
+  "passport_hash": "sha-256:<base64url-digest>",
   "pause_id": "pause_01J2BUDGET",
   "session_id": "sess_456",
   "session_generation": 1,
@@ -3803,6 +3831,313 @@ application MUST NOT repeat the side effect and MUST report
 `integrity_mismatch` rather than attaching the original result to a competing
 provenance chain.
 
+## Minimal Agent Passport Grant-Issuance Profile
+
+This profile defines the minimum Agent Passport evidence that an ASP runtime
+and authorization server can consume during Grant issuance. It does not modify
+the Agent Passport source specification and does not make every syntactically
+valid v1alpha1 document suitable for production authorization.
+
+The consuming profile identifier is:
+
+```text
+https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1
+```
+
+The exact-artifact hash profile identifier is:
+
+```text
+https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1
+```
+
+An implementation claims this profile only when it supports both identifiers
+and at least one separately named Passport verification profile advertised in
+the manifest. The source document's `signature` fields, generic v1alpha1
+verification prose, or a schema-validation success are not a concrete
+cryptographic verification profile.
+
+### Minimal Source Document
+
+The input MUST be exactly one UTF-8 YAML 1.2 document with one top-level
+`passport` mapping and no other top-level member. Before interpreting fields, a
+consumer MUST reject duplicate mapping keys, merge keys, aliases, non-core
+tags, non-string mapping keys, cyclic data, multiple YAML documents, and values
+that cannot be represented in the I-JSON data model. Parsing MUST use a safe,
+non-object-constructing YAML implementation.
+
+The source document MUST contain all of these paths:
+
+```text
+passport.apiVersion
+passport.kind
+passport.metadata.name
+passport.metadata.uid
+passport.metadata.version
+passport.metadata.issueDate
+passport.metadata.expiryDate
+passport.metadata.issuer
+passport.spec.entity.type
+passport.spec.capabilities
+passport.spec.capabilities[].name
+passport.spec.capabilities[].signature
+passport.signature.algorithm
+passport.signature.value
+passport.signature.publicKeyRef
+```
+
+`passport.apiVersion` MUST be `agent-passport.io/v1alpha1` and
+`passport.kind` MUST be `AgentPassport`. Every listed scalar MUST be a non-empty
+string. `issueDate` and `expiryDate` MUST be RFC 3339 timestamps; `issueDate`
+MUST precede `expiryDate`, and issuance requires
+`issueDate <= now < expiryDate` under the verification profile's clock-skew
+rules. This profile promotes `expiryDate` from optional in the source draft to
+required for ASP Grant issuance.
+
+`spec.capabilities` MUST be an array. Capability names MUST be unique by exact
+string equality, and every entry MUST satisfy the source schema for its callable
+`signature` object. That object describes parameters and returns; it is not the
+Passport's cryptographic signature. An empty capability array can identify an
+agent but cannot make an ASP action compatible.
+
+All optional source sections, including resources, security policies,
+`agentIntegrity`, signature metadata, and extension fields, remain part of the
+retrieved artifact and its cryptographic verification. A consumer MUST NOT drop
+unknown fields before signature verification or artifact hashing. An unknown
+field has no ASP authority or enforcement semantics unless the selected
+verification or integrity profile explicitly defines it.
+
+`metadata.uid` identifies the agent described by the Passport. It is not a
+runtime id, OAuth client id, user id, executable hash, or proof that the
+currently connected process is that agent.
+
+### Exact Artifact Hash
+
+For a local file, `artifact_octets` is the exact file byte sequence. For a
+retrieved representation, it is the exact representation data after transport
+framing and content-encoding have been removed and before character decoding,
+YAML parsing, newline conversion, or other normalization. The consumer MUST
+enforce the advertised `max_artifact_bytes` before buffering or parsing it.
+
+The hash profile computes:
+
+```text
+digest = SHA-256(
+  UTF8("ASP agent-passport artifact v1") || 0x00 || artifact_octets
+)
+
+passport_hash = "sha-256:" || BASE64URL-NOPAD(digest)
+```
+
+`BASE64URL-NOPAD` uses the RFC 4648 URL-safe alphabet without `=` padding. The
+digest portion is exactly 43 characters decoding to 32 octets; padding,
+whitespace, another alphabet, or a different decoded length is invalid.
+
+For the 13 artifact octets consisting of the UTF-8 text `passport: {}` followed
+by one LF byte, the result is:
+
+```text
+sha-256:218YMarWJ5KKssblgnAdgryNm_8JGmVt4sAkYPeq9Mk
+```
+
+This vector exercises only the hash layer; the empty Passport later fails the
+minimal source-document checks. Omitting the final LF instead produces
+`sha-256:YOwAV1bQimyIkP1UI06EYZRXqi4Eua5DF8yPN-5-EOA`, demonstrating that line
+ending normalization is forbidden.
+
+The hash therefore covers the complete artifact, including its top-level
+`signature` object, comments, whitespace, YAML presentation choices, and
+unknown extensions. It does not parse and reserialize the document. Any byte
+change, including re-signing or semantically equivalent YAML reformatting,
+produces a different `passport_hash`.
+
+`passport_hash` is an integrity commitment to bytes only. It does not prove a
+valid signature, a trusted issuer, current lifecycle status, truthful
+capabilities, enforceable policy, or a match to executable code.
+`passport_ref` is an optional locator only; recognizing its scheme or fetching
+bytes from it is not verification. Redirects, content negotiation, caches, and
+local aliases MUST NOT cause a consumer to accept bytes whose exact hash differs
+from the Grant-bound value.
+An application MUST NOT dereference an arbitrary client-supplied URI. It accepts
+only a pre-registered artifact or a locator scheme, origin, redirect policy,
+media type, and authentication method explicitly allowed by the selected
+verification profile and local SSRF policy.
+
+### Passport Verification Profile
+
+`passport_verification_profile` MUST be a collision-resistant identifier
+selected from the applicable manifest entry. Its defining specification MUST
+completely define:
+
+- allowed signature algorithms and parameters, with algorithm-confusion and
+  downgrade behavior;
+- the exact signed byte sequence, including how the top-level `signature`
+  object and YAML presentation are handled;
+- authenticated `publicKeyRef` resolution, key type checks, issuer-to-key
+  binding, trust anchors, key rotation, and historical verification;
+- exact issuer identity semantics and any federation or delegation rules;
+- signature decoding and verification;
+- clock source, accepted skew, issue and expiry validation;
+- an authenticated Passport status mechanism, stable status key, response
+  binding, freshness, replay handling, and revoked, unknown, and unavailable
+  states; and
+- fail-closed behavior when keys, trust state, or fresh status cannot be
+  obtained.
+
+A profile that leaves any of those items implementation-defined is not usable
+for production Grant issuance. In particular, the current Agent Passport
+v1alpha1 draft does not itself specify canonical signing bytes, a common trust
+store, or an interoperable status protocol. A validator that checks required
+fields and base64 syntax but does not cryptographically verify the signature is
+schema validation, not Passport verification.
+
+The runtime and authorization server MUST independently support the exact
+verification-profile identifier. Neither may substitute a profile with the
+same algorithm name, key, issuer, or source `apiVersion`. Status freshness is
+mutable verifier state and is not copied into `grant_hash`; every enforcing
+component retains the selected profile and checks current status before use.
+
+### Verification and Admission
+
+Verification follows this order:
+
+1. Retrieve no more than `max_artifact_bytes` through an authenticated or
+   locally trusted resolution path.
+2. Compute the exact-artifact `passport_hash` before parsing and compare it with
+   any expected value using a constant-time digest comparison.
+3. Perform the safe YAML and minimal source-document checks above.
+4. Select the exact consuming, hash, and verification profiles without
+   fallback.
+5. Resolve an authenticated key, verify the exact signed bytes and issuer trust,
+   and reject any algorithm or key mismatch.
+6. Validate issue and expiry time and obtain fresh authenticated lifecycle
+   status.
+7. Treat optional resource, policy, integrity, and extension declarations only
+   according to explicitly supported profiles; unsupported declarations do not
+   become authority.
+8. Extract the unique capability-name set for advisory capability matching.
+9. Bind the Passport uid and hash to the runtime-local agent identifier and,
+   when claimed, independently verify executable integrity.
+10. Derive the Consent Preview and only then request or accept a Grant.
+
+Failure at any step invalidates the admission result. A component MUST NOT keep
+a later step's successful result after an earlier binding, trust, time, or
+status input changes.
+
+A verifier SHOULD retain a local admission projection such as:
+
+```json
+{
+  "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+  "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+  "passport_hash": "sha-256:<base64url-digest>",
+  "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01",
+  "api_version": "agent-passport.io/v1alpha1",
+  "uid": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+  "version": "1.0.0",
+  "issuer": "TrustedAgentIssuers Inc.",
+  "public_key_ref": "https://issuer.example/keys/passport-key.jwk",
+  "issued_at": "2026-07-01T00:00:00Z",
+  "expires_at": "2026-08-01T00:00:00Z",
+  "status_checked_at": "2026-07-14T10:00:00Z",
+  "status_valid_until": "2026-07-14T10:05:00Z",
+  "capability_names": ["comment.create", "pull_request.get"],
+  "agent_binding": "document_only"
+}
+```
+
+This is verifier-local state, not a portable Grant member or attestation. Raw
+artifacts, external issuer subjects, key-resolution credentials, and status
+responses MUST NOT be copied into an Agent Grant, receipt, event, trace, or
+agent-visible context.
+`status_valid_until` MUST be no later than Passport expiry, key-validity expiry,
+or the selected status profile's maximum freshness deadline.
+
+`agent_binding` is `document_only` unless a separately named integrity profile
+has verified a complete, unambiguous mapping from the Passport to the executable
+artifacts actually launched under the local agent identifier. A present
+`agentIntegrity.codeHashes` array or one matching file is insufficient by
+itself: the integrity profile must define path roots, algorithm and encoding,
+required artifact inventory, symlink and file-replacement behavior, measurement
+time, and failure semantics. When all of those checks succeed, the local value
+MAY be `code_hash_verified` and MUST also retain the integrity-profile
+identifier. The authorization server MUST NOT present a runtime-local
+`code_hash_verified` value as application-verified evidence unless it has a
+separate attestation profile that proves that claim.
+
+### Passport Grant Binding
+
+When this profile is selected, a semantic Grant request's `delegate` contains:
+
+```json
+{
+  "runtime": "application_runtime_456",
+  "agent": "local_agent_789",
+  "passport_ref": "agent-passport://local-agent",
+  "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+  "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+  "passport_hash": "sha-256:<base64url-digest>",
+  "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01"
+}
+```
+
+`passport_profile`, `passport_hash_profile`, `passport_hash`, and
+`passport_verification_profile` are REQUIRED and form one exact tuple.
+`passport_ref` remains optional. The runtime supplies only values from its
+successful local verification. The authorization server independently obtains
+the exact artifact, recomputes the hash, verifies the selected profile and fresh
+status, and binds its app-scoped `delegate.agent` record to the verified
+Passport uid. It MUST NOT accept the runtime's admission projection as a
+substitute for those checks.
+When `passport_ref` is absent, the authorization server MUST already possess an
+authenticated registration for the exact artifact hash and profile tuple; the
+authorization request does not carry raw Passport bytes.
+
+`credential_binding` MUST repeat all four required Passport tuple values. The
+complete delegate and credential-binding copies are included in `grant_hash`
+and MUST remain exact in Rich Authorization Request results, token exchange,
+introspection, sessions, child Grants for the same agent, and action
+verification. Any missing or mismatched copy is `integrity_mismatch`.
+
+The local and grant-issuer consent views MUST display the profile identifiers,
+artifact hash, Passport name, uid, version, issuer, expiration, status freshness,
+capability names relevant to the requested actions, and whether executable
+binding is `document_only`, locally `code_hash_verified`, or unavailable. Local
+integrity and operator claims MUST be labeled as local evidence. A changed
+artifact byte, profile identifier, issuer trust result, lifecycle state,
+capability set, agent binding, or executable-integrity result makes the Consent
+Preview stale.
+
+Passport capabilities, callable signatures, `accessControl`, resources,
+security policies, and extensions are signed declarations and policy evidence.
+They can make an action incompatible or add a local restriction, but they MUST
+NOT add an action, location, scope, resource, approval bypass, or credential
+release to an Agent Grant. A valid Passport signature proves only that the
+selected key signed the profile-defined bytes; it does not prove the truth of a
+claim or that the runtime is executing the described code.
+
+### Passport Lifecycle and Privacy
+
+The exact Passport tuple and fresh status MUST be checked at issuance, before
+storing a returned Grant, during introspection, and before every action. A
+status refresh for the same artifact and profile does not change `grant_hash`.
+Expiry, revocation, unknown status beyond the profile's freshness window, or a
+trust/key invalidation makes the Passport unusable and triggers the failure and
+session behavior defined by Agent Passport Revoked or Expired.
+
+Renewal, re-signing, reserialization, an extension change, or any other byte
+change creates a new `passport_hash`, invalidates pending previews, and requires
+new Grant issuance. An implementation MUST NOT silently replace a Grant-bound
+artifact with a semantically similar or newer Passport. An updated
+`passport_ref` is also a Grant change when that locator is present in the
+authoritative delegate.
+
+Consent and management interfaces SHOULD minimize retention of Passport names,
+uids, issuers, capability inventories, and local integrity results. The Grant
+and its protocol projections contain only the opaque agent id, optional locator,
+and four Passport tuple values. Raw artifacts, signatures, external issuer
+subjects, status responses, executable paths, and code hashes remain inside the
+applicable verifier or runtime boundary.
+
 ## Runtime Identity Profile
 
 The base protocol identifies a runtime with the application-scoped
@@ -3972,7 +4307,7 @@ member:
     "runtime": "application_runtime_456",
     "runtime_identity_profile": "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
     "agent": "local_agent_789",
-    "passport_hash": "sha256:..."
+    "passport_hash": "sha-256:<base64url-digest>"
   }
 }
 ```
@@ -4055,7 +4390,7 @@ surface, scopes, and caveats.
     "runtime": "application_runtime_456",
     "agent": "local_agent_789",
     "passport_ref": "agent-passport://local-agent",
-    "passport_hash": "sha256:..."
+    "passport_hash": "sha-256:<base64url-digest>"
   },
   "resource_server": {
     "app_id": "code.example.com",
@@ -4117,7 +4452,7 @@ surface, scopes, and caveats.
     "method": "dpop",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
-    "passport_hash": "sha256:...",
+    "passport_hash": "sha-256:<base64url-digest>",
     "jkt": "<base64url-thumbprint>"
   },
   "audit": {
@@ -4171,6 +4506,12 @@ binding id and claims revision as defined by that profile. The request-only
 `delegate.runtime_identity_profile` selector is the sole exception to the
 otherwise shared request and Grant Object field shape; it MUST NOT remain in the
 authoritative Grant.
+When the Minimal Agent Passport Grant-Issuance Profile is selected, `delegate`
+and `credential_binding` MUST each contain the same `passport_profile`,
+`passport_hash_profile`, `passport_hash`, and
+`passport_verification_profile` tuple. Unlike runtime identity output, the
+client supplies this tuple from its local verification and the authorization
+server independently verifies it.
 `data_exposure` is also authorization-server output. It is the complete
 effective projection derived under the Data Exposure Contract and does not
 grant authority independent of the action, scope, location, and resource
@@ -4454,9 +4795,9 @@ The runtime MUST derive the preview exclusively from:
 - the exact proposed semantic Agent Grant request; the OAuth profile represents
   this request as `authorization_details`, while another issuance model MUST
   preserve the same Grant Object field semantics;
-- the verified runtime, agent, and passport tuple, including the selected
-  Runtime Identity Profile and locally authenticated projection when present;
-  and
+- the verified runtime, agent, and Passport tuple, including every selected
+  Passport profile and the selected Runtime Identity Profile and locally
+  authenticated projection when present; and
 - the complete Data Exposure Contract projection recomputed for the requested
   actions and scopes.
 
@@ -4472,7 +4813,11 @@ confirms:
 - application identity, issuer, surface version, and an inspectable surface
   hash;
 - runtime identity, agent identity, passport hash, and the kind of passport
-  evidence verified; when a Runtime Identity Profile is selected, the preview
+  evidence verified; when the Minimal Agent Passport Grant-Issuance Profile is
+  selected, it MUST also show the consuming, hash, and verification profiles,
+  name, uid, version, issuer, expiry, status freshness, relevant capability
+  names, and the verification boundary of any executable binding; when a Runtime
+  Identity Profile is selected, the preview
   MUST show the requested profile and every locally authenticated identity
   facet; if the app-scoped binding id, claims revision, or complete server
   projection is not yet available, the preview MUST label it unresolved and
@@ -4527,10 +4872,12 @@ confirmed -> request sent -> granted | rejected
 ```
 
 Any change to issuer, application, surface hash, runtime-agent-passport tuple,
-Runtime Identity Profile, binding id, claims revision or projected identity
-facet, actions, scopes, locations, resource filters, constraints, budgets,
-expiration, credential profile, receipt requirements, execution or effect
-declarations, or resolved exposure contracts makes the preview stale. A stale
+Passport consuming, hash, or verification profile, Passport artifact or
+lifecycle result, executable-integrity result, Runtime Identity Profile,
+binding id, claims revision or projected identity facet, actions, scopes,
+locations, resource filters, constraints, budgets, expiration, credential
+profile, receipt requirements, execution or effect declarations, or resolved
+exposure contracts makes the preview stale. A stale
 preview MUST be regenerated and confirmed again before a request is sent or a
 returned grant is stored or used. Decline terminates the local flow; the runtime
 MUST NOT continue authorization in the background.
@@ -4563,8 +4910,9 @@ The returned object adds grant-issuer output such as `grant_id`,
 subject, credential binding, effective exposure projection, and `grant_hash`.
 It MAY be a semantically narrower valid subset under this comparison:
 
-- issuer, `app_id`, surface version and hash, runtime id, agent id, passport
-  hash, and requested credential profile MUST remain exactly equal; when the
+- issuer, `app_id`, surface version and hash, runtime id, agent id, Passport
+  consuming profile, hash profile, artifact hash, verification profile, and
+  requested credential profile MUST remain exactly equal; when the
   Runtime Identity Profile was selected, a returned projection that was already
   locally authenticated MUST remain exactly equal, an unresolved projection
   requires the second confirmation above, and its repeated credential-binding
@@ -4734,7 +5082,7 @@ Example, shown decoded from its form-encoded authorization request parameter:
       "runtime": "application_runtime_456",
       "agent": "local_agent_789",
       "passport_ref": "agent-passport://local-agent",
-      "passport_hash": "sha256:..."
+      "passport_hash": "sha-256:<base64url-digest>"
     },
     "resource_server": {
       "app_id": "code.example.com",
@@ -4770,7 +5118,9 @@ are the authoritative Grant Object wire shape defined above:
 - `delegate` MUST contain `runtime`, `agent`, and `passport_hash`; it MAY contain
   `passport_ref` and the request-only `runtime_identity_profile` selector. It
   MUST NOT contain the server-derived `runtime_identity` projection in a
-  request.
+  request. When the Minimal Agent Passport Grant-Issuance Profile is selected,
+  it MUST also contain the exact `passport_profile`, `passport_hash_profile`,
+  and `passport_verification_profile` values required by that profile.
 - `resource_server` MUST contain `app_id`, `issuer`, `surface_version`, and the
   verified `surface_hash`.
 - `constraints` MUST contain `expires_at`; other fields use the semantics of the
@@ -4799,10 +5149,11 @@ are the authoritative Grant Object wire shape defined above:
 The authorization server MUST reject unknown fields, unknown action or scope
 values, a mismatched `resource_server.app_id` or
 `resource_server.surface_version`, a mismatched `resource_server.surface_hash`,
-an unverified passport hash, an unadvertised or unsatisfied runtime identity
-profile, a client-supplied runtime identity projection, an action set that is
-not closed over required companion dependencies, or constraints that are
-invalid for the published surface. It MUST use the RFC 9396
+a Passport tuple that is unadvertised, unsupported, stale, or not independently
+verified, an unadvertised or unsatisfied runtime identity profile, a
+client-supplied runtime identity projection, an action set that is not closed
+over required companion dependencies, or constraints that are invalid for the
+published surface. It MUST use the RFC 9396
 `invalid_authorization_details` error for malformed or unsupported Agent Grant
 authorization details.
 
@@ -4828,7 +5179,11 @@ Contract's material-semantics and untrusted-label requirements using its own
 verified copy of the request and pinned manifest. When a Runtime Identity
 Profile is selected, that view MUST include the complete sanitized projection
 the server derived from the authenticated runtime record; raw identity evidence
-remains hidden. The user MAY approve a strict subset. The authorization server
+remains hidden. When the Minimal Agent Passport Grant-Issuance Profile is
+selected, the view MUST include the server's independently verified Passport
+identity, tuple, expiry, status freshness, relevant capability names, and
+verification boundary without exposing the raw artifact. The user MAY approve
+a strict subset. The authorization server
 MUST present each required companion closure as one approval group. It MUST
 materialize the exact approved action stages in the returned `actions`
 allow-list, reject a selection that breaks required closure, compare the
@@ -4846,6 +5201,9 @@ granted object for later action verification and introspection.
 When the request selected a Runtime Identity Profile, the returned object MUST
 remove the request-only selector and contain the exact server-derived
 `delegate.runtime_identity` and repeated credential-binding values.
+When the request selected the Minimal Agent Passport Grant-Issuance Profile,
+the returned delegate and credential binding MUST preserve its exact four-value
+Passport tuple.
 
 #### OAuth Token Exchange Profile
 
@@ -4900,8 +5258,8 @@ The Token Exchange request has these additional ASP requirements:
   bound channel authentication.
 
 The authorization server MUST validate the subject token, runtime identity,
-agent and passport binding, resource, requested action and location allow-lists,
-scopes, constraints, and credential profile. Returned `actions` and `locations`
+agent and exact current Passport tuple, resource, requested action and location
+allow-lists, scopes, constraints, and credential profile. Returned `actions` and `locations`
 MUST be subsets of the source authorization. The exchange MUST NOT add a
 stronger companion stage under a shared scope, increase authority, widen
 resources, relax approval or receipt requirements, extend beyond the approved
@@ -4953,7 +5311,7 @@ Example successful response:
         "runtime": "application_runtime_456",
         "agent": "local_agent_789",
         "passport_ref": "agent-passport://local-agent",
-        "passport_hash": "sha256:..."
+        "passport_hash": "sha-256:<base64url-digest>"
       },
       "resource_server": {
         "app_id": "code.example.com",
@@ -4976,7 +5334,7 @@ Example successful response:
         "method": "dpop",
         "runtime_id": "application_runtime_456",
         "agent_id": "local_agent_789",
-        "passport_hash": "sha256:...",
+        "passport_hash": "sha-256:<base64url-digest>",
         "jkt": "<base64url-thumbprint>"
       },
       "audit": {
@@ -5035,6 +5393,11 @@ revision remain active. Temporary evidence unavailability, suspension, and
 revocation all use the same `{"active":false}` response and do not disclose
 which identity check failed.
 
+A credential bound to the Minimal Agent Passport Grant-Issuance Profile is
+likewise inactive whenever the exact artifact, verification profile, issuer
+trust, expiry, revocation state, or status freshness cannot be established.
+The inactive response MUST NOT reveal which Passport check failed.
+
 For an active Grant Credential, the response MUST include the RFC 7662 fields
 `active`, `client_id`, `scope`, `token_type`, `exp`, `iat`, `sub`, `aud`, and
 `iss`, plus the ASP fields `grant_id`, `grant_hash`, `resource_server`, `delegate`,
@@ -5088,7 +5451,7 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
     "runtime": "application_runtime_456",
     "agent": "local_agent_789",
     "passport_ref": "agent-passport://local-agent",
-    "passport_hash": "sha256:..."
+    "passport_hash": "sha-256:<base64url-digest>"
   },
   "constraints": {
     "repositories": ["example-org/example-repo"],
@@ -5103,7 +5466,7 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
     "method": "dpop",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
-    "passport_hash": "sha256:...",
+    "passport_hash": "sha-256:<base64url-digest>",
     "jkt": "<base64url-thumbprint>"
   },
   "authorization_details": [
@@ -5118,7 +5481,7 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
         "runtime": "application_runtime_456",
         "agent": "local_agent_789",
         "passport_ref": "agent-passport://local-agent",
-        "passport_hash": "sha256:..."
+        "passport_hash": "sha-256:<base64url-digest>"
       },
       "resource_server": {
         "app_id": "code.example.com",
@@ -5141,7 +5504,7 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
         "method": "dpop",
         "runtime_id": "application_runtime_456",
         "agent_id": "local_agent_789",
-        "passport_hash": "sha256:...",
+        "passport_hash": "sha-256:<base64url-digest>",
         "jkt": "<base64url-thumbprint>"
       },
       "audit": {
@@ -5196,7 +5559,8 @@ establish or obtain from authoritative grant state all of the following:
 - the active `grant_id`;
 - the intended application or resource-server audience;
 - the bound runtime identity;
-- the bound agent identity and passport hash; and
+- the bound agent identity and exact Passport tuple required by its selected
+  profile; and
 - the credential-binding method and any proof-of-possession key or session
   binding that it requires.
 
@@ -5297,7 +5661,9 @@ Applications MUST verify every action against grant state:
 - when `delegate.runtime_identity` is present, its complete projection and
   repeated credential-binding values match the authoritative active runtime
   record at the exact claims revision
-- grant is bound to the agent/passport hash
+- grant is bound to the agent and exact Passport tuple, and the independently
+  verified artifact remains unexpired, unrevoked, and fresh under its selected
+  verification profile
 - credential-binding method and proof-of-possession requirements are satisfied
 - for DPoP, the proof is request-bound and within the limited acceptance window;
   when `jti` replay tracking is enabled, its `jti` has not already been accepted;
@@ -5350,8 +5716,10 @@ Runtimes SHOULD verify:
 - `grant_hash` matches the complete grant returned at issuance or introspection
 - `surface_hash` matches the verified manifest snapshot pinned for that grant
 - local user has not revoked the app, runtime, or agent
-- Agent Passport is valid
-- requested action is compatible with the Agent Passport capability set
+- the exact Grant-bound Agent Passport tuple remains valid under the locally
+  supported consuming, hash, verification, status, and integrity profiles
+- requested action is compatible with the verified Agent Passport capability
+  set without treating a declaration as Grant authority
 - local policy allows the action
 - local approval is present when required
 - every runtime-authoritative tool, model-token, runtime-time, and runtime-cost
@@ -5618,7 +5986,7 @@ alone cannot release an application slot or satisfy parent resolution.
     "grant_hash": "sha-256:<base64url-digest>",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
-    "passport_hash": "sha256:...",
+    "passport_hash": "sha-256:<base64url-digest>",
     "initiated_by": "runtime",
     "surface": {
       "app_id": "code.example.com",
@@ -5657,7 +6025,7 @@ content MUST fail as `session_transition_invalid`.
     "grant_hash": "sha-256:<base64url-digest>",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
-    "passport_hash": "sha256:...",
+    "passport_hash": "sha-256:<base64url-digest>",
     "surface_hash": "sha-256:<base64url-digest>"
   }
 }
@@ -5787,7 +6155,7 @@ transition does it return the authoritative state. This is the budget response:
     "budget_grant_hash": "sha-256:<base64url-digest>",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
-    "passport_hash": "sha256:...",
+    "passport_hash": "sha-256:<base64url-digest>",
     "surface_hash": "sha-256:<base64url-digest>",
     "budget_id": "runtime_seconds",
     "reported_budget_revision": 31
@@ -6429,7 +6797,7 @@ redactions.
   "surface_hash": "sha-256:<base64url-digest>",
   "actor_agent": {
     "agent_id": "local_agent_789",
-    "passport_hash": "sha256:..."
+    "passport_hash": "sha-256:<base64url-digest>"
   },
   "runtime": {
     "runtime_id": "application_runtime_456"
@@ -6505,7 +6873,7 @@ deduplicated under a grant.
   },
   "actor_agent": {
     "agent_id": "local_agent_789",
-    "passport_hash": "sha256:..."
+    "passport_hash": "sha-256:<base64url-digest>"
   },
   "subject": {
     "user": "user_abc"
@@ -6941,7 +7309,7 @@ with this minimum envelope:
     "app_id": "code.example.com",
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
-    "passport_hash": "sha256:...",
+    "passport_hash": "sha-256:<base64url-digest>",
     "revoked_at": "2026-06-25T18:30:00Z",
     "effective_at": "2026-06-25T18:30:00Z",
     "reason": "user_revoked",
@@ -7041,9 +7409,18 @@ If the runtime disconnects:
 If an Agent Passport is revoked or expired:
 
 - runtime MUST stop launching that agent for new sessions
-- runtime SHOULD cancel or pause active sessions unless policy explicitly allows
-  completion
-- grants bound to the passport SHOULD be suspended or require re-consent
+- runtime and application MUST reject new actions before idempotency lookup,
+  budget admission, receipt creation, or effect
+- runtime and application MUST fence or cancel active sessions rather than let
+  policy silently complete under invalid evidence
+- application MUST apply the Semantic Grant Revocation Transition to every Grant
+  and derived Grant bound to the exact Passport tuple
+
+When fresh authenticated status is temporarily unavailable but the Passport is
+not known to be expired or revoked, enforcing components MUST fail closed and
+fence affected sessions while status is unresolved. A later fresh status result
+for the same exact tuple MAY restore use without changing `grant_hash`; an
+implementation MUST NOT substitute another artifact or verification profile.
 
 ### Surface Version Changed
 
@@ -7098,7 +7475,9 @@ Agent Surface Protocol SHOULD define structured errors:
 | `outcome_unknown` | An external or partial effect may have occurred and blind retry is unsafe. |
 | `risk_denied` | Local or app policy denied the risk class. |
 | `data_exposure_violation` | An application-originated payload contains an undeclared data class or violates its redaction or retention contract. |
-| `passport_invalid` | Agent Passport is missing, expired, revoked, or invalid. |
+| `passport_invalid` | The exact Agent Passport artifact is missing, malformed, expired, revoked, untrusted, incorrectly signed, or not bound to the selected agent. |
+| `passport_profile_unsupported` | A required Passport consuming, artifact-hash, verification, status, or integrity profile is unsupported or incomplete. |
+| `passport_status_unavailable` | Fresh authenticated status for the exact Passport tuple cannot currently be established. |
 | `runtime_untrusted` | Runtime authentication cannot be mapped to the exact active runtime identity projection, or a required posture, locality, or assurance is absent, stale, suspended, revoked, or mismatched. |
 | `surface_incompatible` | A required surface version, profile, or action declaration is unsupported or internally inconsistent and cannot be interpreted safely. |
 | `proposal_required` | The app only supports proposal mode for this action or grant. |
@@ -7130,6 +7509,15 @@ idempotency lookup, budget admission, receipt creation, or any effect. A Grant
 Credential or proof failure remains `grant_proof_invalid`; a mismatch between a
 stored runtime projection and the hashed Grant remains `integrity_mismatch`;
 and an unsupported requested profile remains `surface_incompatible`.
+
+`passport_invalid` is not retryable with the same unchanged artifact and trust
+state. `passport_profile_unsupported` requires support for the exact named
+profile or a new consent and issuance flow; an implementation MUST NOT fall
+back to schema-only validation or another verification profile.
+`passport_status_unavailable` MAY be retried after authenticated status service
+recovery or the profile-defined `retry_after`, but the unresolved attempt MUST
+NOT claim an idempotency key, admit budget, create a receipt, or permit an
+effect.
 
 `input_not_normalized` is retryable only after the runtime applies the pinned
 normalization rules; the rejected attempt does not claim the idempotency key or
@@ -7229,7 +7617,8 @@ not authority. Grant is authority only within caveats.
 ### Confused Deputy
 
 The runtime can accidentally use a grant for the wrong agent, user, workspace, or
-application. Grants MUST bind user, app, runtime, agent, and passport hash.
+application. Grants MUST bind user, app, runtime, agent, and the complete exact
+Passport tuple selected by the Grant.
 
 ### Raw Token Leakage
 
@@ -7271,7 +7660,7 @@ Mitigations:
 - app-issued grants
 - token introspection
 - runtime binding
-- passport hash binding
+- exact Passport profile, artifact-hash, verification, and agent binding
 - sender-constrained grant credentials
 - action-scoped grants
 - app-side receipts
@@ -7296,6 +7685,12 @@ runtimes for high-risk scopes.
 
 Agents can hallucinate, loop, ignore instructions, leak data, or attempt
 unauthorized actions.
+
+A signed Passport is declarative evidence, not behavioral containment. Its
+artifact hash does not verify the signature, and a valid signature does not
+prove capability truth or executable identity. Runtimes and applications MUST
+apply the selected verification and status profile independently; runtimes need
+a separate integrity profile before claiming a local code binding.
 
 Mitigations:
 
@@ -7476,6 +7871,14 @@ records, attestation evidence, device serials, hardware handles, and recovery
 material MUST remain in the authoritative verifier boundary and MUST NOT enter
 receipts, events, traces, ordinary logs, prompts, or agent-visible context.
 
+Passport artifacts and admission projections can expose stable agent uids,
+issuers, capability inventories, security policies, executable paths, and code
+measurements. Protocol-visible Grant state is limited to the app-scoped agent
+id, optional locator, and exact consuming, hash, artifact, and verification
+profile tuple. Raw Passport bytes, signatures, external issuer subjects, status
+responses, executable paths, and code hashes MUST remain inside the applicable
+verifier boundary.
+
 Data Exposure Contracts make application-to-agent disclosure inspectable but
 do not prove that a publisher classified its data correctly. A runtime MUST
 treat application-authored labels and descriptions as untrusted hints, preserve
@@ -7570,6 +7973,10 @@ An application conforms to the Grant-Enforcing profile when it:
   credential-protected `agent_api` endpoint
 - validates grant state for every action
 - validates credential binding to runtime, agent, and passport evidence
+- when it advertises the Minimal Agent Passport Grant-Issuance Profile,
+  independently retrieves, hashes, parses, verifies, status-checks, and binds
+  the exact Passport tuple before issuance and every action, without treating
+  declarations as authority or artifact hashes as signature or code proof
 - when it advertises the Runtime Identity Profile, derives only server-side
   projections, binds them into the Grant and credential binding, maintains the
   authoritative binding lifecycle, and revalidates the exact active revision
@@ -7645,6 +8052,8 @@ it:
   issued Grant Credential audience while keeping action `locations` separate
 - validates and returns Agent Grant `authorization_details` according to the
   Rich Authorization Request Profile
+- preserves the complete selected Passport tuple through authorization, token
+  exchange, introspection, credential binding, and Grant hashing
 - treats `runtime_identity_profile` only as a request selector and returns the
   exact server-derived runtime identity projection without identity-method
   fallback
@@ -7714,7 +8123,11 @@ An application runtime conforms to this profile when it:
 
 - discovers and validates Agent Surface Manifests
 - recomputes `surface_hash` and pins the exact manifest snapshot
-- verifies Agent Passport evidence before delegation
+- independently verifies the exact Agent Passport artifact, signature, issuer
+  trust, lifecycle status, and local agent binding under the selected profiles
+  before delegation
+- distinguishes `document_only` Passport admission from a separately profiled
+  and locally verified executable-integrity binding
 - when selecting the Runtime Identity Profile, shows every locally authenticated
   facet, re-previews and confirms any initially unresolved server projection,
   rejects a returned projection or credential binding that conflicts with known
@@ -7867,7 +8280,7 @@ To support Agent Surface Protocol, the next slices are:
    - app: code.example.com
    - runtime: application-runtime-456
    - agent: local-agent
-   - passport: sha256:...
+   - passport: sha-256:<base64url-digest>
    - scopes: pull_request.read, pull_request.comment
    - actions: pull_request.get, comment.create
    - repository: example-org/example-repo
@@ -7910,8 +8323,6 @@ To support Agent Surface Protocol, the next slices are:
 
 - Does the first MVP use app-issued grants only, or also support
   runtime-held grants for compatibility with existing OAuth APIs?
-- What is the minimal Agent Passport verification profile required before a
-  runtime can request an Agent Grant?
 - Is `/.well-known/agent-surface.json` public, authenticated, or both
   depending on app tenancy?
 - What is the minimal sender-constrained grant credential profile?
