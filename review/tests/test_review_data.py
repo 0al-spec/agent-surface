@@ -213,13 +213,13 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(len(reviews), 60)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 39, "proposal": 21}),
+            Counter({"specified": 40, "proposal": 20}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 39, "partial": 10, "missing": 11}),
+            Counter({"present": 40, "partial": 9, "missing": 11}),
         )
-        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 118)
+        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 119)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
         self.assertEqual(
             Counter(review["profile"] for review in reviews),
@@ -238,7 +238,7 @@ class ReviewDataValidationTests(unittest.TestCase):
                 }
             ),
         )
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 215)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 216)
         for review in reviews:
             if review["status"] == "missing":
                 self.assertEqual(review["evidence"], [])
@@ -266,6 +266,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(reviews_by_id[21]["maturity"], "specified")
         self.assertEqual(reviews_by_id[51]["maturity"], "specified")
         self.assertEqual(reviews_by_id[52]["maturity"], "specified")
+        self.assertEqual(reviews_by_id[54]["maturity"], "specified")
         for review in reviews:
             for dependency_id in review["depends_on"]:
                 self.assertIn(review["id"], reviews_by_id[dependency_id]["blocks"])

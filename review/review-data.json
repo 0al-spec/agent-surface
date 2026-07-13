@@ -2900,11 +2900,15 @@
       "description": "runtime должен иметь обязательные guards на повторяющиеся действия, retries и event-triggered loops.",
       "category": "Economics / limits / operations",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
           "heading": "Every Write Is Idempotent",
           "anchorId": "every-write-is-idempotent"
+        },
+        {
+          "heading": "Runtime Runaway Protection",
+          "anchorId": "runtime-runaway-protection"
         },
         {
           "heading": "Grant Verification",
@@ -2919,20 +2923,25 @@
           "anchorId": "replay-and-duplicate-actions"
         }
       ],
-      "rationale": "Idempotency и общие limits снижают ущерб, но обязательных repeat/retry/event-loop guards нет.",
+      "rationale": "RFC определяет durable session и lineage-delegate guard epochs, обязательные finite transport/repetition/root/depth/cycle limits, normalized action fingerprints, dedupe-before-root, cross-session admission, fail-closed fencing через session.pause и explicit resolution перед reset/resume.",
       "priority": "P0",
       "profile": "operations-safety",
       "depends_on": [
         21,
         26,
-        51
+        51,
+        52
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
           "ref": "every-write-is-idempotent"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-runaway-protection"
         },
         {
           "kind": "rfc_anchor",

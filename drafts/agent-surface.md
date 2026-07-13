@@ -540,6 +540,13 @@ The pinned action declaration defines one normalized wire input for approval,
 hashing, duplicate lookup, and receipts; components MUST NOT deduplicate against
 an application-local representation that those other checks did not bind.
 
+Idempotency prevents one logical request from repeating an application effect;
+it is not a behavioral loop detector. A runtime MUST still count exact cached
+replays, transport retries, and semantically repeated actions using new keys in
+the independent runaway guards defined below. Those guard fingerprints are
+safety signals only and MUST NOT cause an application to merge distinct
+idempotency records or accept an otherwise unauthorized request.
+
 ### Receipts Are First-Class
 
 Audit logs are useful, but action receipts are portable. A receipt SHOULD be
@@ -1130,15 +1137,17 @@ the manifest and cannot be inferred from an action or event endpoint. Changing
 either value changes the manifest hashing view and requires a new
 `surface_version` and `surface_hash`.
 
-`agent_api.session_control_url` is REQUIRED when the application can accept a
-Grant containing `max_tool_calls`, `max_model_tokens`, `max_runtime_seconds`, or
-the runtime-cost partition. It MUST be an absolute HTTPS URL and MUST accept the
-typed `session.pause` request and return `session.state` as defined below. An
-already negotiated Runtime Bridge MAY carry the identical messages, but it does
-not replace this discoverable HTTP binding. The endpoint uses the Grant
-Credential and its required credential-binding proof; fields inside a message
-are not authentication. Changing the URL changes the manifest hashing view and
-requires a new `surface_version` and `surface_hash`.
+`agent_api.session_control_url` is REQUIRED when the application accepts a
+Runtime participant in an ASP session or a Grant containing `max_tool_calls`,
+`max_model_tokens`, `max_runtime_seconds`, or the runtime-cost partition. It
+MUST be an absolute HTTPS URL, accept the `runaway_guard` reason and, when the
+application supports a runtime-authoritative budget dimension, the
+`budget_exceeded` reason, and return `session.state` as defined below. An already
+negotiated Runtime Bridge MAY carry the identical messages, but it does not
+replace this discoverable HTTP binding. The endpoint uses the Grant Credential
+and its required credential-binding proof; fields inside a message are not
+authentication. Changing the URL changes the manifest hashing view and requires
+a new `surface_version` and `surface_hash`.
 
 Implementations MAY collapse these endpoints when the application already has
 equivalent OAuth or API infrastructure, but the manifest MUST make the wire-level
@@ -1989,6 +1998,15 @@ profile does not provide exactly-once processing. Any Action Request triggered
 by an event remains subject to the action's independent authorization,
 idempotency, session, and effect rules.
 
+The runtime MUST complete that validation and durable delivery-deduplication
+decision before it allocates an automation root, advances a runaway-guard
+counter, or schedules an agent, model, tool, or action. A valid new application
+non-control event root is identified by
+`(aspsubid, source, id, aspeventhash)`. A core control event never becomes an
+automation root. A transport retry or replay of a non-control occurrence reuses
+the same root and MUST NOT create another causal branch merely because
+`aspattempt`, arrival time, or transport connection changed.
+
 Delivery authentication establishes the application and bound subscription;
 fields inside `event` do not. The runtime MUST match the event type to the
 pinned manifest and effective grant projection before exposing its data to an
@@ -2074,6 +2092,11 @@ stream, sequence, and cursor; `aspattempt` increments for another transmission.
 The runtime applies ordinary deduplication and acknowledgement rules. Replay
 does not reactivate an interrupted or terminal ASP session, and receiving an
 event does not authorize a session transition.
+
+Replay also MUST NOT reset a runtime runaway-guard epoch, causal-depth counter,
+cycle history, or action-repetition state. The validated root-event reference
+above is causal identity for this purpose; `trace_id`, arrival order, a new
+connection, or a receipt parent link MUST NOT be substituted for it.
 
 A malformed, tampered, wrong-subscription, wrong-tuple, or wrong-surface cursor
 fails as `event_cursor_invalid`. A position no longer available under the
@@ -2194,9 +2217,10 @@ application-authoritative budget, its manifest MUST declare
 warning threshold. Independently, an application with
 `event_subscription_url` MUST declare `session.paused_budget` when application
 policy can interrupt a session for a budget condition or the application
-accepts `session.pause`. Absence or failure of the control channel never delays
-the underlying counter or session transition; delivery is notification, not
-authority.
+accepts `session.pause` with reason `budget_exceeded`. Accepting only the
+`runaway_guard` variant does not require or permit that budget event. Absence or
+failure of the control channel never delays the underlying counter or session
+transition; delivery is notification, not authority.
 
 An application MUST emit `budget.warning` and `budget.exceeded` only for
 application-authoritative `write_actions`, `parallel_sessions`, and
@@ -4106,6 +4130,11 @@ subject to current authorization and disclosure policy. An unknown outcome
 retains its original charge or reservation until reconciled. Changing the
 idempotency key MUST NOT create a refund or escape accounting.
 
+The absence of another budget charge does not exempt that attempt from runtime
+transport, repetition, causal-depth, or cycle guards. Conversely, a runaway
+guard transition and its `session.pause` safety request do not consume or mutate
+a Budget Counter State; guard and budget records remain separate authorities.
+
 Every child charge is applied to the child and all ancestors. A child grant
 bound to the same controlling runtime shares its ancestors' runtime ledgers. A
 child bound to another runtime MUST NOT be issued while any runtime-authoritative
@@ -5031,6 +5060,9 @@ Runtimes SHOULD verify:
 - local approval is present when required
 - every runtime-authoritative tool, model-token, runtime-time, and runtime-cost
   reservation fits the grant and all ancestor ledgers
+- durable lineage-delegate and session runaway-guard state for the exact Grant,
+  delegate, session, and generation is available and the next scheduling or
+  transport step fits every applicable finite guard
 - action input matches the declared schema
 - execution mode, context, and hashes match the pinned action declaration
 - preview evidence is current and any required reservation belongs to the
@@ -5193,7 +5225,7 @@ ASP assigns the following authority to session participants:
 | --- | --- |
 | User | MAY request start, observe state, cancel, or approve resume through an authenticated application or runtime UI. A user-facing gesture is not itself a bridge credential. |
 | Application | Creates or accepts the authoritative record, verifies every transition and action against the current grant and tuple, exposes an authorized user view, and MAY cancel or interrupt a session to enforce application policy. |
-| Runtime | MAY request start for its authenticated grant-bound tuple, observe that tuple's sessions, stop local work, request an application fence for an authoritative local budget, request cancellation, and request resume after interruption. It MUST enforce application state in addition to local policy. |
+| Runtime | MAY request start for its authenticated grant-bound tuple, observe that tuple's sessions, stop local work, request an application fence for an authoritative local budget or a durable runaway guard, request cancellation, and request resume after interruption. It MUST enforce application state in addition to local policy. |
 | Agent | MAY express task intent only through its runtime. It has no direct authority to start, enumerate, observe, cancel, or resume application sessions, and MUST receive session data only through runtime-mediated, exposure-authorized paths. |
 
 An application-started session MUST arise from an authenticated user action or
@@ -5219,7 +5251,8 @@ The normative application-side states and transitions are:
 `cancelled`, `completed`, and `failed` are terminal. A terminal `session_id`
 MUST NOT be resumed or reused for new work. A duplicate request for an already
 accepted transition is idempotent only when its session id, prior generation,
-target state, and bound hashes are identical. A conflicting reuse MUST fail as
+target state, bound hashes, and any reason-specific `guard_id` and
+`guard_resolution_id` are identical. A conflicting reuse MUST fail as
 `session_transition_invalid` and MUST NOT move the session.
 
 When `max_parallel_sessions` is present, the application MUST acquire or
@@ -5228,6 +5261,14 @@ limit leaves a proposed start absent and a proposed resume `interrupted`; it
 does not increment generation, expose the occupying sessions, or disturb work
 already active under the grant. Credential rotation, reconnect, or a duplicate
 transition request MUST NOT allocate another slot or reset lineage occupancy.
+
+An accepted resume does not by itself clear runtime budget or runaway state.
+The runtime MUST resolve its own authoritative blocker first. A resumed
+generation after channel loss, a budget pause, or another non-runaway
+interruption continues the same runaway-guard epoch and counts. A new epoch can
+start only after the explicit runaway resolution rules below; historical guard
+and event-deduplication records are not rewritten as if the earlier generation
+never ran.
 
 `session.pause`, `session.cancel`, and `session.resume` requests MUST contain
 `session_id`, the caller's current `session_generation`, `grant_id`,
@@ -5256,6 +5297,18 @@ for its local execution; ASP does not grant it a session-list operation.
 ### Session Start
 
 Once a grant exists, an application or runtime MAY start a session.
+Before a runtime sends or accepts a start, it MUST admit session creation
+through the lineage-delegate guard defined in Runtime Runaway Protection. A
+fenced or unavailable parent guard blocks the new session even when the Grant
+is otherwise active. If the application has already created a proposed record,
+the runtime MUST NOT schedule it or assume an authoritative application state.
+Every newly observed `active` session in that fenced lineage MUST receive the
+same exact `runaway_guard` pause flow with the causal parent `guard_id` and MUST
+join the parent resolution snapshot. The only alternative is an authenticated
+terminal cancellation after an independently authenticated actor abandons the
+complete lineage recovery. A merely proposed record MUST be cancelled or
+allowed to remain absent according to application policy; local interruption
+alone cannot release an application slot or satisfy parent resolution.
 
 ```json
 {
@@ -5329,18 +5382,28 @@ construct a local task after applying user and local policy.
 
 ### Session Pause
 
-A controlling runtime whose authoritative budget reaches `exhausted` MUST stop
-matching new local work before asking the application to fence the affected
-sessions. Because the counter scope is `grant`, exhaustion applies to every
-active session controlled by that same runtime whose Grant lineage contains the
-causal `budget_grant_id`, including sessions on same-runtime descendant Grants.
-It does not affect a sibling whose lineage excludes that causal Grant or a
-session controlled by another runtime. The controlling runtime sends a distinct
-pause request for each affected active session and MUST NOT leave another
-matching worker eligible for scheduling. It sends the complete typed envelope
-as an `application/json` POST to the manifest `session_control_url`, using the
-Grant Credential and its required credential-binding proof, or carries the
-identical message on an already authenticated Runtime Bridge:
+`session.pause` lets a bound controlling runtime request an application fence
+after it has already stopped matching new local work. This draft defines two
+runtime-authoritative reasons: `budget_exceeded` and `runaway_guard`. Neither
+payload is authority to change an application budget or bypass application
+session policy.
+
+For an exhausted runtime budget, the cause applies to every active session
+controlled by that same runtime whose Grant lineage contains the causal
+`budget_grant_id`, including sessions on same-runtime descendant Grants. It does
+not affect a sibling whose lineage excludes that causal Grant or a session
+controlled by another runtime. The controlling runtime sends a distinct pause
+request for each affected active session and MUST NOT leave another matching
+worker eligible for scheduling. A runaway guard is scoped to its exact session
+and generation, but its trip also fences the local cumulative
+Grant-lineage/delegate scope defined below. The runtime stops every active local
+session in that scope and sends a distinct pause request for each; it does not
+affect a different delegate or an independently consented root Grant lineage.
+
+The runtime sends the complete typed envelope as an `application/json` POST to
+the manifest `session_control_url`, using the Grant Credential and its required
+credential-binding proof, or carries the identical message on an already
+authenticated Runtime Bridge. This example is the budget variant:
 
 ```json
 {
@@ -5361,29 +5424,57 @@ identical message on an already authenticated Runtime Bridge:
 }
 ```
 
-`pause_id` is a non-empty identifier unique within the session generation.
-`reason` is the literal `budget_exceeded` in this profile. `budget_grant_id` and
-`budget_grant_hash` MUST identify the session grant or one of its authoritative
-ancestors. `budget_id` MUST name one runtime-authoritative counter in that
-causal ledger, and `budget_revision` MUST be the safe non-negative revision of
-the runtime's durably recorded `exhausted` state. The values are an
+`pause_id` is a non-empty identifier unique within the session generation and
+`reason` is `budget_exceeded` or `runaway_guard`. For `budget_exceeded`,
+`budget_grant_id` and `budget_grant_hash` MUST identify the session grant or one
+of its authoritative ancestors, `budget_id` MUST name one runtime-authoritative
+counter in that causal ledger, and `budget_revision` MUST be the safe
+non-negative revision of the runtime's durably recorded `exhausted` state.
+`guard_id` MUST be absent. For `runaway_guard`, a stable non-empty `guard_id`
+from the runtime's durable guard record is REQUIRED and every `budget_grant_*`,
+`budget_id`, and `budget_revision` member MUST be absent. These values are an
 authenticated report by the bound runtime; they do not make the application
-authoritative for the runtime counter and do not permit the runtime to change
-application budget state.
+authoritative for the runtime counter or guard and do not permit the runtime to
+change application budget state.
+
+`guard_id` MUST be collision-resistant and unique across the runtime's retained
+guard records; a later epoch or unrelated guard MUST NOT reuse it. One causal
+parent guard MAY be referenced by the distinct pause records in its fan-out.
+
+The runaway variant is therefore:
+
+```json
+{
+  "type": "session.pause",
+  "payload": {
+    "pause_id": "pause_01J2RUNAWAY",
+    "session_id": "sess_456",
+    "session_generation": 1,
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:<base64url-digest>",
+    "surface_hash": "sha-256:<base64url-digest>",
+    "reason": "runaway_guard",
+    "guard_id": "guard_01J2CYCLE"
+  }
+}
+```
 
 Before either idempotency lookup or a state response, the application MUST
 authenticate the channel as the runtime bound to the complete session tuple,
 verify an active, unexpired current grant and the current surface hashes, require
-the exact current generation, and verify the causal grant hash and ancestor
-relation. Revocation, expiry, or a changed authority dominates a cached pause
-response. After those checks, an exact `pause_id` match to an accepted record
-returns that record as described below even though the session is already
-`interrupted`. A new pause is accepted only for an `active` session. The
-application atomically fences new Action Requests, changes the authoritative
-state to `interrupted` with reason `budget_exceeded`, records `pause_id`, causal
-grant and budget id, reported revision, and effective time, and releases the
-parallel-session slot. The generation does not change. Only after that
-transition does it return the authoritative state:
+the exact current generation, and validate the reason-specific members. For
+`budget_exceeded` it also verifies the causal grant hash and ancestor relation.
+For `runaway_guard` it verifies only that `guard_id` is syntactically valid and
+bound to this authenticated request; it MUST NOT claim to have verified the
+runtime's private detector state. Revocation, expiry, or a changed authority
+dominates a cached pause response. After those checks, an exact `pause_id` match
+to an accepted record returns that record as described below even though the
+session is already `interrupted`. A new pause is accepted only for an `active`
+session. The application atomically fences new Action Requests, changes the
+authoritative state to `interrupted` with the requested reason, records
+`pause_id`, the reason-specific causal fields and effective time, and releases
+the parallel-session slot. The generation does not change. Only after that
+transition does it return the authoritative state. This is the budget response:
 
 ```json
 {
@@ -5408,6 +5499,10 @@ transition does it return the authoritative state:
 }
 ```
 
+For `runaway_guard`, `session.state` repeats `pause_id`, `guard_id`, the exact
+session and Grant tuple, `state: "interrupted"`, and
+`transition_reason: "runaway_guard"`; it omits all budget-specific members.
+
 An exact duplicate request under still-current authority returns the same state
 without another transition, slot release, or control event. Reuse of `pause_id`
 with different content, a different pause for an already interrupted session, a
@@ -5416,7 +5511,7 @@ terminal session, a stale generation, or a tuple/hash mismatch fails uniformly a
 runtime locally paused; it MAY repeat the exact request or query authoritative
 session state, but MUST NOT resume or create a new generation by itself.
 
-An interrupted budget-paused session retains a closed safety and cleanup path
+An interrupted safety-paused session retains a closed safety and cleanup path
 for grant revocation, session cancellation, `budget.query`, introspection,
 receipt retrieval, authoritative outcome reconciliation, explicit reservation
 release, and an exact completed idempotent replay. These operations require the
@@ -5441,14 +5536,260 @@ that could create a new effect requires resume and ordinary active-session
 admission.
 
 When the manifest declares `session.paused_budget`, the application emits the
-control event defined above after the accepted transition. The event records
-the fence but does not create it. Explicit `session.resume` remains the only
-way back to `active`. Before requesting resume, the runtime MUST independently
-verify that its authoritative budget condition is resolved. The application
-increments generation only after the current grant, surface, application-owned
-budget availability, parallel-session occupancy, and its local policy verify;
-it does not invent runtime counter state. Pause neither cancels the grant nor
-rewrites an in-flight action or receipt outcome.
+control event defined above after an accepted `budget_exceeded` transition. The
+event records the fence but does not create it. The application MUST NOT emit
+`session.paused_budget` for `runaway_guard`; this draft defines no application
+event for runtime guard state.
+
+Explicit `session.resume` remains the only way back to `active`. Before
+requesting resume, the runtime MUST independently verify that its authoritative
+budget or guard condition is resolved. When a runaway fence applies to the
+session, the request MUST carry the stored `guard_id` and a non-empty opaque
+`guard_resolution_id` from the explicit local resolution record. This includes
+a session that was already authoritatively `interrupted` for another reason
+when its parent guard tripped, even though no second pause transition was
+permitted. The application binds those values to the transition for audit but
+does not treat them as proof of detector state; its ordinary authenticated
+runtime and local policy checks remain authoritative.
+The resulting `session.state` MUST repeat both identifiers so an ambiguous
+response can be retried without selecting another resolution record.
+The application increments generation only after the current grant, surface,
+application-owned budget availability, parallel-session occupancy, and its
+local policy verify; it does not invent runtime counter or guard state. Pause
+neither cancels the grant nor rewrites an in-flight action or receipt outcome.
+
+### Runtime Runaway Protection
+
+Application idempotency and Grant budgets bound effects and aggregate
+consumption, but they do not by themselves stop an agent that repeatedly reads,
+retries cached operations, changes idempotency keys, or turns application events
+into an automation cycle. A conforming runtime MUST enforce an independent,
+durable runaway-guard epoch before it permits any agent, model, tool, or Action
+Request scheduling. Autonomous scheduling is multi-step work for which each next
+operation does not receive a new, contemporaneous user approval, but a per-step
+approval neither exempts an operation from counting nor resets the epoch.
+
+The runtime allocates a collision-resistant local `guard_epoch_id` before it
+schedules the first step for a session. One guard registry epoch is keyed by
+`(grant_hash, session_id, guard_epoch_id)`, maps every current
+`session_generation` that continues it, and contains a record for each
+applicable guard type and counting key. Channel-loss, budget, and other
+non-runaway resumes MUST bind the incremented generation to the same epoch and
+carry every count forward. Every record uses this state machine:
+
+```text
+armed -> warning -> fenced
+   +----------------> fenced
+```
+
+`warning` MAY be skipped. Each record has a stable collision-resistant
+`guard_id`, unique across retained runtime guard records; any record entering
+`fenced` fences the complete epoch, which is terminal. The runtime MUST
+durably retain each record's state, guard type, positive finite safe-integer hard limit,
+optional lower warning threshold, current safe-integer count, opaque local or
+keyed-hash root and parent references, transition times, and any resolution
+reference. Agent output, an event payload, or a caller-supplied counter MUST NOT
+select a limit or move state backward. Restart, reconnect, credential rotation,
+session interruption, delivery retry, and replay MUST NOT reset the epoch.
+
+Missing, corrupt, or overflowing state in either registry fails closed. The
+runtime MUST first attempt to durably create a minimal fenced fault record with
+a new stable `guard_id`, type `guard_state_unavailable`, the exact retained
+session or lineage-delegate binding, any affected current session tuple, and no
+invented count. It uses the retained epoch id when that binding is intact;
+otherwise it allocates a recovery-only epoch id that MUST never enter `armed`.
+If that record commits, it is the causal fenced record and can support the exact
+pause and resolution flow below for every affected active session. If even the
+minimal record cannot be persisted, the runtime MUST remain locally fenced,
+MUST NOT send a `runaway_guard` pause that falsely claims a stable `guard_id`,
+and MUST require authenticated operator reconciliation or session cancellation.
+When no application session exists, it simply blocks session creation. Loss of
+local state never authorizes a clean epoch or resumed scheduling.
+
+The runtime MUST also maintain a parent lineage-delegate guard registry. It
+allocates a local `guard_lineage_id` for one cumulative Grant derivation lineage
+and carries that id across attenuation, renewal, token exchange, credential
+rotation, and supersession that preserves authority. Only a fresh independent
+root Grant following distinct authorization and consent can allocate a new
+lineage id. Before the first session admission, the runtime allocates a
+collision-resistant `lineage_guard_epoch_id`. The parent epoch is keyed by
+`(guard_lineage_id, runtime_id, agent_id, passport_hash,
+lineage_guard_epoch_id)`, its records use the same state machine, and it has
+positive finite safe-integer limits for session creation, automation roots, total scheduling
+steps, and cycle signatures across every child session epoch in that scope.
+
+Every session start, root allocation, and scheduling admission MUST atomically
+check and advance both the applicable parent and session records. A new
+`session_id`, generation, child Grant, credential, root id, or event delivery
+MUST NOT reset or partition parent counts. If either layer trips, the runtime
+durably fences the parent epoch with the causal `guard_id`, stops admission in
+every local session in that lineage-delegate scope, and applies the pause fan-out
+above. A terminal child session does not clear the parent fence or its unresolved
+tombstone. No new session or existing session may continue the causal task,
+root, action fingerprint, or cycle signature until independent resolution.
+
+Before work begins, local policy MUST configure positive finite safe-integer hard
+limits for at least:
+
+- transport attempts for one logical agent-work dispatch
+- attempts of one repeated logical ASP action across idempotency keys
+- automation roots and total scheduling steps in one epoch
+- logical actions scheduled from one validated automation root
+- runtime-assigned causal depth from that root
+- repetitions of one cycle signature
+
+The runtime MUST also enforce every applicable Grant budget from Budget Caveats
+and Accounting. A budget ledger is not a runaway counter and a guard record is
+not Budget Counter State; satisfying one never disables the other. A warning
+threshold, when configured, MUST be smaller than its hard limit. Crossing it
+MAY notify a local user or policy engine but creates no ASP event and grants no
+additional authority. When the next count would exceed a hard limit, the
+runtime MUST enter `fenced` before that attempt or scheduling step occurs and
+return `safety_guard_triggered` to the local caller.
+
+The applicable parent-and-session checks, count increments, and scheduling
+admission MUST be one atomic or recoverable durable decision. Exactly the
+configured number of concurrent admissions can succeed. The first guard record
+that fences the scope selects the causal `guard_id`; racing steps observe that
+fence, fail without scheduling, and MUST NOT allocate another pause transition.
+
+The runtime allocates a stable logical-dispatch id before a first agent-work
+transport attempt and durably increments its attempt counter before every send.
+A crash between increment and send can conservatively overcount; it MUST NOT
+permit an uncounted retry. Retransmission with the same idempotency key is the
+same logical dispatch but another transport attempt. Creating a new key or
+obtaining an exact cached result can avoid a second application effect or budget
+charge, but it still advances the applicable repetition guard. Closed safety
+and cleanup operations use a separate control-plane path with finite retry and
+backoff policy; a fenced agent-work epoch MUST NOT block that path or let an
+agent use it for unrelated work.
+
+For an action with `asp-json-normalization-v1`, the runtime derives the local
+repetition fingerprint from the pinned `surface_hash`, `action_id`, and verified
+normalized-wire `input_hash`. It MUST exclude the idempotency key, trace ids,
+event delivery ids, transport attempt, timestamps, and transient execution or
+preview evidence. For an action without that normalization profile, the runtime
+MUST at least apply a conservative finite counter keyed by `surface_hash` and
+`action_id`; it MUST NOT invent semantic normalization and claim that two raw
+inputs are the same application request. A fingerprint is a local safety signal,
+not authority, an idempotency key, or evidence an application may use to merge
+requests.
+
+A validated non-control application event uses
+`(aspsubid, source, id, aspeventhash)` as its automation-root reference after
+the delivery decision is durably deduplicated; a core control event cannot be a
+root. A user- or runtime-originated task uses a collision-resistant local root id
+bound to the authenticated initiating record, Grant, session, and generation.
+The runtime assigns every scheduled step a parent guard node and increments
+depth itself; an agent-supplied parent, `traceparent`, receipt link, arrival
+order, or connection identity is not causal authority.
+
+A cycle signature is a collision-resistant local digest over a bounded ordered
+window of runtime-assigned node kinds, action fingerprints, event types, and
+data-minimized stable resource references. Per-occurrence event ids, root ids,
+delivery ids, attempts, traces, and timestamps MUST NOT make an otherwise
+repeated cycle distinct. The signature also MUST exclude raw prompts, event
+payloads, action inputs, model output, and tool arguments. The runtime can use
+stricter local signals, but it MUST NOT omit the finite roots-per-epoch,
+steps-per-epoch, actions-per-root, and causal-depth guards merely because a
+changing input evades an exact cycle signature.
+
+On any trip, the runtime MUST atomically or recoverably persist the `fenced`
+transition before it stops admission. It then rejects new agent, model, tool,
+event-root, and Action Request scheduling for the epoch. Already dispatched
+effects remain subject to their ordinary Action Responses, receipts, and
+authoritative outcome reconciliation; the runtime MUST NOT report them as
+rolled back, failed, or absent merely because the guard tripped. Only the closed
+safety and cleanup path defined in Session Pause remains available, and it MUST
+run outside agent-controlled scheduling.
+
+For each affected application session that is `active`, the runtime sends
+exactly one logical, exactly replayed `session.pause` request using a stable
+per-session `pause_id`, reason `runaway_guard`, and the causal `guard_id`. A
+timeout leaves the runtime locally fenced and retries that same request with
+bounded backoff; it never allocates another pause id for the session. Exhausting
+the control-plane retry policy leaves the local fence in place and requires
+operator or authenticated state reconciliation; it does not reopen agent
+scheduling. If authoritative session state is unknown, the runtime remains
+fenced while it queries or reconciles that state. The fence does not create a
+`session.paused_budget` event, change a budget ledger, fabricate an application
+event, or produce an application action receipt. The fan-out set remains open
+while the parent is fenced: a session first observed as `active` after the
+initial scan receives the same treatment and prevents a resumable lineage
+resolution from committing until its authoritative state is reconciled.
+
+Leaving `fenced` requires an explicit resolution by an independently
+authenticated user or local policy actor. Agent output, elapsed time, process
+restart, reconnection, or another delivery MUST NOT resolve it. Because every
+child trip also fences its parent, the authoritative local resolution is one
+durably committed lineage resolution record. It contains a collision-resistant
+`guard_resolution_id` unique across retained resolution records; the causal
+`guard_id`, `guard_lineage_id`, and old `lineage_guard_epoch_id`; the reviewed
+trigger, known in-flight outcomes, and limits that will apply next; and a
+complete `affected_sessions` snapshot. A `causal_session` containing the
+complete bound Session Authority tuple and local `guard_epoch_id` is REQUIRED
+for a child trip and absent for a parent-only trip before any session exists.
+
+The snapshot covers every locally known nonterminal session in the fenced
+lineage-delegate scope and the causal session even if it becomes terminal while
+resolution is prepared. Each entry binds its complete Session Authority tuple
+and local `guard_epoch_id` and has one of these statuses: `resume_pending` after
+the application has authoritatively accepted its exact pause or confirms it was
+already `interrupted`, `terminal` after authoritative terminal state is
+confirmed, or `abandoned` after the independently authenticated actor chooses
+to retire the complete lineage rather than recover it. An already interrupted
+entry is locally bound to the parent `guard_id` and uses the guard-aware resume
+above; the runtime MUST NOT fabricate a second application transition. The
+runtime MUST NOT commit a resumable resolution while an affected or newly
+observed active session still has an unknown or pending pause outcome. An empty
+array is valid for a reviewed parent-only trip, but the explicit record and
+reviewed cause are still required; emptiness by itself is never reset authority.
+
+For a resumable resolution, every entry MUST be `resume_pending` or `terminal`.
+Only after that global record commits may the runtime allocate a new armed
+parent epoch. It supplies the same `guard_resolution_id` and causal `guard_id`
+on the exact `session.resume` for every `resume_pending` entry; a terminal entry
+is not resumed. After the application accepts a resume and increments that
+session generation, the runtime MAY allocate a new child `guard_epoch_id` under
+the new parent. It MUST NOT mutate either old epoch into `armed`. A non-runaway
+resume has no such authority and continues the existing parent and session
+epochs.
+
+If any entry is `abandoned`, the resolution outcome retires that complete local
+Grant lineage. The runtime MUST request authenticated terminal cancellation for
+every nonterminal application session when the control plane is available,
+MUST NOT allocate another parent epoch for that `guard_lineage_id`, and MUST
+reject later descendant, renewal, exchange, credential, or session work that
+would preserve its authority. New work then requires a fresh independent root
+Grant following distinct authorization and consent.
+
+The minimized record for an unresolved fenced session epoch, including
+`guard_id`, trigger, limits, counts, and any resolution identity, MUST remain
+available until the application accepts resume, that session becomes terminal,
+or an independently authenticated user explicitly abandons its recovery. The
+corresponding parent fence or unresolved tombstone MUST remain until explicit
+lineage-delegate resolution commits or terminal expiry or revocation closes the
+complete cumulative Grant lineage. Terminal state of one or even every session
+is never parent reset authority. An abandoned-lineage resolution preserves a
+local no-resume parent tombstone until that complete authority becomes terminal;
+application cancellation updates its affected-session status but does not
+delete the tombstone or permit a replacement parent epoch. Missing state cannot
+silently satisfy either boundary. After the authority lifecycle closes,
+guard records and deduplication state MUST still remain available through the
+longest applicable event-replay, agent-work transport-retry, and in-flight
+outcome-reconciliation window, including after a new generation starts, and
+only then enter a bounded local security-audit retention period.
+The guard registry MUST NOT extend the retention of an underlying application
+payload or other semantic record beyond its effective Data Exposure Contract.
+It may retain only opaque local references, counters, or keyed
+collision-resistant hashes; a compact hash or tombstone may outlive plaintext
+only under an independently declared bounded security-audit policy that permits
+it. A runtime MUST delete any guard-specific transient copy of raw input
+immediately after deriving the required fingerprint. This does not delete the
+canonical input held by the ordinary approval, transmission, idempotency, or
+receipt lifecycle under its own retention rules. No guard log may become a
+retained copy of a prompt, application event, action input, model output, or
+tool argument.
 
 ### Action Request
 
@@ -5699,6 +6040,15 @@ authority. A pre-admission denial carries no application write or cost charge.
 An exact idempotent replay returns the original immutable charge evidence and
 MUST NOT create a second charge or revision. Budget evidence is audit data, not
 authority to increase a limit or overwrite current ledger state.
+
+A runaway guard record and its `session.pause` transition are control-plane
+safety metadata, not an application action receipt. A fence reached before an
+Action Request is dispatched MUST NOT fabricate an app receipt, actual effects,
+or an application error response. An already dispatched action retains its
+ordinary immutable response, budget evidence, effect outcome, and runtime or
+application receipts; the guard MUST NOT rewrite them. A runtime MAY reference
+`guard_id` in its local audit record, subject to the minimized retention rules
+above.
 
 For a child-grant operation, `ledger_revision` is the resulting revision of the
 named counter in the receipt's own `grant_id` ledger. The same atomic charge can
@@ -6464,6 +6814,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `event_cursor_expired` | Replay position is no longer available under the effective retention window and requires explicit gap recovery. |
 | `action_unknown` | Action id is not part of the surface version the grant was issued against. |
 | `limit_exceeded` | A named consumptive grant budget is exhausted or the parallel-session occupancy limit is saturated. |
+| `safety_guard_triggered` | A runtime runaway guard fenced the current session or lineage-delegate scope before another session creation, scheduling, or transport step. |
 | `budget_query_invalid` | A budget query id or its active, current grant, delegate, credential, surface, or application-authoritative budget binding cannot be validated; the response intentionally does not distinguish which check failed. |
 | `budget_state_unavailable` | The accounting authority cannot prove the durable grant-lineage ledger or a required reservation and therefore fails closed. |
 | `rate_limited` | The request was throttled independently of grant caveats. |
@@ -6481,6 +6832,9 @@ admit an effect. `execution_mode_invalid`, `execution_transition_invalid`,
 `execution_token_invalid`, `reservation_invalid`, `recovery_not_supported`,
 `recovery_already_applied`, `session_transition_invalid`,
 `event_delivery_conflict`, and `event_cursor_invalid` are not blindly retryable.
+`safety_guard_triggered` is not retryable within the fenced guard epoch; it
+requires explicit local resolution and, for an application session, an accepted
+authoritative resume into a new generation.
 `budget_query_invalid` is terminal for that query id; a caller MUST NOT assume
 that changing only the id repairs invalid authority.
 `event_cursor_expired` requires explicit gap recovery rather than substitution
@@ -6640,6 +6994,8 @@ Mitigations:
 - atomic precondition and reservation checks
 - durable grant-lineage budgets for writes, tools, tokens, runtime time,
   parallel sessions, and partitioned cost
+- durable finite transport, repetition, root-action, causal-depth, and cycle
+  guards that fence locally before another scheduling step
 - sandboxing
 - local audit log
 - Agent Passport verification
@@ -6708,6 +7064,14 @@ approval, hashing, and execution interpret differently. Fixed-point wire input
 ensures those components bind one value; a changed normalized value or
 execution context remains `idempotency_conflict`, and a competing verified
 parent receipt remains `integrity_mismatch`.
+
+Application idempotency and runtime runaway detection are separate decisions.
+The application uses the idempotency key plus normalized input and execution
+binding to decide whether an effect is an exact replay. The runtime uses the
+data-minimized action fingerprint only to count repetition, including attempts
+with different keys; it MUST NOT send that fingerprint as authority or infer
+that two application records can be merged. Transport retry, reconnect, event
+replay, and trace restart do not reset the applicable runtime guards.
 
 ### Execution Mode Confusion, TOCTOU, and Reservation Abuse
 
@@ -6922,11 +7286,19 @@ An application conforms to the Grant-Enforcing profile when it:
   `budget_state_url` and `budget_query_retention_seconds` and returns
   authenticated, privacy-minimized effective lineage state for `budget.query`
   without exposing ancestor or sibling accounting totals
-- when it accepts a runtime-authoritative budget dimension, advertises
-  `session_control_url`, accepts authenticated `session.pause` for the exact
-  active tuple, fences new actions before returning `interrupted`, preserves
-  generation, and, when that control event is declared, emits exactly one
-  `session.paused_budget` occurrence for the transition and otherwise emits none
+- when it accepts a Runtime participant in an ASP session, advertises
+  `session_control_url`, accepts authenticated `session.pause` with
+  `runaway_guard` for the exact active tuple, and also accepts
+  `budget_exceeded` when it supports a runtime-authoritative budget dimension
+- fences new actions before returning `interrupted`, preserves generation,
+  and exactly replays a matching pause; when the manifest declares
+  `session.paused_budget`, emits exactly one occurrence for each qualifying
+  budget transition, emits none when undeclared, and never emits it for a
+  runaway-guard transition
+- accepts a guard-aware exact `session.resume` after authenticated lineage
+  resolution whether its interrupted state came from the guard pause or
+  predated the parent trip, and binds the supplied guard and resolution ids to
+  the accepted transition without treating them as detector proof
 - invalidates preview evidence and reservations when their grant or surface
   binding becomes invalid
 - does not accept `reserve`, `commit`, `compensate`, or `revert` unless it also
@@ -7046,6 +7418,19 @@ An application runtime conforms to this profile when it:
 - stops matching local work before reporting runtime budget exhaustion through
   an exact, idempotent `session.pause` request and requires authoritative
   application state before any resume
+- initializes a durable runaway-guard epoch before agent work, enforces
+  positive finite transport, action-repetition, epoch-root, epoch-step,
+  root-action, causal-depth, and cycle limits independently of Grant budgets,
+  and fails closed when guard state is unavailable
+- carries finite lineage-delegate session, root, step, and cycle admission
+  guards across new session ids, child Grants, renewal, reconnect, and ordinary
+  resume, and does not clear an unresolved parent fence when one session ends
+- persists `fenced` before another disallowed scheduling step, preserves
+  in-flight outcome reconciliation, requests an exact `runaway_guard` fence for
+  every affected or newly observed active session, commits one lineage
+  resolution covering every affected session, and requires that resolution
+  plus authoritative exact resume before a new generation can start a new
+  child epoch
 - validates action input against schemas, applies the pinned idempotency
   normalization before approval and hashing, verifies the self-contained input
   schema against `input_schema_hash`, and sends only the fixed-point wire value
@@ -7061,7 +7446,8 @@ An application runtime conforms to this profile when it:
 - records local audit events and runtime receipts
 - durably deduplicates event deliveries, acknowledges only after its processing
   decision is stable, preserves opaque cursors, applies explicit gap recovery,
-  and enforces negotiated event backpressure
+  enforces negotiated event backpressure, and deduplicates before allocating an
+  automation root or advancing its runaway guards
 - validates the CloudEvents 1.0.2 JSON binding, ASP extension combinations,
   event hash, manifest mapping, schema, authority, and exposure before exposing
   event data to an agent
@@ -7126,11 +7512,13 @@ To support Agent Surface Protocol, the next slices are:
     time, parallel sessions, and partitioned cost.
 11. Add authenticated budget control events and idempotent `session.pause`
     fencing without exposing control events to agents.
-12. Add bounded reservation and recovery actions only where the application can
+12. Add durable finite retry, repetition, causal-depth, and event-loop guards
+    with explicit resolution before resume.
+13. Add bounded reservation and recovery actions only where the application can
     enforce their lifecycle and semantics.
-13. Produce local runtime receipts and app-visible receipts with execution and
+14. Produce local runtime receipts and app-visible receipts with execution and
     actual-effect evidence.
-14. Integrate Agent Passport verification as an admission precondition.
+15. Integrate Agent Passport verification as an admission precondition.
 
 ## Example End-to-End Flow
 
