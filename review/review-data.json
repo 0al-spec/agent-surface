@@ -2762,7 +2762,7 @@
       "description": "добавить в grant constraints лимиты по cost, tokens, runtime seconds, tool calls, write actions и parallel sessions.",
       "category": "Economics / limits / operations",
       "side": "left",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
           "heading": "Capability Lease",
@@ -2773,6 +2773,10 @@
           "anchorId": "grant-object"
         },
         {
+          "heading": "Budget Caveats and Accounting",
+          "anchorId": "budget-caveats-and-accounting"
+        },
+        {
           "heading": "Grant Verification",
           "anchorId": "grant-verification"
         },
@@ -2781,15 +2785,16 @@
           "anchorId": "malicious-or-compromised-agent"
         }
       ],
-      "rationale": "Action и cost budgets есть; token, runtime, tool-call, write и parallel-session limits отсутствуют.",
+      "rationale": "RFC задаёт hashed constraints.budgets contract, раздельную application/runtime accounting authority, durable lineage ledgers, atomic reservation/settlement, exact-replay behavior, session occupancy и partitioned integer cost limits.",
       "priority": "P1",
       "profile": "operations-safety",
       "depends_on": [
         19,
+        21,
         28
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -2798,6 +2803,10 @@
         {
           "kind": "rfc_anchor",
           "ref": "grant-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "budget-caveats-and-accounting"
         },
         {
           "kind": "rfc_anchor",
