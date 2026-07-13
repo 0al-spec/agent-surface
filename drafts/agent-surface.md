@@ -4732,7 +4732,6 @@ Example, shown decoded from its form-encoded authorization request parameter:
     "actions": ["pull_request.get", "comment.create"],
     "delegate": {
       "runtime": "application_runtime_456",
-      "runtime_identity_profile": "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
       "agent": "local_agent_789",
       "passport_ref": "agent-passport://local-agent",
       "passport_hash": "sha256:..."
