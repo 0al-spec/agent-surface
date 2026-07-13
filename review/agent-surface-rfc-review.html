@@ -4109,8 +4109,11 @@ and repeated credential-binding fields MUST agree. A profile, verifier,
 maximum age, proof-key, coverage, assurance, or stable binding change is
 material: it changes the Runtime Identity claims revision, requires a new Grant
 and Consent Preview, and MUST NOT be applied as an in-place appraisal refresh.
-A child Grant for a different runtime needs that runtime's independent
-attestation; it MUST NOT copy the parent's binding or assurance.</p>
+Every child Grant has its own semantic <code>grant_request_hash</code> and therefore needs
+a child-specific challenge, accepted appraisal record, and stable attestation
+binding, even when it retains the parent's Runtime Identity projection. A child
+for a different runtime additionally needs that runtime's independent identity,
+proof key, and Evidence; no child copies the parent's binding or Result.</p>
 <h3 id="challenge-evidence-and-appraisal" data-asp-heading="Challenge, Evidence, and Appraisal">Challenge, Evidence, and Appraisal</h3>
 <p>Before Evidence is generated, <code>auth.runtime_attestation.attestation_url</code> returns
 an authenticated, closed challenge object:</p>
@@ -5469,13 +5472,18 @@ new Grant after a material identity change. A child bound to another runtime
 MUST use that runtime's independently authenticated projection and binding; it
 MUST NOT inherit the parent's authentication method, management posture,
 locality, assurance, binding id, or claims revision.</p>
-<p>When the parent selected Runtime Attestation, a child bound to the same runtime
-MUST retain the exact stable attestation binding and remain subject to its
-current appraisal state. A child bound to another runtime MUST obtain that
-runtime's independent challenge, Evidence appraisal, stable binding, proof key,
-and consent; it MUST NOT copy the parent's Result or assurance. Revoking the
-parent binding revokes every child bound to it through the Semantic Grant
-Revocation Transition.</p>
+<p>When the parent selected Runtime Attestation, every child MUST obtain a new
+challenge and accepted appraisal bound to the child's exact
+<code>grant_request_hash</code>, producing a child-specific stable binding and mutable
+record. A same-runtime child MAY retain the exact Runtime Identity projection,
+concrete profile, verifier, maximum age, proof key, and sanitized assurance when
+they remain current, but it MUST NOT reuse the parent's binding, Evidence, or
+Result. A child bound to another runtime MUST instead use that runtime's
+independently authenticated identity, proof key, Evidence, and assurance.
+Parent Grant revocation still cascades through the ordinary Semantic Grant
+Revocation Transition. Revocation or invalidation of a shared runtime identity,
+Attester, proof key, Verifier, policy, endorsement, or reference value makes
+every dependent child-specific appraisal inactive.</p>
 <p>Child budget limits MUST retain every inherited member with an equal or smaller
 limit, and every charge or occupied slot consumes the child and ancestor
 ledgers. A child MAY add a supported standard dimension as a further
