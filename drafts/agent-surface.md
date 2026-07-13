@@ -1781,6 +1781,52 @@ of zero, or restore a value no greater than the negotiated maximum. Pausing
 does not terminally acknowledge existing deliveries, extend retention, or
 permit the application to ignore their outcomes.
 
+The runtime changes the application-event window with this wire request:
+
+```json
+{
+  "type": "event.flow",
+  "payload": {
+    "kind": "request",
+    "flow_id": "flow_01J2PAUSE",
+    "subscription_id": "sub_01J2EVENTS",
+    "max_in_flight": 0
+  }
+}
+```
+
+The request MUST arrive on a channel authenticated as the runtime bound to the
+subscription. `flow_id` is unique within that subscription, and
+`max_in_flight` MUST be an integer from `0` through the negotiated maximum.
+Zero pauses new application-event deliveries. A positive value replaces the
+current window; it does not add to it. A request targeting an unknown, closed,
+wrong-runtime, or control subscription fails uniformly as
+`event_subscription_invalid`. Invalid kinds or values fail as `schema_invalid`.
+
+The application atomically installs the new window before returning its state:
+
+```json
+{
+  "type": "event.flow",
+  "payload": {
+    "kind": "state",
+    "flow_id": "flow_01J2PAUSE",
+    "subscription_id": "sub_01J2EVENTS",
+    "effective_max_in_flight": 0,
+    "result": "applied"
+  }
+}
+```
+
+Lowering the window below the current in-flight count does not cancel or
+terminally acknowledge those deliveries; the application sends no new one
+until the count falls below the effective window. An exact duplicate request
+with the same `flow_id`, subscription, and value is idempotent and returns the
+same state. Conflicting reuse of `flow_id` fails as `schema_invalid` without
+changing the window. If the response is lost or ambiguous, the runtime MUST
+NOT assume the remote window changed; it MAY repeat the exact request or stop
+local consumption and close the channel while it reconciles state.
+
 When the window is full, the application queues eligible events within the
 effective retention window rather than exceeding the limit. If an event expires
 before first delivery, the next delivery or replay response MUST carry an

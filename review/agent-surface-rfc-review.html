@@ -1696,6 +1696,44 @@ NOT exceed the negotiated window. The runtime MAY use authenticated
 of zero, or restore a value no greater than the negotiated maximum. Pausing
 does not terminally acknowledge existing deliveries, extend retention, or
 permit the application to ignore their outcomes.</p>
+<p>The runtime changes the application-event window with this wire request:</p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;event.flow&quot;,
+  &quot;payload&quot;: {
+    &quot;kind&quot;: &quot;request&quot;,
+    &quot;flow_id&quot;: &quot;flow_01J2PAUSE&quot;,
+    &quot;subscription_id&quot;: &quot;sub_01J2EVENTS&quot;,
+    &quot;max_in_flight&quot;: 0
+  }
+}
+</code></pre>
+<p>The request MUST arrive on a channel authenticated as the runtime bound to the
+subscription. <code>flow_id</code> is unique within that subscription, and
+<code>max_in_flight</code> MUST be an integer from <code>0</code> through the negotiated maximum.
+Zero pauses new application-event deliveries. A positive value replaces the
+current window; it does not add to it. A request targeting an unknown, closed,
+wrong-runtime, or control subscription fails uniformly as
+<code>event_subscription_invalid</code>. Invalid kinds or values fail as <code>schema_invalid</code>.</p>
+<p>The application atomically installs the new window before returning its state:</p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;event.flow&quot;,
+  &quot;payload&quot;: {
+    &quot;kind&quot;: &quot;state&quot;,
+    &quot;flow_id&quot;: &quot;flow_01J2PAUSE&quot;,
+    &quot;subscription_id&quot;: &quot;sub_01J2EVENTS&quot;,
+    &quot;effective_max_in_flight&quot;: 0,
+    &quot;result&quot;: &quot;applied&quot;
+  }
+}
+</code></pre>
+<p>Lowering the window below the current in-flight count does not cancel or
+terminally acknowledge those deliveries; the application sends no new one
+until the count falls below the effective window. An exact duplicate request
+with the same <code>flow_id</code>, subscription, and value is idempotent and returns the
+same state. Conflicting reuse of <code>flow_id</code> fails as <code>schema_invalid</code> without
+changing the window. If the response is lost or ambiguous, the runtime MUST
+NOT assume the remote window changed; it MAY repeat the exact request or stop
+local consumption and close the channel while it reconciles state.</p>
 <p>When the window is full, the application queues eligible events within the
 effective retention window rather than exceeding the limit. If an event expires
 before first delivery, the next delivery or replay response MUST carry an
