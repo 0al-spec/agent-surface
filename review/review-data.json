@@ -2484,14 +2484,26 @@
       "description": "стандартизировать результат matching: compatible agents, missing capabilities, risks, required scopes, required approvals.",
       "category": "Runtime / Agent Passport / identity",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
+        {
+          "heading": "Canonical Object Hash Profile",
+          "anchorId": "canonical-object-hash-profile"
+        },
+        {
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        },
         {
           "heading": "Capability Matching",
           "anchorId": "capability-matching"
+        },
+        {
+          "heading": "Application Runtime Profile",
+          "anchorId": "application-runtime-profile"
         }
       ],
-      "rationale": "Все требуемые смысловые outputs перечислены, но нет нормативного wire object или schema.",
+      "rationale": "Определён closed local Capability Match Result с canonical request binding, candidate states/reasons, freshness, privacy и строгой границей с consent и authority.",
       "priority": "P2",
       "profile": "identity-passport",
       "depends_on": [
@@ -2499,11 +2511,23 @@
         42
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
+          "ref": "canonical-object-hash-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
           "ref": "capability-matching"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-runtime-profile"
         }
       ]
     },

@@ -871,7 +871,7 @@ The adapter layer turns a concrete agent into a runtime-mediated worker.
 ASP manifests, grants, events, action input schemas, action inputs, action
 execution contexts, policy decisions, and receipts use the
 `asp-jcs-sha-256` profile when a field in this draft is named `surface_hash`,
-`grant_hash`, `aspeventhash`, `input_schema_hash`, `input_hash`,
+`grant_request_hash`, `grant_hash`, `aspeventhash`, `input_schema_hash`, `input_hash`,
 `execution_hash`, `preconditions_hash`,
 `expected_effects_hash`, `actual_effects_hash`, `policy_decision_hash`,
 `receipt_hash`, or `parent_receipt_hash`. The profile identifies exact JSON
@@ -897,6 +897,7 @@ To compute an ASP object hash, an implementation MUST:
 | Object | Domain URI | Hashing view exclusions |
 | --- | --- | --- |
 | Agent Surface Manifest | `https://github.com/0al-spec/agent-surface/hash/manifest/v1` | top-level `surface_hash` |
+| semantic Agent Grant request | `https://github.com/0al-spec/agent-surface/hash/grant-request/v1` | RFC 9396 `type` only; an authorization-server output member makes the request invalid and is not an exclusion |
 | authoritative Agent Grant | `https://github.com/0al-spec/agent-surface/hash/grant/v1` | top-level `grant_hash`; the RFC 9396 `type` discriminator when starting from an OAuth authorization-details object |
 | ASP CloudEvent occurrence | `https://github.com/0al-spec/agent-surface/hash/event/v1` | `aspeventhash`; delivery-only `aspsubid`, `aspdeliveryid`, `aspattempt`, `aspstream`, `aspsequence`, and `aspcursor`; diagnostic `traceparent` and `tracestate` |
 | Action Input Schema | `https://github.com/0al-spec/agent-surface/hash/action-input-schema/v1` | none; the hashing view is the complete self-contained JSON Schema document |
@@ -4807,6 +4808,14 @@ The runtime MUST derive the preview exclusively from:
 - the complete Data Exposure Contract projection recomputed for the requested
   actions and scopes.
 
+A Capability Match Result MAY identify the locally selected candidate, but it
+is not an additional authoritative preview source. Before deriving the preview,
+the runtime MUST validate the result's profile, the selected candidate's
+`grant_request_hash`, complete bindings, candidate status, and freshness, then
+independently recompute the request semantics, effects, approvals, and exposure
+projection from the primary verified sources above. Copied matching summaries
+MUST NOT replace that work.
+
 Application-authored labels, descriptions, risk summaries, redaction summaries,
 and recovery descriptions are untrusted display hints. A runtime MAY display
 them, but MUST preserve the corresponding machine identifier, classification,
@@ -5799,21 +5808,331 @@ Matching inputs:
 - user preferences
 - enterprise policy
 
-Matching outputs:
+This draft standardizes those outputs with the local-only Capability Match
+Result Profile:
 
-- compatible agents
-- missing capabilities
-- required scopes
-- required approvals
-- risk summary
-- supported execution stages and any missing preview or reservation support
-- maximum effects and recovery limitations
-- effective data exposure and any unsupported retention obligations
-- expected sandbox constraints
+```text
+https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1
+```
 
-The matching result is advisory input to the local Consent Preview Contract. It
-MUST be reconciled with the exact request and pinned manifest; a stale matching
-summary cannot substitute for the required preview.
+It also defines this Canonical Object Hash domain for the exact semantic Grant
+request evaluated by the matcher:
+
+```text
+https://github.com/0al-spec/agent-surface/hash/grant-request/v1
+```
+
+### Semantic Grant Request Hash
+
+The hashing view is one complete candidate-specific semantic Agent Grant request
+before any authorization-server output is added. For RFC 9396, the runtime
+starts with the sole Agent Grant authorization-details object and removes only
+its `type` member. `locations`, `actions`, `delegate`, `resource_server`,
+`scopes`, `constraints`, `credential_profile`, and `audit`, including the exact
+candidate agent and Passport tuple and every selected profile, remain in the
+hashing view. Another issuance model MUST construct the same semantic object.
+
+A multi-candidate match MUST construct and hash one complete request for each
+candidate. All non-candidate request semantics and the controlling runtime
+binding MUST be identical across those requests; `delegate.agent` and the
+Passport tuple MUST equal that candidate. The matcher MUST NOT hash a
+candidate-independent template or one candidate's delegate and represent the
+result as binding the other candidates.
+
+`grant_id`, `grant_hash`, `subject`, `credential_binding`, `data_exposure`, and
+server-derived `delegate.runtime_identity` are invalid in a request and MUST
+NOT be silently removed from malformed input merely to compute a hash. OAuth
+parameters, redirect URIs, PKCE values, client authentication, user-interface
+labels, raw Passport artifacts, and local policy state are not semantic Grant
+Object members and are not included.
+
+The runtime computes each candidate's `grant_request_hash` with the Canonical
+Object Hash Profile and the domain above. The value identifies the exact
+authority request for that candidate; it does not authorize that request or
+prove consent. A change to common request semantics requires every candidate
+hash and the complete match result to be recomputed. A candidate tuple change
+requires a new candidate entry and hash.
+
+For the hash-layer test view `{"delegate":{"runtime":"r"}}`, the canonical
+wrapper is:
+
+```json
+{"domain":"https://github.com/0al-spec/agent-surface/hash/grant-request/v1","object":{"delegate":{"runtime":"r"}}}
+```
+
+Its hash is
+`sha-256:NIahpleJauoH9OEqZhL1Spqj6oP1r78nA1A7GCwJnYA`. The view is intentionally
+not a complete valid Grant request; the vector fixes only domain separation and
+hash encoding.
+
+### Capability Match Result Object
+
+A Capability Match Result is a closed I-JSON object with this wire shape:
+
+```json
+{
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
+  "match_id": "match_01J2E7M2V6Z91Y2R3B4C5D6E7F",
+  "evaluated_at": "2026-07-14T10:00:00Z",
+  "valid_until": "2026-07-14T10:05:00Z",
+  "bindings": {
+    "surface": {
+      "issuer": "https://code.example.com",
+      "app_id": "code.example.com",
+      "surface_version": "2026-06-25",
+      "surface_hash": "sha-256:<base64url-digest>"
+    },
+    "runtime": {
+      "runtime_id": "application_runtime_456",
+      "runtime_identity_profile": "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
+      "binding_id": "rbind_01J2D7M2V6Z91Y2R3B4C5D6E7F",
+      "claims_revision": 3
+    },
+    "agent_inventory_revision": "agents-42",
+    "adapter_inventory_revision": "adapters-9",
+    "local_policy_revision": "local-policy-18",
+    "enterprise_policy_revision": "enterprise-policy-7",
+    "user_preferences_revision": "preferences-4"
+  },
+  "candidates": [
+    {
+      "agent_id": "local_agent_789",
+      "passport": {
+        "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+        "passport_hash": "sha-256:<base64url-digest>",
+        "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01",
+        "status_valid_until": "2026-07-14T10:05:00Z",
+        "agent_binding": "document_only",
+        "integrity_profile": null,
+        "capability_names": ["comment.create", "pull_request.get"]
+      },
+      "grant_request_hash": "sha-256:<base64url-digest>",
+      "status": "compatible",
+      "reasons": [],
+      "missing_capabilities": [],
+      "required_scopes": ["pull_request.comment", "pull_request.read"],
+      "required_approvals": [
+        {"action_id": "comment.create", "mode": "user_or_app"}
+      ],
+      "risk_summary": {
+        "highest": "write",
+        "actions": [
+          {"action_id": "comment.create", "risk": "write"},
+          {"action_id": "pull_request.get", "risk": "read"}
+        ]
+      },
+      "execution": {
+        "supported_stages": ["comment.create", "comment.propose"],
+        "missing_stages": [],
+        "maximum_effects": [
+          {
+            "action_id": "comment.create",
+            "effects": [
+              {
+                "effect_id": "comment-publish",
+                "operation": "publish",
+                "resource_type": "comment",
+                "visibility": "shared",
+                "boundary": "internal",
+                "reversibility": "irreversible",
+                "domain": "communication"
+              }
+            ]
+          }
+        ],
+        "recovery_limitations": [
+          {"action_id": "comment.create", "code": "irreversible"}
+        ]
+      },
+      "data_exposure": [
+        {
+          "source": {"kind": "action", "id": "comment.create"},
+          "classes": ["repository.content"],
+          "redaction": {"mode": "none"},
+          "retention": {"mode": "transient", "delete_on_grant_end": true}
+        }
+      ],
+      "sandbox_constraints": [
+        {"id": "network.egress", "status": "satisfied", "source": "passport"}
+      ]
+    }
+  ]
+}
+```
+
+`profile`, `match_id`, `evaluated_at`, `valid_until`, `bindings`, and
+`candidates` are REQUIRED. Unknown members are forbidden in the top-level,
+bindings, surface, runtime, candidate, Passport, approval, risk-summary,
+execution-wrapper, recovery-limitation, sandbox, reason, and reason-subject
+objects. Embedded Effect Model and Data Exposure Contract objects retain the
+closed shapes and extension rules of their defining sections.
+`evaluated_at` and `valid_until` are RFC 3339 timestamps and MUST satisfy
+`evaluated_at < valid_until`. `match_id` is an opaque, collision-resistant
+local correlation identifier. It is not a credential, approval, idempotency
+key, or stable user or agent identifier. `profile` MUST exactly equal the
+Capability Match Result Profile identifier, and `match_id` MUST be unique among
+results retained by that runtime.
+
+`bindings` contains exactly `surface`, `runtime`,
+`agent_inventory_revision`, `adapter_inventory_revision`,
+`local_policy_revision`, `enterprise_policy_revision`, and
+`user_preferences_revision`; every member is REQUIRED. `bindings.surface`
+contains exactly `issuer`, `app_id`, `surface_version`, and `surface_hash` from
+the verified manifest. The five revision members are opaque
+non-empty strings compared only for exact equality; `enterprise_policy_revision`
+and `user_preferences_revision` MAY be `null` when that input does not exist.
+The runtime object always contains `runtime_id`. Its other three members are
+all `null` when no Runtime Identity Profile is selected. When a profile is
+selected but its server projection remains unresolved,
+`runtime_identity_profile` contains the requested identifier while `binding_id`
+and `claims_revision` are `null`. When the app-scoped projection is locally
+known, all three contain its exact values. A policy decision that requires an
+unresolved runtime-identity value makes affected candidates at most
+`indeterminate`.
+
+`candidates` contains at most one entry for each (`agent_id`, `passport_hash`)
+pair and at most one null-Passport entry for an agent. `passport` is either
+`null`, producing a blocking `passport_missing` reason, or a closed object
+containing the exact four-value Passport tuple,
+`status_valid_until`, `agent_binding`, `integrity_profile`, and sorted unique
+`capability_names`. `status_valid_until` MAY be `null` only when status is
+unavailable and the candidate is not `compatible`. `agent_binding` is
+`document_only`, `code_hash_verified`, or `unavailable`; `integrity_profile` is
+non-null only for `code_hash_verified` and MUST otherwise be `null`.
+`capability_names` is the exact sorted unique set extracted under the selected
+Passport profile; it is declaration evidence, not authority.
+
+Every candidate also contains `grant_request_hash`. It is the hash of that
+candidate's complete request and MUST be non-null whenever `passport` is
+non-null. For a null-Passport candidate it MUST be `null`, the candidate MUST be
+`incompatible` with `passport_missing`, and it cannot be selected for a Consent
+Preview or Grant request.
+
+Every candidate contains all fields shown above. `missing_capabilities`,
+`required_scopes`, `execution.supported_stages`, and
+`execution.missing_stages` are sorted arrays of unique identifiers.
+`required_approvals` entries contain exactly `action_id` and `mode`, are sorted
+by `action_id`, and repeat the exact effective approval mode.
+`risk_summary` contains exactly `highest` and `actions`; each action entry
+contains exactly `action_id` and `risk`, is sorted by action id, and `highest`
+is the maximum under the Risk Taxonomy. For a request with no actions, `highest`
+is `null` and `actions` is empty. Each `maximum_effects` entry contains
+exactly `action_id` and `effects` and preserves the manifest's complete effect
+declarations for every requested state-changing action. A
+`recovery_limitations` entry contains exactly `action_id` and `code`; its code
+is a value defined by the Action Execution Model or a collision-resistant
+extension URI.
+`data_exposure` is the deterministic effective projection for the candidate and
+request. A sandbox constraint contains exactly `id`, `status`, and `source`;
+status is `satisfied`, `unsatisfied`, or `unknown`, and source is `passport`,
+`runtime`, `local_policy`, or `enterprise_policy`.
+
+Candidate order is lexicographic by `agent_id` and then `passport_hash`, using
+UTF-8 byte order; a null Passport sorts before non-null hashes for the same
+agent. This profile defines no trust score or preferred-agent
+ranking. A user interface MAY apply a local ranking but MUST label it as local
+policy and MUST NOT serialize it as protocol authority.
+
+### Candidate Status and Reasons
+
+`status` is exactly `compatible`, `incompatible`, or `indeterminate`:
+
+- `compatible` means every required input is known and current, the Passport
+  and local agent binding are valid, every capability and execution stage is
+  supported, all effective policies permit the path, and every required
+  exposure, retention, approval, effect, recovery, adapter, and sandbox
+  obligation can be enforced. It has no blocking reason and no missing entry.
+- `incompatible` means at least one current, authoritative input proves a
+  requirement cannot be satisfied. A definitive blocking reason takes
+  precedence over additional unknowns.
+- `indeterminate` means there is no definitive incompatibility, but at least one
+  required input is missing, stale, temporarily unavailable, unsupported, or
+  not verifiable. It MUST NOT be treated optimistically as compatible.
+
+A reason object contains exactly `code`, `severity`, and `subject`. `severity`
+is `blocking` or `advisory`. `subject` contains exactly `kind` and `id`; kind is
+`candidate`, `runtime`, `passport`, `capability`, `adapter`, `action`, `scope`,
+`approval`, `effect`, `recovery`, `exposure`, `sandbox`, or `policy`. Core reason
+codes are:
+
+| Code | Meaning |
+| --- | --- |
+| `passport_missing` | No exact Passport tuple is available for the candidate. |
+| `passport_invalid` | Current verification proves the Passport or agent binding invalid. |
+| `passport_profile_unsupported` | A required Passport profile is not implemented completely. |
+| `passport_status_unavailable` | Fresh authenticated Passport status is unavailable. |
+| `capability_missing` | A required semantic capability is not declared or mapped. |
+| `adapter_unavailable` | No current local adapter can mediate the candidate. |
+| `schema_unsupported` | The runtime cannot validate a required schema or dialect. |
+| `execution_stage_unsupported` | A required companion, preview, reservation, or recovery stage cannot be mediated. |
+| `scope_unavailable` | The exact requested scope cannot be requested under the selected path. |
+| `approval_unsupported` | A required approval mode cannot be enforced. |
+| `risk_denied` | Effective policy denies a manifest risk class. |
+| `effect_unsupported` | A declared maximum effect exceeds the path's enforceable envelope. |
+| `recovery_unsupported` | A required recovery property or limitation cannot be honored. |
+| `data_exposure_unsupported` | A required exposure or redaction contract cannot be enforced. |
+| `retention_unsupported` | A retention or deletion obligation cannot be enforced. |
+| `sandbox_unsatisfied` | A required sandbox constraint is unsatisfied. |
+| `runtime_identity_invalid` | Current verification proves required runtime identity evidence mismatched or invalid. |
+| `runtime_identity_unavailable` | Required runtime identity evidence has no current authoritative value. |
+| `policy_denied` | Local or enterprise policy denies the exact path. |
+| `input_unknown` | A required input has no authoritative value. |
+
+Blocking `passport_profile_unsupported`, `passport_status_unavailable`,
+`runtime_identity_unavailable`, and `input_unknown` reasons produce
+`indeterminate` when no definitive blocking reason exists. Every other core
+blocking reason produces `incompatible`. An extension reason code MUST be a
+collision-resistant URI and its defining profile MUST classify it as definitive
+or indeterminate. Only `code` is extensible in this profile: an extension reason
+MUST use one of the closed core `subject.kind` values above. Extending the
+subject taxonomy requires a different Capability Match Result profile identifier
+and complete processing rules. Unknown extension codes with a recognized
+subject kind MUST be preserved; an unknown blocking reason defaults to
+indeterminate and prevents `compatible`. It MUST NOT be ignored or rewritten as
+advisory. Reasons are sorted by blocking before advisory, then code, subject
+kind, and subject id.
+
+### Freshness, Privacy, and Consent Boundary
+
+`valid_until` MUST be no later than the earliest Passport status deadline,
+policy or inventory freshness deadline, runtime-identity freshness deadline,
+or local maximum matching TTL used by any candidate decision. The complete
+result becomes stale when that time passes or when the manifest tuple, semantic
+Grant request semantics or any candidate hash, runtime identity tuple, candidate
+Passport tuple or status, agent or adapter inventory, local or enterprise
+policy, or user preferences no longer exactly match the recorded binding.
+
+A stale result MUST NOT be used to select a candidate, populate a new Consent
+Preview, or justify a Grant request. The runtime recomputes the complete result;
+it does not patch one status or revision in place. A result that becomes stale
+during selection makes the selection stale as well.
+
+In a deployment with separate runtime and application trust domains, the object
+remains inside the user-controlled runtime boundary. The runtime MUST NOT send
+the application its candidate list, local inventory revisions, other Passport
+tuples, sandbox inventory, policy revisions, or user preferences.
+It sends only the exact selected semantic Grant request and evidence required by
+that request's negotiated profiles. Logs and telemetry SHOULD retain only the
+`match_id`, profile, surface tuple, selected candidate request hash and
+reference, status, and reason codes unless local policy explicitly requires
+more. Before a candidate is selected, telemetry SHOULD omit candidate request
+hashes rather than record the complete set.
+
+An application-operated or app-embedded runtime has no confidentiality boundary
+from that application. It MUST disclose that fact before enumerating local
+agents, and local or enterprise policy MAY prohibit matching in that deployment.
+
+The result is advisory input to the local Consent Preview Contract. A
+`compatible` status is not consent, approval, a Grant, a credential, Passport
+verification by the application, or permission to add scopes. After selection,
+the runtime MUST recompute the exact semantic request and its hash, independently
+recompute the data-exposure projection, verify that the hash equals the selected
+candidate's `grant_request_hash` and that all bindings still match, and derive a
+fresh Consent Preview. Adding a suggested scope or action changes every
+candidate hash; adding or changing a candidate requires a new result entry.
+Either change requires a fresh match result. The authorization server
+independently verifies the selected tuple and obtains issuer-side consent.
 
 ## Observability Context
 
@@ -8159,6 +8478,10 @@ An application runtime conforms to this profile when it:
   facet, re-previews and confirms any initially unresolved server projection,
   rejects a returned projection or credential binding that conflicts with known
   state, and treats every material identity change as stale
+- when claiming the Capability Match Result Profile, emits its closed local
+  object with the exact manifest, semantic request, identity, Passport,
+  inventory, policy, and preference bindings; treats unknowns as indeterminate;
+  and discards stale results before selection or consent
 - obtains explicit user consent before storing a grant
 - derives and confirms the local Consent Preview Contract projection before
   sending a grant issuance request, regenerates it after any material change,
