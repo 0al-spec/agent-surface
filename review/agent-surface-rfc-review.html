@@ -8005,7 +8005,7 @@ authority for a runtime with a different tuple.</p>
 | <code>risk_denied</code> | Local or app policy denied the risk class. |
 | <code>data_exposure_violation</code> | An application-originated payload contains an undeclared data class or violates its redaction or retention contract. |
 | <code>remote_processing_violation</code> | Under an otherwise valid Grant and exposure projection, the runtime's current complete path or recipient enforcement state no longer satisfies the bound Remote Processing Privacy constraint. |
-| <code>training_use_denied</code> | Under an otherwise valid Grant and source projection, a payload would be used for training although its complete class set is not permitted or a recipient's training policy is wider or unknown. |
+| <code>training_use_denied</code> | Under an otherwise valid Grant and source projection, current authoritative state proves that a payload's complete class set is not permitted for training or a recipient's training policy is wider. |
 | <code>passport_invalid</code> | The exact Agent Passport artifact is missing, malformed, expired, revoked, untrusted, incorrectly signed, or not bound to the selected agent. |
 | <code>passport_profile_unsupported</code> | A required Passport consuming, artifact-hash, verification, status, or integrity profile is unsupported or incomplete. |
 | <code>passport_status_unavailable</code> | Fresh authenticated status for the exact Passport tuple cannot currently be established. |
@@ -8066,7 +8066,12 @@ a different operation; changing only a request id or deleting retained
 plaintext cannot. Public errors expose neither the source class set, provider,
 nor failed policy rule. This code MUST NOT replace <code>integrity_mismatch</code> for a
 constraint or hash divergence, <code>data_exposure_violation</code> for an invalid source
-envelope, or <code>remote_processing_violation</code> for a failed path commitment.</p>
+envelope, or <code>remote_processing_violation</code> for a failed path commitment.
+An unknown or stale provider capability, policy, or inventory does not establish
+this terminal error: it produces blocking <code>input_unknown</code> and an
+<code>indeterminate</code> Capability Match Result. Disclosure remains blocked, but the
+runtime MAY retry matching after it refreshes the authoritative provider-policy
+state; it MUST NOT retry training dispatch against the unchanged unknown state.</p>
 <p><code>input_not_normalized</code> is retryable only after the runtime applies the pinned
 normalization rules; the rejected attempt does not claim the idempotency key or
 admit an effect. <code>execution_mode_invalid</code>, <code>execution_transition_invalid</code>,

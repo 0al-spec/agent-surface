@@ -8908,7 +8908,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `risk_denied` | Local or app policy denied the risk class. |
 | `data_exposure_violation` | An application-originated payload contains an undeclared data class or violates its redaction or retention contract. |
 | `remote_processing_violation` | Under an otherwise valid Grant and exposure projection, the runtime's current complete path or recipient enforcement state no longer satisfies the bound Remote Processing Privacy constraint. |
-| `training_use_denied` | Under an otherwise valid Grant and source projection, a payload would be used for training although its complete class set is not permitted or a recipient's training policy is wider or unknown. |
+| `training_use_denied` | Under an otherwise valid Grant and source projection, current authoritative state proves that a payload's complete class set is not permitted for training or a recipient's training policy is wider. |
 | `passport_invalid` | The exact Agent Passport artifact is missing, malformed, expired, revoked, untrusted, incorrectly signed, or not bound to the selected agent. |
 | `passport_profile_unsupported` | A required Passport consuming, artifact-hash, verification, status, or integrity profile is unsupported or incomplete. |
 | `passport_status_unavailable` | Fresh authenticated status for the exact Passport tuple cannot currently be established. |
@@ -8976,6 +8976,11 @@ plaintext cannot. Public errors expose neither the source class set, provider,
 nor failed policy rule. This code MUST NOT replace `integrity_mismatch` for a
 constraint or hash divergence, `data_exposure_violation` for an invalid source
 envelope, or `remote_processing_violation` for a failed path commitment.
+An unknown or stale provider capability, policy, or inventory does not establish
+this terminal error: it produces blocking `input_unknown` and an
+`indeterminate` Capability Match Result. Disclosure remains blocked, but the
+runtime MAY retry matching after it refreshes the authoritative provider-policy
+state; it MUST NOT retry training dispatch against the unchanged unknown state.
 
 `input_not_normalized` is retryable only after the runtime applies the pinned
 normalization rules; the rejected attempt does not claim the idempotency key or
