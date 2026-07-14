@@ -86,6 +86,7 @@ Unless otherwise stated, the following sections are **normative**:
 - Minimal Agent Passport Grant-Issuance Profile
 - Runtime Identity Profile
 - Remote Processing Privacy Profile
+- Agent Training Use Policy Profile
 - Runtime Attestation Optional Profile
 - Agent Grant
 - Sessions and Actions
@@ -1188,6 +1189,9 @@ surface discoverable.
     "remote_processing_profiles": [
       "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1"
     ],
+    "training_use_profiles": [
+      "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1"
+    ],
     "agent_passport_profiles": [
       {
         "profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
@@ -1505,6 +1509,14 @@ posture, network location, provider label, or an application privacy notice.
 Absence means that the application makes no Remote Processing Privacy Profile
 claim; it MUST NOT be interpreted as either allowing or prohibiting remote
 processing.
+
+`compatibility.training_use_profiles`, when present, MUST be a non-empty array
+of unique collision-resistant profile identifiers. It advertises only profiles
+whose class-set validation, issuer-side attenuation, Grant binding, downstream
+enforcement, and consent semantics the application implements completely. A
+runtime MUST NOT infer support or policy from a retention mode, privacy notice,
+provider label, model setting, or Remote Processing path. Absence means training
+use is unspecified, not prohibited and not permitted.
 
 `compatibility.agent_passport_profiles`, when present, MUST be a non-empty array
 of closed objects. Each object MUST contain `profile`, `hash_profile`,
@@ -2848,6 +2860,14 @@ is evaluated at its pinned manifest classification; a processor path MUST NOT
 drop a source or class, reinterpret a mixed-class payload, or rely on a
 runtime-only redaction to fit the ceiling. A whole action or scope subset can be
 approved only after the authorization server recomputes this source closure.
+
+When the Agent Training Use Policy Profile is selected, the union of class
+identifiers in this same complete projection bounds its `permitted_classes`.
+The profile does not add a field-level classifier: a complete payload from one
+source is eligible for training use only when every class in that source entry
+is permitted. A runtime MUST NOT extract an allegedly lower-class field from a
+mixed-class payload by inference; the application must publish a separately
+redacted source contract when that distinction is required.
 
 An exposure declaration never grants access and never weakens scope, resource,
 action, subdelegation, or credential-release checks. In particular, declaring a
@@ -4665,6 +4685,215 @@ references for diagnostic correlation. A provider name, authority id, endpoint,
 or recipient graph can reveal organizational relationships and user choices;
 none is included in this profile's Grant object.
 
+## Agent Training Use Policy Profile
+
+The Data Exposure Contract controls disclosure, redaction, and plaintext
+retention. The Remote Processing Privacy Profile controls the whole processing
+path and its classification ceiling. Neither contract states whether a runtime,
+agent, or provider can reuse disclosed data to improve a model or reusable
+processing artifact. An application and runtime that need an explicit,
+interoperable answer use the optional profile defined here:
+
+```text
+https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1
+```
+
+This profile requires the Data Exposure Contract, Remote Processing Privacy,
+and the Consent Preview Contract. Its constraint is an authorized secondary-use
+policy, not evidence that a provider complied with the policy and not a legal,
+deletion, or model-unlearning claim.
+
+For this profile, **training use** means using application-originated plaintext
+or a semantically derived representation to create, update, select for future
+reuse, evaluate for model improvement, or improve a reusable model, adapter,
+reward or ranking function, persistent embedding or retrieval index, training
+or evaluation dataset, annotation set, or corpus. The definition applies
+whether that use occurs during or after execution of the exact current
+Grant-authorized task. Fine-tuning, distillation, model-improvement evaluation,
+retaining examples for a later training run, and an online update that can
+leave durable influence are training use. Ephemeral inference context strictly
+necessary to execute the current task is not training use only when it creates,
+updates, selects, evaluates, or retains no reusable artifact covered by this
+definition; it remains subject to the Data Exposure redaction and retention
+contract. Operational security or abuse processing is not training use unless
+its data or results are repurposed for such a reusable artifact.
+
+### Training Class Constraint and Attenuation
+
+The semantic Grant request carries this closed constraint:
+
+```json
+{
+  "constraints": {
+    "training_use": {
+      "profile": "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
+      "permitted_classes": []
+    }
+  }
+}
+```
+
+`profile` and `permitted_classes` are REQUIRED and unknown members are
+forbidden. `permitted_classes` is an array of unique manifest `data_classes`
+identifiers ordered by ascending Unicode code point. Every requested identifier
+MUST appear in the union of class ids in the deterministic exposure projection
+for the exact requested actions and scopes.
+
+An empty array is an explicit prohibition on training use of every
+application-originated class disclosed under the Grant. A non-empty array names
+the post-redaction classes that can participate in training, but it permits a
+given source payload only when that source satisfies the complete whole-source
+predicate below. Omission of `training_use` means unspecified; it MUST NOT be
+rendered, matched, or enforced as either an empty array or a permission. A
+runtime or application policy that requires no training MUST require this exact
+profile with an empty array.
+
+This profile defines no field-level selection rule. A complete source payload
+is eligible for training use only when:
+
+```text
+source.data_exposure.classes is a subset of training_use.permitted_classes
+```
+
+If a source contains both `repository.content` and `user.identifier`, a Grant
+that permits only `repository.content` does not permit training on any part of
+that source payload. The application can publish a separate source with an
+independently enforced redaction contract; the runtime MUST NOT infer which
+bytes belong to the permitted class. Derived data retains every source class
+for this decision unless a separately negotiated irreversible-transformation
+profile defines and proves a different classification. Hashing, embedding,
+pseudonymizing, summarizing, or aggregating data alone does not escape the
+constraint.
+
+After issuer-side approval, the authorization server returns the same closed
+object with an effective set satisfying:
+
+```text
+returned permitted_classes
+  is a subset of requested permitted_classes
+  intersected with the returned effective data-exposure class union
+```
+
+The server MAY remove a requested class because of application policy or user
+choice and MUST remove a class that is no longer exposed after an approved
+action or scope subset. It MUST NOT add a class. The exact returned array MUST
+remain present even when empty, and its order is canonical. The sequence
+`["repository.content", "user.identifier"]` to
+`["repository.content"]` to `[]` is attenuation; the reverse direction is
+authority widening and requires a new request and fresh consent.
+
+Training permission never widens actions, scopes, sources, processors,
+redaction, classification ceilings, or plaintext retention. The Remote
+Processing Privacy check still evaluates the full exposure closure, including
+classes that are prohibited for training. A lower training-use set cannot make
+sensitive data eligible for a `public` processing ceiling.
+
+`retention.mode` continues to govern runtime-controlled plaintext, examples,
+and corpora. A training permission does not authorize storage beyond that
+contract. Conversely, `transient` plaintext retention does not mean no
+training: an allowed online update can leave durable influence after plaintext
+deletion. A consent or management view MUST show those two dimensions
+separately and MUST NOT label an empty training set as “transient only.”
+
+### Issuance, Enforcement, and Lifecycle
+
+The manifest MUST advertise this profile in
+`compatibility.training_use_profiles`. A request selecting it MUST also select
+the Remote Processing Privacy Profile. The complete request constraint is part
+of the Semantic Grant Request Hash. The effective returned constraint is part
+of the authoritative Grant Object, `grant_hash`, token response, introspection
+response, management view, and server-side Grant state.
+
+Before consent and issuance, the authorization server MUST independently derive
+the exact effective exposure closure, validate every requested class and the
+source-level rule above, apply application policy, and obtain issuer-side user
+approval for the effective set. A non-empty client request is not training
+authority by itself. Under the OAuth profile, an absent required member, unknown
+or duplicate class, non-canonical order, unadvertised profile, or class outside
+the requested exposure union is `invalid_authorization_details`.
+
+Before storing or using the returned Grant, the runtime MUST recompute the
+returned exposure closure and reject a missing constraint, added class,
+non-subset result, unknown class, stale source, or mismatch among Grant, token,
+and introspection representations as `integrity_mismatch`. A valid strict
+subset is privacy attenuation and does not require a second expanding consent.
+
+Before any training use, the controlling runtime MUST first apply the ordinary
+Grant, Data Exposure, and Remote Processing validations. An inactive Grant
+fails with its existing Grant lifecycle error, an invalid source or retention
+contract fails as `data_exposure_violation`, and a failed path commitment fails
+as `remote_processing_violation`. Under an otherwise valid Grant, exposure
+projection, and path, the runtime MUST verify that the source payload's complete
+class set is a subset of the effective `permitted_classes` and that every
+downstream recipient enforces an equal or stricter training policy. Failure of
+either training-specific check is `training_use_denied`, and the payload MUST be
+blocked before training dispatch. If a required provider capability or policy
+input is unknown or stale, matching is `indeterminate` and disclosure remains
+blocked; it is not optimistic consent.
+
+A provider, operator, model, processing configuration, policy, or enforcement
+capability change makes the local Capability Match Result and Consent Preview
+stale even when the Remote Processing path value remains the same. A change to
+the requested `permitted_classes` set for the same root authorization changes
+the semantic request and requires a new issuer consent flow. The server-side
+subset during that issuance and a derived child or token exchange that satisfies
+the explicit attenuation rules below MAY narrow the set without expanding
+consent; the derived Grant receives its own authoritative hash and lineage. An
+existing Grant MUST NOT be mutated in place.
+
+Expiry, suspension, or revocation prohibits every new training use and new
+disclosure under the Grant and activates its existing plaintext cleanup
+obligations. It does not reverse training use that was permitted and completed,
+prove that a model forgot data, or authorize continued use of retained material.
+Data obtained under a Grant for a class absent from `permitted_classes` remains
+prohibited from later training use after Grant termination; expiration does not
+convert a prohibition into permission.
+
+### Delegation, Consent, and Evidence Boundary
+
+An ungranted subagent, model, tool, adapter, or secondary runtime remains under
+the controlling runtime's effective training constraint. The runtime MUST NOT
+send a source payload to a component whose training policy is wider or unknown.
+
+For a derived child Grant, when the parent selected this profile, the child
+MUST retain the constraint and satisfy:
+
+```text
+child permitted_classes
+  is a subset of parent permitted_classes
+  intersected with child effective data-exposure classes
+```
+
+The child retains an explicit empty array when the intersection is empty. A
+child MUST NOT omit the constraint, add a class, or reuse the parent's provider
+commitment as evidence for another runtime. When the parent omitted this
+profile, a derived child MAY add the empty-array form as a further restriction
+only when the parent already selected Remote Processing Privacy and the child
+retains its exact profile and path value while resolving its own runtime-bound
+path commitment and ceiling. Otherwise adding this profile, or adding a
+non-empty permission, requires a fresh independent root Grant and consent. As
+defined by Remote Processing Privacy, the parent does not forward previously
+received application payloads into a separately granted child; the child
+obtains data through its own authorized application sources.
+
+The local Consent Preview and issuer consent view MUST show the exact requested
+or effective permitted set, every prohibited effective class, and every source
+in which each class occurs, alongside the separate path, ceiling, redaction,
+and plaintext-retention semantics. A non-empty set MUST carry a conspicuous
+warning that permitted training can leave durable influence in a model,
+adapter, or index after plaintext deletion and Grant revocation. An omitted
+profile MUST be labeled unspecified, never “no training.” Provider statements
+MUST be labeled as runtime-local commitments unless a separate evidence profile
+verifies them.
+
+Active-grant management views MUST show the exact hash-bound permitted set and
+the same no-unlearning boundary. The `grant_hash` in a receipt binds the receipt
+to that policy but proves neither provider compliance nor training or
+unlearning. A runtime MAY retain a data-minimized local decision record keyed by
+`grant_hash`, source ids, policy revision, decision, and timestamp. This profile
+defines no portable provider receipt, compliance attestation, legal-purpose
+taxonomy, or verifiable unlearning mechanism.
+
 ## Runtime Attestation Optional Profile
 
 Runtime attestation is an optional extension to the Runtime Identity Profile.
@@ -5143,6 +5372,13 @@ deterministic output-only `classification_ceiling` to the authoritative Grant.
 That complete constraint is included in `grant_hash`, token and introspection
 responses, management views, and protected-resource validation. It restricts
 disclosure and does not prove downstream compliance.
+When the Agent Training Use Policy Profile is selected, both request and Grant
+contain `constraints.training_use`. The authorization server MAY return only a
+canonical set subset of requested `permitted_classes` and MUST NOT add a class
+or omit the constraint. The exact effective object is included in `grant_hash`,
+token and introspection responses, management views, and runtime enforcement.
+It authorizes only the defined secondary use and does not prove provider
+behavior or model unlearning.
 `data_exposure` is also authorization-server output. It is the complete
 effective projection derived under the Data Exposure Contract and does not
 grant authority independent of the action, scope, location, and resource
@@ -5489,7 +5725,10 @@ confirms:
 - when the Remote Processing Privacy Profile is selected, its exact path
   commitment, deterministic classification ceiling, every source that must fit
   that ceiling, and the distinction between application-authenticated Runtime
-  Identity evidence and runtime-local downstream evidence.
+  Identity evidence and runtime-local downstream evidence; and
+- when the Agent Training Use Policy Profile is selected, its exact permitted
+  and prohibited classes by source, with training use and plaintext retention
+  shown as independent dimensions.
 
 The runtime SHOULD additionally identify its locally known operator and
 processing environment. Such operator, model-provider, tool-recipient, and
@@ -5498,8 +5737,10 @@ separate verified evidence. They MUST be labeled with their verification status
 and MUST NOT be presented as application-verified Grant Object fields. When the
 Remote Processing Privacy Profile is selected, its path and ceiling are
 semantic Grant fields, but provider names and recipient inventory remain local
-evidence unless another profile verifies them. Training-use policy remains a
-separate profile and MUST NOT be inferred from the selected path.
+evidence unless another profile verifies them. When Agent Training Use Policy
+is selected, its effective class set is also a semantic Grant field, while a
+provider's claimed enforcement remains local evidence. Without that profile,
+training use is unspecified and MUST NOT be inferred from the selected path.
 
 A runtime MAY group or summarize repeated entries, but every selected action,
 companion stage, resource filter, material effect, and exposure source MUST
@@ -5591,6 +5832,10 @@ It MAY be a semantically narrower valid subset under this comparison:
   constraint MUST preserve the exact requested profile and path and add only
   the deterministic output-only classification ceiling; a missing, changed, or
   client-supplied ceiling is invalid rather than an attenuation;
+- when the Agent Training Use Policy Profile was selected, the returned profile
+  MUST remain exact and `permitted_classes` MUST be a canonical set subset of
+  both the requested set and the returned effective exposure-class union; an
+  added class or omitted constraint is authority widening;
 - returned actions, scopes, and locations MUST be set subsets of the confirmed
   values and MUST remain closed over required companion actions;
 - `expires_at` MAY be no later. A returned `budgets` object MUST retain every
@@ -5629,12 +5874,14 @@ can independently derive from the verified request, manifest, tuple, and
 exposure projection. When Remote Processing Privacy is selected, this includes
 the exact requested path commitment and server-enforced ceiling, labeled so the
 commitment is not mistaken for independently verified downstream topology. It
-is not required to repeat runtime-local operator or recipient assertions. It
-MUST NOT trust client-supplied human-readable prose as the authoritative
-description. Its final approved subset remains
-authoritative for issuance. The local runtime preview reduces surprise and
-app-controlled UI risk, but it does not replace issuer authentication, consent,
-or the application's obligation to enforce the issued grant.
+must also show the effective Agent Training Use class set when that profile is
+selected and warn that allowed training influence is not reversed by plaintext
+deletion or revocation. It is not required to repeat runtime-local operator or
+recipient assertions. It MUST NOT trust client-supplied human-readable prose as
+the authoritative description. Its final approved subset remains authoritative
+for issuance. The local runtime preview reduces surprise and app-controlled UI
+risk, but it does not replace issuer authentication, consent, or the
+application's obligation to enforce the issued grant.
 
 Expected effects and previews MUST be identified as maximum or predicted
 semantics rather than a guarantee that a commit will occur. Compensation MUST
@@ -5811,7 +6058,9 @@ are the authoritative Grant Object wire shape defined above:
   Agent Grant object. When Remote Processing Privacy is selected, it MUST also
   contain the closed request-only `remote_processing` object with exact
   `profile` and `path`, the request MUST select Runtime Identity, and the client
-  MUST NOT supply `classification_ceiling`.
+  MUST NOT supply `classification_ceiling`. When Agent Training Use Policy is
+  selected, `constraints` MUST also contain its closed `training_use` object
+  with the exact profile and canonical `permitted_classes` request set.
 - `credential_profile` MUST be `compatibility_bearer` or `proof_bound` and maps
   to the credential profiles defined in this draft.
 - A request for action authority MUST contain non-empty RFC 9396 common
@@ -5844,7 +6093,9 @@ client-supplied runtime identity projection, an unadvertised, unsupported, or
 non-accepted Runtime Attestation requirement, client-supplied attestation
 output, an unadvertised Remote Processing Privacy profile, a client-supplied
 ceiling, a path inconsistent with the controlling Runtime Identity, an
-effective exposure above the deterministic ceiling, an action set that is not
+effective exposure above the deterministic ceiling, an unadvertised or
+malformed Agent Training Use Policy, an unknown, duplicate, non-canonical, or
+unexposed requested training class, an action set that is not
 closed over required companion dependencies, or constraints that are invalid
 for the published surface. It MUST use the RFC 9396
 `invalid_authorization_details` error for malformed or unsupported Agent Grant
@@ -5882,7 +6133,10 @@ coverage, server-derived assurance, and current accepted state without exposing
 Evidence, measurements, reference values, or Verifier diagnostics. When Remote
 Processing Privacy is selected, the view MUST additionally show the exact path,
 deterministic ceiling, and complete exposure closure while distinguishing the
-runtime commitment from application-verified Runtime Identity evidence. The user MAY
+runtime commitment from application-verified Runtime Identity evidence. When
+Agent Training Use Policy is selected, the view MUST show the requested and
+effective permitted classes by source, every prohibited class, and the durable-
+influence warning independently of plaintext retention. The user MAY
 approve a strict subset. The authorization server
 MUST present each required companion closure as one approval group. It MUST
 materialize the exact approved action stages in the returned `actions`
@@ -5910,6 +6164,10 @@ When the request selected Remote Processing Privacy, the returned constraints
 MUST preserve its exact requested profile and path and add the deterministic
 `classification_ceiling`; the authorization server MUST NOT change the path or
 omit the complete constraint.
+When the request selected Agent Training Use Policy, the returned constraints
+MUST preserve its exact profile and a canonical `permitted_classes` subset of
+the request and returned exposure union; the authorization server MUST NOT add
+a class or omit an explicit empty result.
 When the request selected the Minimal Agent Passport Grant-Issuance Profile,
 the returned delegate and credential binding MUST preserve its exact four-value
 Passport tuple.
@@ -5984,6 +6242,15 @@ and verify the attenuated source closure against it. A different path is not an
 OAuth attenuation and requires a new semantic Grant request and fresh consent.
 The exchange MUST NOT omit the constraint or treat a lower apparent Runtime
 Identity locality as proof that the downstream path changed safely.
+
+When the source Grant selected Agent Training Use Policy, token exchange MUST
+retain the profile and return a `permitted_classes` set no wider than the source
+set intersected with the exchanged Grant's effective exposure classes. It MUST
+retain an explicit empty result. When the source omitted the profile, exchange
+MAY add the empty form as a new restriction only if the source selected Remote
+Processing Privacy and the exchange retains its exact profile and path. In
+every other case, adding this profile or a non-empty training permission
+requires a fresh independent authorization and consent flow.
 
 RFC 8693 does not itself create lifecycle linkage between input and output
 tokens. This ASP profile does: the authorization server MUST record the source
@@ -6388,6 +6655,18 @@ child obtains such data from its own independently authorized application
 source. Path enum values have no attenuation order, so an issuer MUST NOT
 rewrite one value into another while deriving a child.
 
+When the parent selected the Agent Training Use Policy Profile, a child MUST
+retain the exact profile and a canonical `permitted_classes` set no wider than
+the parent set intersected with the child's complete effective exposure-class
+union. An empty intersection remains an explicit empty array; the child MUST
+NOT omit the constraint or add a class. When the parent omitted the profile, a
+derived child MAY add the empty-array form only if the parent selected Remote
+Processing Privacy and the child retains its exact profile and path value while
+deriving its own binding and ceiling. Otherwise the child needs a fresh
+independent root Grant and consent. When the parent omitted this profile, a
+non-empty training permission requires that fresh flow and is not child
+attenuation.
+
 When the parent selected Runtime Attestation, every child MUST obtain a new
 challenge and accepted appraisal bound to the child's exact
 `grant_request_hash`, producing a child-specific stable binding and mutable
@@ -6437,6 +6716,10 @@ Applications MUST verify every action against grant state:
   supported, its output-only ceiling is the exact deterministic value, the
   controlling Runtime Identity satisfies the necessary predicate, and every
   class in the complete effective exposure closure is at or below that ceiling
+- when `constraints.training_use` is present, its profile is supported, its
+  `permitted_classes` value is a canonical set no wider than the approved
+  request and complete effective exposure-class union, and every authoritative
+  Grant, token, introspection, and stored-state copy matches the hashed value
 - grant is bound to the agent and exact Passport tuple, and the independently
   verified artifact remains unexpired, unrevoked, and fresh under its selected
   verification profile
@@ -6518,6 +6801,10 @@ Runtimes SHOULD verify:
   data-bearing path still satisfies the exact Grant commitment immediately
   before every disclosure, every class fits the effective ceiling, and an
   unknown recipient or enforcement state fails closed
+- when the Agent Training Use Policy Profile is selected, a source is withheld
+  from training unless its complete class set is a subset of the effective
+  `permitted_classes`, the Remote Processing path remains valid, and every
+  downstream recipient enforces an equal or stricter training policy
 
 ## Capability Matching
 
@@ -6550,6 +6837,8 @@ Matching inputs:
 - declared data classes, redaction, and retention obligations
 - the complete selected processing path, its Remote Processing Privacy
   classification ceiling, and current recipient-policy enforcement capability
+- the requested Agent Training Use class set, complete class set of every
+  source, and current downstream training-policy enforcement capability
 - reservation requirements and available recovery actions
 - Agent Passport capabilities
 - Agent Passport security policy
@@ -6584,6 +6873,8 @@ candidate agent and Passport tuple, every selected profile, and the complete
 request-only Runtime Attestation requirement, remain in the hashing view. A
 selected Remote Processing Privacy constraint contributes its exact request
 `profile` and `path`; the server-only `classification_ceiling` is absent.
+Selected Agent Training Use Policy contributes its exact request `profile` and
+canonical `permitted_classes` set; the set remains present when empty.
 Another issuance model MUST construct the same semantic object.
 
 A multi-candidate match MUST construct and hash one complete request for each
@@ -6796,9 +7087,9 @@ policy and MUST NOT serialize it as protocol authority.
 - `compatible` means every required input is known and current, the Passport
   and local agent binding are valid, every capability and execution stage is
   supported, all effective policies permit the path, and every required
-  exposure, retention, remote-processing, approval, effect, recovery, adapter,
-  and sandbox
-  obligation can be enforced. It has no blocking reason and no missing entry.
+  exposure, retention, remote-processing, training-use, approval, effect,
+  recovery, adapter, and sandbox obligation can be enforced. It has no blocking
+  reason and no missing entry.
 - `incompatible` means at least one current, authoritative input proves a
   requirement cannot be satisfied. A definitive blocking reason takes
   precedence over additional unknowns.
@@ -6830,6 +7121,7 @@ codes are:
 | `data_exposure_unsupported` | A required exposure or redaction contract cannot be enforced. |
 | `retention_unsupported` | A retention or deletion obligation cannot be enforced. |
 | `remote_processing_unsupported` | Current authoritative path state proves the ceiling is exceeded or a recipient cannot enforce the exact profile. |
+| `training_use_unsupported` | Current authoritative policy proves the requested training class constraint cannot be enforced for a source or recipient. |
 | `sandbox_unsatisfied` | A required sandbox constraint is unsatisfied. |
 | `runtime_identity_invalid` | Current verification proves required runtime identity evidence mismatched or invalid. |
 | `runtime_identity_unavailable` | Required runtime identity evidence has no current authoritative value. |
@@ -6857,7 +7149,10 @@ An unresolved recipient, processor inventory, operator, or enforcement-policy
 input uses blocking `input_unknown` with subject kind `policy` and therefore
 produces `indeterminate` unless another definitive reason exists. Once current
 state proves a path or recipient cannot satisfy the selected profile, the
-runtime uses definitive `remote_processing_unsupported` instead.
+runtime uses definitive `remote_processing_unsupported` instead. An unknown or
+stale training-policy capability also uses `input_unknown`; once current state
+proves the source-level constraint or a recipient policy cannot be enforced,
+the runtime uses definitive `training_use_unsupported`.
 
 ### Freshness, Privacy, and Consent Boundary
 
@@ -6868,8 +7163,9 @@ TTL used by any candidate decision. The complete result becomes stale when that
 time passes or when the manifest tuple, common Grant request semantics or any
 candidate hash, runtime identity tuple, selected attestation profile or
 proof-key capability, candidate Passport tuple or status, agent or adapter
-inventory, processing-path or recipient-policy inventory, local or enterprise
-policy, or user preferences no longer exactly match the recorded binding.
+inventory, processing-path, recipient-policy, or training-policy inventory,
+local or enterprise policy, or user preferences no longer exactly match the
+recorded binding.
 
 A stale result MUST NOT be used to select a candidate, populate a new Consent
 Preview, or justify a Grant request. The runtime recomputes the complete result;
@@ -6902,11 +7198,13 @@ independently recompute the data-exposure projection, verify that the hash
 equals the selected candidate's `grant_request_hash` and that all bindings still
 match, and, when Remote Processing Privacy is selected, re-resolve the complete
 path and verify every class against the expected ceiling before deriving a
-fresh Consent Preview. Adding a suggested scope or action
-changes every candidate hash; adding or changing a candidate requires a new
-result entry. Either change requires a fresh match result. The authorization
-server independently verifies the selected tuple and obtains issuer-side
-consent.
+fresh Consent Preview. When Agent Training Use Policy is selected, it MUST also
+verify the canonical requested set, the complete class set of every source, and
+the enforcement policy of every downstream recipient. Adding a suggested scope
+or action changes every candidate hash; adding or changing a candidate requires
+a new result entry. Either change requires a fresh match result. The
+authorization server independently verifies the selected tuple and obtains
+issuer-side consent.
 
 ## Observability Context
 
@@ -8244,6 +8542,9 @@ inspectable:
 - when selected, the exact Remote Processing Privacy profile, path commitment,
   and deterministic classification ceiling without implying verified provider
   behavior;
+- when selected, the exact Agent Training Use Policy profile and permitted and
+  prohibited effective classes, shown separately from plaintext retention and
+  with no claim that revocation or deletion causes model unlearning;
 - credential profile and receipt requirements; and
 - whether revocation cascades to derived grants and the known number of
   affected descendants.
@@ -8296,6 +8597,11 @@ consent evidence. The application MUST additionally explain:
   authorized compensation or revert when available; and
 - which `delete_on_grant_end` exposure obligations become effective, without
   claiming deletion of application source data or model unlearning.
+
+When Agent Training Use Policy is selected, the confirmation MUST also state
+that revocation stops every new training use under the Grant but does not undo
+a permitted training use already completed or prove deletion from a reusable
+model, adapter, index, dataset, or other derived artifact.
 
 The confirmation MUST be bound server-side to the exact `grant_id` and
 `grant_hash` displayed to the user. That binding prevents target substitution;
@@ -8602,6 +8908,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `risk_denied` | Local or app policy denied the risk class. |
 | `data_exposure_violation` | An application-originated payload contains an undeclared data class or violates its redaction or retention contract. |
 | `remote_processing_violation` | Under an otherwise valid Grant and exposure projection, the runtime's current complete path or recipient enforcement state no longer satisfies the bound Remote Processing Privacy constraint. |
+| `training_use_denied` | Under an otherwise valid Grant and source projection, current authoritative state proves that a payload's complete class set is not permitted for training or a recipient's training policy is wider. |
 | `passport_invalid` | The exact Agent Passport artifact is missing, malformed, expired, revoked, untrusted, incorrectly signed, or not bound to the selected agent. |
 | `passport_profile_unsupported` | A required Passport consuming, artifact-hash, verification, status, or integrity profile is unsupported or incomplete. |
 | `passport_status_unavailable` | Fresh authenticated status for the exact Passport tuple cannot currently be established. |
@@ -8660,13 +8967,29 @@ the class or policy rule that failed. This code MUST NOT replace
 invalid Runtime Identity binding, or `data_exposure_violation` for an invalid
 source envelope.
 
+`training_use_denied` is terminal for the same unchanged training operation,
+source, recipient policy, and Grant. The detecting component MUST block the
+payload before training dispatch. Retrying ordinary current-task inference or
+obtaining a newly matched, previewed, and consented training set can establish
+a different operation; changing only a request id or deleting retained
+plaintext cannot. Public errors expose neither the source class set, provider,
+nor failed policy rule. This code MUST NOT replace `integrity_mismatch` for a
+constraint or hash divergence, `data_exposure_violation` for an invalid source
+envelope, or `remote_processing_violation` for a failed path commitment.
+An unknown or stale provider capability, policy, or inventory does not establish
+this terminal error: it produces blocking `input_unknown` and an
+`indeterminate` Capability Match Result. Disclosure remains blocked, but the
+runtime MAY retry matching after it refreshes the authoritative provider-policy
+state; it MUST NOT retry training dispatch against the unchanged unknown state.
+
 `input_not_normalized` is retryable only after the runtime applies the pinned
 normalization rules; the rejected attempt does not claim the idempotency key or
 admit an effect. `execution_mode_invalid`, `execution_transition_invalid`,
 `execution_token_invalid`, `reservation_invalid`, `recovery_not_supported`,
 `recovery_already_applied`, `session_transition_invalid`,
 `event_delivery_conflict`, `event_cursor_invalid`, and
-`remote_processing_violation` are not blindly retryable.
+`remote_processing_violation` and `training_use_denied` are not blindly
+retryable.
 `safety_guard_triggered` is not retryable within the fenced guard epoch; it
 requires explicit local resolution and, for an application session, an accepted
 authoritative resume into a new generation.
@@ -8808,6 +9131,15 @@ issuer MUST NOT describe its echo, Grant hash, or runtime locality as proof of
 recipient topology. Deployments that require such proof need a separately
 negotiated egress or processor-evidence profile; absent one, the path remains an
 accountable runtime commitment and the application still minimizes disclosure.
+
+Agent Training Use Policy binds the requested and effective class sets but does
+not let the application observe provider-side reuse or prove deletion from a
+model or reusable artifact. A malicious runtime can report an equal-or-stricter
+recipient policy and then violate it. The issuer MUST NOT describe consent, a
+Grant hash, retention cleanup, or a runtime receipt as compliance or unlearning
+evidence. Deployments that require such evidence need a separately negotiated
+provider-attestation, audit, or verifiable-unlearning profile and still enforce
+the class constraint before disclosure.
 
 A runtime budget report can safely request a fence for its own bound session,
 but it MUST NOT change application counters, grant authority, or another
@@ -9069,9 +9401,13 @@ deletion by an undeclared external processor. Training use and remote-agent
 defaults are not implied by a retention declaration. The Remote Processing
 Privacy Profile, when selected, applies a conservative Grant-wide ceiling and
 requires the runtime to resolve the complete path before disclosure; it still
-does not prove provider behavior. Training use remains a separate policy
-profile and MUST NOT be inferred from locality, management, ceiling, or
-retention.
+does not prove provider behavior. When Agent Training Use Policy is selected,
+its explicit class set independently controls secondary use: an empty set means
+no training use, a non-empty set permits only whole sources whose complete
+class set is covered, and omission remains unspecified. A training permission
+does not widen path, redaction, or retention constraints, and plaintext cleanup
+or revocation does not prove that an allowed durable model influence was
+removed.
 
 Processing-path metadata can expose provider relationships, enterprise
 boundaries, user choices, and regional deployment details. The Grant therefore
@@ -9079,6 +9415,13 @@ contains only the coarse path value and ceiling. Recipient inventory, endpoints,
 account ids, enterprise mapping evidence, and provider-policy records remain in
 the runtime or enterprise-policy boundary and SHOULD be retained only as long
 as enforcement and data-minimized audit require.
+
+Training-policy metadata reveals user choices, source classifications, and
+provider capabilities. Protocol artifacts therefore carry only the profile and
+canonical class set. Provider policy documents, account identifiers, model
+names, enforcement inventories, local decision records, and audit evidence
+remain within their applicable trust boundary and SHOULD be retained only as
+long as enforcement, user management, and data-minimized audit require.
 
 Consent previews contain sensitive relationship metadata even when they omit
 application payloads. Implementations SHOULD avoid placing rendered previews in
@@ -9169,6 +9512,10 @@ An application conforms to the Grant-Enforcing profile when it:
   exact request path, derives and hash-binds the deterministic ceiling, rejects
   every effective exposure above it, and labels the path as a runtime
   commitment rather than application-verified downstream evidence
+- when it advertises the Agent Training Use Policy Profile, validates the
+  canonical requested set against the complete effective exposure union,
+  obtains issuer-side consent for the returned subset, preserves every hashed
+  and introspected copy, and makes no provider-compliance or unlearning claim
 - when it advertises Runtime Attestation, satisfies the Runtime-Attested
   Grant-Enforcing Application profile below rather than inferring conformance
   from hardware, EAT parsing, or a co-located Verifier
@@ -9254,6 +9601,9 @@ it:
 - validates the request-only Remote Processing Privacy profile and path, adds
   only the deterministic output ceiling, and preserves the complete effective
   constraint through token responses, introspection, Grant hashing, and consent
+- validates the Agent Training Use request profile and canonical class set,
+  preserves only a permitted subset through authorization, token exchange,
+  introspection, Grant hashing, and consent, and retains an explicit empty set
 - implements the OAuth Token Exchange Profile without privilege amplification
 - preserves member-wise budget attenuation, lineage accounting, and the
   cross-runtime issuance restriction through authorization and token exchange
@@ -9362,6 +9712,10 @@ An application runtime conforms to this profile when it:
   effective class against the expected and returned ceiling, labels downstream
   commitments accurately, and fails closed before disclosure on any unknown or
   changed recipient or enforcement state
+- when selecting the Agent Training Use Policy Profile, resolves every source's
+  complete class set, presents the permitted and prohibited sets separately
+  from retention, enforces the whole-source and downstream-recipient rules,
+  treats omission as unspecified, and makes no model-unlearning claim
 - when selecting Runtime Attestation, supports the exact concrete profile,
   protects its proof key and raw Evidence, authenticates every challenge and its
   runtime, request, audience, and freshness bindings, confirms any initially
