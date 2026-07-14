@@ -1772,15 +1772,27 @@
       "description": "сделать approval/denial отдельным receipt, который можно связать с последующим write.",
       "category": "Receipts / audit / provenance",
       "side": "left",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
           "heading": "Approval Semantics",
           "anchorId": "approval-semantics"
         },
         {
+          "heading": "Approval Receipt Profile",
+          "anchorId": "approval-receipt-profile"
+        },
+        {
+          "heading": "Action Request",
+          "anchorId": "action-request"
+        },
+        {
           "heading": "Receipt Requirements",
           "anchorId": "receipt-requirements"
+        },
+        {
+          "heading": "Receipt Hash Chain",
+          "anchorId": "receipt-hash-chain"
         },
         {
           "heading": "Runtime Receipt",
@@ -1789,9 +1801,13 @@
         {
           "heading": "App Receipt",
           "anchorId": "app-receipt"
+        },
+        {
+          "heading": "Receipt-Producing Application",
+          "anchorId": "receipt-producing-application"
         }
       ],
-      "rationale": "Approval уже связан с action receipt, но отдельного receipt type для approve/deny нет.",
+      "rationale": "Определён отдельный Approval Receipt Profile для approve/deny с явной Grant caveat, producer-role mapping, exact invocation binding, expiry, idempotent replay и causal side links из action receipts.",
       "priority": "P1",
       "profile": "receipts-provenance",
       "depends_on": [
@@ -1799,7 +1815,7 @@
         35
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -1807,7 +1823,19 @@
         },
         {
           "kind": "rfc_anchor",
+          "ref": "approval-receipt-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-request"
+        },
+        {
+          "kind": "rfc_anchor",
           "ref": "receipt-requirements"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-hash-chain"
         },
         {
           "kind": "rfc_anchor",
@@ -1816,6 +1844,10 @@
         {
           "kind": "rfc_anchor",
           "ref": "app-receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-producing-application"
         }
       ]
     },
