@@ -549,6 +549,12 @@ read -> draft/propose -> human or app approval -> commit -> receipt
 Direct writes without approval can exist for mature grants and low-risk actions,
 but the protocol SHOULD make proposal flows first-class.
 
+This recommendation does not itself prohibit a state-changing action. An
+application that claims a surface-wide prohibition MUST declare
+`surface_mode: "proposal_only"` and satisfy the fail-closed Proposal-Only
+Surface Mode contract. A runtime MUST NOT infer that contract merely because a
+surface currently happens to expose only proposal actions.
+
 ### Every Write Is Idempotent
 
 Any action that changes domain or coordination state MUST support idempotency.
@@ -795,6 +801,7 @@ Agent Surface Protocol is specified as four separable layers.
 The application-published affordance contract:
 
 - app identity
+- surface mode
 - surface version
 - resources
 - actions
@@ -1035,6 +1042,19 @@ Content-Type: application/json
 Cache-Control: max-age=300
 ```
 
+For surface lifecycle decisions, the application MUST define a surface
+lifecycle key as (server-authenticated tenant context or a public-context
+marker, `issuer`, `app_id`, canonical `surface_url`) and maintain exactly one
+issuer-authoritative current discovery snapshot for that key. Tenant context
+is server state, never a caller-supplied selector. The authenticated object
+served at the canonical URL MUST be the designated snapshot. This designation
+is application state shared with the authorization server; it is not inferred
+by ordering opaque `surface_version` values. Changing the canonical URL for the
+same tenant, issuer, and app id MUST atomically migrate the lifecycle state and
+supersede the prior location; it MUST NOT create an independent issuance
+history. A cached or retained object can remain valid for an already-issued
+Grant without remaining eligible for new issuance.
+
 ### Required Top-Level Fields
 
 ```json
@@ -1042,6 +1062,7 @@ Cache-Control: max-age=300
   "protocol": "agent-surface/0.1",
   "app_id": "com.example.project-tool",
   "issuer": "https://example.com",
+  "surface_mode": "standard",
   "surface_version": "2026-06-25",
   "surface_hash": "sha-256:<base64url-digest>",
   "surface_url": "https://example.com/.well-known/agent-surface.json",
@@ -1056,6 +1077,14 @@ Cache-Control: max-age=300
   "revocation": {}
 }
 ```
+
+`surface_mode` is REQUIRED and MUST be either `standard` or `proposal_only`.
+`standard` means that the independently declared action modes and issued Grant
+remain the authority boundary; it does not itself authorize a write or require
+that the surface expose one. `proposal_only` adds the surface-wide upper bound
+defined in Proposal-Only Surface Mode. An implementation that does not
+understand the value MUST reject the manifest as `surface_incompatible` rather
+than ignore it.
 
 ### Surface Hash
 
@@ -1182,6 +1211,7 @@ surface discoverable.
   "protocol": "agent-surface/0.1",
   "app_id": "com.example.project-tool",
   "issuer": "https://example.com",
+  "surface_mode": "standard",
   "surface_version": "2026-06-25",
   "surface_hash": "sha-256:<base64url-digest>",
   "surface_url": "https://example.com/.well-known/agent-surface.json",
@@ -1681,57 +1711,142 @@ Example:
 }
 ```
 
-### Proposal-Only Support
+### Proposal-Only Surface Mode
 
-Applications that are not ready to allow direct agent writes SHOULD expose
-proposal-only actions.
+Applications that are not ready to allow direct agent writes SHOULD expose a
+surface with `surface_mode: "proposal_only"`. This value is a hash-bound,
+surface-wide upper bound on ASP authority, not an action mode, risk label,
+approval shortcut, or grant. `surface_mode: "standard"` leaves the upper bound
+to each independently declared action and issued Grant; it does not itself
+authorize a write.
+
+A proposal-only manifest MUST contain at least one action whose
+`execution.mode` is `propose`. Every action in the manifest MUST use mode
+`read` or `propose`, MUST declare `side_effect: false`, and MUST omit `effects`.
+Mode `dry_run` is excluded because this draft defines it as validation of a
+possible later commit; `reserve`, `commit`, `compensate`, and `revert` are
+excluded because they change domain or coordination state. No action in a
+proposal-only manifest may declare a companion-action relationship to a
+state-changing stage, including `commit_action`, `dry_run_action`,
+`proposal_action`, `reservation_action`, `recovery_actions`, `target_actions`,
+or a reservation acquisition, renewal, or release action.
 
 A proposal-only action is a typed action whose output is a draft, suggestion,
-patch, review body, or other non-committed artifact.
+patch, review body, or other non-committed artifact. The proposal artifact,
+its identifier or hash, approval of it, and any receipt are evidence only.
+None of them is transferable ASP authority. Another API MAY accept the
+artifact only after applying its own independent authentication and
+authorization; for example, the application MAY let a human apply it through
+an ordinary UI under that human's app-native authority.
 
-A proposal-only action declares `side_effect: false` because it does not
-commit domain-visible changes. However, when the application persists
-proposals as drafts — as the proposal flow in this draft assumes — repeated
-proposal requests can still accumulate duplicate drafts under retries and
-agent loops. An action that persists proposals MUST declare
-`execution.persisted: true` and `idempotency: "required"`, accept idempotency
-keys, declare `idempotency_normalization` using
-`asp-json-normalization-v1`, set `input_hash_profile` to
-`asp-jcs-sha-256`, and deduplicate stored drafts by the resulting hash. A
-non-persisted proposal MUST omit `execution.persisted` or set it to `false`.
+Persisting a proposal as a draft is protocol bookkeeping, not a
+domain-visible commit. Repeated proposal requests can nevertheless accumulate
+duplicate drafts under retries and agent loops. An action that persists
+proposals MUST declare `execution.persisted: true` and
+`idempotency: "required"`, accept idempotency keys, declare
+`idempotency_normalization` using `asp-json-normalization-v1`, set
+`input_hash_profile` to `asp-jcs-sha-256`, and deduplicate stored drafts by the
+resulting hash. A non-persisted proposal MUST omit `execution.persisted` or set
+it to `false`.
 
-Example:
+A proposal action, including any proposal persistence, MUST NOT mutate the
+proposed target object, reserve or exclude a resource, publish or send domain
+content, trigger an external operation, or return bearer authority. An
+operation with any such effect is state-changing and cannot be declared as
+`propose`. The action's Data Exposure Contract governs proposal content
+returned to the runtime or agent; it does not govern application-side storage
+of agent-supplied draft input. Idempotency, audit, and the application's own
+storage and retention obligations still apply to a persisted draft.
+
+The proposal-only bound also excludes direct credential authority. A runtime
+MUST NOT request, and an authorization server MUST NOT issue, the separately
+authorized `credential.release` capability for a Grant pinned to such a
+surface. The semantic Grant request and authoritative Grant MUST contain
+`constraints.credential_release` as exactly `{"mode":"deny"}` with no other
+member. A contradictory or extension member is invalid rather than an
+attenuation. A released credential for a non-Agent-Surface audience would
+bypass the claimed bound even though Agent Surface endpoints correctly reject
+it.
+
+A runtime MUST validate the complete proposal-only invariant before capability
+matching or consent preview. An authorization server MUST validate it before
+issuing, renewing, exchanging, or attenuating a Grant, and the application MUST
+validate it from the exact retained manifest snapshot before accepting every
+Action Request. An inconsistent manifest fails as `surface_incompatible`
+before idempotency lookup, budget admission, receipt creation, or any effect.
+Because a valid proposal-only inventory contains no state-changing action, a
+request for such an action id is `action_unknown`; a request that relabels a
+known proposal action is `execution_mode_invalid`. `proposal_required` is
+reserved for the separately defined case where a `standard` surface contains a
+state-changing action but the effective Grant authorizes only its proposal
+companion. No component may silently change a requested mode or substitute a
+similarly named proposal action.
+
+Required fail-closed cases are:
+
+| Condition | Required outcome |
+| --- | --- |
+| Unknown `surface_mode`, missing proposal action, forbidden mode, effect, or companion relationship | Reject the manifest as `surface_incompatible`. |
+| Proposal-only semantic Grant request or returned Grant does not contain exactly `constraints.credential_release: {"mode":"deny"}` | Reject issuance; the OAuth profile uses `invalid_authorization_details`. |
+| State-changing action id is absent from the pinned proposal-only manifest | Return `action_unknown`; do not search another snapshot. |
+| Request repeats `commit` for a manifest-declared `propose` action | Return `execution_mode_invalid`; do not reinterpret the input. |
+| Pinned standard manifest contains a commit, but the Grant authorizes only its reciprocal proposal companion | Return `proposal_required`; do not invoke the proposal implicitly. |
+| Proposal id, artifact, approval, or receipt is presented as commit authority | Reject before effect under the ordinary Grant, action, approval, and integrity checks. |
+| Superseded standard snapshot is used for new issuance after a proposal-only snapshot becomes current | Reject through the authoritative surface lifecycle gate. |
+
+The Grant does not repeat `surface_mode`; its exact
+`resource_server.surface_hash` selects the retained manifest and therefore
+binds the mode. A scope, action name, proposal result, old Grant, refresh token,
+or token exchange MUST NOT override that binding.
+
+The bound forbids application-domain or external write authority through an
+ASP action and forbids raw credential release. Closed Grant lifecycle,
+revocation, budget-query, session start/pause/resume/cancel, event
+subscribe/ack/replay, receipt retrieval, audit, deduplication, and stored-draft
+operations remain available under their own authenticated
+contracts. They are protocol control or bookkeeping operations, not granted
+application actions, and MUST NOT widen a Grant, mutate the proposed target, or
+provide a domain-write path. A purported control operation that does so is a
+state-changing application action and is invalid on a proposal-only surface.
+
+Example proposal-only fragment:
 
 ```json
 {
-  "id": "pull_request.review.propose",
-  "scope": "pull_request.review.propose",
-  "risk": "propose",
-  "side_effect": false,
-  "approval": "none",
-  "idempotency": "required",
-  "idempotency_normalization": {
-    "profile": "asp-json-normalization-v1"
-  },
-  "input_hash_profile": "asp-jcs-sha-256",
-  "execution": {
-    "mode": "propose",
-    "operation_id": "pull_request.review.publish",
-    "persisted": true,
-    "commit_action": "pull_request.review.submit"
-  },
-  "input_schema": "https://example.com/schemas/pr-review-propose.input.schema.json",
-  "input_schema_hash": "sha-256:<input-schema-digest>",
-  "output_schema": "https://example.com/schemas/pr-review-propose.output.schema.json",
-  "data_exposure": {
-    "classes": ["repository.content"],
-    "redaction": {"mode": "none"},
-    "retention": {"mode": "transient", "delete_on_grant_end": true}
-  }
+  "surface_mode": "proposal_only",
+  "actions": [
+    {
+      "id": "pull_request.review.propose",
+      "scope": "pull_request.review.propose",
+      "risk": "propose",
+      "side_effect": false,
+      "approval": "none",
+      "idempotency": "required",
+      "idempotency_normalization": {
+        "profile": "asp-json-normalization-v1"
+      },
+      "input_hash_profile": "asp-jcs-sha-256",
+      "execution": {
+        "mode": "propose",
+        "operation_id": "pull_request.review.publish",
+        "persisted": true
+      },
+      "input_schema": "https://example.com/schemas/pr-review-propose.input.schema.json",
+      "input_schema_hash": "sha-256:<input-schema-digest>",
+      "output_schema": "https://example.com/schemas/pr-review-propose.output.schema.json",
+      "data_exposure": {
+        "classes": ["repository.content"],
+        "redaction": {"mode": "none"},
+        "retention": {"mode": "transient", "delete_on_grant_end": true}
+      }
+    }
+  ]
 }
 ```
 
-If a commit action depends on a proposal, it SHOULD reference the proposal action:
+On a `standard` surface, a proposal action that leads to an ASP commit MUST
+declare `commit_action`, and the commit MUST reciprocally identify the
+proposal action:
 
 ```json
 {
@@ -1744,7 +1859,22 @@ If a commit action depends on a proposal, it SHOULD reference the proposal actio
 }
 ```
 
-This allows early adopters to become agent-native without allowing direct writes.
+The proposal declaration independently contains:
+
+```json
+{
+  "id": "pull_request.review.propose",
+  "execution": {
+    "mode": "propose",
+    "operation_id": "pull_request.review.publish",
+    "commit_action": "pull_request.review.submit"
+  }
+}
+```
+
+Those companion references are invalid on a proposal-only surface. This
+distinction lets early adopters expose useful proposal flows without creating
+latent ASP write authority.
 
 ### Events
 
@@ -2950,7 +3080,7 @@ an `idempotency_normalization` object using `asp-json-normalization-v1`,
 `input_hash_profile: "asp-jcs-sha-256"`, and
 `execution_hash_profile: "asp-jcs-sha-256"`. Persisted proposals remain
 non-committed domain artifacts but MUST support idempotency as specified in
-Proposal-Only Support.
+Proposal-Only Surface Mode.
 
 Ephemeral preview handles, deduplication records, audit records, and stored
 proposal drafts are protocol bookkeeping for this classification. A `dry_run`
@@ -3747,7 +3877,7 @@ Grant or bypass its own checks.
 
 Every action in mode `reserve`, `commit`, `compensate`, or `revert` MUST support
 idempotency. A persisted proposal MUST support it as defined in
-Proposal-Only Support.
+Proposal-Only Surface Mode.
 
 Requests in mode `reserve`, `commit`, `compensate`, or `revert`, and requests
 for a persisted proposal, MUST include `idempotency_key` in the body. In the
@@ -5739,8 +5869,10 @@ semantics.
 The preview MUST make the following material semantics visible before the user
 confirms:
 
-- application identity, issuer, surface version, and an inspectable surface
-  hash;
+- application identity, issuer, surface mode, surface version, and an
+  inspectable surface hash; a proposal-only mode MUST be identified as an ASP
+  authority upper bound rather than a promise that the application has no
+  human or non-ASP write path;
 - runtime identity, agent identity, passport hash, and the kind of passport
   evidence verified; when the Minimal Agent Passport Grant-Issuance Profile is
   selected, it MUST also show the consuming, hash, and verification profiles,
@@ -5829,8 +5961,8 @@ binding id, claims revision or projected identity facet, Runtime Attestation
 requirement, concrete profile, verifier, maximum age, proof key, stable binding,
 server-derived assurance, or current accepted appraisal state, actions, scopes,
 locations, resource filters, constraints, budgets, expiration, credential
-profile, receipt requirements, execution or effect declarations, or resolved
-exposure contracts makes the preview stale. A stale
+profile, receipt requirements, surface mode, execution or effect declarations,
+or resolved exposure contracts makes the preview stale. A stale
 preview MUST be regenerated and confirmed again before a request is sent or a
 returned grant is stored or used. Decline terminates the local flow; the runtime
 MUST NOT continue authorization in the background.
@@ -6777,6 +6909,11 @@ Applications MUST verify every action against grant state:
   authoritative Grant Object
 - `resource_server.surface_hash` matches the retained, verified manifest
   snapshot used to interpret the action and its schemas
+- the retained manifest declares a supported `surface_mode`; when it is
+  `proposal_only`, the complete action catalog satisfies that mode, the Grant
+  explicitly denies credential release, the requested action's manifest-
+  declared `execution.mode` is `read` or `propose`, and the request repeats
+  that exact mode
 - grant credential or proof is valid
 - grant is bound to the user
 - grant is bound to the runtime
@@ -6853,6 +6990,8 @@ Runtimes SHOULD verify:
 - grant is active
 - `grant_hash` matches the complete grant returned at issuance or introspection
 - `surface_hash` matches the verified manifest snapshot pinned for that grant
+- `surface_mode` is supported and the selected action and credential-release
+  policy satisfy its surface-wide bound
 - local user has not revoked the app, runtime, or agent
 - the exact Grant-bound Agent Passport tuple remains valid under the locally
   supported consuming, hash, verification, status, and integrity profiles
@@ -6907,6 +7046,7 @@ The user authorizes a specific runtime-agent-passport tuple through a grant.
 
 Matching inputs:
 
+- the manifest's `surface_mode` upper bound
 - action `capability_hint`
 - action schemas
 - required scopes
@@ -8174,7 +8314,27 @@ App -> comment.create commit
 Runtime/App -> receipt
 ```
 
-This is the RECOMMENDED default for early integrations.
+This is the RECOMMENDED default for early integrations on a `standard`
+surface. The proposal and commit are separate actions and authorities even
+when they share one `operation_id`.
+
+For a proposal-only surface, the ASP flow terminates with the non-authoritative
+artifact:
+
+```text
+Agent -> typed propose action
+Runtime/App -> policy, validation, optional draft persistence
+App -> proposal result and optional receipt
+User -> reviews or applies through independently authenticated app-native UI
+```
+
+If the publisher later wants the agent to commit through ASP, it MUST publish a
+new `standard` surface version and hash containing a separate commit action.
+The runtime MUST perform a new capability match and Consent Preview, and the
+authorization server MUST obtain fresh consent and issue a new independent
+Grant that explicitly contains the commit action. Renewal, token exchange,
+subdelegation, an old proposal approval, or reuse of the proposal's id,
+operation id, receipt, or input hash MUST NOT widen the proposal-only Grant.
 
 ## Receipts
 
@@ -8959,8 +9119,8 @@ Responses containing grant details MUST use `Cache-Control: no-store` and
 For each active grant, the page MUST make these semantics visible and
 inspectable:
 
-- application and issuer, grant id and hash, pinned surface version and hash,
-  and authoritative active or expiry state;
+- application and issuer, grant id and hash, pinned surface mode, version and
+  hash, and authoritative active or expiry state;
 - runtime id, agent id, passport hash, and available verified identity labels;
 - when Runtime Attestation is selected, its concrete profile, opaque verifier
   id, proof-key binding, sanitized assurance, freshness deadline, and coarse
@@ -9349,7 +9509,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `passport_status_unavailable` | Fresh authenticated status for the exact Passport tuple cannot currently be established. |
 | `runtime_untrusted` | Runtime authentication cannot be mapped to the exact active runtime identity projection, or a required posture, locality, or assurance is absent, stale, suspended, revoked, or mismatched. |
 | `surface_incompatible` | A required surface version, profile, or action declaration is unsupported or internally inconsistent and cannot be interpreted safely. |
-| `proposal_required` | The app only supports proposal mode for this action or grant. |
+| `proposal_required` | On a standard surface, the requested state-changing action exists but the Grant authorizes only its reciprocal proposal companion for the same operation. |
 | `session_invalid` | Session is unknown, non-active, stale-generation, or not bound to the complete tuple selected by the presented credential. |
 | `session_transition_invalid` | Requested session transition, prior generation, target state, or idempotent replay binding is invalid. |
 | `event_subscription_invalid` | Event subscription is unknown, inactive, or not bound to the authenticated tuple and current authority. |
@@ -9369,6 +9529,17 @@ Mapping error codes to HTTP status codes is left to a future draft.
 
 Errors SHOULD be safe to show to users and precise enough for runtime policy
 debugging.
+
+An application MUST return `proposal_required` only when the requested action
+is a state-changing action in the pinned `standard` manifest, the Grant omits
+that action, and the Grant contains its reciprocal `propose` companion with the
+same operation id. A missing action in a proposal-only manifest remains
+`action_unknown`, and a mode mismatch remains `execution_mode_invalid`.
+`proposal_required` is terminal for the unchanged Grant and surface. Changing
+only the request mode, action id, execution id, or idempotency key cannot repair
+it. The runtime MUST NOT retry by silently selecting a proposal action; it MAY
+offer that explicit granted proposal operation or begin a new consent flow for
+the existing standard surface.
 
 `runtime_untrusted` intentionally does not reveal which issuer, subject,
 credential, posture, locality, assurance, Verifier, measurement, reference
@@ -9475,6 +9646,7 @@ Surface manifests MUST include:
 ```json
 {
   "protocol": "agent-surface/0.1",
+  "surface_mode": "standard",
   "surface_version": "2026-06-25",
   "surface_hash": "sha-256:<base64url-digest>",
   "compatibility": {
@@ -9498,11 +9670,19 @@ MUST reject the action as `surface_incompatible`.
 
 Compatibility rules:
 
+- Changing `surface_mode` is a security-relevant incompatible migration. It
+  never rebinds or rewrites an existing Grant: that Grant retains the semantics
+  of its exact pinned snapshot until expiry or revocation.
+  `proposal_only` to `standard` relaxes the surface-wide invariant but does not
+  itself authorize an action.
 - Removing an action is a breaking change for grants whose scopes cover that
   action.
 - Tightening a schema can be a breaking change.
 - Adding optional fields is non-breaking.
-- Adding a new action is non-breaking.
+- Adding a new action is non-breaking only when the resulting manifest remains
+  valid under its `surface_mode` and existing action semantics do not change. A
+  state-changing action on a proposal-only surface is invalid, not an addition
+  that compatibility rules can repair.
 - Changing risk labels to a higher risk class can require grant renewal.
 - Changing an action's execution mode, operation id, required companion stage,
   effect envelope, precondition or effect schema, reservation policy, or
@@ -9511,6 +9691,31 @@ Compatibility rules:
   semantics, approval, and effect envelopes remain unchanged.
 - Changing receipt requirements can require grant renewal.
 - Changing endpoint semantics can require grant renewal.
+
+A publisher that changes from `proposal_only` to `standard` MUST use a new
+surface version and hash. A runtime MUST require a new semantic Grant request,
+fresh Consent Preview, and fresh issuer consent before any state-changing
+action can be granted; renewal, refresh, token exchange, or child derivation of
+the proposal-only Grant MUST NOT add such authority.
+
+Before, or atomically with, designating a proposal-only snapshot as current and
+serving it from the canonical `surface_url`, the application and authorization
+server MUST mark every superseded `standard` snapshot for that surface
+lifecycle key ineligible for issuance, renewal, token exchange, and child
+derivation. This transition MUST fail closed if the shared lifecycle state
+cannot be committed.
+Retained snapshots remain usable only to interpret, enforce, audit, expire, or
+revoke already-issued Grants.
+
+Publishing a proposal-only snapshot does not retroactively narrow an active
+Grant pinned to an older `standard` snapshot. If the application intends an
+application-wide stop on agent writes, it MUST complete the Semantic Grant
+Revocation Transition for those wider Grants, make introspection report them
+inactive, and fence their sessions and every action that has not passed final
+effect admission before making that claim. Otherwise those Grants retain their
+pinned semantics only until their existing expiry or revocation, and the
+proposal-only claim applies only to the exact new issuer, app id, surface
+version, and surface hash tuple.
 
 Applications SHOULD keep old surface versions available long enough for active
 grants to expire naturally.
@@ -9780,6 +9985,16 @@ does not authenticate the publisher because an attacker able to replace the
 manifest can also recompute it; HTTPS, issuer binding, and local trust policy
 remain mandatory.
 
+`surface_mode` is part of the manifest hashing view. A runtime that has matched
+or obtained consent for `proposal_only` MUST NOT silently accept `standard` as
+a compatible refresh, even if every currently selected action has the same
+name or schema. That transition requires the fresh surface and Grant flow
+defined in Versioning and Compatibility. Conversely, designating a
+proposal-only snapshot as current does not erase an old standard Grant. The
+application MUST revoke it or continue to enforce that exact older authority
+until its existing expiry, while the atomic lifecycle gate MUST reject issuance,
+renewal, exchange, and derivation against every superseded standard snapshot.
+
 `surface_hash` commits to schema URLs, explicit schema hashes, and other
 manifest values. The required `input_schema_hash` pins the self-contained input
 schema for idempotency-required and linked dry-run actions. Other schema URLs
@@ -9950,6 +10165,9 @@ An application conforms to the Surface-Only profile when it:
 - publishes an Agent Surface Manifest
 - computes and publishes a valid `surface_hash` and changes
   `surface_version` whenever the manifest hashing view changes
+- declares a supported `surface_mode` and, for `proposal_only`, exposes only a
+  closed `read`/`propose` action inventory with at least one proposal action,
+  no effects, and no state-changing companion relationship
 - declares actions, resources, events, scopes, and schemas
 - declares every referenced data class and complete exposure contracts for
   resources, actions, and events
@@ -9960,8 +10178,8 @@ An application conforms to the Surface-Only profile when it:
   input schema
 - declares maximum effects for state-changing actions and internally consistent
   companion-action, precondition, reservation, and recovery metadata
-- declares endpoints or explicitly marks the surface as proposal/documentation
-  only
+- declares the required endpoints for every invocable action, including a
+  proposal-only action
 - declares the `at_least_once` delivery contract whenever it publishes an event
   subscription endpoint
 - declares every event type and schema so it can be mapped without ambiguity to
@@ -9973,6 +10191,8 @@ An application conforms to the Surface-Only profile when it:
 An application conforms to the Grant-Enforcing profile when it:
 
 - satisfies the Surface-Only profile
+- enforces the pinned surface mode during issuance and every Action Request,
+  and never issues credential-release authority for a proposal-only surface
 - issues, validates, or introspects Agent Grants
 - validates the manifest-pinned `credential_audience` at every
   credential-protected `agent_api` endpoint
