@@ -1028,27 +1028,62 @@
           "anchorId": "proposal-mode-is-the-default"
         },
         {
-          "heading": "Proposal-Only Support",
-          "anchorId": "proposal-only-support"
+          "heading": "Discovery",
+          "anchorId": "discovery"
+        },
+        {
+          "heading": "Required Top-Level Fields",
+          "anchorId": "required-top-level-fields"
+        },
+        {
+          "heading": "Proposal-Only Surface Mode",
+          "anchorId": "proposal-only-surface-mode"
+        },
+        {
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        },
+        {
+          "heading": "Grant Verification",
+          "anchorId": "grant-verification"
         },
         {
           "heading": "Proposal Flow",
           "anchorId": "proposal-flow"
         },
         {
+          "heading": "Active Grant Management",
+          "anchorId": "active-grant-management"
+        },
+        {
+          "heading": "Versioning and Compatibility",
+          "anchorId": "versioning-and-compatibility"
+        },
+        {
+          "heading": "Surface Downgrade",
+          "anchorId": "surface-downgrade"
+        },
+        {
           "heading": "Surface-Only Application",
           "anchorId": "surface-only-application"
+        },
+        {
+          "heading": "Grant-Enforcing Application",
+          "anchorId": "grant-enforcing-application"
         }
       ],
-      "status": "partial",
-      "rationale": "Proposal-only actions полностью описаны, но нет формального top-level surface mode, запрещающего все direct writes.",
+      "status": "present",
+      "rationale": "RFC задаёт обязательный hash-bound `surface_mode`; `proposal_only` допускает только closed `read`/`propose` inventory, запрещает state-changing companions и credential release, проверяется при matching, consent, issuance и каждом request, а будущие writes требуют нового surface, consent и Grant.",
       "priority": "P1",
       "profile": "manifest",
       "depends_on": [
-        19
+        4,
+        15,
+        19,
+        46
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -1056,7 +1091,23 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "proposal-only-support"
+          "ref": "discovery"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "required-top-level-fields"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "proposal-only-surface-mode"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
         },
         {
           "kind": "rfc_anchor",
@@ -1064,7 +1115,23 @@
         },
         {
           "kind": "rfc_anchor",
+          "ref": "active-grant-management"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "versioning-and-compatibility"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-downgrade"
+        },
+        {
+          "kind": "rfc_anchor",
           "ref": "surface-only-application"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-enforcing-application"
         }
       ]
     },
@@ -2897,8 +2964,8 @@
           "anchorId": "proposal-mode-is-the-default"
         },
         {
-          "heading": "Proposal-Only Support",
-          "anchorId": "proposal-only-support"
+          "heading": "Proposal-Only Surface Mode",
+          "anchorId": "proposal-only-surface-mode"
         },
         {
           "heading": "Proposal Flow",
@@ -2920,7 +2987,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "proposal-only-support"
+          "ref": "proposal-only-surface-mode"
         },
         {
           "kind": "rfc_anchor",
