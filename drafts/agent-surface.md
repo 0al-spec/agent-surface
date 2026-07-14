@@ -82,6 +82,7 @@ Unless otherwise stated, the following sections are **normative**:
 - Risk Taxonomy
 - Effect Model
 - Approval Semantics
+- Approval Receipt Profile
 - Idempotency
 - Minimal Agent Passport Grant-Issuance Profile
 - Runtime Identity Profile
@@ -421,9 +422,9 @@ and delivery context. The event envelope itself carries no authority.
 
 ### Receipt
 
-Portable evidence that an action occurred, including the grant, session, agent,
-passport hash, input and execution hashes, effects, approval, timestamp, and
-result.
+Portable evidence that an action or approval decision occurred, including the
+grant, session, agent, passport hash, input and execution hashes, producer
+decision, timestamp, and applicable action effects or result.
 
 Receipts can be stored locally, in the application, in enterprise audit systems,
 or in a provenance graph.
@@ -434,6 +435,10 @@ This proposal distinguishes:
   agent intent, policy evaluation, and local user approval.
 - **App Receipt**: evidence produced by the application that a mutation was
   actually performed or denied under a grant.
+- **Approval Receipt**: immutable evidence that a runtime-side or
+  application-side approval interaction approved or denied one exact action
+  invocation. It is a causal prerequisite record, not action authority or proof
+  that an effect occurred.
 
 ## Design Principles
 
@@ -1192,6 +1197,9 @@ surface discoverable.
     "training_use_profiles": [
       "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1"
     ],
+    "approval_receipt_profiles": [
+      "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1"
+    ],
     "agent_passport_profiles": [
       {
         "profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
@@ -1517,6 +1525,15 @@ enforcement, and consent semantics the application implements completely. A
 runtime MUST NOT infer support or policy from a retention mode, privacy notice,
 provider label, model setting, or Remote Processing path. Absence means training
 use is unspecified, not prohibited and not permitted.
+
+`compatibility.approval_receipt_profiles`, when present, MUST be a non-empty
+array of unique collision-resistant profile identifiers. It advertises only
+profiles for which the application can validate per-action Grant requirements,
+authenticate complete runtime Approval Receipts, produce application Approval
+Receipts, bind their hashes into action evidence, and enforce replay and expiry
+rules completely. Advertising a receipt schema or signing algorithm alone is
+not support. Absence means the application implements only the base opaque
+approval-reference behavior and MUST reject a Grant selecting this profile.
 
 `compatibility.agent_passport_profiles`, when present, MUST be a non-empty array
 of closed objects. Each object MUST contain `profile`, `hash_profile`,
@@ -3630,7 +3647,9 @@ Actions SHOULD declare an approval mode:
 | `user_or_app` | Either a runtime approval or app-side approval MAY satisfy the requirement, depending on grant caveats. |
 | `runtime_and_app` | Both runtime-side and app-side approval are required. |
 
-Approval records SHOULD be linked into receipts.
+Approval records SHOULD be linked into action receipts. The base profile permits
+an opaque approval reference. A Grant selecting the Approval Receipt Profile
+instead uses the complete hash-bound, role-indexed evidence defined below.
 
 The `runtime` and `user_or_app` modes allow a runtime-side approval to satisfy
 the requirement. In those modes the application is accepting the runtime's
@@ -3638,11 +3657,13 @@ assertion that a local user approval occurred. To keep this compatible with
 the rule that an application MUST NOT accept a runtime's self-assertion of
 authority, that acceptance MUST be an explicit grant caveat presented to the
 user at consent time, not a silent default. Action requests that rely on a
-runtime-side approval SHOULD carry an approval reference (for example an
-`approval_ref` identifier, or in future profiles a signed approval object) so
-the approval can be linked into receipts and audited. Applications that do not
-want to accept runtime approval assertions MUST declare `app` or
-`runtime_and_app` for the affected actions.
+runtime-side approval SHOULD carry an approval reference so the decision can be
+linked into receipts and audited. Under the Approval Receipt Profile, the
+Grant's per-action rule MUST explicitly accept the `runtime` producer role and
+the request MUST carry the verified runtime Approval Receipt hash. Applications
+that do not want to accept runtime approval assertions MUST declare `app` or
+`runtime_and_app` for the affected actions or issue a `user_or_app` Grant rule
+that accepts only `application`.
 
 Approval for a state-changing invocation MUST bind the exact action id,
 manifest-declared execution mode, `idempotency_key`, `input_hash`, and
@@ -3695,10 +3716,11 @@ strings. `evaluated_at` is an RFC 3339 UTC timestamp with the `Z` suffix.
 
 `reason_code` is the primary stable machine-readable explanation. This draft
 defines `policy_allowed`, `approval_required`, `approval_satisfied`,
-`scope_denied`, `resource_denied`, `binding_invalid`, `limit_exceeded`,
-`local_policy_denied`, and `app_policy_denied`. Extensions MUST use a
-collision-resistant URI. `matched_rules` contains stable, non-secret rule
-identifiers and MAY be empty when disclosure would reveal policy internals.
+`approval_denied`, `scope_denied`, `resource_denied`, `binding_invalid`,
+`limit_exceeded`, `local_policy_denied`, and `app_policy_denied`. Extensions
+MUST use a collision-resistant URI. `matched_rules` contains stable, non-secret
+rule identifiers and MAY be empty when disclosure would reveal policy
+internals.
 `safe_to_show` MUST be suitable for display to the affected user and MUST NOT
 contain secrets, credentials, hidden rule content, or sensitive resource data.
 
@@ -3708,7 +3730,7 @@ The standard reason codes are valid only with these outcomes:
 | --- | --- |
 | `allow` | `policy_allowed`, `approval_satisfied` |
 | `require_approval` | `approval_required` |
-| `deny` | `scope_denied`, `resource_denied`, `binding_invalid`, `limit_exceeded`, `local_policy_denied`, `app_policy_denied` |
+| `deny` | `approval_denied`, `scope_denied`, `resource_denied`, `binding_invalid`, `limit_exceeded`, `local_policy_denied`, `app_policy_denied` |
 
 An extension reason-code specification MUST declare its allowed outcome. A
 producer and verifier MUST reject a standard or extension reason code used with
@@ -3867,6 +3889,14 @@ therefore returns `idempotency_conflict` even when the business input is
 unchanged. A runtime MUST use distinct idempotency keys for different companion
 action ids.
 
+When Approval Receipt is selected, the application MUST also bind the final
+role-indexed Approval Receipt hash set into that same idempotency record before
+effect admission. A duplicate with the same runtime-side request evidence
+returns the original result and final application role map. The same key with a
+different runtime Approval Receipt or any attempt to substitute the stored
+application receipt is `idempotency_conflict` and MUST NOT reopen approval or
+admit another effect.
+
 The application MUST also maintain the execution-id mapping defined by the
 Action Execution Model. A new key with an old execution id, preview token, or
 approval is a conflict, not a new invocation. Successful commit consumes its
@@ -3886,10 +3916,12 @@ An exact retry under the Receipt Hash Chain profile MUST reuse the original
 finalized runtime receipt and the same `parent_receipt_hash`; it MUST NOT create
 a second policy receipt for the already-authorized side effect. The application
 returns the original immutable app receipt. If the same grant, action,
-idempotency key, and normalized input arrives with a different parent hash, the
-application MUST NOT repeat the side effect and MUST report
-`integrity_mismatch` rather than attaching the original result to a competing
-provenance chain.
+idempotency key, and normalized input arrives with a different parent hash
+because that runtime receipt carries a different Approval Receipt evidence set,
+the `idempotency_conflict` rule above takes precedence. After the admitted
+approval set is equal, a different parent hash is `integrity_mismatch`; the
+application MUST NOT repeat the side effect or attach the original result to a
+competing provenance chain.
 
 ## Minimal Agent Passport Grant-Issuance Profile
 
@@ -5306,7 +5338,17 @@ surface, scopes, and caveats.
   },
   "audit": {
     "local_receipt": "required",
-    "app_receipt": "required"
+    "app_receipt": "required",
+    "approval_receipt": {
+      "profile": "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+      "requirements": [
+        {
+          "action_id": "comment.create",
+          "accepted_roles": ["runtime"],
+          "max_age_seconds": 300
+        }
+      ]
+    }
   }
 }
 ```
@@ -5365,6 +5407,7 @@ When Runtime Attestation is selected,
 by the server-derived stable `delegate.runtime_attestation` binding. The
 credential binding repeats its stable identifiers and proof key, while mutable
 appraisal state remains outside the Grant Object.
+
 When the Remote Processing Privacy Profile is selected, the request contains
 `constraints.remote_processing` with only `profile` and `path`. The
 authorization server MUST preserve both exactly and add the profile's
@@ -5372,6 +5415,7 @@ deterministic output-only `classification_ceiling` to the authoritative Grant.
 That complete constraint is included in `grant_hash`, token and introspection
 responses, management views, and protected-resource validation. It restricts
 disclosure and does not prove downstream compliance.
+
 When the Agent Training Use Policy Profile is selected, both request and Grant
 contain `constraints.training_use`. The authorization server MAY return only a
 canonical set subset of requested `permitted_classes` and MUST NOT add a class
@@ -5379,6 +5423,14 @@ or omit the constraint. The exact effective object is included in `grant_hash`,
 token and introspection responses, management views, and runtime enforcement.
 It authorizes only the defined secondary use and does not prove provider
 behavior or model unlearning.
+
+When the Approval Receipt Profile is selected, request and Grant both contain
+the complete `audit.approval_receipt` object. The authorization server projects
+its requirements to the returned action subset and MAY only narrow a
+`user_or_app` role set or lower a maximum age as defined by that profile. The
+effective object is included in `grant_hash`, token and introspection responses,
+consent and management views, and protected-resource verification. It records
+which producer roles the application can accept; it is not approval itself.
 `data_exposure` is also authorization-server output. It is the complete
 effective projection derived under the Data Exposure Contract and does not
 grant authority independent of the action, scope, location, and resource
@@ -5719,7 +5771,11 @@ confirms:
   actions with their limitations;
 - requested credential profile, credential-release policy, any parent or child
   grant fields actually present in the proposed request, and receipt
-  requirements; and
+  requirements;
+- when the Approval Receipt Profile is selected, its exact profile and each
+  action's accepted producer roles and maximum approval age, including that a
+  runtime receipt is a Grant-caveated runtime statement rather than independent
+  proof of a human gesture; and
 - effective data-exposure sources, class identifiers and classifications,
   redaction policy, and retention obligations; and
 - when the Remote Processing Privacy Profile is selected, its exact path
@@ -5847,6 +5903,10 @@ It MAY be a semantically narrower valid subset under this comparison:
   structurally equal unless its defining profile supplies an explicit
   attenuation order understood by the runtime; implementations MUST NOT guess
   that an unknown array, enum, or extension value is more restrictive;
+- when the Approval Receipt Profile was selected, its profile MUST remain exact,
+  requirements MUST project exactly to the returned approval-bearing actions,
+  a `user_or_app` accepted-role set MAY be a non-empty subset, and
+  `max_age_seconds` MAY be no greater; every other mode retains its fixed roles;
 - requested audit profile and required signer roles MUST remain equal;
   issuer-derived signer keys can be added only when the selected issuance and
   receipt-signing profiles define that output;
@@ -5874,14 +5934,17 @@ can independently derive from the verified request, manifest, tuple, and
 exposure projection. When Remote Processing Privacy is selected, this includes
 the exact requested path commitment and server-enforced ceiling, labeled so the
 commitment is not mistaken for independently verified downstream topology. It
-must also show the effective Agent Training Use class set when that profile is
+MUST also show the effective Agent Training Use class set when that profile is
 selected and warn that allowed training influence is not reversed by plaintext
-deletion or revocation. It is not required to repeat runtime-local operator or
-recipient assertions. It MUST NOT trust client-supplied human-readable prose as
-the authoritative description. Its final approved subset remains authoritative
-for issuance. The local runtime preview reduces surprise and app-controlled UI
-risk, but it does not replace issuer authentication, consent, or the
-application's obligation to enforce the issued grant.
+deletion or revocation. When Approval Receipt is selected, it MUST show every
+effective action role and maximum age and explicitly distinguish accepting a
+runtime statement from application-side approval. It is not required to repeat
+runtime-local operator, recipient, or processing-path assertions. It MUST NOT
+trust client-supplied human-readable prose as the authoritative description.
+Its final approved subset remains authoritative for issuance. The local runtime
+preview reduces surprise and app-controlled UI risk, but it does not replace
+issuer authentication, consent, or the application's obligation to enforce the
+issued grant.
 
 Expected effects and previews MUST be identified as maximum or predicted
 semantics rather than a guarantee that a commit will occur. Compensation MUST
@@ -6075,6 +6138,10 @@ are the authoritative Grant Object wire shape defined above:
   `constraints.remote_processing.classification_ceiling` MUST NOT be supplied
   by the client in an authorization request; they are authorization-server
   output.
+- A client selecting Approval Receipt MUST supply the exact closed
+  `audit.approval_receipt` profile and requirement projection for its requested
+  actions. The authorization server independently validates those roles and
+  maximum ages against the pinned manifest and its own acceptance policy.
 - A client MAY request an `audit.receipt_signing` profile and signer roles, but
   it MUST NOT supply authoritative `signer_keys`. Before issuance, the
   authorization server MUST reject a request containing those entries, derive
@@ -6095,9 +6162,10 @@ output, an unadvertised Remote Processing Privacy profile, a client-supplied
 ceiling, a path inconsistent with the controlling Runtime Identity, an
 effective exposure above the deterministic ceiling, an unadvertised or
 malformed Agent Training Use Policy, an unknown, duplicate, non-canonical, or
-unexposed requested training class, an action set that is not
-closed over required companion dependencies, or constraints that are invalid
-for the published surface. It MUST use the RFC 9396
+unexposed requested training class, an unadvertised or malformed Approval
+Receipt profile, an incomplete or incompatible approval requirement projection,
+an action set that is not closed over required companion dependencies, or
+constraints that are invalid for the published surface. It MUST use the RFC 9396
 `invalid_authorization_details` error for malformed or unsupported Agent Grant
 authorization details.
 
@@ -6251,6 +6319,13 @@ MAY add the empty form as a new restriction only if the source selected Remote
 Processing Privacy and the exchange retains its exact profile and path. In
 every other case, adding this profile or a non-empty training permission
 requires a fresh independent authorization and consent flow.
+
+When the source Grant selected Approval Receipt, token exchange MUST retain the
+exact profile, project requirements to the exchanged action subset, preserve
+fixed-role modes, and only narrow a `user_or_app` accepted-role set or lower a
+maximum age. It MUST NOT reuse any source Approval Receipt: the exchanged
+Grant's new `grant_hash`, and potentially its session and runtime tuple, require
+fresh approval evidence.
 
 RFC 8693 does not itself create lifecycle linkage between input and output
 tokens. This ASP profile does: the authorization server MUST record the source
@@ -6761,6 +6836,10 @@ Applications MUST verify every action against grant state:
 - expiration has not passed
 - every application-authoritative write, session-occupancy, and
   application-cost reservation fits the grant and all ancestor ledgers
+- when `audit.approval_receipt` is present, its exact profile and per-action
+  requirement are supported and every required approved receipt is complete,
+  authenticated, unexpired for first admission, bound to the exact invocation,
+  and represented by the role map required for the manifest approval mode
 - approval caveats are satisfied
 - idempotency key is valid
 
@@ -6832,6 +6911,7 @@ Matching inputs:
 - action schemas
 - required scopes
 - risk labels
+- approval modes and the selected Approval Receipt role and maximum-age rules
 - execution modes and required companion stages
 - declared effect envelopes and effect schemas
 - declared data classes, redaction, and retention obligations
@@ -6875,6 +6955,8 @@ selected Remote Processing Privacy constraint contributes its exact request
 `profile` and `path`; the server-only `classification_ceiling` is absent.
 Selected Agent Training Use Policy contributes its exact request `profile` and
 canonical `permitted_classes` set; the set remains present when empty.
+A selected Approval Receipt Profile contributes its exact profile and complete
+per-action role and maximum-age requirement projection.
 Another issuance model MUST construct the same semantic object.
 
 A multi-candidate match MUST construct and hash one complete request for each
@@ -7943,6 +8025,9 @@ Content-Type: application/json
     "action_id": "comment.create",
     "idempotency_key": "idem_01HX7DS8AC6G9",
     "parent_receipt_hash": "sha-256:<runtime-receipt-digest>",
+    "approval_receipt_hashes": {
+      "runtime": "sha-256:<runtime-approval-receipt-digest>"
+    },
     "input_hash": "sha-256:<action-input-digest>",
     "execution": {
       "mode": "commit",
@@ -7971,6 +8056,20 @@ declared action-request extension. The application MUST recompute the supplied
 receipt and policy-decision hashes before treating the receipt as verified. A
 bare parent hash is correlation evidence only and is insufficient when app
 policy requires verification of the runtime decision.
+
+When the Grant selects Approval Receipt, the request's optional
+`approval_receipt_hashes` object is closed and the runtime can supply only its
+`runtime` member. It MUST match the same object in the verified parent runtime
+action receipt. The application MUST retrieve or receive the complete Approval
+Receipt through `agent_api.receipt_url` or the same declared inline receipt
+extension, recompute its hashes, authenticate the producer, and validate the
+exact Grant requirement and invocation bindings before accepting it. A
+runtime-side denial stops before Action Request dispatch. A missing required
+runtime role is `approval_required`; an expired receipt is `approval_expired`;
+a mismatched, malformed, denied, or unauthenticated receipt never satisfies
+approval and uses the error precedence defined below. App-side approval occurs
+inside the application boundary and is added only to the final application
+action receipt and Action Response.
 
 For an action requiring runtime receipt evidence, the action declaration MUST
 set `input_hash_profile` to `asp-jcs-sha-256`. The runtime and application MUST
@@ -8009,6 +8108,9 @@ state, but MUST NOT copy the token into its receipt.
       "execution_id": "exec_01J2COMMENT"
     },
     "execution_hash": "sha-256:<action-execution-digest>",
+    "approval_receipt_hashes": {
+      "runtime": "sha-256:<runtime-approval-receipt-digest>"
+    },
     "result": "success",
     "effect_outcome": "applied",
     "actual_effects": [
@@ -8039,6 +8141,13 @@ An Action Response MUST repeat `session_id`, `session_generation`, grant and
 surface hashes, `action_id`, and the idempotency key from the request. For a
 state-changing action it MUST repeat the sanitized execution context and
 `execution_hash`.
+When Approval Receipt is selected, it MUST also return the exact final
+`approval_receipt_hashes` map from the application action receipt. An
+application-side denial response instead returns `approval_denied`, includes
+`approval_receipt_id` and `approval_receipt_hash` for the immutable denial
+Approval Receipt, and makes the complete object available through the
+authenticated receipt channel. Those fields are correlation evidence, not
+authority; the response MUST NOT claim satisfied approval or an action effect.
 When an effect was or may have been attempted, it MUST return
 `effect_outcome`, `actual_effects`, and `actual_effects_hash` as defined by the
 Effect Model. A response MUST distinguish `partially_applied` and `unknown`
@@ -8071,7 +8180,8 @@ This is the RECOMMENDED default for early integrations.
 
 ### Receipt Requirements
 
-Receipts produced under the Receipt-Producing Application profile MUST include:
+Runtime and application action receipts produced under the Receipt-Producing
+Application profile MUST include:
 
 - receipt id
 - receipt type
@@ -8103,7 +8213,8 @@ Receipts produced under the Receipt-Producing Application profile MUST include:
 - output hash
 - actual effects, actual-effects hash, and effect outcome when an effect was or
   may have been attempted
-- approval reference
+- an opaque approval reference under the base profile, or the applicable
+  role-indexed `approval_receipt_hashes` under the Approval Receipt Profile
 - idempotency key
 - producer-authoritative `budget_charges` with budget id, non-negative amount,
   and resulting receipt-grant-local ledger revision when the recorded operation
@@ -8111,6 +8222,11 @@ Receipts produced under the Receipt-Producing Application profile MUST include:
 - timestamp
 - result
 - error classification when failed
+
+For action receipts, `receipt_type` is exactly `runtime` or `app` according to
+the producer. The Approval Receipt Profile additionally defines
+`receipt_type: "approval"` for its prerequisite decision object; it is not an
+action receipt and follows the separate closed shape below.
 
 Fields that do not apply to the recorded outcome, such as `output_hash` for a
 denial before execution, MAY be omitted. The identity, authority, trace,
@@ -8141,6 +8257,310 @@ authority.
 A receipt MUST NOT contain the raw `execution_token`. It carries the sanitized
 execution context with `execution_token_hash`, allowing a verifier to recompute
 `execution_hash` without receiving reusable preview evidence.
+
+### Approval Receipt Profile
+
+The optional Approval Receipt Profile replaces an opaque approval reference
+with immutable, typed evidence for one exact approval interaction. Its profile
+identifier is:
+
+```text
+https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1
+```
+
+An Approval Receipt records a decision; it is not a Grant Credential,
+standalone action authority, proof that an effect occurred, or an instruction
+to execute. Every component still verifies current Grant, session, surface,
+policy, preview, reservation, precondition, effect-envelope, idempotency, and
+budget state at its ordinary enforcement boundary.
+
+#### Grant Requirement
+
+A semantic Grant request selects this profile with the following `audit`
+fragment containing a closed `approval_receipt` object:
+
+```json
+{
+  "audit": {
+    "approval_receipt": {
+      "profile": "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+      "requirements": [
+        {
+          "action_id": "comment.create",
+          "accepted_roles": ["application", "runtime"],
+          "max_age_seconds": 300
+        }
+      ]
+    }
+  }
+}
+```
+
+`profile` and `requirements` are REQUIRED and unknown members are forbidden.
+`requirements` is ordered by ascending Unicode code point of `action_id` and
+contains exactly one entry for every requested action whose manifest approval
+mode is not `none`; duplicate or extra actions are invalid. Each entry is
+closed and contains exactly `action_id`, `accepted_roles`, and
+`max_age_seconds`. `accepted_roles` is a non-empty array containing unique
+values in ascending Unicode code point order from `application` and `runtime`.
+`max_age_seconds` is a positive safe integer.
+
+This v1 profile covers only approval-bearing actions in mode `reserve`,
+`commit`, `compensate`, or `revert`. Every covered declaration therefore has
+`idempotency: "required"`, the `asp-json-normalization-v1` declaration,
+`input_hash_profile: "asp-jcs-sha-256"`, and
+`execution_hash_profile: "asp-jcs-sha-256"`, and every invocation carries the
+complete receipt tuple below. A semantic request selecting this profile while
+including an approval-bearing `read`, `dry_run`, or `propose` action is invalid,
+even when the proposal is persisted. Such actions require a separate Grant
+using the base opaque approval reference, or a future profile with mode-specific
+receipt bindings. The authorization server rejects an invalid OAuth request as
+`invalid_authorization_details`.
+
+The accepted roles MUST agree with the pinned action declaration:
+
+| Manifest approval mode | Valid Grant requirement |
+| --- | --- |
+| `none` | No requirement entry. |
+| `runtime` | Exactly `runtime`. |
+| `app` | Exactly `application`. |
+| `user_or_app` | Any non-empty subset of `application` and `runtime`. |
+| `runtime_and_app` | Both `application` and `runtime`. |
+
+This per-action rule is the explicit Grant caveat under which an application
+can accept a runtime approval assertion. A generic `write_approval` constraint,
+receipt schema, signature capability, or manifest approval mode does not add an
+accepted role. In particular, a runtime MUST NOT choose `runtime` for a
+`user_or_app` action unless the authoritative Grant requirement includes it.
+
+The profile MUST be advertised in
+`compatibility.approval_receipt_profiles`. A request accepting a runtime role
+MUST also require `audit.local_receipt: "required"`; every request selecting the
+profile MUST require `audit.app_receipt: "required"`. The authorization server
+MUST reject an unadvertised profile, malformed or unclosed requirement set,
+unsupported role, missing required action, extra action, incompatible mode, or
+invalid maximum age. Under the OAuth profile these failures are
+`invalid_authorization_details`.
+
+The authorization server returns the same profile and a requirement projection
+for the returned action subset. It MAY remove a role from a `user_or_app`
+requirement and MAY lower `max_age_seconds`; it MUST NOT add a role or increase
+the age. Requirements for removed actions are removed, and requirements for
+retained approval-bearing actions remain present. The fixed-role `runtime`,
+`app`, and `runtime_and_app` modes cannot change roles. Token exchange and child
+Grant derivation apply the same attenuation and MUST NOT reuse an Approval
+Receipt from the source or parent because its `grant_hash` and invocation tuple
+differ. The complete effective object is part of the semantic Grant request
+hash, authoritative Grant, `grant_hash`, consent views, token and introspection
+responses, and server-side Grant state. It is never mutable in place.
+
+#### Approval Receipt Object
+
+An Approval Receipt has `receipt_type: "approval"` and this wire shape:
+
+```json
+{
+  "receipt_id": "receipt_approval_01J2APPROVE",
+  "receipt_type": "approval",
+  "receipt_hash": "sha-256:<approval-receipt-digest>",
+  "grant_id": "grant_123",
+  "grant_hash": "sha-256:<base64url-digest>",
+  "session_id": "sess_456",
+  "session_generation": 1,
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "b7ad6b7169203331",
+  "action_id": "comment.create",
+  "app_id": "code.example.com",
+  "surface_version": "2026-06-25",
+  "surface_hash": "sha-256:<base64url-digest>",
+  "runtime": {
+    "runtime_id": "application_runtime_456"
+  },
+  "actor_agent": {
+    "agent_id": "local_agent_789",
+    "passport_hash": "sha-256:<base64url-digest>"
+  },
+  "subject": {
+    "user": "user_abc"
+  },
+  "idempotency_key": "idem_01HX7DS8AC6G9",
+  "input_hash": "sha-256:<action-input-digest>",
+  "execution": {
+    "mode": "commit",
+    "execution_id": "exec_01J2COMMENT"
+  },
+  "execution_hash": "sha-256:<action-execution-digest>",
+  "policy_decision_hash": "sha-256:<approval-policy-decision-digest>",
+  "policy_decision": {
+    "type": "policy.decision",
+    "decision_id": "pdec_approval_01J2ABCDEF",
+    "enforcer": {
+      "type": "runtime",
+      "id": "application_runtime_456"
+    },
+    "outcome": "allow",
+    "policy": {
+      "id": "local-agent-action-policy",
+      "version": "2026-06-25"
+    },
+    "reason_code": "approval_satisfied",
+    "matched_rules": ["writes.require_local_approval"],
+    "safe_to_show": "The exact write request was approved.",
+    "evaluated_at": "2026-06-25T16:29:59Z",
+    "policy_decision_hash": "sha-256:<approval-policy-decision-digest>"
+  },
+  "approval": {
+    "approval_id": "approval_01J2ABCDEF",
+    "role": "runtime",
+    "decided_by": "user",
+    "valid_until": "2026-06-25T16:34:59Z"
+  },
+  "timestamp": "2026-06-25T16:29:59Z",
+  "result": "approved"
+}
+```
+
+The top-level object is closed except for `receipt_signatures` when the Receipt
+Signing Profile is used. Every member shown is REQUIRED for an approved
+receipt. `approval` is closed and contains exactly `approval_id`, `role`,
+`decided_by`, and `valid_until`. `approval_id` is a collision-resistant
+identifier unique within its producer. `role` is `runtime` or `application` and
+MUST be accepted by the exact Grant requirement. `decided_by` is `user` or
+`policy`; a runtime approval MUST use `user`. For role `runtime`, the Policy
+Decision enforcer MUST be the exact bound runtime. For role `application`, it
+MUST be the manifest application. `timestamp` and `valid_until` are
+RFC 3339 UTC timestamps with the `Z` suffix and MUST satisfy
+`timestamp < valid_until`. `valid_until` MUST be no later than `timestamp` plus
+the Grant's `max_age_seconds`, Grant expiry, and any preview, reservation, or
+other approval-bound evidence expiry.
+
+On first authenticated ingestion of a receipt hash, a consumer MUST durably
+record a local `first_authenticated_at` time and MUST NOT move it forward on
+replay. It MUST reject as `integrity_mismatch` a receipt whose `timestamp` is
+later than that time plus a finite locally configured clock-skew allowance. For
+first effect admission, the effective expiry is the earliest of
+`approval.valid_until`,
+`first_authenticated_at + max_age_seconds`, Grant expiry, and every applicable
+approval-bound evidence expiry. This receiver-side cap prevents a future-dated
+producer timestamp from extending the Grant caveat. `first_authenticated_at`
+is verification state, not a wire member or portable trusted timestamp.
+
+For a denied receipt, `result` is `denied`, `approval.valid_until` is absent,
+and the closed `approval` object contains the other three members. The valid
+decision combinations are:
+
+| Role | Result | `decided_by` | Policy Decision outcome and reason |
+| --- | --- | --- | --- |
+| `runtime` | `approved` | `user` | `allow`, `approval_satisfied` |
+| `runtime` | `denied` | `user` | `deny`, `approval_denied` |
+| `runtime` | `denied` | `policy` | `deny`, `local_policy_denied` |
+| `application` | `approved` | `user` or `policy` | `allow`, `approval_satisfied` |
+| `application` | `denied` | `user` | `deny`, `approval_denied` |
+| `application` | `denied` | `policy` | `deny`, `app_policy_denied` |
+
+Every other combination is invalid. The top-level and embedded
+policy-decision hashes MUST match. `policy_decision.evaluated_at` MUST equal
+`timestamp`.
+
+The receipt binds the complete subject, runtime, agent, Passport, application,
+Grant, session generation, surface, action, idempotency key, normalized
+`input_hash`, sanitized execution context, and `execution_hash`. Conditional
+preview, precondition, expected-effect, reservation, execution-token-hash, and
+recovery-target bindings are already inside that execution context. Changing
+any bound value requires a new approval interaction and receipt. Approval for a
+proposal, dry run, reservation, or different companion action cannot satisfy a
+commit, compensation, or revert.
+
+An Approval Receipt MUST omit `parent_receipt_hash`, `approval_receipt_hashes`,
+raw action input, raw execution tokens, output and resource fields,
+`actual_effects`, effect hashes and outcome, revert evidence, and budget
+charges. It records no action attempt or accounting admission. The producer
+computes `receipt_hash` with the ordinary Receipt hash domain. The optional
+Receipt Signing Profile applies without changing that hash.
+
+#### Producer Authentication and Role Mapping
+
+A bare `receipt_hash` is correlation only. Across a trust boundary, the
+consumer MUST obtain the complete receipt, recompute its receipt and Policy
+Decision hashes, authenticate the producer through the Grant-bound channel or
+store, and verify every binding above. When the Grant's
+`audit.receipt_signing.required_signers` contains the Approval Receipt's
+producer role, the consumer MUST also require and verify the signature and its
+pinned role-specific key. Every present signature MUST be verified even when
+that role is not required, and an invalid required or present signature MUST
+NOT be downgraded to unsigned evidence. A valid runtime signature authenticates
+the runtime's statement; it does not independently prove a human gesture,
+understanding, or identity.
+
+Action evidence links approvals with a closed `approval_receipt_hashes` object
+whose only possible members are `runtime` and `application`. Each present value
+is the hash of one verified approved Approval Receipt for that role; members are
+never `null`. The object is a causal side link, not `parent_receipt_hash`, and
+MUST NOT appear inside `execution`, because the Approval Receipt already binds
+`execution_hash` and that placement would create a hash cycle.
+
+The role mapping in the final application action receipt is:
+
+| Manifest approval mode | Required approved receipt hashes |
+| --- | --- |
+| `none` | Object absent. |
+| `runtime` | Exactly `runtime`. |
+| `app` | Exactly `application`. |
+| `user_or_app` | Exactly one role accepted by the Grant rule. |
+| `runtime_and_app` | Both `application` and `runtime`. |
+
+The Action Request and its runtime action receipt carry the exact same absent
+object or `runtime` member; a runtime MUST NOT supply an `application` member.
+The map is absent for `none` and `app`, contains exactly `runtime` for `runtime`
+and `runtime_and_app`, and for `user_or_app` contains `runtime` only when that
+role is accepted and selected, otherwise it is absent only when `application`
+is accepted. The application receipt MUST preserve a verified runtime member
+and add its own `application` member when app-side approval is required. For
+`user_or_app`, a present valid runtime member fixes the selected role and the
+application MUST NOT add another member; when it is absent, the application
+MUST obtain and add an application approval before effect admission. A known
+denial in any required role blocks the effect and MUST NOT appear as satisfied
+approval evidence in an action receipt. `runtime_and_app` proves two producer
+decisions, not two distinct humans, quorum, separation of duties, or absence of
+collusion.
+
+#### Lifecycle, Replay, and Effect Boundary
+
+The producer MUST atomically persist the first terminal `approved` or `denied`
+decision for its producer-local `approval_id`. A verifier keys this identity by
+producer role, authenticated producer identity, and `approval_id`; equal local
+identifiers from the runtime and application are not a collision. An exact
+replay returns the same immutable receipt; a conflicting second decision under
+that complete producer key is an integrity failure and MUST NOT rewrite the
+first. A runtime denial ends before Action Request dispatch. An application
+denial occurs after request dispatch but before budget or effect admission; it
+MUST NOT dispatch an external effect. Neither denial revokes the Grant.
+Reversal requires a new decision attempt, new `approval_id`, and new receipt
+while retaining the denial record according to policy.
+
+Before first effect admission, the application MUST verify the complete
+required approval set, current Grant and session, exact surface and invocation
+tuple, current application policy, receiver-capped approval expiry, preview and
+reservation, preconditions, and effect envelope. It MUST atomically bind the
+accepted approval hashes into the action's idempotency record with budget and
+effect admission. Reusing the same idempotency key with a different approval
+set is `idempotency_conflict`; reusing a receipt with any other bound tuple is
+`integrity_mismatch`. A receipt that has reached its effective expiry cannot
+admit a first effect and fails as `approval_expired`.
+
+An exact replay after an effect was already admitted returns the original
+immutable action result and approval and action receipt references even if the
+approval later expires; it MUST NOT admit another effect or request another
+approval. If no effect was admitted, expiry requires a fresh approval. Grant
+revocation, session invalidation, a changed surface or execution, stale preview
+or reservation, changed preconditions or expected effects, and current policy
+denial always take precedence over an unused approval. Expiry after an external
+effect dispatch begins does not rewrite its actual outcome.
+
+This profile does not standardize approval UI, step-up authentication,
+clarification, redlines, option selection, legal consent, electronic
+signatures, non-repudiation, trusted timestamps, cancellation, rollback,
+compensation, or proof that a person saw or understood a presentation.
 
 ### Receipt Hash Chain
 
@@ -8173,6 +8593,16 @@ records its own operation and decision. A consumer MUST recompute every
 available object hash, verify these invariants, reject a cycle, and stop at any
 missing or mismatched parent. Reusing one `receipt_id` for different
 `receipt_hash` values is an invalid receipt conflict.
+
+Approval Receipts are root evidence objects and always omit
+`parent_receipt_hash`; their hashes are prerequisite side links and do not add a
+parent edge. Under the Approval Receipt Profile, a runtime action receipt MUST
+carry exactly the absent object or `runtime` member sent in the Action Request.
+The application action receipt MUST preserve that runtime member and MAY add
+only its newly produced `application` member. Its final map MUST exactly satisfy
+the effective manifest mode and Grant requirement. An application receipt that
+claims an applied or attempted effect while omitting a required role, linking a
+denial, or substituting another Approval Receipt is invalid evidence.
 
 For `compensate` or `revert`, `target_receipt_hash` links to a separately
 verified original application receipt but does not create another parent edge.
@@ -8224,6 +8654,9 @@ redactions.
     "user": "user_abc"
   },
   "idempotency_key": "idem_01HX7DS8AC6G9",
+  "approval_receipt_hashes": {
+    "runtime": "sha-256:<runtime-approval-receipt-digest>"
+  },
   "input_hash": "sha-256:<action-input-digest>",
   "execution": {
     "mode": "commit",
@@ -8248,10 +8681,6 @@ redactions.
     "safe_to_show": "The requested write is within the grant and was approved.",
     "evaluated_at": "2026-06-25T16:29:59Z",
     "policy_decision_hash": "sha-256:<runtime-policy-decision-digest>"
-  },
-  "approved_by": {
-    "type": "runtime_user_approval",
-    "approval_id": "appr_123"
   },
   "budget_charges": [
     {
@@ -8297,6 +8726,9 @@ deduplicated under a grant.
     "user": "user_abc"
   },
   "idempotency_key": "idem_01HX7DS8AC6G9",
+  "approval_receipt_hashes": {
+    "runtime": "sha-256:<runtime-approval-receipt-digest>"
+  },
   "input_hash": "sha-256:<action-input-digest>",
   "execution": {
     "mode": "commit",
@@ -8336,10 +8768,6 @@ deduplicated under a grant.
     "safe_to_show": "The application accepted the authorized comment action.",
     "evaluated_at": "2026-06-25T16:30:00Z",
     "policy_decision_hash": "sha-256:<app-policy-decision-digest>"
-  },
-  "approved_by": {
-    "type": "runtime_user_approval",
-    "approval_id": "appr_123"
   },
   "resource": {
     "type": "comment",
@@ -8480,12 +8908,15 @@ make signatures mandatory through an `audit.receipt_signing` object containing
 produces; listing both roles requires a signed runtime receipt and a signed
 application receipt, not two signatures on every receipt. Additional
 co-signatures over the same detached payload remain possible through General
-JWS. The requirement MUST include at least one pinned `signer_keys` entry for
-each required role. Because the requirement and key pins are inside the hashed
-grant rather than the removable signature envelope, they cannot be stripped
-without changing `grant_hash`. If the grant has no such requirement, an
-unsigned receipt remains conforming hash-linked audit material but MUST NOT be
-represented as authenticated portable evidence.
+JWS. Under the Approval Receipt Profile, a listed role MUST also sign every
+Approval Receipt it produces; `approval.role` selects the same role-specific
+key policy. That signature authenticates the producer record, not a human
+approver or trusted timestamp. The requirement MUST include at least one pinned
+`signer_keys` entry for each required role. Because the requirement and key
+pins are inside the hashed grant rather than the removable signature envelope,
+they cannot be stripped without changing `grant_hash`. If the grant has no such
+requirement, an unsigned receipt remains conforming hash-linked audit material
+but MUST NOT be represented as authenticated portable evidence.
 
 A verifier MUST validate receipt structure and linked hashes first, reconstruct
 the canonical detached payload, enforce protected-header and key policy, verify
@@ -8545,7 +8976,9 @@ inspectable:
 - when selected, the exact Agent Training Use Policy profile and permitted and
   prohibited effective classes, shown separately from plaintext retention and
   with no claim that revocation or deletion causes model unlearning;
-- credential profile and receipt requirements; and
+- credential profile and receipt requirements;
+- when Approval Receipt is selected, each action's accepted producer roles and
+  maximum approval age without exposing individual approval decisions;
 - whether revocation cascades to derived grants and the known number of
   affected descendants.
 
@@ -8889,9 +9322,11 @@ Agent Surface Protocol SHOULD define structured errors:
 | `scope_denied` | Grant scope does not permit the action. |
 | `resource_denied` | Grant constraints do not permit the target resource. |
 | `approval_required` | Required approval is absent. |
+| `approval_denied` | A required runtime-side or application-side approval path reached a terminal denial for this exact invocation. |
+| `approval_expired` | Required approval evidence expired before first effect admission. |
 | `schema_invalid` | Input, output, preconditions, expected effects, actual effects, or mode-specific context does not match its declared or core schema. |
 | `input_not_normalized` | Input is schema-valid but is not the fixed point required by the action's manifest-pinned idempotency normalization profile. |
-| `idempotency_conflict` | Idempotency key was reused with different input or execution context. |
+| `idempotency_conflict` | Idempotency key was reused with different input, execution context, or admitted approval-evidence set. |
 | `execution_mode_invalid` | Request mode does not match the manifest-declared mode for the action. |
 | `execution_transition_invalid` | Required companion stage or reciprocal action relationship is absent or invalid. |
 | `execution_token_invalid` | Preview evidence is malformed or bound to different authority, input, state, or effects. |
@@ -8982,14 +9417,37 @@ this terminal error: it produces blocking `input_unknown` and an
 runtime MAY retry matching after it refreshes the authoritative provider-policy
 state; it MUST NOT retry training dispatch against the unchanged unknown state.
 
+Approval errors apply only after higher-authority Grant, credential, runtime,
+session, surface, schema, and execution checks have succeeded. A missing
+required role is `approval_required`; an authenticated terminal denial is
+`approval_denied`; and an otherwise valid approved receipt past its effective
+expiry defined by the Approval Receipt Profile is `approval_expired`. A
+malformed, mismatched, hash-invalid receipt, or a denial presented as approval
+is `integrity_mismatch`. Reusing an admitted
+idempotency key with a different approval hash set is `idempotency_conflict`.
+That code takes precedence over a changed `parent_receipt_hash` when the parent
+changed because it embeds the different approval set; a competing parent with
+the admitted set unchanged is `integrity_mismatch`. These errors occur before
+budget or effect admission and expose neither the approver identity nor hidden
+policy detail. An authenticated application-side denial error carries only its
+opaque `approval_receipt_id` and `approval_receipt_hash`; the caller obtains the
+complete receipt through the authenticated receipt channel. A user denial
+requires a new explicit interaction rather than blind retry. A policy denial
+remains terminal until the relevant policy, Grant, or current state materially
+changes and a new decision attempt is authorized; it MUST NOT trigger a repeated
+user prompt by itself. `approval_expired` requires fresh approval for the same
+still-current invocation. None of these cases invalidates an already completed
+exact idempotent replay, which returns its original result.
+
 `input_not_normalized` is retryable only after the runtime applies the pinned
 normalization rules; the rejected attempt does not claim the idempotency key or
 admit an effect. `execution_mode_invalid`, `execution_transition_invalid`,
 `execution_token_invalid`, `reservation_invalid`, `recovery_not_supported`,
 `recovery_already_applied`, `session_transition_invalid`,
-`event_delivery_conflict`, `event_cursor_invalid`, and
-`remote_processing_violation` and `training_use_denied` are not blindly
-retryable.
+`event_delivery_conflict`, `event_cursor_invalid`,
+`remote_processing_violation`, `training_use_denied`, and `approval_denied` are
+not blindly retryable. `approval_expired` is retryable only after fresh
+approval.
 `safety_guard_triggered` is not retryable within the fenced guard epoch; it
 requires explicit local resolution and, for an application session, an accepted
 authoritative resume into a new generation.
@@ -9343,6 +9801,16 @@ untrusted signature keys, disallowed algorithms, and a present invalid
 signature. It MUST NOT treat an unsigned optional receipt as signed evidence or
 downgrade an invalid signature to the unsigned MVP.
 
+Approval Receipt side links require the same complete-object verification and
+do not become trusted merely because an action receipt names their hashes. An
+application MUST reject role substitution, an unaccepted runtime role, an
+expired approval at first admission, a denial presented as approval, a
+different invocation tuple, and a conflicting decision for one complete
+`(producer role, authenticated producer identity, approval_id)` key. Neither a
+valid receipt hash nor a producer signature replaces current action authority
+or proves a human gesture. `runtime_and_app` authenticates two producer records
+only; it is not a quorum or separation-of-duties guarantee.
+
 ## Privacy Considerations
 
 Agent Surface Protocol can reveal sensitive metadata:
@@ -9357,6 +9825,16 @@ Applications SHOULD request only the metadata needed for authorization and audit
 Runtimes SHOULD minimize agent and passport disclosure when possible. Receipts
 SHOULD support pseudonymous user references where legal and operationally
 appropriate.
+
+Approval and denial receipts reveal user decisions, timing, application and
+runtime relationships, action frequency, and policy outcomes. They MUST contain
+only an app-scoped user reference and hashes of the exact invocation, never raw
+input, previews, credentials, execution tokens, hidden rules, authentication
+artifacts, or globally correlatable approver identities. Runtime-local denials
+SHOULD remain local when no Action Request was dispatched. Applications and
+runtimes SHOULD retain complete Approval Receipts only for the bounded
+idempotency, reconciliation, audit, and applicable legal period and MUST NOT
+expose full denial evidence to the agent process merely for error handling.
 
 Runtime identity metadata requires the same minimization. Grants and their
 derived protocol artifacts use only the app-scoped runtime id, opaque binding
@@ -9516,6 +9994,10 @@ An application conforms to the Grant-Enforcing profile when it:
   canonical requested set against the complete effective exposure union,
   obtains issuer-side consent for the returned subset, preserves every hashed
   and introspected copy, and makes no provider-compliance or unlearning claim
+- when it advertises the Approval Receipt Profile, validates the exact
+  per-action role and age requirements at issuance, authenticates and verifies
+  complete runtime Approval Receipts, produces application Approval Receipts,
+  and checks the final role map before every first effect admission
 - when it advertises Runtime Attestation, satisfies the Runtime-Attested
   Grant-Enforcing Application profile below rather than inferring conformance
   from hardware, EAT parsing, or a co-located Verifier
@@ -9604,6 +10086,9 @@ it:
 - validates the Agent Training Use request profile and canonical class set,
   preserves only a permitted subset through authorization, token exchange,
   introspection, Grant hashing, and consent, and retains an explicit empty set
+- validates and preserves Approval Receipt requirements through authorization,
+  token response, introspection, Grant hashing, and token exchange without
+  adding a role, increasing maximum age, or reusing source approval evidence
 - implements the OAuth Token Exchange Profile without privilege amplification
 - preserves member-wise budget attenuation, lineage accounting, and the
   cross-runtime issuance restriction through authorization and token exchange
@@ -9627,6 +10112,10 @@ An application conforms to the Receipt-Producing profile when it:
   `execution_hash`, effect hashes, and `policy_decision_hash` values
 - includes the complete typed Policy Decision Object and requires its embedded
   hash to match the receipt's `policy_decision_hash`
+- when Approval Receipt is selected, emits immutable approved or denied
+  Approval Receipts, binds accepted hashes into the idempotency record and app
+  action receipt, and never uses `parent_receipt_hash` for those prerequisite
+  side links
 - links an app receipt to the verified runtime receipt through
   `parent_receipt_hash` when runtime receipt evidence is required
 - preserves trace id, session id and generation, action id, agent id, runtime
@@ -9750,6 +10239,11 @@ An application runtime conforms to this profile when it:
 - implements the Proof-Bound Credential Profile when the application requires
   the Proof-Bound Grant-Enforcing Application profile
 - enforces local policy and approval rules
+- when selecting the Approval Receipt Profile, constructs the exact Grant
+  requirement projection, obtains and records fresh runtime approvals, stops on
+  runtime denial, transmits only the verified runtime side link, and verifies
+  the final application receipt role map without treating any receipt as action
+  authority
 - durably enforces `tool_calls`, `model_tokens`, `runtime_seconds`, and
   `runtime_cost` across the grant lineage, retaining conservative reservations
   when usage is uncertain
@@ -9896,14 +10390,20 @@ To support Agent Surface Protocol, the next slices are:
 13. Agent proposes a review comment.
 14. When declared, runtime requests a dry run and the app returns immutable
     preconditions, expected effects, and time-bounded preview evidence.
-15. User or app approves the exact commit input and expected effects.
-16. Runtime records its policy decision and receipt, then sends comment.create
-    with trace context, parent receipt hash, idempotency key, execution context
-    and hash, and Grant Credential.
+15. User or app approves the exact commit input and expected effects; when the
+    Approval Receipt Profile is selected, each required producer emits its own
+    hash-bound approved receipt.
+16. Runtime records its policy decision and action receipt, links any runtime
+    Approval Receipt, then sends comment.create with trace context, parent
+    receipt hash, idempotency key, execution context and hash, and Grant
+    Credential.
 17. App verifies current grant, surface, decision, input, execution, preview,
-    and receipt hashes, rechecks preconditions, and commits the comment.
-18. App returns actual effects and an app receipt. Runtime and app receipts form
-    a verified parent-hash chain and MAY carry
+    and complete receipt evidence, produces any required application Approval
+    Receipt, atomically binds the accepted set to idempotency admission, rechecks
+    preconditions, and commits the comment.
+18. App returns actual effects and an app receipt with the final role-indexed
+    approval links. Runtime and app action receipts form a verified parent-hash
+    chain and MAY carry
     detached JWS signatures when required by the grant.
 19. User opens the issuer-bound grant management page, inspects the exact
     grant_123 summary, and confirms revocation; the app marks the grant inactive
@@ -9922,9 +10422,6 @@ To support Agent Surface Protocol, the next slices are:
 - How do users compare two agents with overlapping Agent Passport
   capabilities during grant consent?
 - What happens to active sessions when an app changes surface versions?
-- How are runtime-side approvals proven to the application beyond an
-  `approval_ref` identifier — signed approval objects, step-up verification,
-  or app-rendered approval UI?
 
 ## References
 
