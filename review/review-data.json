@@ -2118,53 +2118,86 @@
     },
     {
       "id": 38,
-      "title": "Remote Agent Restrictions",
-      "description": "различать local, enterprise-managed и remote user-selected agents с разными data exposure defaults.",
+      "title": "Remote Processing Privacy",
+      "description": "различать complete local, enterprise-managed и remote user-selected processing paths с разными conservative data exposure ceilings.",
       "category": "Privacy / data exposure",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
-          "heading": "User-Owned Agent",
-          "anchorId": "user-owned-agent"
+          "heading": "Data Exposure Contract",
+          "anchorId": "data-exposure-contract"
         },
         {
-          "heading": "Runtime",
-          "anchorId": "runtime"
+          "heading": "Remote Processing Privacy Profile",
+          "anchorId": "remote-processing-privacy-profile"
         },
         {
-          "heading": "Malicious or Compromised Application",
-          "anchorId": "malicious-or-compromised-application"
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        },
+        {
+          "heading": "Subdelegation",
+          "anchorId": "subdelegation"
+        },
+        {
+          "heading": "Grant Verification",
+          "anchorId": "grant-verification"
         },
         {
           "heading": "Privacy Considerations",
           "anchorId": "privacy-considerations"
+        },
+        {
+          "heading": "Grant-Enforcing Application",
+          "anchorId": "grant-enforcing-application"
+        },
+        {
+          "heading": "Application Runtime Profile",
+          "anchorId": "application-runtime-profile"
         }
       ],
-      "rationale": "Deployment locations перечислены, но для local, managed и remote agents не заданы разные exposure defaults.",
+      "rationale": "Normative profile теперь классифицирует полный data-bearing path, связывает его с deterministic exposure ceiling и fail-closed lifecycle без ложного утверждения о verified downstream topology.",
       "priority": "P2",
       "profile": "privacy-consent",
       "depends_on": [
+        36,
         41
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
-          "ref": "user-owned-agent"
+          "ref": "data-exposure-contract"
         },
         {
           "kind": "rfc_anchor",
-          "ref": "runtime"
+          "ref": "remote-processing-privacy-profile"
         },
         {
           "kind": "rfc_anchor",
-          "ref": "malicious-or-compromised-application"
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "subdelegation"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
         },
         {
           "kind": "rfc_anchor",
           "ref": "privacy-considerations"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-enforcing-application"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-runtime-profile"
         }
       ]
     },

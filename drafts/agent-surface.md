@@ -85,6 +85,7 @@ Unless otherwise stated, the following sections are **normative**:
 - Idempotency
 - Minimal Agent Passport Grant-Issuance Profile
 - Runtime Identity Profile
+- Remote Processing Privacy Profile
 - Runtime Attestation Optional Profile
 - Agent Grant
 - Sessions and Actions
@@ -1184,6 +1185,9 @@ surface discoverable.
     "runtime_identity_profiles": [
       "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1"
     ],
+    "remote_processing_profiles": [
+      "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1"
+    ],
     "agent_passport_profiles": [
       {
         "profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
@@ -1491,6 +1495,16 @@ NOT infer support from an OAuth client registration, a credential format, or a
 human-readable deployment label. Absence means that this manifest requires only
 the base app-scoped `delegate.runtime` binding; it does not mean that the
 runtime is anonymous or attested.
+
+`compatibility.remote_processing_profiles`, when present, MUST be a non-empty
+array of unique collision-resistant profile identifiers. It advertises only
+profiles whose request commitment, issuer-derived disclosure ceiling, Grant
+binding, and protected-resource checks the application implements completely.
+A runtime MUST NOT infer support from a Runtime Identity locality, management
+posture, network location, provider label, or an application privacy notice.
+Absence means that the application makes no Remote Processing Privacy Profile
+claim; it MUST NOT be interpreted as either allowing or prohibiting remote
+processing.
 
 `compatibility.agent_passport_profiles`, when present, MUST be a non-empty array
 of closed objects. Each object MUST contain `profile`, `hash_profile`,
@@ -2827,6 +2841,13 @@ runtime MAY apply additional redaction or a shorter retention period as local
 policy, but it MUST NOT widen the class set or retain plaintext longer. If it
 cannot enforce the effective contract for the selected runtime-agent path, it
 MUST refuse to use the grant for that path.
+
+When the Remote Processing Privacy Profile is selected, the complete projection
+is also the input to its Grant-wide classification-ceiling check. Every class
+is evaluated at its pinned manifest classification; a processor path MUST NOT
+drop a source or class, reinterpret a mixed-class payload, or rely on a
+runtime-only redaction to fit the ceiling. A whole action or scope subset can be
+approved only after the authorization server recomputes this source closure.
 
 An exposure declaration never grants access and never weakens scope, resource,
 action, subdelegation, or credential-release checks. In particular, declaring a
@@ -4391,6 +4412,259 @@ facets, claims revision, and a user-meaningful operator label derived from its
 authenticated local state. A display label is not authority and MUST NOT replace
 `authority_id` or another verified machine value.
 
+## Remote Processing Privacy Profile
+
+The Data Exposure Contract describes which application-originated data can
+cross the application boundary, while the Runtime Identity Profile describes
+the controlling runtime. Neither one, by itself, constrains every agent, model,
+tool, adapter, subagent, or secondary runtime that can receive that data after
+the boundary. An application and runtime that need an interoperable whole-path
+restriction use the optional profile defined here. Its identifier is:
+
+```text
+https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1
+```
+
+This profile requires the Data Exposure Contract, the Runtime Identity Profile,
+and the Consent Preview Contract. It binds a runtime commitment and an
+application-enforced disclosure ceiling into the semantic Grant. It does not
+turn a client declaration, issuer echo, Grant hash, management posture, or
+Runtime Identity locality into independent evidence that a downstream
+processor followed the commitment.
+
+### Processing Path Commitment and Baselines
+
+The **processing path** is the complete set of components that can receive
+application-originated plaintext or a semantically equivalent representation
+while carrying out the Grant. It includes the controlling runtime, selected
+agent, model providers, tools, MCP servers, adapters, subagents, ungranted
+secondary runtimes, diagnostic processors, and any other recipient under
+runtime control. A local bridge that sends prompts to a remote model has a
+remote processing path even when the bridge itself executes on the user's
+device.
+
+A client selects the profile with this request-only closed object:
+
+```json
+{
+  "constraints": {
+    "remote_processing": {
+      "profile": "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
+      "path": "enterprise_managed"
+    }
+  }
+}
+```
+
+`profile` and `path` are REQUIRED and unknown members are forbidden. `path` is
+exactly one of `local_user_device`, `enterprise_managed`, or
+`remote_user_selected`. The request MUST NOT contain `classification_ceiling`.
+The path predicates are mutually exclusive over one resolved path:
+
+- `local_user_device` means every data-bearing component executes on the same
+  user device as the controlling runtime and no application-originated data or
+  equivalent representation crosses from that device to a processor. The
+  server-derived Runtime Identity projection MUST have
+  `execution.locality` equal to `user_device` and `execution.verification`
+  equal to `registered` or `attested`; that necessary condition does not prove
+  the absence of downstream egress.
+- `enterprise_managed` means at least one data-bearing component can execute
+  remotely, the controlling runtime has `management.posture` equal to
+  `enterprise_managed`, and the runtime or its authenticated enterprise policy
+  has mapped every remote recipient to the same exact Runtime Identity
+  `authority_id`. A domain name, network location, provider label, employee
+  login, or self-asserted management claim is insufficient.
+- `remote_user_selected` means at least one data-bearing remote recipient is
+  outside the verified enterprise boundary and every such recipient and its
+  operator is known to the runtime and affirmatively selected or accepted in
+  the local consent flow. A path containing both local and such remote
+  components uses this value.
+
+A path with an unknown recipient, incomplete processor inventory, unresolved
+operator, or processor whose policy cannot be evaluated cannot be selected or
+used under this profile. Matching remains `indeterminate` until the missing
+input is resolved. The path MUST NOT be represented as `local_user_device`, silently
+folded into `enterprise_managed`, or treated as no remote processing. An
+`application_embedded` controlling runtime cannot use the local or enterprise
+value merely because it is co-located with application code. It can use
+`remote_user_selected` only when every recipient is resolved and the consent
+view conspicuously identifies the app-operated trust boundary; otherwise the
+profile fails closed.
+
+After validating the request, the authorization server returns the same exact
+`profile` and `path` plus the deterministic output-only
+`classification_ceiling`:
+
+| `path` | `classification_ceiling` |
+| --- | --- |
+| `local_user_device` | `sensitive` |
+| `enterprise_managed` | `private` |
+| `remote_user_selected` | `public` |
+
+For example:
+
+```json
+{
+  "constraints": {
+    "remote_processing": {
+      "profile": "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
+      "path": "enterprise_managed",
+      "classification_ceiling": "private"
+    }
+  }
+}
+```
+
+The returned object is closed and contains exactly `profile`, `path`, and
+`classification_ceiling`. The ceiling uses the Data Exposure Contract
+protection order and is this versioned profile's conservative baseline, not a
+universal trust ranking. The authorization server MUST NOT rewrite `path`, and
+there is no inferred attenuation order among path values. Local, enterprise,
+or application policy MAY reject a path or impose a stricter local ceiling,
+but a different wire mapping requires a new collision-resistant profile
+identifier.
+
+No path in this profile admits the `credential` classification. The ceiling
+does not authorize credential disclosure, does not weaken the separate
+`credential.release` capability and constraints, and never makes an Agent
+Surface Grant Credential releasable. A profile that deliberately carries
+credential-class application data requires a separate specification.
+
+### Issuance and Data-Path Enforcement
+
+The manifest MUST advertise this profile in
+`compatibility.remote_processing_profiles`. A semantic Grant request selecting
+it MUST also select the Runtime Identity Profile and MUST include the
+request-only `constraints.remote_processing` object above. The complete request
+object, including exact `profile` and `path` but excluding the server-only
+ceiling, is part of the Semantic Grant Request Hash.
+
+Before issuer consent and issuance, the authorization server MUST:
+
+1. authenticate the runtime and derive its exact active Runtime Identity
+   projection;
+2. validate that the requested profile is advertised and that the controlling
+   runtime satisfies the necessary Runtime Identity predicate for the selected
+   path;
+3. independently derive the complete effective `data_exposure` source closure
+   from the pinned manifest and approved actions and scopes;
+4. resolve every class identifier in that closure to its pinned manifest
+   classification; and
+5. reject issuance if any classification is above the deterministic ceiling.
+
+The server MUST reject an unknown class, missing projection, client-supplied
+ceiling, mismatched path output, or unsupported profile with
+`invalid_authorization_details` under the OAuth profile. It MUST NOT make an
+incompatible request appear valid by deleting one class from an exposure
+entry, inventing a narrower redaction policy, omitting a source, or assuming
+that a resource filter removes the protected data. The user can instead
+approve a whole action or scope subset whose recomputed source closure fits the
+same exact path.
+
+The returned `constraints.remote_processing` object, effective
+`data_exposure`, and complete Runtime Identity projection are included in the
+authoritative Grant Object, `grant_hash`, token response, introspection response,
+and server-side Grant state. Before every protected disclosure, the application
+MUST validate the exact object, deterministic ceiling, active Runtime Identity
+binding, and full exposure closure. These checks prove what the application
+will disclose under the Grant; they do not prove what a conforming or malicious
+runtime does after receipt.
+
+Before every application-originated payload crosses to the selected agent or
+another downstream component, the controlling runtime MUST independently:
+
+- recompute the applicable source entry and pinned class classifications;
+- verify that the actual complete path still satisfies the Grant-bound path
+  predicate;
+- apply any stricter local classification or policy; and
+- verify that every recipient can enforce the redaction, retention, and
+  processing-path restrictions.
+
+If any check is false or unknown, the runtime MUST block and discard the
+pending disclosure before downstream dispatch and fail it as
+`remote_processing_violation`. The offending value, recipient details, and
+policy evidence MUST NOT be copied into the error, receipt, trace, prompt, or
+ordinary log. A malformed or mismatched authoritative Grant remains
+`integrity_mismatch`, an inactive or mismatched Runtime Identity remains
+`runtime_untrusted`, and a payload outside its declared class, redaction, or
+retention envelope remains `data_exposure_violation`. The new error is only for
+a valid Grant whose current processing path or recipient enforcement state no
+longer satisfies its bound constraint.
+
+The path and ceiling apply Grant-wide. A workflow that needs sensitive local
+processing and only public data in a remote tool requires separate Grants and
+separate source closures under this version. Implementations MUST NOT combine
+the two flows and claim that a field-level split occurred when the manifest
+defines only source-level classes.
+
+### Lifecycle, Delegation, and Evidence Boundary
+
+A change to `profile` or `path` changes the semantic Grant request, Capability
+Match Result, Consent Preview, and Grant hash. It requires a fresh issuance and
+issuer consent flow; an implementation MUST NOT migrate an active Grant or
+session in place. A recipient, operator, provider policy, processor inventory,
+or enforcement-capability change within the same path value makes the local
+match and consent preview stale and requires fresh local confirmation before
+further disclosure. If application policy binds that changed fact, a new Grant
+is also required.
+
+An ungranted subagent, remote model, tool, adapter, or secondary runtime remains
+inside the controlling runtime's path. Creating a child Grant does not erase
+that fact for data the parent transmits. Every child Grant that selects this
+profile has its own independently resolved path commitment and ceiling. A child
+bound to another runtime MUST NOT copy the parent's path claim or Runtime
+Identity evidence. This version defines no exposure projection for forwarding
+application-originated data previously received by a parent into a separately
+granted child. The parent MUST NOT perform that transfer; the child must obtain
+the data through its own independently authorized application resource, action,
+or event source and effective `data_exposure` projection. A future transfer
+profile would need to preserve the original source, classes, and both Grant
+bindings. In particular, a parent `local_user_device` commitment cannot be used
+to route application data to a remote child.
+
+Expiry, suspension, or revocation stops new disclosures immediately. Existing
+retention and `delete_on_grant_end` obligations continue to apply to plaintext
+already delivered. A runtime that learns that an earlier disclosure violated
+the path MUST stop further use, isolate the affected work, retain only
+data-minimized incident evidence, and initiate the applicable Grant suspension
+or revocation path; ASP does not claim that this reverses an external
+disclosure.
+
+The `grant_hash` in a receipt binds that receipt to the selected restriction.
+It is not a processing receipt, provider attestation, proof of recipient
+topology, or proof of deletion. A runtime MAY retain a local, data-minimized
+path revision or policy-decision hash for audit, but portable receipts and
+public errors MUST NOT enumerate provider accounts, endpoints, tenant ids, or
+processor topology unless a separate evidence profile defines that disclosure.
+
+This profile does not specify training or model-improvement use. Locality,
+enterprise management, a restrictive classification ceiling, and transient
+plaintext retention MUST NOT be presented as a no-training promise.
+
+### Remote Processing Consent and Privacy
+
+The local Consent Preview MUST show the exact profile, path value, deterministic
+ceiling, every effective source and class, and whether the full path predicate
+is currently satisfied. It MUST separately label the app-authenticated
+controlling Runtime Identity facets and the runtime-local downstream
+commitment. Known operator and recipient labels MAY be shown, but their
+verification boundary MUST be explicit and they MUST NOT be represented as
+application-verified Grant fields.
+
+The authorization server's consent view MUST show the same requested path,
+effective ceiling, and source closure derived from its pinned manifest and
+approved request. It MUST state that the ceiling is application-enforced while
+the downstream path is an authenticated runtime commitment unless a separately
+negotiated evidence profile proves more. Issuer consent to this object does not
+certify a provider or waive the runtime's local confirmation responsibility.
+
+Active-grant management views MUST show the exact hash-bound path and ceiling
+without exposing application payloads or a recipient inventory. Applications
+and runtimes SHOULD minimize retained path metadata and use opaque local
+references for diagnostic correlation. A provider name, authority id, endpoint,
+or recipient graph can reveal organizational relationships and user choices;
+none is included in this profile's Grant object.
+
 ## Runtime Attestation Optional Profile
 
 Runtime attestation is an optional extension to the Runtime Identity Profile.
@@ -4849,9 +5123,8 @@ same encoding and semantics as the corresponding standard `cnf` members.
 When the Runtime Identity Profile is selected, `delegate.runtime_identity` is
 also authorization-server output and `credential_binding` MUST repeat its
 binding id and claims revision as defined by that profile. The request-only
-`delegate.runtime_identity_profile` selector is the sole exception to the
-otherwise shared request and Grant Object field shape; it MUST NOT remain in the
-authoritative Grant.
+`delegate.runtime_identity_profile` selector is the request/Grant shape
+exception within `delegate`; it MUST NOT remain in the authoritative Grant.
 When the Minimal Agent Passport Grant-Issuance Profile is selected, `delegate`
 and `credential_binding` MUST each contain the same `passport_profile`,
 `passport_hash_profile`, `passport_hash`, and
@@ -4863,6 +5136,13 @@ When Runtime Attestation is selected,
 by the server-derived stable `delegate.runtime_attestation` binding. The
 credential binding repeats its stable identifiers and proof key, while mutable
 appraisal state remains outside the Grant Object.
+When the Remote Processing Privacy Profile is selected, the request contains
+`constraints.remote_processing` with only `profile` and `path`. The
+authorization server MUST preserve both exactly and add the profile's
+deterministic output-only `classification_ceiling` to the authoritative Grant.
+That complete constraint is included in `grant_hash`, token and introspection
+responses, management views, and protected-resource validation. It restricts
+disclosure and does not prove downstream compliance.
 `data_exposure` is also authorization-server output. It is the complete
 effective projection derived under the Data Exposure Contract and does not
 grant authority independent of the action, scope, location, and resource
@@ -5205,15 +5485,21 @@ confirms:
   grant fields actually present in the proposed request, and receipt
   requirements; and
 - effective data-exposure sources, class identifiers and classifications,
-  redaction policy, and retention obligations.
+  redaction policy, and retention obligations; and
+- when the Remote Processing Privacy Profile is selected, its exact path
+  commitment, deterministic classification ceiling, every source that must fit
+  that ceiling, and the distinction between application-authenticated Runtime
+  Identity evidence and runtime-local downstream evidence.
 
 The runtime SHOULD additionally identify its locally known operator and
 processing environment. Such operator, model-provider, tool-recipient, and
 concrete proof-method statements are runtime-local assertions unless backed by
 separate verified evidence. They MUST be labeled with their verification status
-and MUST NOT be presented as application-verified Grant Object fields. This
-profile does not claim complete downstream-recipient coverage; remote-agent and
-training-use policies remain separate profiles.
+and MUST NOT be presented as application-verified Grant Object fields. When the
+Remote Processing Privacy Profile is selected, its path and ceiling are
+semantic Grant fields, but provider names and recipient inventory remain local
+evidence unless another profile verifies them. Training-use policy remains a
+separate profile and MUST NOT be inferred from the selected path.
 
 A runtime MAY group or summarize repeated entries, but every selected action,
 companion stage, resource filter, material effect, and exposure source MUST
@@ -5251,10 +5537,13 @@ exposure contracts makes the preview stale. A stale
 preview MUST be regenerated and confirmed again before a request is sent or a
 returned grant is stored or used. Decline terminates the local flow; the runtime
 MUST NOT continue authorization in the background.
-Changing a runtime-local operator, processing-path, concrete proof-method, or
-proof-key assertion that was shown to the user also makes the local preview
-stale, even when it does not alter the semantic Grant request. That local
-assertion is not sent as authority to the grant issuer.
+Changing a runtime-local operator, provider, recipient inventory, or
+enforcement-policy assertion within the same Grant-bound processing path, or a
+concrete proof-method or proof-key assertion that was shown to the user, also
+makes the local preview stale even when it does not alter the semantic Grant
+request. That local assertion is not sent as authority to the grant issuer. A
+change to the Remote Processing Privacy Profile or path value is a semantic
+request change and requires a new Grant rather than this local-only refresh.
 
 Presentation timestamps, UI session identifiers, authentication gestures, and
 local confirmation timeouts are local policy and are not portable consent
@@ -5266,10 +5555,10 @@ Immediately before storing or using the result, it MUST also re-evaluate every
 semantic and runtime-local input that produced the preview. A changed issuer,
 surface, request, tuple, or passport validity state invalidates the issuance
 result and requires a new issuer consent flow. If only a labeled runtime-local
-operator, processing-path, concrete proof-method, or proof-key assertion
-changed, the runtime MUST regenerate the local preview for the returned grant
-and obtain fresh local confirmation before storage or use; it does not treat
-that assertion as new grant authority.
+operator, provider or same-path recipient inventory, concrete proof-method, or
+proof-key assertion changed, the runtime MUST regenerate the local preview for
+the returned grant and obtain fresh local confirmation before storage or use;
+it does not treat that assertion as new grant authority.
 If the pre-request preview marked any Runtime Identity Profile output
 unresolved, the runtime MUST likewise regenerate the preview with the complete
 returned projection and obtain fresh local confirmation before storage or use.
@@ -5298,6 +5587,10 @@ It MAY be a semantically narrower valid subset under this comparison:
   repeated credential-binding values and server-derived assurance MUST agree,
   its authoritative appraisal state MUST still be accepted and fresh, and an
   initially unresolved output requires the second confirmation above;
+- when the Remote Processing Privacy Profile was selected, the returned
+  constraint MUST preserve the exact requested profile and path and add only
+  the deterministic output-only classification ceiling; a missing, changed, or
+  client-supplied ceiling is invalid rather than an attenuation;
 - returned actions, scopes, and locations MUST be set subsets of the confirmed
   values and MUST remain closed over required companion actions;
 - `expires_at` MAY be no later. A returned `budgets` object MUST retain every
@@ -5333,9 +5626,12 @@ credential, and the user MUST be sent through a fresh consent flow.
 
 The grant issuer's consent view MUST present the common material semantics it
 can independently derive from the verified request, manifest, tuple, and
-exposure projection. It is not required to repeat runtime-local operator or
-processing-path assertions. It MUST NOT trust client-supplied human-readable
-prose as the authoritative description. Its final approved subset remains
+exposure projection. When Remote Processing Privacy is selected, this includes
+the exact requested path commitment and server-enforced ceiling, labeled so the
+commitment is not mistaken for independently verified downstream topology. It
+is not required to repeat runtime-local operator or recipient assertions. It
+MUST NOT trust client-supplied human-readable prose as the authoritative
+description. Its final approved subset remains
 authoritative for issuance. The local runtime preview reduces surprise and
 app-controlled UI risk, but it does not replace issuer authentication, consent,
 or the application's obligation to enforce the issued grant.
@@ -5512,7 +5808,10 @@ are the authoritative Grant Object wire shape defined above:
 - `resource_server` MUST contain `app_id`, `issuer`, `surface_version`, and the
   verified `surface_hash`.
 - `constraints` MUST contain `expires_at`; other fields use the semantics of the
-  Agent Grant object.
+  Agent Grant object. When Remote Processing Privacy is selected, it MUST also
+  contain the closed request-only `remote_processing` object with exact
+  `profile` and `path`, the request MUST select Runtime Identity, and the client
+  MUST NOT supply `classification_ceiling`.
 - `credential_profile` MUST be `compatibility_bearer` or `proof_bound` and maps
   to the credential profiles defined in this draft.
 - A request for action authority MUST contain non-empty RFC 9396 common
@@ -5523,9 +5822,10 @@ are the authoritative Grant Object wire shape defined above:
   the granted actions, locations, scopes, and resource filters; every allowed
   combination MUST be published by the surface and semantically compatible.
 - `grant_id`, `grant_hash`, `subject`, `credential_binding`, `data_exposure`,
-  `delegate.runtime_identity`, and `delegate.runtime_attestation` MUST NOT be
-  supplied by the client in an authorization request; they are
-  authorization-server output.
+  `delegate.runtime_identity`, `delegate.runtime_attestation`, and
+  `constraints.remote_processing.classification_ceiling` MUST NOT be supplied
+  by the client in an authorization request; they are authorization-server
+  output.
 - A client MAY request an `audit.receipt_signing` profile and signer roles, but
   it MUST NOT supply authoritative `signer_keys`. Before issuance, the
   authorization server MUST reject a request containing those entries, derive
@@ -5542,8 +5842,11 @@ a Passport tuple that is unadvertised, unsupported, stale, or not independently
 verified, an unadvertised or unsatisfied runtime identity profile, a
 client-supplied runtime identity projection, an unadvertised, unsupported, or
 non-accepted Runtime Attestation requirement, client-supplied attestation
-output, an action set that is not closed over required companion dependencies,
-or constraints that are invalid for the published surface. It MUST use the RFC 9396
+output, an unadvertised Remote Processing Privacy profile, a client-supplied
+ceiling, a path inconsistent with the controlling Runtime Identity, an
+effective exposure above the deterministic ceiling, an action set that is not
+closed over required companion dependencies, or constraints that are invalid
+for the published surface. It MUST use the RFC 9396
 `invalid_authorization_details` error for malformed or unsupported Agent Grant
 authorization details.
 
@@ -5576,7 +5879,10 @@ verification boundary without exposing the raw artifact. When Runtime
 Attestation is selected, the view MUST additionally show its concrete profile,
 opaque verifier id, maximum age, proof-key binding, claimed Target Environment
 coverage, server-derived assurance, and current accepted state without exposing
-Evidence, measurements, reference values, or Verifier diagnostics. The user MAY
+Evidence, measurements, reference values, or Verifier diagnostics. When Remote
+Processing Privacy is selected, the view MUST additionally show the exact path,
+deterministic ceiling, and complete exposure closure while distinguishing the
+runtime commitment from application-verified Runtime Identity evidence. The user MAY
 approve a strict subset. The authorization server
 MUST present each required companion closure as one approval group. It MUST
 materialize the exact approved action stages in the returned `actions`
@@ -5600,6 +5906,10 @@ When the request selected Runtime Attestation, the returned object MUST remove
 `delegate.runtime_attestation` object, and repeat its binding, profile,
 verifier, and proof-key values in `credential_binding`. The current accepted
 appraisal remains authoritative mutable state outside that returned object.
+When the request selected Remote Processing Privacy, the returned constraints
+MUST preserve its exact requested profile and path and add the deterministic
+`classification_ceiling`; the authorization server MUST NOT change the path or
+omit the complete constraint.
 When the request selected the Minimal Agent Passport Grant-Issuance Profile,
 the returned delegate and credential binding MUST preserve its exact four-value
 Passport tuple.
@@ -5667,6 +5977,13 @@ expiration, or replace `proof_bound` with `compatibility_bearer` without fresh
 user consent. Any attenuated action subset MUST remain closed over its required
 companion dependencies; otherwise the exchange MUST reject it rather than add
 missing stages.
+
+When the source Grant selected Remote Processing Privacy, token exchange MUST
+preserve its exact profile and path, recompute the same deterministic ceiling,
+and verify the attenuated source closure against it. A different path is not an
+OAuth attenuation and requires a new semantic Grant request and fresh consent.
+The exchange MUST NOT omit the constraint or treat a lower apparent Runtime
+Identity locality as proof that the downstream path changed safely.
 
 RFC 8693 does not itself create lifecycle linkage between input and output
 tokens. This ASP profile does: the authorization server MUST record the source
@@ -6060,6 +6377,17 @@ MUST use that runtime's independently authenticated projection and binding; it
 MUST NOT inherit the parent's authentication method, management posture,
 locality, assurance, binding id, or claims revision.
 
+When the parent selected the Remote Processing Privacy Profile, every ungranted
+downstream component remains part of the parent's complete processing path.
+A child Grant selecting the profile MUST resolve its own path and receive its
+own deterministic ceiling; it MUST NOT inherit the parent's path commitment as
+evidence. This profile does not project a parent source into the child's
+effective `data_exposure`, so a parent MUST NOT forward application-originated
+payloads or equivalent representations to a separately granted child. The
+child obtains such data from its own independently authorized application
+source. Path enum values have no attenuation order, so an issuer MUST NOT
+rewrite one value into another while deriving a child.
+
 When the parent selected Runtime Attestation, every child MUST obtain a new
 challenge and accepted appraisal bound to the child's exact
 `grant_request_hash`, producing a child-specific stable binding and mutable
@@ -6105,6 +6433,10 @@ Applications MUST verify every action against grant state:
   and repeated credential-binding values match the exact authoritative binding,
   the proof-key cross-binding is valid, and the mutable appraisal record is
   current `accepted` at the required freshness, policy, and reference values
+- when `constraints.remote_processing` is present, its profile and path are
+  supported, its output-only ceiling is the exact deterministic value, the
+  controlling Runtime Identity satisfies the necessary predicate, and every
+  class in the complete effective exposure closure is at or below that ceiling
 - grant is bound to the agent and exact Passport tuple, and the independently
   verified artifact remains unexpired, unrevoked, and fresh under its selected
   verification profile
@@ -6182,6 +6514,10 @@ Runtimes SHOULD verify:
 - secrets and credentials are not exposed to the agent
 - any subagent, tool, adapter, remote model, or secondary runtime remains
   subject to the same runtime mediation and does not receive implicit authority
+- when the Remote Processing Privacy Profile is selected, the actual complete
+  data-bearing path still satisfies the exact Grant commitment immediately
+  before every disclosure, every class fits the effective ceiling, and an
+  unknown recipient or enforcement state fails closed
 
 ## Capability Matching
 
@@ -6212,6 +6548,8 @@ Matching inputs:
 - execution modes and required companion stages
 - declared effect envelopes and effect schemas
 - declared data classes, redaction, and retention obligations
+- the complete selected processing path, its Remote Processing Privacy
+  classification ceiling, and current recipient-policy enforcement capability
 - reservation requirements and available recovery actions
 - Agent Passport capabilities
 - Agent Passport security policy
@@ -6243,7 +6581,9 @@ starts with the sole Agent Grant authorization-details object and removes only
 its `type` member. `locations`, `actions`, `delegate`, `resource_server`,
 `scopes`, `constraints`, `credential_profile`, and `audit`, including the exact
 candidate agent and Passport tuple, every selected profile, and the complete
-request-only Runtime Attestation requirement, remain in the hashing view.
+request-only Runtime Attestation requirement, remain in the hashing view. A
+selected Remote Processing Privacy constraint contributes its exact request
+`profile` and `path`; the server-only `classification_ceiling` is absent.
 Another issuance model MUST construct the same semantic object.
 
 A multi-candidate match MUST construct and hash one complete request for each
@@ -6254,9 +6594,10 @@ candidate-independent template or one candidate's delegate and represent the
 result as binding the other candidates.
 
 `grant_id`, `grant_hash`, `subject`, `credential_binding`, `data_exposure`, and
-server-derived `delegate.runtime_identity` and `delegate.runtime_attestation`
-are invalid in a request and MUST NOT be silently removed from malformed input
-merely to compute a hash. OAuth parameters, redirect URIs, PKCE values, client
+server-derived `delegate.runtime_identity`, `delegate.runtime_attestation`, and
+`constraints.remote_processing.classification_ceiling` are invalid in a
+request and MUST NOT be silently removed from malformed input merely to compute
+a hash. OAuth parameters, redirect URIs, PKCE values, client
 authentication, user-interface labels, raw Passport artifacts, and local policy
 state are not semantic Grant Object members and are not included.
 
@@ -6455,7 +6796,8 @@ policy and MUST NOT serialize it as protocol authority.
 - `compatible` means every required input is known and current, the Passport
   and local agent binding are valid, every capability and execution stage is
   supported, all effective policies permit the path, and every required
-  exposure, retention, approval, effect, recovery, adapter, and sandbox
+  exposure, retention, remote-processing, approval, effect, recovery, adapter,
+  and sandbox
   obligation can be enforced. It has no blocking reason and no missing entry.
 - `incompatible` means at least one current, authoritative input proves a
   requirement cannot be satisfied. A definitive blocking reason takes
@@ -6487,6 +6829,7 @@ codes are:
 | `recovery_unsupported` | A required recovery property or limitation cannot be honored. |
 | `data_exposure_unsupported` | A required exposure or redaction contract cannot be enforced. |
 | `retention_unsupported` | A retention or deletion obligation cannot be enforced. |
+| `remote_processing_unsupported` | Current authoritative path state proves the ceiling is exceeded or a recipient cannot enforce the exact profile. |
 | `sandbox_unsatisfied` | A required sandbox constraint is unsatisfied. |
 | `runtime_identity_invalid` | Current verification proves required runtime identity evidence mismatched or invalid. |
 | `runtime_identity_unavailable` | Required runtime identity evidence has no current authoritative value. |
@@ -6510,6 +6853,12 @@ indeterminate and prevents `compatible`. It MUST NOT be ignored or rewritten as
 advisory. Reasons are sorted by blocking before advisory, then code, subject
 kind, and subject id.
 
+An unresolved recipient, processor inventory, operator, or enforcement-policy
+input uses blocking `input_unknown` with subject kind `policy` and therefore
+produces `indeterminate` unless another definitive reason exists. Once current
+state proves a path or recipient cannot satisfy the selected profile, the
+runtime uses definitive `remote_processing_unsupported` instead.
+
 ### Freshness, Privacy, and Consent Boundary
 
 `valid_until` MUST be no later than the earliest Passport status deadline,
@@ -6519,8 +6868,8 @@ TTL used by any candidate decision. The complete result becomes stale when that
 time passes or when the manifest tuple, common Grant request semantics or any
 candidate hash, runtime identity tuple, selected attestation profile or
 proof-key capability, candidate Passport tuple or status, agent or adapter
-inventory, local or enterprise policy, or user preferences no longer exactly
-match the recorded binding.
+inventory, processing-path or recipient-policy inventory, local or enterprise
+policy, or user preferences no longer exactly match the recorded binding.
 
 A stale result MUST NOT be used to select a candidate, populate a new Consent
 Preview, or justify a Grant request. The runtime recomputes the complete result;
@@ -6551,7 +6900,9 @@ appraisal, which remains unresolved until the application completes the flow.
 The runtime MUST then recompute the exact semantic request and its hash,
 independently recompute the data-exposure projection, verify that the hash
 equals the selected candidate's `grant_request_hash` and that all bindings still
-match, and derive a fresh Consent Preview. Adding a suggested scope or action
+match, and, when Remote Processing Privacy is selected, re-resolve the complete
+path and verify every class against the expected ceiling before deriving a
+fresh Consent Preview. Adding a suggested scope or action
 changes every candidate hash; adding or changing a candidate requires a new
 result entry. Either change requires a fresh match result. The authorization
 server independently verifies the selected tuple and obtains issuer-side
@@ -7890,6 +8241,9 @@ inspectable:
   caveats;
 - maximum effects, execution stages, and recovery limitations;
 - effective data-exposure classes, redaction, and retention obligations;
+- when selected, the exact Remote Processing Privacy profile, path commitment,
+  and deterministic classification ceiling without implying verified provider
+  behavior;
 - credential profile and receipt requirements; and
 - whether revocation cascades to derived grants and the known number of
   affected descendants.
@@ -8247,6 +8601,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `outcome_unknown` | An external or partial effect may have occurred and blind retry is unsafe. |
 | `risk_denied` | Local or app policy denied the risk class. |
 | `data_exposure_violation` | An application-originated payload contains an undeclared data class or violates its redaction or retention contract. |
+| `remote_processing_violation` | Under an otherwise valid Grant and exposure projection, the runtime's current complete path or recipient enforcement state no longer satisfies the bound Remote Processing Privacy constraint. |
 | `passport_invalid` | The exact Agent Passport artifact is missing, malformed, expired, revoked, untrusted, incorrectly signed, or not bound to the selected agent. |
 | `passport_profile_unsupported` | A required Passport consuming, artifact-hash, verification, status, or integrity profile is unsupported or incomplete. |
 | `passport_status_unavailable` | Fresh authenticated status for the exact Passport tuple cannot currently be established. |
@@ -8294,12 +8649,24 @@ recovery or the profile-defined `retry_after`, but the unresolved attempt MUST
 NOT claim an idempotency key, admit budget, create a receipt, or permit an
 effect.
 
+`remote_processing_violation` is terminal for the same unchanged path and
+Grant. The detecting component MUST block application-originated data before
+downstream dispatch and MUST NOT claim that retry, a lower-privilege recipient
+label, or a local runtime location repairs the violation. Resolution requires a
+known enforceable path under the same exact commitment or a newly matched,
+previewed, and consented Grant. Public errors expose neither the recipient nor
+the class or policy rule that failed. This code MUST NOT replace
+`integrity_mismatch` for a Grant or hash divergence, `runtime_untrusted` for an
+invalid Runtime Identity binding, or `data_exposure_violation` for an invalid
+source envelope.
+
 `input_not_normalized` is retryable only after the runtime applies the pinned
 normalization rules; the rejected attempt does not claim the idempotency key or
 admit an effect. `execution_mode_invalid`, `execution_transition_invalid`,
 `execution_token_invalid`, `reservation_invalid`, `recovery_not_supported`,
 `recovery_already_applied`, `session_transition_invalid`,
-`event_delivery_conflict`, and `event_cursor_invalid` are not blindly retryable.
+`event_delivery_conflict`, `event_cursor_invalid`, and
+`remote_processing_violation` are not blindly retryable.
 `safety_guard_triggered` is not retryable within the fenced guard epoch; it
 requires explicit local resolution and, for an application session, an accepted
 authoritative resume into a new generation.
@@ -8432,6 +8799,15 @@ posture, raw Evidence as a Verifier decision, an accepted result for a different
 layer, or an unattested fallback when appraisal becomes stale or unavailable.
 Compromise of a co-located Verifier remains a trust-anchor compromise; combining
 roles does not turn runtime-controlled policy into independent evidence.
+
+Remote Processing Privacy preserves the same distinction. The application can
+authenticate the controlling runtime, bind its requested path, and refuse data
+above the server-derived ceiling, but it does not observe every downstream
+dispatch. A malicious runtime can falsely claim a local or managed path. The
+issuer MUST NOT describe its echo, Grant hash, or runtime locality as proof of
+recipient topology. Deployments that require such proof need a separately
+negotiated egress or processor-evidence profile; absent one, the path remains an
+accountable runtime commitment and the application still minimizes disclosure.
 
 A runtime budget report can safely request a fence for its own bound session,
 but it MUST NOT change application counters, grant authority, or another
@@ -8690,8 +9066,19 @@ control, not only to the primary response object. A runtime MUST NOT select an
 agent or remote processing path that cannot enforce the effective contract.
 Deletion of runtime-controlled plaintext does not prove model unlearning or
 deletion by an undeclared external processor. Training use and remote-agent
-defaults require separate policy profiles and are not implied by a retention
-declaration in this draft.
+defaults are not implied by a retention declaration. The Remote Processing
+Privacy Profile, when selected, applies a conservative Grant-wide ceiling and
+requires the runtime to resolve the complete path before disclosure; it still
+does not prove provider behavior. Training use remains a separate policy
+profile and MUST NOT be inferred from locality, management, ceiling, or
+retention.
+
+Processing-path metadata can expose provider relationships, enterprise
+boundaries, user choices, and regional deployment details. The Grant therefore
+contains only the coarse path value and ceiling. Recipient inventory, endpoints,
+account ids, enterprise mapping evidence, and provider-policy records remain in
+the runtime or enterprise-policy boundary and SHOULD be retained only as long
+as enforcement and data-minimized audit require.
 
 Consent previews contain sensitive relationship metadata even when they omit
 application payloads. Implementations SHOULD avoid placing rendered previews in
@@ -8778,6 +9165,10 @@ An application conforms to the Grant-Enforcing profile when it:
   projections, binds them into the Grant and credential binding, maintains the
   authoritative binding lifecycle, and revalidates the exact active revision
   before every action
+- when it advertises the Remote Processing Privacy Profile, accepts only the
+  exact request path, derives and hash-binds the deterministic ceiling, rejects
+  every effective exposure above it, and labels the path as a runtime
+  commitment rather than application-verified downstream evidence
 - when it advertises Runtime Attestation, satisfies the Runtime-Attested
   Grant-Enforcing Application profile below rather than inferring conformance
   from hardware, EAT parsing, or a co-located Verifier
@@ -8860,6 +9251,9 @@ it:
 - treats `runtime_attestation_requirement` only as a request selector, returns
   the exact stable server-derived attestation binding, preserves its repeated
   credential fields, and keeps mutable appraisal state outside the Grant
+- validates the request-only Remote Processing Privacy profile and path, adds
+  only the deterministic output ceiling, and preserves the complete effective
+  constraint through token responses, introspection, Grant hashing, and consent
 - implements the OAuth Token Exchange Profile without privilege amplification
 - preserves member-wise budget attenuation, lineage accounting, and the
   cross-runtime issuance restriction through authorization and token exchange
@@ -8963,6 +9357,11 @@ An application runtime conforms to this profile when it:
   facet, re-previews and confirms any initially unresolved server projection,
   rejects a returned projection or credential binding that conflicts with known
   state, and treats every material identity change as stale
+- when selecting the Remote Processing Privacy Profile, resolves the complete
+  data-bearing path rather than only the controlling runtime, verifies every
+  effective class against the expected and returned ceiling, labels downstream
+  commitments accurately, and fails closed before disclosure on any unknown or
+  changed recipient or enforcement state
 - when selecting Runtime Attestation, supports the exact concrete profile,
   protects its proof key and raw Evidence, authenticates every challenge and its
   runtime, request, audience, and freshness bindings, confirms any initially
