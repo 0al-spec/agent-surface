@@ -2537,8 +2537,20 @@
       "description": "добавить future profile для подтверждения integrity runtime, но не требовать его в MVP.",
       "category": "Runtime / Agent Passport / identity",
       "side": "left",
-      "status": "partial",
+      "status": "present",
       "anchors": [
+        {
+          "heading": "Runtime Attestation Optional Profile",
+          "anchorId": "runtime-attestation-optional-profile"
+        },
+        {
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        },
+        {
+          "heading": "Grant Verification",
+          "anchorId": "grant-verification"
+        },
         {
           "heading": "Malicious or Compromised Runtime",
           "anchorId": "malicious-or-compromised-runtime"
@@ -2548,19 +2560,35 @@
           "anchorId": "error-model"
         },
         {
-          "heading": "Open Questions",
-          "anchorId": "open-questions"
+          "heading": "Privacy Considerations",
+          "anchorId": "privacy-considerations"
+        },
+        {
+          "heading": "Runtime-Attested Grant-Enforcing Application",
+          "anchorId": "runtime-attested-grant-enforcing-application"
         }
       ],
-      "rationale": "Attestation предусмотрена как возможность и open question, но optional profile и MVP boundary не описаны.",
+      "rationale": "Определён optional RATS-aligned framework с concrete-profile discovery, nonce/request/proof-key binding, immutable Grant projection, mutable appraisal lifecycle, fail-closed enforcement и privacy boundary; базовый MVP остаётся unattested.",
       "priority": "P2",
       "profile": "identity-passport",
       "depends_on": [
         41
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-attestation-optional-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
         {
           "kind": "rfc_anchor",
           "ref": "malicious-or-compromised-runtime"
@@ -2571,7 +2599,11 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "open-questions"
+          "ref": "privacy-considerations"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-attested-grant-enforcing-application"
         }
       ]
     },

@@ -83,6 +83,9 @@ Unless otherwise stated, the following sections are **normative**:
 - Effect Model
 - Approval Semantics
 - Idempotency
+- Minimal Agent Passport Grant-Issuance Profile
+- Runtime Identity Profile
+- Runtime Attestation Optional Profile
 - Agent Grant
 - Sessions and Actions
 - Receipts
@@ -1206,7 +1209,22 @@ surface discoverable.
       "https://github.com/0al-spec/agent-surface/authorization-details/agent-grant"
     ],
     "token_binding": ["runtime", "agent_passport_hash"],
-    "pkce_required": true
+    "pkce_required": true,
+    "runtime_attestation": {
+      "framework": "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
+      "attestation_url": "https://example.com/runtime-attestation",
+      "profiles_supported": [
+        "https://verifier.example/profiles/eat-tpm-runtime/v1"
+      ],
+      "verifiers": [
+        {
+          "verifier_id": "verifier_7f3a",
+          "profiles": [
+            "https://verifier.example/profiles/eat-tpm-runtime/v1"
+          ]
+        }
+      ]
+    }
   },
   "agent_api": {
     "credential_audience": "https://example.com/agent-api",
@@ -4373,6 +4391,327 @@ facets, claims revision, and a user-meaningful operator label derived from its
 authenticated local state. A display label is not authority and MUST NOT replace
 `authority_id` or another verified machine value.
 
+## Runtime Attestation Optional Profile
+
+Runtime attestation is an optional extension to the Runtime Identity Profile.
+The base ASP profile accepts an application-registered runtime id without
+attestation; no implementation is required to support this section for MVP
+conformance. An application that requires runtime integrity evidence uses the
+framework defined here and one concrete attestation profile.
+
+The framework identifier is:
+
+```text
+https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1
+```
+
+This framework follows the RATS roles from RFC 9334:
+
+- the Runtime, or a protected environment that measures it, is the **Attester**;
+- a **Verifier** appraises Evidence against endorsements, reference values, and
+  its Appraisal Policy for Evidence and produces authenticated Attestation
+  Results; and
+- the application authorization server is the **Relying Party** that applies
+  its own Appraisal Policy for Attestation Results.
+
+One component MAY perform multiple roles, but implementations MUST preserve the
+logical trust and policy boundaries. Evidence is not an Attestation Result, a
+Verifier decision is not the Relying Party's authorization decision, and none
+of those artifacts is an Agent Grant.
+
+### Attestation Discovery and Concrete Profiles
+
+An application advertises support with the optional closed
+`auth.runtime_attestation` object shown in the manifest example. It contains
+exactly:
+
+- `framework`, equal to the framework identifier above;
+- `attestation_url`, an absolute HTTPS URL;
+- `profiles_supported`, a non-empty array of unique collision-resistant
+  concrete profile identifiers; and
+- `verifiers`, a non-empty array of closed objects containing unique
+  `verifier_id` values and non-empty unique `profiles` arrays. Every listed
+  profile MUST also appear in `profiles_supported`.
+
+Absence means the application does not support attestation under this draft. It
+does not make the base runtime anonymous or non-conforming. A runtime MUST NOT
+infer support from a TPM, TEE, Secure Enclave, SPIFFE credential, MDM record,
+EAT media type, or hardware-backed key.
+
+Every concrete profile identifier MUST define all of the following without
+leaving security-critical choices to deployment guesswork:
+
+- Attester, Target Environment, and layered or composite coverage;
+- Evidence and Attestation Result formats, media types, required claims, and
+  validation schemas;
+- authenticated challenge request, Evidence submission, Result delivery or
+  polling, correlation, timeout, and retry transport mappings;
+- security envelopes, allowed algorithms, key types, authenticated key
+  resolution, trust anchors, and algorithm-downgrade behavior;
+- verifier identity, result authentication, status and key lifecycle;
+- nonce, timestamp or epoch freshness, replay state, maximum ages, and clock
+  skew;
+- endorsement and reference-value resolution, appraisal-policy identity and
+  versioning, and failure behavior when any input is unavailable;
+- proof-key binding and its thumbprint algorithm;
+- privacy minimization and which sanitized result claims the Relying Party may
+  retain; and
+- revocation, remediation, and transition semantics.
+
+RFC 9711 EAT is a claims framework, not a complete runtime-attestation profile.
+An implementation MUST NOT accept a generic EAT, arbitrary JWT or CWT, or a
+media type alone. An EAT-based concrete profile MUST identify an exact
+`eat_profile`, required claims and processing, security envelope, and
+verification rules. RFC 9782 media types aid format negotiation but do not
+validate the advertised content.
+
+### Attestation Requirement and Stable Grant Binding
+
+Attestation requires the Runtime Identity Profile. A semantic Grant request
+selects it with the request-only closed object:
+
+```json
+{
+  "runtime_attestation_requirement": {
+    "profile": "https://verifier.example/profiles/eat-tpm-runtime/v1",
+    "verifier_id": "verifier_7f3a",
+    "max_age_seconds": 300,
+    "proof_key_thumbprint": "sha-256:<profile-defined-thumbprint>"
+  }
+}
+```
+
+This object is a member of `delegate` and contains exactly the four fields
+shown. `profile` and `verifier_id` MUST be an advertised pair.
+`max_age_seconds` is a positive integer no greater than `9007199254740991`.
+The concrete profile defines the public-key representation and exact thumbprint
+calculation; the value MUST use the unpadded `sha-256:` syntax unless that
+profile defines another collision-resistant hash identifier.
+
+The client MUST NOT supply an attestation binding, assurance result, appraisal
+state, result hash, policy hash, reference-value hash, raw Evidence, or raw
+Attestation Result in the Grant request. The authorization server authenticates
+the runtime, validates the exact requirement, obtains an accepted appraisal,
+removes `runtime_attestation_requirement`, and returns this closed output-only
+`delegate.runtime_attestation` object:
+
+```json
+{
+  "binding_id": "atbind_01J2F7M2V6Z91Y2R3B4C5D6E7F",
+  "profile": "https://verifier.example/profiles/eat-tpm-runtime/v1",
+  "verifier_id": "verifier_7f3a",
+  "max_age_seconds": 300,
+  "proof_key_thumbprint": "sha-256:<profile-defined-thumbprint>"
+}
+```
+
+`binding_id` is an opaque, collision-resistant, application-and-tenant scoped
+identifier bound to the exact runtime identity revision, requirement, and
+`grant_request_hash`; it MUST NOT be reassigned or reused for another request.
+An idempotent replay of the same exact request MAY reuse it. The returned
+`max_age_seconds` MUST be positive and no greater than the requested value; a
+smaller value is an explicit attenuation. The complete stable object is included
+in `grant_hash`. `credential_binding` MUST repeat `binding_id`, `profile`,
+`verifier_id`, and `proof_key_thumbprint` as
+`runtime_attestation_binding_id`, `runtime_attestation_profile`,
+`runtime_attestation_verifier_id`, and
+`runtime_attestation_proof_key_thumbprint`.
+
+The selected proof key and Grant Credential proof key are distinct bindings.
+They MAY use one key only when both concrete profiles allow it. Otherwise the
+attestation profile MUST authenticate a cross-binding, and the application MUST
+verify that binding on every action. Possession of either key alone MUST NOT be
+silently substituted for the other.
+
+When the accepted concrete profile covers a hardware-rooted measurement chain
+through the exact Runtime Target Environment, the server-derived
+`runtime_identity.assurance` contains exactly one corresponding entry:
+
+```json
+{
+  "type": "hardware_attested",
+  "profile": "https://verifier.example/profiles/eat-tpm-runtime/v1",
+  "verifier_id": "verifier_7f3a"
+}
+```
+
+The entry describes the stable required assurance profile, not current mutable
+appraisal state. `runtime_identity.execution.verification` is `attested` only
+when the same profile explicitly covers execution locality. Attestation of a
+hardware root, boot layer, container host, or key without the Runtime Target
+Environment MUST NOT be represented as runtime integrity or attested locality.
+
+The complete attestation binding, Runtime Identity projection, assurance entry,
+and repeated credential-binding fields MUST agree. A profile, verifier,
+maximum age, proof-key, coverage, assurance, or stable binding change is
+material: it changes the Runtime Identity claims revision, requires a new Grant
+and Consent Preview, and MUST NOT be applied as an in-place appraisal refresh.
+Every child Grant has its own semantic `grant_request_hash` and therefore needs
+a child-specific challenge, accepted appraisal record, and stable attestation
+binding, even when it retains the parent's Runtime Identity projection. A child
+for a different runtime additionally needs that runtime's independent identity,
+proof key, and Evidence; no child copies the parent's binding or Result.
+
+### Challenge, Evidence, and Appraisal
+
+Before Evidence is generated, `auth.runtime_attestation.attestation_url` returns
+an authenticated, closed challenge object:
+
+```json
+{
+  "framework": "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
+  "challenge_id": "atch_01J2F8M2V6Z91Y2R3B4C5D6E7F",
+  "nonce": "<unpadded-base64url-16-to-64-octets>",
+  "issuer": "https://code.example.com",
+  "app_id": "code.example.com",
+  "audience": "https://example.com/runtime-attestation",
+  "runtime_id": "application_runtime_456",
+  "runtime_identity_binding_id": "rbind_01J2D7M2V6Z91Y2R3B4C5D6E7F",
+  "runtime_identity_claims_revision": 3,
+  "profile": "https://verifier.example/profiles/eat-tpm-runtime/v1",
+  "verifier_id": "verifier_7f3a",
+  "max_age_seconds": 300,
+  "proof_key_thumbprint": "sha-256:<profile-defined-thumbprint>",
+  "grant_request_hash": "sha-256:<base64url-digest>",
+  "issued_at": "2026-07-14T10:00:00Z",
+  "expires_at": "2026-07-14T10:02:00Z"
+}
+```
+
+The endpoint MUST authenticate the requesting runtime binding before issuing a
+challenge. `challenge_id` is collision-resistant and single-use. `nonce`
+decodes to 16 through 64 unpredictable octets generated by a cryptographically
+secure random-number generator. `audience` exactly equals the advertised
+`attestation_url`; the other application and runtime fields come from the
+pinned manifest, authenticated runtime record, and exact semantic Grant
+request. `max_age_seconds` is the server-selected effective value and MUST be no
+greater than the request. `issued_at` and `expires_at` are RFC 3339 timestamps,
+and expiry MUST be short enough to satisfy the concrete profile and local
+policy.
+
+The concrete profile defines how Evidence authenticates the nonce and every
+challenge binding. The Verifier MUST reject missing, altered, expired, or
+replayed challenges, unexpected profile or media type, wrong audience, wrong
+runtime or proof key, and untrusted or stale endorsements, reference values,
+keys, or appraisal policy. A request change produces a different
+`grant_request_hash` and requires a new challenge. A challenge and appraisal do
+not claim an action idempotency key, consume a Grant budget, create an action
+receipt, or authorize an effect.
+
+The Verifier appraises Evidence and returns an authenticated Attestation Result
+under the concrete profile. The application verifies the result's issuer,
+signature or authenticated channel, profile, challenge, Attester and Target
+Environment coverage, proof key, freshness, appraisal policy, and status before
+applying its own Relying Party policy. It MUST NOT accept an Attester's
+self-declared compliance bit as an Attestation Result.
+
+Raw Evidence flows only to the Verifier. When the Verifier is separate, the
+application receives only the profile-defined, privacy-minimized Attestation
+Result. When roles are co-located, raw Evidence remains inside the logical
+Verifier boundary and MUST NOT be copied into the Grant or application business
+data. The runtime receives only the challenge and a sanitized state needed to
+continue or diagnose the flow.
+
+### Mutable Appraisal State
+
+The application keeps mutable state outside the Grant Object:
+
+```json
+{
+  "attestation_binding_id": "atbind_01J2F7M2V6Z91Y2R3B4C5D6E7F",
+  "revision": 8,
+  "runtime_id": "application_runtime_456",
+  "runtime_identity_binding_id": "rbind_01J2D7M2V6Z91Y2R3B4C5D6E7F",
+  "runtime_identity_claims_revision": 3,
+  "profile": "https://verifier.example/profiles/eat-tpm-runtime/v1",
+  "verifier_id": "verifier_7f3a",
+  "proof_key_thumbprint": "sha-256:<profile-defined-thumbprint>",
+  "grant_request_hash": "sha-256:<base64url-digest>",
+  "result_hash": "sha-256:<profile-defined-result-digest>",
+  "verifier_policy_hash": "sha-256:<profile-defined-policy-digest>",
+  "reference_value_hashes": ["sha-256:<profile-defined-reference-digest>"],
+  "state": "accepted",
+  "verified_at": "2026-07-14T10:00:20Z",
+  "fresh_until": "2026-07-14T10:05:20Z",
+  "state_changed_at": "2026-07-14T10:00:20Z"
+}
+```
+
+This record is authoritative application state, not a wire Attestation Result.
+`revision` is a positive safe integer that strictly increments on every record
+mutation, including a state transition or an accepted appraisal refresh.
+The selected concrete profile defines the three hash algorithms and hashing
+views. `reference_value_hashes` is sorted and unique. `fresh_until` MUST be no
+later than the Evidence or Result expiry, requirement `max_age_seconds`,
+Verifier key and status validity, appraisal-policy validity, or reference-value
+freshness.
+
+The state machine is:
+
+```text
+absent -> challenged
+challenged -> appraising | indeterminate | revoked | superseded
+appraising -> accepted | rejected | indeterminate | revoked | superseded
+accepted -> stale | revoked | superseded
+rejected | indeterminate | stale -> challenged | revoked | superseded
+```
+
+Only current `accepted` state satisfies the Grant requirement. Challenge expiry,
+transport failure, unverifiable input, unavailable reference values, or an
+unknown result produces `indeterminate`, never optimistic acceptance.
+`rejected` means a current authenticated appraisal failed policy. `stale` means
+freshness elapsed; the record is logically `stale` at `fresh_until` even if a
+persisted transition has not yet run. `revoked` permanently invalidates the
+stable binding.
+`superseded` means a material stable binding or coverage change requires a new
+Grant.
+
+The application MUST check the exact record, revision, and current accepted
+state before issuing a Grant, on introspection, before every action, and before
+resuming a session. A non-accepted state makes introspection inactive, rejects
+new actions as `runtime_untrusted`, and fences affected sessions before another
+effect. It MUST NOT fall back to an unattested runtime, another verifier,
+another profile, an older accepted result, or a different proof key.
+
+Refreshing Evidence under the same exact stable binding and Runtime Identity
+projection MAY update mutable hashes, revision, and freshness without changing
+`grant_hash`. `rejected`, `indeterminate`, or `stale` state MAY return to a new
+challenge and later `accepted` state if the same profile permits remediation.
+`revoked` triggers the Semantic Grant Revocation Transition for every bound
+Grant and derived Grant. `superseded` remains inactive until fresh consent and a
+new Grant bind the replacement.
+
+### Attestation Authority, Security, and Privacy
+
+Attestation is evidence for a Relying Party policy. It MAY deny a Grant, require
+narrower scopes, force stronger approval, or reject an action, but it MUST NOT
+add actions, scopes, resources, credential release, or approval bypasses. An
+accepted Result is not a credential and does not prove that the runtime remains
+unchanged after measurement; freshness narrows but cannot eliminate that race.
+
+The application MUST treat Verifier compromise, stale reference values,
+ambiguous Target Environment coverage, replayed Evidence, proof-key substitution,
+and appraisal-policy downgrade as security failures. A different policy or
+reference-value set MUST NOT be called equivalent merely because both return
+`accepted`. Runtime authentication, Agent Passport verification, Grant
+proof-of-possession, and runtime attestation remain independent checks.
+
+The Grant, introspection response, Consent Preview record, receipts, events,
+traces, and ordinary logs MUST NOT contain raw Evidence or Results, measurements,
+endorsements, reference values, hardware serials, device identifiers, Attester
+keys, firmware inventory, debug state, or Verifier diagnostics. The Grant
+contains only the stable binding, concrete profile, opaque verifier id,
+proof-key thumbprint, and sanitized assurance reference. An authenticated and
+authorized introspection or management view MAY additionally disclose only the
+coarse current `accepted` or inactive state needed by that caller; mutable state
+is never added to the Grant hashing view. Public errors MUST NOT reveal which
+measurement, reference value, or appraisal rule failed.
+
+Reference-value distribution, transparency services, and supply-chain statement
+registration are outside this profile. Such systems can authenticate provenance
+and history, but their presence alone does not prove current runtime state or
+freshness.
+
 ## Agent Grant
 
 ### Grant Object
@@ -4519,6 +4858,11 @@ and `credential_binding` MUST each contain the same `passport_profile`,
 `passport_verification_profile` tuple. Unlike runtime identity output, the
 client supplies this tuple from its local verification and the authorization
 server independently verifies it.
+When Runtime Attestation is selected,
+`delegate.runtime_attestation_requirement` is request-only and MUST be replaced
+by the server-derived stable `delegate.runtime_attestation` binding. The
+credential binding repeats its stable identifiers and proof key, while mutable
+appraisal state remains outside the Grant Object.
 `data_exposure` is also authorization-server output. It is the complete
 effective projection derived under the Data Exposure Contract and does not
 grant authority independent of the action, scope, location, and resource
@@ -4804,7 +5148,9 @@ The runtime MUST derive the preview exclusively from:
   preserve the same Grant Object field semantics;
 - the verified runtime, agent, and Passport tuple, including every selected
   Passport profile and the selected Runtime Identity Profile and locally
-  authenticated projection when present; and
+  authenticated projection when present, plus the exact Runtime Attestation
+  requirement and any current locally authenticated appraisal state when that
+  optional profile is selected; and
 - the complete Data Exposure Contract projection recomputed for the requested
   actions and scopes.
 
@@ -4838,6 +5184,13 @@ confirms:
   projection is not yet available, the preview MUST label it unresolved and
   state that a second local confirmation of the returned projection is required
   before storage or use;
+- when Runtime Attestation is selected, its framework and concrete profile,
+  verifier id, maximum age, proof-key thumbprint, claimed Target Environment
+  coverage, and whether current appraisal is accepted and fresh; if the
+  app-scoped attestation binding, accepted appraisal, or server-derived
+  assurance is not yet available, the preview MUST label it unresolved and
+  require a second local confirmation before storage or use; raw Evidence,
+  measurements, reference values, and Verifier diagnostics MUST NOT be shown;
 - exact action identifiers, scopes, locations, and resource filters;
 - absolute expiration time, human-readable duration, budgets, and other
   constraints;
@@ -4889,7 +5242,9 @@ confirmed -> request sent -> granted | rejected
 Any change to issuer, application, surface hash, runtime-agent-passport tuple,
 Passport consuming, hash, or verification profile, Passport artifact or
 lifecycle result, executable-integrity result, Runtime Identity Profile,
-binding id, claims revision or projected identity facet, actions, scopes,
+binding id, claims revision or projected identity facet, Runtime Attestation
+requirement, concrete profile, verifier, maximum age, proof key, stable binding,
+server-derived assurance, or current accepted appraisal state, actions, scopes,
 locations, resource filters, constraints, budgets, expiration, credential
 profile, receipt requirements, execution or effect declarations, or resolved
 exposure contracts makes the preview stale. A stale
@@ -4918,6 +5273,11 @@ that assertion as new grant authority.
 If the pre-request preview marked any Runtime Identity Profile output
 unresolved, the runtime MUST likewise regenerate the preview with the complete
 returned projection and obtain fresh local confirmation before storage or use.
+If it marked Runtime Attestation output unresolved, the runtime MUST regenerate
+the preview with the returned stable binding, server-derived assurance, and
+current accepted appraisal state and obtain the same second confirmation. An
+unattested or non-accepted result is not a silent attenuation of an attested
+request; it is a failed issuance result.
 The grant issuer still derives its own consent view from that exact projection;
 neither local confirmation is issuer-side authorization evidence.
 
@@ -4932,6 +5292,12 @@ It MAY be a semantically narrower valid subset under this comparison:
   locally authenticated MUST remain exactly equal, an unresolved projection
   requires the second confirmation above, and its repeated credential-binding
   values MUST always match;
+- when Runtime Attestation was selected, the returned object MUST remove the
+  request-only requirement and contain the exact stable binding, concrete
+  profile, verifier, maximum age, and proof key accepted by the server; its
+  repeated credential-binding values and server-derived assurance MUST agree,
+  its authoritative appraisal state MUST still be accepted and fresh, and an
+  initially unresolved output requires the second confirmation above;
 - returned actions, scopes, and locations MUST be set subsets of the confirmed
   values and MUST remain closed over required companion actions;
 - `expires_at` MAY be no later. A returned `budgets` object MUST retain every
@@ -5138,7 +5504,11 @@ are the authoritative Grant Object wire shape defined above:
   MUST NOT contain the server-derived `runtime_identity` projection in a
   request. When the Minimal Agent Passport Grant-Issuance Profile is selected,
   it MUST also contain the exact `passport_profile`, `passport_hash_profile`,
-  and `passport_verification_profile` values required by that profile.
+  and `passport_verification_profile` values required by that profile. When
+  Runtime Attestation is selected, it MUST contain the request-only closed
+  `runtime_attestation_requirement` object and a runtime-identity selector; it
+  MUST NOT contain `runtime_attestation`, assurance output, appraisal state,
+  hashes, raw Evidence, or raw Attestation Results.
 - `resource_server` MUST contain `app_id`, `issuer`, `surface_version`, and the
   verified `surface_hash`.
 - `constraints` MUST contain `expires_at`; other fields use the semantics of the
@@ -5153,8 +5523,9 @@ are the authoritative Grant Object wire shape defined above:
   the granted actions, locations, scopes, and resource filters; every allowed
   combination MUST be published by the surface and semantically compatible.
 - `grant_id`, `grant_hash`, `subject`, `credential_binding`, `data_exposure`,
-  and `delegate.runtime_identity` MUST NOT be supplied by the client in an
-  authorization request; they are authorization-server output.
+  `delegate.runtime_identity`, and `delegate.runtime_attestation` MUST NOT be
+  supplied by the client in an authorization request; they are
+  authorization-server output.
 - A client MAY request an `audit.receipt_signing` profile and signer roles, but
   it MUST NOT supply authoritative `signer_keys`. Before issuance, the
   authorization server MUST reject a request containing those entries, derive
@@ -5169,9 +5540,10 @@ values, a mismatched `resource_server.app_id` or
 `resource_server.surface_version`, a mismatched `resource_server.surface_hash`,
 a Passport tuple that is unadvertised, unsupported, stale, or not independently
 verified, an unadvertised or unsatisfied runtime identity profile, a
-client-supplied runtime identity projection, an action set that is not closed
-over required companion dependencies, or constraints that are invalid for the
-published surface. It MUST use the RFC 9396
+client-supplied runtime identity projection, an unadvertised, unsupported, or
+non-accepted Runtime Attestation requirement, client-supplied attestation
+output, an action set that is not closed over required companion dependencies,
+or constraints that are invalid for the published surface. It MUST use the RFC 9396
 `invalid_authorization_details` error for malformed or unsupported Agent Grant
 authorization details.
 
@@ -5200,8 +5572,12 @@ the server derived from the authenticated runtime record; raw identity evidence
 remains hidden. When the Minimal Agent Passport Grant-Issuance Profile is
 selected, the view MUST include the server's independently verified Passport
 identity, tuple, expiry, status freshness, relevant capability names, and
-verification boundary without exposing the raw artifact. The user MAY approve
-a strict subset. The authorization server
+verification boundary without exposing the raw artifact. When Runtime
+Attestation is selected, the view MUST additionally show its concrete profile,
+opaque verifier id, maximum age, proof-key binding, claimed Target Environment
+coverage, server-derived assurance, and current accepted state without exposing
+Evidence, measurements, reference values, or Verifier diagnostics. The user MAY
+approve a strict subset. The authorization server
 MUST present each required companion closure as one approval group. It MUST
 materialize the exact approved action stages in the returned `actions`
 allow-list, reject a selection that breaks required closure, compare the
@@ -5213,12 +5589,17 @@ The token response MUST return the granted `authorization_details` as required
 by RFC 9396. For this type, the returned object MUST be enriched with the
 authoritative `grant_id`, `subject`, delegate binding, effective constraints,
 `credential_binding`, effective `data_exposure`, and `grant_hash` assigned by
-the authorization server. The
-authorization server and resource server MUST retain or receive the same
+the authorization server. The authorization server and resource server MUST
+retain or receive the same
 granted object for later action verification and introspection.
 When the request selected a Runtime Identity Profile, the returned object MUST
 remove the request-only selector and contain the exact server-derived
 `delegate.runtime_identity` and repeated credential-binding values.
+When the request selected Runtime Attestation, the returned object MUST remove
+`runtime_attestation_requirement`, contain the exact stable
+`delegate.runtime_attestation` object, and repeat its binding, profile,
+verifier, and proof-key values in `credential_binding`. The current accepted
+appraisal remains authoritative mutable state outside that returned object.
 When the request selected the Minimal Agent Passport Grant-Issuance Profile,
 the returned delegate and credential binding MUST preserve its exact four-value
 Passport tuple.
@@ -5276,8 +5657,9 @@ The Token Exchange request has these additional ASP requirements:
   bound channel authentication.
 
 The authorization server MUST validate the subject token, runtime identity,
-agent and exact current Passport tuple, resource, requested action and location
-allow-lists, scopes, constraints, and credential profile. Returned `actions` and `locations`
+exact current accepted Runtime Attestation record when selected, agent and exact
+current Passport tuple, resource, requested action and location allow-lists,
+scopes, constraints, and credential profile. Returned `actions` and `locations`
 MUST be subsets of the source authorization. The exchange MUST NOT add a
 stronger companion stage under a shared scope, increase authority, widen
 resources, relax approval or receipt requirements, extend beyond the approved
@@ -5421,6 +5803,12 @@ A credential bound to the Minimal Agent Passport Grant-Issuance Profile is
 likewise inactive whenever the exact artifact, verification profile, issuer
 trust, expiry, revocation state, or status freshness cannot be established.
 The inactive response MUST NOT reveal which Passport check failed.
+
+A credential bound to Runtime Attestation is inactive whenever the exact
+attestation binding is not in current `accepted` state or its freshness,
+Verifier, proof key, runtime-identity revision, appraisal policy, or reference
+values cannot be established. The inactive response MUST NOT distinguish
+rejection, indeterminate appraisal, staleness, revocation, or supersession.
 
 For an active Grant Credential, the response MUST include the RFC 7662 fields
 `active`, `client_id`, `scope`, `token_type`, `exp`, `iat`, `sub`, `aud`, and
@@ -5595,6 +5983,9 @@ establish or obtain from authoritative grant state all of the following:
 - the active `grant_id`;
 - the intended application or resource-server audience;
 - the bound runtime identity;
+- when Runtime Attestation is selected, the exact stable attestation binding,
+  concrete profile, verifier id, proof-key thumbprint, and access to current
+  authoritative appraisal state;
 - the bound agent identity and exact Passport tuple required by its selected
   profile; and
 - the credential-binding method and any proof-of-possession key or session
@@ -5669,6 +6060,19 @@ MUST use that runtime's independently authenticated projection and binding; it
 MUST NOT inherit the parent's authentication method, management posture,
 locality, assurance, binding id, or claims revision.
 
+When the parent selected Runtime Attestation, every child MUST obtain a new
+challenge and accepted appraisal bound to the child's exact
+`grant_request_hash`, producing a child-specific stable binding and mutable
+record. A same-runtime child MAY retain the exact Runtime Identity projection,
+concrete profile, verifier, maximum age, proof key, and sanitized assurance when
+they remain current, but it MUST NOT reuse the parent's binding, Evidence, or
+Result. A child bound to another runtime MUST instead use that runtime's
+independently authenticated identity, proof key, Evidence, and assurance.
+Parent Grant revocation still cascades through the ordinary Semantic Grant
+Revocation Transition. Revocation or invalidation of a shared runtime identity,
+Attester, proof key, Verifier, policy, endorsement, or reference value makes
+every dependent child-specific appraisal inactive.
+
 Child budget limits MUST retain every inherited member with an equal or smaller
 limit, and every charge or occupied slot consumes the child and ancestor
 ledgers. A child MAY add a supported standard dimension as a further
@@ -5697,6 +6101,10 @@ Applications MUST verify every action against grant state:
 - when `delegate.runtime_identity` is present, its complete projection and
   repeated credential-binding values match the authoritative active runtime
   record at the exact claims revision
+- when `delegate.runtime_attestation` is present, its complete stable object
+  and repeated credential-binding values match the exact authoritative binding,
+  the proof-key cross-binding is valid, and the mutable appraisal record is
+  current `accepted` at the required freshness, policy, and reference values
 - grant is bound to the agent and exact Passport tuple, and the independently
   verified artifact remains unexpired, unrevoked, and fresh under its selected
   verification profile
@@ -5754,6 +6162,9 @@ Runtimes SHOULD verify:
 - local user has not revoked the app, runtime, or agent
 - the exact Grant-bound Agent Passport tuple remains valid under the locally
   supported consuming, hash, verification, status, and integrity profiles
+- when Runtime Attestation was selected, the returned stable binding, profile,
+  verifier, proof key, assurance, and current privacy-filtered accepted state
+  match the locally confirmed requirement without fallback
 - requested action is compatible with the verified Agent Passport capability
   set without treating a declaration as Grant authority
 - local policy allows the action
@@ -5804,6 +6215,8 @@ Matching inputs:
 - reservation requirements and available recovery actions
 - Agent Passport capabilities
 - Agent Passport security policy
+- selected Runtime Attestation concrete profile and the runtime's current
+  ability to generate profile-conforming Evidence with the selected proof key
 - local runtime adapter availability
 - user preferences
 - enterprise policy
@@ -5829,8 +6242,9 @@ before any authorization-server output is added. For RFC 9396, the runtime
 starts with the sole Agent Grant authorization-details object and removes only
 its `type` member. `locations`, `actions`, `delegate`, `resource_server`,
 `scopes`, `constraints`, `credential_profile`, and `audit`, including the exact
-candidate agent and Passport tuple and every selected profile, remain in the
-hashing view. Another issuance model MUST construct the same semantic object.
+candidate agent and Passport tuple, every selected profile, and the complete
+request-only Runtime Attestation requirement, remain in the hashing view.
+Another issuance model MUST construct the same semantic object.
 
 A multi-candidate match MUST construct and hash one complete request for each
 candidate. All non-candidate request semantics and the controlling runtime
@@ -5840,11 +6254,11 @@ candidate-independent template or one candidate's delegate and represent the
 result as binding the other candidates.
 
 `grant_id`, `grant_hash`, `subject`, `credential_binding`, `data_exposure`, and
-server-derived `delegate.runtime_identity` are invalid in a request and MUST
-NOT be silently removed from malformed input merely to compute a hash. OAuth
-parameters, redirect URIs, PKCE values, client authentication, user-interface
-labels, raw Passport artifacts, and local policy state are not semantic Grant
-Object members and are not included.
+server-derived `delegate.runtime_identity` and `delegate.runtime_attestation`
+are invalid in a request and MUST NOT be silently removed from malformed input
+merely to compute a hash. OAuth parameters, redirect URIs, PKCE values, client
+authentication, user-interface labels, raw Passport artifacts, and local policy
+state are not semantic Grant Object members and are not included.
 
 The runtime computes each candidate's `grant_request_hash` with the Canonical
 Object Hash Profile and the domain above. The value identifies the exact
@@ -6076,11 +6490,14 @@ codes are:
 | `sandbox_unsatisfied` | A required sandbox constraint is unsatisfied. |
 | `runtime_identity_invalid` | Current verification proves required runtime identity evidence mismatched or invalid. |
 | `runtime_identity_unavailable` | Required runtime identity evidence has no current authoritative value. |
+| `runtime_attestation_unsupported` | The runtime cannot implement the exact requested concrete attestation profile and proof-key binding. |
+| `runtime_attestation_unavailable` | Evidence-generation input required by the concrete profile is temporarily unavailable or not currently verifiable. |
 | `policy_denied` | Local or enterprise policy denies the exact path. |
 | `input_unknown` | A required input has no authoritative value. |
 
 Blocking `passport_profile_unsupported`, `passport_status_unavailable`,
-`runtime_identity_unavailable`, and `input_unknown` reasons produce
+`runtime_identity_unavailable`, `runtime_attestation_unavailable`, and
+`input_unknown` reasons produce
 `indeterminate` when no definitive blocking reason exists. Every other core
 blocking reason produces `incompatible`. An extension reason code MUST be a
 collision-resistant URI and its defining profile MUST classify it as definitive
@@ -6097,11 +6514,13 @@ kind, and subject id.
 
 `valid_until` MUST be no later than the earliest Passport status deadline,
 policy or inventory freshness deadline, runtime-identity freshness deadline,
-or local maximum matching TTL used by any candidate decision. The complete
-result becomes stale when that time passes or when the manifest tuple, semantic
-Grant request semantics or any candidate hash, runtime identity tuple, candidate
-Passport tuple or status, agent or adapter inventory, local or enterprise
-policy, or user preferences no longer exactly match the recorded binding.
+locally evaluated Runtime Attestation input deadline, or local maximum matching
+TTL used by any candidate decision. The complete result becomes stale when that
+time passes or when the manifest tuple, common Grant request semantics or any
+candidate hash, runtime identity tuple, selected attestation profile or
+proof-key capability, candidate Passport tuple or status, agent or adapter
+inventory, local or enterprise policy, or user preferences no longer exactly
+match the recorded binding.
 
 A stale result MUST NOT be used to select a candidate, populate a new Consent
 Preview, or justify a Grant request. The runtime recomputes the complete result;
@@ -6126,13 +6545,17 @@ agents, and local or enterprise policy MAY prohibit matching in that deployment.
 The result is advisory input to the local Consent Preview Contract. A
 `compatible` status is not consent, approval, a Grant, a credential, Passport
 verification by the application, or permission to add scopes. After selection,
-the runtime MUST recompute the exact semantic request and its hash, independently
-recompute the data-exposure projection, verify that the hash equals the selected
-candidate's `grant_request_hash` and that all bindings still match, and derive a
-fresh Consent Preview. Adding a suggested scope or action changes every
-candidate hash; adding or changing a candidate requires a new result entry.
-Either change requires a fresh match result. The authorization server
-independently verifies the selected tuple and obtains issuer-side consent.
+for a Runtime Attestation requirement it means only that the runtime can attempt
+the exact concrete profile; it is not an accepted Verifier or Relying Party
+appraisal, which remains unresolved until the application completes the flow.
+The runtime MUST then recompute the exact semantic request and its hash,
+independently recompute the data-exposure projection, verify that the hash
+equals the selected candidate's `grant_request_hash` and that all bindings still
+match, and derive a fresh Consent Preview. Adding a suggested scope or action
+changes every candidate hash; adding or changing a candidate requires a new
+result entry. Either change requires a fresh match result. The authorization
+server independently verifies the selected tuple and obtains issuer-side
+consent.
 
 ## Observability Context
 
@@ -7459,6 +7882,9 @@ inspectable:
 - application and issuer, grant id and hash, pinned surface version and hash,
   and authoritative active or expiry state;
 - runtime id, agent id, passport hash, and available verified identity labels;
+- when Runtime Attestation is selected, its concrete profile, opaque verifier
+  id, proof-key binding, sanitized assurance, freshness deadline, and coarse
+  current accepted or inactive state without raw Evidence or diagnostics;
 - exact actions, scopes, locations, resource filters, expiration, immutable
   budget limits, application-authoritative current budget states, and approval
   caveats;
@@ -7848,13 +8274,16 @@ Errors SHOULD be safe to show to users and precise enough for runtime policy
 debugging.
 
 `runtime_untrusted` intentionally does not reveal which issuer, subject,
-credential, posture, locality, or assurance check failed. It is not retryable
-with an unchanged request. Re-authentication, evidence refresh, enrollment, or
-Grant renewal can establish new state. The application MUST return it before
+credential, posture, locality, assurance, Verifier, measurement, reference
+value, or appraisal rule failed. It covers every non-accepted required Runtime
+Attestation state and is not retryable with an unchanged request.
+Re-authentication, a new challenge and Evidence refresh, enrollment, or Grant
+renewal can establish new state. The application MUST return it before
 idempotency lookup, budget admission, receipt creation, or any effect. A Grant
 Credential or proof failure remains `grant_proof_invalid`; a mismatch between a
-stored runtime projection and the hashed Grant remains `integrity_mismatch`;
-and an unsupported requested profile remains `surface_incompatible`.
+stored runtime or stable attestation projection and the hashed Grant remains
+`integrity_mismatch`; and an unsupported framework or concrete profile remains
+`surface_incompatible`.
 
 `passport_invalid` is not retryable with the same unchanged artifact and trust
 state. `passport_profile_unsupported` requires support for the exact named
@@ -7994,6 +8423,16 @@ assurance from a SPIFFE ID, OIDC claim, device name, key storage mechanism, or
 network location, and MUST NOT accept a fallback identity when the Grant-bound
 method becomes unavailable.
 
+Runtime Attestation does not change that authority boundary. The application
+MUST authenticate the concrete-profile Attestation Result, apply its own
+Relying Party policy, verify the exact runtime, Grant request, Target
+Environment, proof key, and freshness bindings, and recheck current accepted
+state before every effect. It MUST NOT accept the runtime's self-asserted
+posture, raw Evidence as a Verifier decision, an accepted result for a different
+layer, or an unattested fallback when appraisal becomes stale or unavailable.
+Compromise of a co-located Verifier remains a trust-anchor compromise; combining
+roles does not turn runtime-controlled policy into independent evidence.
+
 A runtime budget report can safely request a fence for its own bound session,
 but it MUST NOT change application counters, grant authority, or another
 session. The application authenticates the complete tuple and performs the
@@ -8007,6 +8446,8 @@ Mitigations:
 - token introspection
 - runtime binding
 - exact Passport profile, artifact-hash, verification, and agent binding
+- concrete Runtime Attestation profiles with challenge replay protection,
+  authenticated Results, proof-key binding, freshness, and Relying Party policy
 - sender-constrained grant credentials
 - action-scoped grants
 - app-side receipts
@@ -8217,6 +8658,16 @@ records, attestation evidence, device serials, hardware handles, and recovery
 material MUST remain in the authoritative verifier boundary and MUST NOT enter
 receipts, events, traces, ordinary logs, prompts, or agent-visible context.
 
+Runtime Attestation can expose uniquely identifying measurements, hardware and
+firmware inventory, debug state, location-correlatable device identifiers, and
+long-lived Attester keys. The runtime sends raw Evidence only to the selected
+Verifier, and the application retains only the concrete profile's minimized
+Attestation Result and authoritative appraisal record. Grants contain only the
+stable opaque binding and policy-relevant assurance; authorized status views
+expose at most the coarse current state. Consent, public errors, receipts,
+events, traces, prompts, and ordinary logs MUST NOT disclose raw Evidence or the
+specific failing measurement, reference value, or appraisal rule.
+
 Passport artifacts and admission projections can expose stable agent uids,
 issuers, capability inventories, security policies, executable paths, and code
 measurements. Protocol-visible Grant state is limited to the app-scoped agent
@@ -8327,6 +8778,9 @@ An application conforms to the Grant-Enforcing profile when it:
   projections, binds them into the Grant and credential binding, maintains the
   authoritative binding lifecycle, and revalidates the exact active revision
   before every action
+- when it advertises Runtime Attestation, satisfies the Runtime-Attested
+  Grant-Enforcing Application profile below rather than inferring conformance
+  from hardware, EAT parsing, or a co-located Verifier
 - creates or accepts an authoritative session record and validates its active
   state, complete tuple binding, and current generation for every action
 - creates non-control event subscriptions only as an attenuation of the current
@@ -8403,6 +8857,9 @@ it:
 - treats `runtime_identity_profile` only as a request selector and returns the
   exact server-derived runtime identity projection without identity-method
   fallback
+- treats `runtime_attestation_requirement` only as a request selector, returns
+  the exact stable server-derived attestation binding, preserves its repeated
+  credential fields, and keeps mutable appraisal state outside the Grant
 - implements the OAuth Token Exchange Profile without privilege amplification
 - preserves member-wise budget attenuation, lineage accounting, and the
   cross-runtime issuance restriction through authorization and token exchange
@@ -8463,6 +8920,34 @@ when it:
 - rejects a bearer token, cookie, or reusable session identifier as sufficient
   authority by itself
 
+### Runtime-Attested Grant-Enforcing Application
+
+An application conforms to this optional profile when it:
+
+- satisfies the Grant-Enforcing Application and Runtime Identity profiles
+- advertises the Runtime Attestation framework, endpoint, concrete profiles,
+  and exact Verifier-to-profile relationships in its pinned manifest
+- implements the authenticated single-use challenge and requires every
+  concrete profile to bind its nonce, application audience, runtime identity
+  binding and revision, proof key, and exact `grant_request_hash`
+- authenticates Attestation Results, verifies complete Target Environment
+  coverage, applies its own Relying Party policy, and never treats raw Evidence
+  or an Attester self-assertion as an accepted Result
+- derives the stable Grant and credential bindings only from a current accepted
+  appraisal and verifies their proof-key cross-binding
+- maintains the authoritative mutable appraisal state machine outside the
+  Grant, applies the strictest freshness input, and checks current `accepted`
+  state on issuance, introspection, every action, and session resume
+- makes every other appraisal state inactive, fences affected sessions before
+  another effect, and never falls back to another profile, Verifier, proof key,
+  older Result, or unattested runtime
+- distinguishes an in-place appraisal refresh from a material identity,
+  profile, Verifier, proof-key, or coverage change that requires a new Grant and
+  Consent Preview, and performs semantic revocation for a revoked binding
+- exposes only the privacy-minimized stable binding, assurance, and coarse
+  authorized state outside its Verifier boundary, never raw Evidence,
+  measurements, reference values, hardware identifiers, or diagnostics
+
 ### Application Runtime Profile
 
 An application runtime conforms to this profile when it:
@@ -8478,6 +8963,11 @@ An application runtime conforms to this profile when it:
   facet, re-previews and confirms any initially unresolved server projection,
   rejects a returned projection or credential binding that conflicts with known
   state, and treats every material identity change as stale
+- when selecting Runtime Attestation, supports the exact concrete profile,
+  protects its proof key and raw Evidence, authenticates every challenge and its
+  runtime, request, audience, and freshness bindings, confirms any initially
+  unresolved stable binding and assurance, and rejects a non-accepted,
+  mismatched, downgraded, or fallback result before storing or using a Grant
 - when claiming the Capability Match Result Profile, emits its closed local
   object with the exact manifest, semantic request, identity, Passport,
   inventory, policy, and preference bindings; treats unknowns as indeterminate;
@@ -8727,6 +9217,14 @@ To support Agent Surface Protocol, the next slices are:
   <https://www.rfc-editor.org/rfc/rfc9449>
 - OpenID Connect Core 1.0:
   <https://openid.net/specs/openid-connect-core-1_0-final.html>
+- Remote ATtestation procedureS (RATS) Architecture:
+  <https://www.rfc-editor.org/rfc/rfc9334>
+- The Entity Attestation Token (EAT):
+  <https://www.rfc-editor.org/rfc/rfc9711>
+- Entity Attestation Token (EAT) Media Types:
+  <https://www.rfc-editor.org/rfc/rfc9782>
+- An Architecture for Trustworthy and Transparent Digital Supply Chains:
+  <https://www.rfc-editor.org/rfc/rfc9943>
 - SPIFFE Identity and Verifiable Identity Document specifications:
   <https://spiffe.io/docs/latest/spiffe-specs/spiffe-id/>
 - SPIFFE X.509-SVID specification:
