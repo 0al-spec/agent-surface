@@ -2095,26 +2095,80 @@
     },
     {
       "id": 37,
-      "title": "Agent Training Use Policy",
+      "title": "Agent Training Use Policy Profile",
       "description": "явно указывать, можно ли agent/provider использовать данные для обучения или только для transient processing.",
       "category": "Privacy / data exposure",
       "side": "left",
-      "status": "missing",
+      "status": "present",
       "anchors": [
+        {
+          "heading": "Data Exposure Contract",
+          "anchorId": "data-exposure-contract"
+        },
+        {
+          "heading": "Agent Training Use Policy Profile",
+          "anchorId": "agent-training-use-policy-profile"
+        },
+        {
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        },
+        {
+          "heading": "Subdelegation",
+          "anchorId": "subdelegation"
+        },
+        {
+          "heading": "Grant Verification",
+          "anchorId": "grant-verification"
+        },
         {
           "heading": "Privacy Considerations",
           "anchorId": "privacy-considerations"
+        },
+        {
+          "heading": "Application Runtime Profile",
+          "anchorId": "application-runtime-profile"
         }
       ],
-      "rationale": "Training, model improvement и transient-only processing в RFC не рассматриваются.",
+      "rationale": "Normative profile теперь отделяет training use от plaintext retention, hash-binds canonical class set, задаёт whole-source enforcement и fail-closed attenuation без ложного обещания provider compliance или unlearning.",
       "priority": "P2",
       "profile": "privacy-consent",
       "depends_on": [
-        36
+        36,
+        38
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "data-exposure-contract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-training-use-policy-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "subdelegation"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "privacy-considerations"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-runtime-profile"
+        }
+      ]
     },
     {
       "id": 38,
