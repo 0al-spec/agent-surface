@@ -4146,8 +4146,12 @@ processing-path restrictions.</li>
 pending disclosure before downstream dispatch and fail it as
 <code>remote_processing_violation</code>. The offending value, recipient details, and
 policy evidence MUST NOT be copied into the error, receipt, trace, prompt, or
-ordinary log. The application uses the same error when its authoritative
-Grant, Runtime Identity, or exposure check detects a violation before release.</p>
+ordinary log. A malformed or mismatched authoritative Grant remains
+<code>integrity_mismatch</code>, an inactive or mismatched Runtime Identity remains
+<code>runtime_untrusted</code>, and a payload outside its declared class, redaction, or
+retention envelope remains <code>data_exposure_violation</code>. The new error is only for
+a valid Grant whose current processing path or recipient enforcement state no
+longer satisfies its bound constraint.</p>
 <p>The path and ceiling apply Grant-wide. A workflow that needs sensitive local
 processing and only public data in a remote tool requires separate Grants and
 separate source closures under this version. Implementations MUST NOT combine
@@ -4167,10 +4171,14 @@ inside the controlling runtime's path. Creating a child Grant does not erase
 that fact for data the parent transmits. Every child Grant that selects this
 profile has its own independently resolved path commitment and ceiling. A child
 bound to another runtime MUST NOT copy the parent's path claim or Runtime
-Identity evidence. Data can cross from parent to child only when the parent
-path already covers that transfer and the child's independently issued Grant
-also permits the resulting exposure. In particular, a parent
-<code>local_user_device</code> commitment cannot send application data to a remote child.</p>
+Identity evidence. This version defines no exposure projection for forwarding
+application-originated data previously received by a parent into a separately
+granted child. The parent MUST NOT perform that transfer; the child must obtain
+the data through its own independently authorized application resource, action,
+or event source and effective <code>data_exposure</code> projection. A future transfer
+profile would need to preserve the original source, classes, and both Grant
+bindings. In particular, a parent <code>local_user_device</code> commitment cannot be used
+to route application data to a remote child.</p>
 <p>Expiry, suspension, or revocation stops new disclosures immediately. Existing
 retention and <code>delete_on_grant_end</code> obligations continue to apply to plaintext
 already delivered. A runtime that learns that an earlier disclosure violated
@@ -5748,12 +5756,12 @@ locality, assurance, binding id, or claims revision.</p>
 downstream component remains part of the parent's complete processing path.
 A child Grant selecting the profile MUST resolve its own path and receive its
 own deterministic ceiling; it MUST NOT inherit the parent's path commitment as
-evidence. Any parent-to-child disclosure must satisfy both Grants, and the
-parent path must already cover the transfer. A <code>local_user_device</code> parent
-therefore cannot send application-originated data to a remote child without a
-new parent request and fresh consent. Path enum values have no attenuation
-order, so an issuer MUST NOT rewrite one value into another while deriving a
-child.</p>
+evidence. This profile does not project a parent source into the child's
+effective <code>data_exposure</code>, so a parent MUST NOT forward application-originated
+payloads or equivalent representations to a separately granted child. The
+child obtains such data from its own independently authorized application
+source. Path enum values have no attenuation order, so an issuer MUST NOT
+rewrite one value into another while deriving a child.</p>
 <p>When the parent selected Runtime Attestation, every child MUST obtain a new
 challenge and accepted appraisal bound to the child's exact
 <code>grant_request_hash</code>, producing a child-specific stable binding and mutable
@@ -7732,7 +7740,7 @@ authority for a runtime with a different tuple.</p>
 | <code>outcome_unknown</code> | An external or partial effect may have occurred and blind retry is unsafe. |
 | <code>risk_denied</code> | Local or app policy denied the risk class. |
 | <code>data_exposure_violation</code> | An application-originated payload contains an undeclared data class or violates its redaction or retention contract. |
-| <code>remote_processing_violation</code> | The Grant-bound processing path, deterministic classification ceiling, complete recipient set, or current enforcement capability does not permit the disclosure. |
+| <code>remote_processing_violation</code> | Under an otherwise valid Grant and exposure projection, the runtime's current complete path or recipient enforcement state no longer satisfies the bound Remote Processing Privacy constraint. |
 | <code>passport_invalid</code> | The exact Agent Passport artifact is missing, malformed, expired, revoked, untrusted, incorrectly signed, or not bound to the selected agent. |
 | <code>passport_profile_unsupported</code> | A required Passport consuming, artifact-hash, verification, status, or integrity profile is unsupported or incomplete. |
 | <code>passport_status_unavailable</code> | Fresh authenticated status for the exact Passport tuple cannot currently be established. |
@@ -7781,7 +7789,10 @@ downstream dispatch and MUST NOT claim that retry, a lower-privilege recipient
 label, or a local runtime location repairs the violation. Resolution requires a
 known enforceable path under the same exact commitment or a newly matched,
 previewed, and consented Grant. Public errors expose neither the recipient nor
-the class or policy rule that failed.</p>
+the class or policy rule that failed. This code MUST NOT replace
+<code>integrity_mismatch</code> for a Grant or hash divergence, <code>runtime_untrusted</code> for an
+invalid Runtime Identity binding, or <code>data_exposure_violation</code> for an invalid
+source envelope.</p>
 <p><code>input_not_normalized</code> is retryable only after the runtime applies the pinned
 normalization rules; the rejected attempt does not claim the idempotency key or
 admit an effect. <code>execution_mode_invalid</code>, <code>execution_transition_invalid</code>,

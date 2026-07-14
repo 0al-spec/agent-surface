@@ -4584,8 +4584,12 @@ If any check is false or unknown, the runtime MUST block and discard the
 pending disclosure before downstream dispatch and fail it as
 `remote_processing_violation`. The offending value, recipient details, and
 policy evidence MUST NOT be copied into the error, receipt, trace, prompt, or
-ordinary log. The application uses the same error when its authoritative
-Grant, Runtime Identity, or exposure check detects a violation before release.
+ordinary log. A malformed or mismatched authoritative Grant remains
+`integrity_mismatch`, an inactive or mismatched Runtime Identity remains
+`runtime_untrusted`, and a payload outside its declared class, redaction, or
+retention envelope remains `data_exposure_violation`. The new error is only for
+a valid Grant whose current processing path or recipient enforcement state no
+longer satisfies its bound constraint.
 
 The path and ceiling apply Grant-wide. A workflow that needs sensitive local
 processing and only public data in a remote tool requires separate Grants and
@@ -4609,10 +4613,14 @@ inside the controlling runtime's path. Creating a child Grant does not erase
 that fact for data the parent transmits. Every child Grant that selects this
 profile has its own independently resolved path commitment and ceiling. A child
 bound to another runtime MUST NOT copy the parent's path claim or Runtime
-Identity evidence. Data can cross from parent to child only when the parent
-path already covers that transfer and the child's independently issued Grant
-also permits the resulting exposure. In particular, a parent
-`local_user_device` commitment cannot send application data to a remote child.
+Identity evidence. This version defines no exposure projection for forwarding
+application-originated data previously received by a parent into a separately
+granted child. The parent MUST NOT perform that transfer; the child must obtain
+the data through its own independently authorized application resource, action,
+or event source and effective `data_exposure` projection. A future transfer
+profile would need to preserve the original source, classes, and both Grant
+bindings. In particular, a parent `local_user_device` commitment cannot be used
+to route application data to a remote child.
 
 Expiry, suspension, or revocation stops new disclosures immediately. Existing
 retention and `delete_on_grant_end` obligations continue to apply to plaintext
@@ -6373,12 +6381,12 @@ When the parent selected the Remote Processing Privacy Profile, every ungranted
 downstream component remains part of the parent's complete processing path.
 A child Grant selecting the profile MUST resolve its own path and receive its
 own deterministic ceiling; it MUST NOT inherit the parent's path commitment as
-evidence. Any parent-to-child disclosure must satisfy both Grants, and the
-parent path must already cover the transfer. A `local_user_device` parent
-therefore cannot send application-originated data to a remote child without a
-new parent request and fresh consent. Path enum values have no attenuation
-order, so an issuer MUST NOT rewrite one value into another while deriving a
-child.
+evidence. This profile does not project a parent source into the child's
+effective `data_exposure`, so a parent MUST NOT forward application-originated
+payloads or equivalent representations to a separately granted child. The
+child obtains such data from its own independently authorized application
+source. Path enum values have no attenuation order, so an issuer MUST NOT
+rewrite one value into another while deriving a child.
 
 When the parent selected Runtime Attestation, every child MUST obtain a new
 challenge and accepted appraisal bound to the child's exact
@@ -8593,7 +8601,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `outcome_unknown` | An external or partial effect may have occurred and blind retry is unsafe. |
 | `risk_denied` | Local or app policy denied the risk class. |
 | `data_exposure_violation` | An application-originated payload contains an undeclared data class or violates its redaction or retention contract. |
-| `remote_processing_violation` | The Grant-bound processing path, deterministic classification ceiling, complete recipient set, or current enforcement capability does not permit the disclosure. |
+| `remote_processing_violation` | Under an otherwise valid Grant and exposure projection, the runtime's current complete path or recipient enforcement state no longer satisfies the bound Remote Processing Privacy constraint. |
 | `passport_invalid` | The exact Agent Passport artifact is missing, malformed, expired, revoked, untrusted, incorrectly signed, or not bound to the selected agent. |
 | `passport_profile_unsupported` | A required Passport consuming, artifact-hash, verification, status, or integrity profile is unsupported or incomplete. |
 | `passport_status_unavailable` | Fresh authenticated status for the exact Passport tuple cannot currently be established. |
@@ -8647,7 +8655,10 @@ downstream dispatch and MUST NOT claim that retry, a lower-privilege recipient
 label, or a local runtime location repairs the violation. Resolution requires a
 known enforceable path under the same exact commitment or a newly matched,
 previewed, and consented Grant. Public errors expose neither the recipient nor
-the class or policy rule that failed.
+the class or policy rule that failed. This code MUST NOT replace
+`integrity_mismatch` for a Grant or hash divergence, `runtime_untrusted` for an
+invalid Runtime Identity binding, or `data_exposure_violation` for an invalid
+source envelope.
 
 `input_not_normalized` is retryable only after the runtime applies the pinned
 normalization rules; the rejected attempt does not claim the idempotency key or
