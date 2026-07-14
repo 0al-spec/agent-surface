@@ -5828,7 +5828,7 @@ discover surface
 ### Consent Preview Contract
 
 Before initiating issuance of, storing, or using a new Agent Grant, a runtime
-conforming to the Application Runtime Profile MUST present a local consent
+conforming to the Runtime Mediator Profile MUST present a local consent
 preview and obtain an affirmative user confirmation. The preview is derived
 from verified protocol state; it is not a client-authored authorization object
 and MUST NOT be treated as evidence of consent by the grant issuer or resource
@@ -6129,8 +6129,8 @@ Cons:
 #### Model B: Runtime-Held Grant Plus App Token
 
 The app issues a scoped token to the runtime. The runtime locally binds that
-token to an agent, passport, and policy. To satisfy the Grant-Enforcing
-Application profile, the application MUST also establish the runtime, agent,
+token to an agent, passport, and policy. To satisfy the Action Executor
+Profile, the application MUST also establish the runtime, agent,
 and passport binding from app-verifiable state or a verified proof at action
 time. A runtime-only assertion of that binding is insufficient.
 
@@ -7449,8 +7449,8 @@ extensions and MUST NOT also carry `trace_id` or `span_id`. A runtime derives
 the starting trace and producer span from valid `traceparent` when it records
 the event locally.
 
-When an implementation claims the Application Runtime or Receipt-Producing
-profile, its `session.start`, `action.request`, `action.result`, and receipt
+When an implementation claims the Runtime Mediator or Receipt Producer
+Profile, its `session.start`, `action.request`, `action.result`, and receipt
 envelopes MUST carry `session_id`, `session_generation`, `trace_id`, and the
 producer's `span_id` as shown below. Each runtime and application MUST record
 the identifiers from the envelope or receipt it produces in the corresponding
@@ -8340,8 +8340,8 @@ operation id, receipt, or input hash MUST NOT widen the proposal-only Grant.
 
 ### Receipt Requirements
 
-Runtime and application action receipts produced under the Receipt-Producing
-Application profile MUST include:
+Runtime and application action receipts produced under the corresponding
+`producer_role` of the Receipt Producer Profile MUST include:
 
 - receipt id
 - receipt type
@@ -9096,10 +9096,11 @@ authoritative grant transition.
 
 ### Active Grant Management
 
-A Grant-Enforcing Application MUST publish an HTTPS
-`revocation.grant_management_url` in its manifest. The URL identifies the
-application's human-facing active-grant management page, not the RFC 7009
-runtime revocation endpoint and not an authority-bearing capability URL. Its
+A Surface Publisher used by a Grant Issuer MUST publish an HTTPS
+`revocation.grant_management_url` in the manifest used for issuance. The URL
+identifies the application's human-facing active-grant management page, not
+the RFC 7009 runtime revocation endpoint and not an authority-bearing
+capability URL. Its
 origin MUST match the manifest issuer origin. The published URL MUST be a
 generic issuer-wide entry point shared by all users and grants. It MUST NOT
 encode a grant id, token, user id, or other user- or grant-specific sensitive
@@ -9279,7 +9280,7 @@ duplicate control events, repeat cleanup side effects, or change the original
 effective instant. It does not erase receipts or undo committed effects.
 Transport profiles define how a runtime or user authenticates a request and how
 success is represented; they MUST NOT weaken this inactive state, cascade, or
-timing boundary. A non-OAuth issuance model claiming Grant-Enforcing
+timing boundary. A non-OAuth issuance model claiming Grant Issuer Profile
 conformance MUST define an authenticated revocation binding that invokes this
 same transition.
 
@@ -10155,12 +10156,94 @@ NOT enter receipts, logs, prompts, traces, or agent-visible context.
 
 ## Conformance
 
-This draft defines conformance profiles instead of a single all-or-nothing
-profile.
+This draft defines six independent role profiles instead of one
+all-or-nothing application profile:
 
-### Surface-Only Application
+| Role profile | Profile identifier | Responsibility boundary |
+| --- | --- | --- |
+| Surface Publisher | `https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1` | Manifest discovery, integrity, lifecycle, schemas, and advertised surface semantics. |
+| Grant Issuer | `https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1` | Consent, authoritative Grant construction, credential binding, attenuation, lifecycle, and revocation. |
+| Action Executor | `https://github.com/0al-spec/agent-surface/conformance/action-executor/v1` | Protected-resource verification, session and event enforcement, and final effect admission. |
+| Receipt Producer | `https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1` | Immutable role-scoped receipt evidence for authoritative observations made by that producer. |
+| Runtime Mediator | `https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1` | Local consent, credential custody, agent mediation, policy, runtime safety, and revocation handling. |
+| Agent Adapter | `https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1` | Typed translation between an agent and a Runtime Mediator without receiving or creating authority. |
 
-An application conforms to the Surface-Only profile when it:
+The identifiers above name the exact role-profile versions defined by this
+draft. A similar name, an older version, an implementation-specific label, or
+an unknown profile identifier MUST NOT be substituted. This draft does not
+define a manifest `conformance` member, a signed conformance certificate, a
+certification authority, or a machine-readable test report. If a future profile
+adds claim metadata to a manifest, that metadata MUST use a closed versioned
+shape and be included in the manifest hashing view.
+
+### Conformance Claim and Composition Rules
+
+A conformance claim is descriptive. It is not a Grant, credential, approval,
+attestation result, certification, trust anchor, or evidence that another role
+performed its checks. A participant MUST NOT skip manifest, Grant, credential,
+session, selected-profile, receipt, lifecycle, or current-state verification
+because another participant claims a conformance role.
+
+Conformance is atomic for one role-profile version and one named implementation
+or deployment boundary. A claim MUST identify that boundary, the exact profile
+identifier, the supported ASP protocol version, and every optional profile or
+feature included in its scope. A Receipt Producer claim MUST additionally name
+exactly one `producer_role`, `application` or `runtime`. This documentation is
+not a protocol authority object and MUST NOT be copied into a Grant or receipt
+as proof of conformance.
+
+An implementation that omits an unconditional requirement, or a conditional
+requirement for a feature it advertises, selects, accepts, invokes, or produces,
+MUST NOT claim that role profile for the affected boundary. It MAY instead
+claim a smaller deployment boundary that does not expose the feature. A claim
+MUST NOT use terms such as "partial", "mostly", or "compatible" as if they
+were the role profile identifier.
+
+Each claim names exactly one role. A process, product, or deployment MAY claim
+multiple roles only by satisfying and documenting each role independently.
+Conformance to one role does not imply conformance to another role, even when
+one binary or operator implements both. In particular:
+
+- a Surface Publisher claim does not prove Grant Issuer or Action Executor
+  behavior;
+- a Grant Issuer claim does not let an Action Executor trust a credential or
+  cached Grant state without its own checks;
+- an Action Executor claim does not make that component a Grant Issuer or
+  Receipt Producer;
+- a signature service does not become a Receipt Producer merely by signing
+  bytes; and
+- a Runtime Mediator or Agent Adapter does not become an application-side
+  authority by observing a request or response.
+
+A conforming deployment can compose independently operated roles. The consumer
+of another role's output MUST validate that output under the ordinary protocol
+rules; the producer's self-claim is not sufficient. Delegating an internal
+task, endpoint, signing operation, schema host, database, or policy engine does
+not dilute the externally observable requirements of the claiming role. If a
+required delegate or authoritative state is unavailable, the composed service
+MUST fail closed before Grant issuance, application-originated disclosure,
+effect admission, or an authoritative receipt claim.
+
+Active Grants remain bound to their exact manifest and Grant semantics when a
+deployment changes its claimed roles or implementation topology. A role change
+MUST NOT reinterpret an old Grant, weaken a selected optional profile, or make
+an unsupported profile look conforming. The ordinary versioning, renewal,
+revocation, and fresh-consent rules continue to apply.
+
+The role boundaries have these required fail-closed cases:
+
+| Role | Invalid claim or operation |
+| --- | --- |
+| Surface Publisher | Reusing a surface version with another hash, publishing incomplete references, or advertising semantics that the exposed surface cannot provide. |
+| Grant Issuer | Issuing against a stale or superseded surface, widening a request, returning an unclosed action set, or treating unknown Passport or selected-profile state as accepted. |
+| Action Executor | Trusting the issuer claim instead of independently validating audience, active Grant state, exact surface and delegate tuple, session generation, policy, budget, approval, idempotency, and effect preconditions. |
+| Receipt Producer | Claiming another producer role's observation, producing a receipt outside the authoritative decision record, downgrading an invalid signature, or treating a receipt as action authority. |
+| Runtime Mediator | Using a stale match or Consent Preview, storing a wider Grant, releasing a Grant Credential, or continuing while revocation state is unknown. |
+| Agent Adapter | Receiving credentials, selecting stronger authority, fabricating approval/effect/receipt evidence, or blindly retrying a partial or unknown outcome. |
+
+### Surface Publisher Profile
+
+A component conforms to the Surface Publisher Profile when it:
 
 - publishes an Agent Surface Manifest
 - computes and publishes a valid `surface_hash` and changes
@@ -10186,41 +10269,106 @@ An application conforms to the Surface-Only profile when it:
   the CloudEvents 1.0.2 ASP binding
 - provides `propose` actions or read-only resources
 
-### Grant-Enforcing Application
+### Grant Issuer Profile
 
-An application conforms to the Grant-Enforcing profile when it:
+A component conforms to the Grant Issuer Profile when it:
 
-- satisfies the Surface-Only profile
-- enforces the pinned surface mode during issuance and every Action Request,
-  and never issues credential-release authority for a proposal-only surface
-- issues, validates, or introspects Agent Grants
+- consumes the exact verified, issuer-authoritative current manifest snapshot
+  for the applicable surface lifecycle key and rejects stale, superseded,
+  hash-invalid, or unsupported surface semantics
+- authenticates the resource owner and obtains issuer-side consent from the
+  exact semantic Grant request, manifest semantics, delegate tuple, effects,
+  constraints, and effective data-exposure projection
+- validates requested actions, locations, scopes, resources, surface mode,
+  required companion closure, expiration, budgets, credential-release policy,
+  audit requirements, and every selected optional profile before issuance
+- constructs the authoritative Agent Grant Object without adding authority,
+  derives only permitted output fields and attenuations, computes `grant_hash`,
+  and persists the complete hashing view for the Grant lifetime and audit period
+- binds the Grant and Grant Credential to the user, application, exact surface,
+  runtime, agent, Passport evidence, credential audience, and selected
+  credential-binding method
+- provides the Action Executor an app-verifiable way to obtain current
+  authoritative Grant state; co-location, signed delegation, and authenticated
+  introspection are deployment choices, not permission to trust a caller's
+  assertion
+- when it selects the Minimal Agent Passport Grant-Issuance Profile,
+  independently retrieves, hashes, parses, verifies, status-checks, and binds
+  the exact Passport tuple without treating declarations as authority or an
+  artifact hash as signature or executable proof
+- when it selects the Runtime Identity Profile, derives only server-side
+  projections, binds the exact active revision into the Grant and credential,
+  and maintains the authoritative identity lifecycle
+- when it selects the Remote Processing Privacy Profile, validates the exact
+  requested path, derives and hash-binds only its deterministic ceiling, and
+  makes no application-verified downstream-compliance claim
+- when it selects the Agent Training Use Policy Profile, validates the
+  canonical requested set against the complete exposure union, obtains consent
+  for the returned subset, preserves every authoritative copy, and makes no
+  provider-compliance or unlearning claim
+- when it selects the Approval Receipt Profile, validates and hash-binds the
+  exact per-action producer roles and maximum ages without treating an approval
+  receipt as issuance authority
+- when it selects Runtime Attestation, performs the issuance-time duties of the
+  Grant Issuer in Runtime Attestation Role Requirements below
+- preserves required constraints, optional-profile bindings, companion closure,
+  member-wise budget attenuation, cumulative lineage accounting, and
+  cross-runtime restrictions through renewal, exchange, supersession, and
+  child derivation
+- denies credential-release authority unless the explicit capability and its
+  complete constraints are valid, and always denies it for a proposal-only
+  surface
+- maintains authoritative active, expired, and revoked Grant state; makes
+  revocation converge on the Semantic Grant Revocation Transition; and defines
+  an authenticated revocation binding when it does not select the OAuth Grant
+  Issuer Profile
+- operates the authenticated user-facing active-grant management boundary and
+  issues only against a verified manifest that advertises its generic
+  issuer-bound management URL
+- fails closed before issuance, renewal, exchange, derivation, introspection,
+  or revocation confirmation when required manifest, identity, Passport,
+  appraisal, consent, lineage, or Grant state is unavailable or inconsistent
+
+A Grant Issuer claim does not claim that the component publishes the manifest,
+executes actions, delivers events, or produces receipts. Those are independent
+role claims even when the same application deployment performs them.
+
+### Action Executor Profile
+
+A protected-resource component conforms to the Action Executor Profile when it:
+
+- consumes the exact verified manifest snapshot and current app-verifiable
+  Grant state selected by the request, without trusting a Surface Publisher,
+  Grant Issuer, runtime, or caller conformance claim as verification evidence
+- enforces the pinned surface mode during every Action Request and rejects an
+  inconsistent proposal-only inventory before idempotency lookup or any effect
 - validates the manifest-pinned `credential_audience` at every
   credential-protected `agent_api` endpoint
-- validates grant state for every action
-- validates credential binding to runtime, agent, and passport evidence
-- when it advertises the Minimal Agent Passport Grant-Issuance Profile,
-  independently retrieves, hashes, parses, verifies, status-checks, and binds
-  the exact Passport tuple before issuance and every action, without treating
-  declarations as authority or artifact hashes as signature or code proof
-- when it advertises the Runtime Identity Profile, derives only server-side
-  projections, binds them into the Grant and credential binding, maintains the
-  authoritative binding lifecycle, and revalidates the exact active revision
-  before every action
-- when it advertises the Remote Processing Privacy Profile, accepts only the
-  exact request path, derives and hash-binds the deterministic ceiling, rejects
-  every effective exposure above it, and labels the path as a runtime
-  commitment rather than application-verified downstream evidence
-- when it advertises the Agent Training Use Policy Profile, validates the
-  canonical requested set against the complete effective exposure union,
-  obtains issuer-side consent for the returned subset, preserves every hashed
-  and introspected copy, and makes no provider-compliance or unlearning claim
-- when it advertises the Approval Receipt Profile, validates the exact
-  per-action role and age requirements at issuance, authenticates and verifies
-  complete runtime Approval Receipts, produces application Approval Receipts,
-  and checks the final role map before every first effect admission
-- when it advertises Runtime Attestation, satisfies the Runtime-Attested
-  Grant-Enforcing Application profile below rather than inferring conformance
-  from hardware, EAT parsing, or a co-located Verifier
+- validates active Grant state, `grant_hash`, the exact retained
+  `surface_hash`, credential proof, user-runtime-agent-Passport binding, action
+  allow-list, scopes, resource constraints, expiration, and current lifecycle
+  state for every action
+- when the Grant selects the Minimal Agent Passport Grant-Issuance Profile,
+  independently revalidates the exact Passport tuple and current authenticated
+  lifecycle state before every action without treating declarations or
+  artifact hashes as signature or executable proof
+- when the Grant selects the Runtime Identity Profile, revalidates the exact
+  current server-side projection and active claims revision before every action
+- when the Grant selects the Remote Processing Privacy Profile, rejects every
+  effective application-originated exposure above the exact hash-bound ceiling
+  and does not represent the runtime path commitment as verified downstream
+  topology
+- when the Grant selects the Agent Training Use Policy Profile, enforces the
+  complete effective class set at disclosure time and makes no provider-
+  compliance or unlearning claim
+- when the Grant selects the Approval Receipt Profile, authenticates and
+  verifies the complete required role map and maximum age before first effect
+  admission; producing an application Approval Receipt additionally requires an
+  application-role Receipt Producer claim
+- when the Grant selects Runtime Attestation, performs the action-time duties
+  of the Action Executor in Runtime Attestation Role Requirements below rather
+  than inferring accepted state from hardware, EAT parsing, or a co-located
+  Verifier
 - creates or accepts an authoritative session record and validates its active
   state, complete tuple binding, and current generation for every action
 - creates non-control event subscriptions only as an attenuation of the current
@@ -10237,10 +10385,10 @@ An application conforms to the Grant-Enforcing profile when it:
 - validates static execution mode, companion authority, execution context and
   hash, preconditions, effect envelope, and any required reservation or
   recovery target before a state change
-- issues and accepts only action allow-lists closed over required companion
-  dependencies
-- derives the complete effective data-exposure projection from the pinned
-  manifest, returns it with the grant, and includes it in `grant_hash`
+- rejects any action allow-list that is not closed over required companion
+  dependencies in the pinned manifest
+- recomputes the complete effective data-exposure projection from the pinned
+  manifest and rejects a Grant, request, or disclosure that does not match it
 - applies declared redaction before application-originated data crosses the
   application boundary
 - enforces cumulative per-target recovery limits independently of request
@@ -10273,19 +10421,21 @@ An application conforms to the Grant-Enforcing profile when it:
   the accepted transition without treating them as detector proof
 - invalidates preview evidence and reservations when their grant or surface
   binding becomes invalid
-- does not accept `reserve`, `commit`, `compensate`, or `revert` unless it also
-  satisfies the Receipt-Producing Application profile for that action
-- supports grant revocation
-- publishes the issuer-bound active-grant management page, authenticates the
-  resource owner independently of Agent Grant Credentials, and confirms
-  revocation only after authoritative invalidation
+- does not accept `reserve`, `commit`, `compensate`, or `revert` unless the
+  deployment composes an application-role Receipt Producer for that action
+- rejects expired or authoritatively inactive Grants, fences their sessions and
+  outstanding pre-effect work, and fails closed when current Grant or lineage
+  state is unavailable
 
-### OAuth Grant Lifecycle Application
+An Action Executor claim does not claim issuance, consent, attenuation,
+credential minting, authoritative Grant lifecycle, or receipt production. A
+co-located component that performs those functions claims their roles
+independently.
 
-An application conforms to the OAuth Grant Lifecycle Application profile when
-it:
+### OAuth Grant Issuer Profile
 
-- satisfies the Grant-Enforcing Application profile
+A Grant Issuer additionally conforms to the OAuth Grant Issuer Profile when
+it independently satisfies the Grant Issuer Profile and:
 - advertises the Agent Grant authorization-details type and supported standard
   OAuth grant types
 - uses `agent_api.credential_audience` as the sole OAuth resource indicator and
@@ -10322,36 +10472,70 @@ it:
 - presents authorization-server consent from the exact verified request,
   manifest semantics, and effective exposure projection
 
-### Receipt-Producing Application
+### Receipt Producer Profile
 
-An application conforms to the Receipt-Producing profile when it:
+A component conforms to the Receipt Producer Profile only for the exact
+`producer_role` named by its claim, `application` or `runtime`. It MUST produce
+only receipt types assigned to that role and MUST derive every claim from the
+role's authoritative decision or observation record. A signing service that
+receives already-constructed bytes is not the producer merely because it holds
+the signing key.
 
-- satisfies the Grant-Enforcing profile
-- emits app receipts for required state-changing actions
+Every Receipt Producer:
+
+- emits the role-appropriate receipts required by the selected action, Grant,
+  approval, and receipt profiles
 - emits recomputable `receipt_hash`, `grant_hash`, `surface_hash`,
   `execution_hash`, effect hashes, and `policy_decision_hash` values
 - includes the complete typed Policy Decision Object and requires its embedded
   hash to match the receipt's `policy_decision_hash`
-- when Approval Receipt is selected, emits immutable approved or denied
-  Approval Receipts, binds accepted hashes into the idempotency record and app
-  action receipt, and never uses `parent_receipt_hash` for those prerequisite
-  side links
-- links an app receipt to the verified runtime receipt through
-  `parent_receipt_hash` when runtime receipt evidence is required
 - preserves trace id, session id and generation, action id, agent id, runtime
   id, and idempotency key while using a producer-specific span id
 - preserves sanitized execution context across the runtime/app receipt edge,
   omits raw execution tokens, and uses `target_receipt_hash` rather than a
   parent edge for recovery causality
-- records actual effects and distinguishes applied, partial, absent, and unknown
-  outcomes
-- records and retains receipt-bound revert evidence for effects advertised as
-  reversible
 - records session id and generation, trace id, and producer span id in the
   corresponding local action and receipt log entry
+- binds receipt creation to the immutable idempotency, decision, approval,
+  outcome, and accounting records available to its producer role rather than
+  constructing authoritative evidence later from mutable logs
+- never treats a receipt, signature, proposal, target link, or approval side
+  link as authority for an action, retry, commit, or recovery operation
+
+An application-role Receipt Producer additionally:
+
+- emits app receipts for required state-changing actions and denied or failed
+  high-risk actions
+- when Approval Receipt is selected, emits immutable application-role approved
+  or denied Approval Receipts, binds accepted hashes into the idempotency record
+  and app action receipt, and never uses `parent_receipt_hash` for those
+  prerequisite side links
+- links an app receipt to the verified runtime receipt through
+  `parent_receipt_hash` when runtime receipt evidence is required
+- records actual effects and distinguishes applied, partial, absent, and
+  unknown outcomes without trusting the runtime as effect authority
+- records and retains receipt-bound revert evidence for effects advertised as
+  reversible
 - records application-authoritative budget charges and resulting ledger
   revisions without treating receipt evidence as mutable ledger state
-- records denied or failed high-risk actions
+
+A runtime-role Receipt Producer additionally:
+
+- emits runtime receipts only for runtime-observed agent intent, local policy,
+  runtime approval, request construction, and runtime-authoritative budget
+  state
+- never emits an app receipt or claims that an application effect occurred,
+  succeeded, failed, or was reversed merely because it sent a request or
+  observed a response
+- when Approval Receipt is selected, emits immutable runtime-role approved or
+  denied Approval Receipts and preserves their prerequisite side-link semantics
+- protects raw execution tokens and credentials and records only their required
+  hashes or sanitized projections
+
+Receipt Producer conformance is independent of Grant Issuer, Action Executor,
+and Runtime Mediator conformance. The producer MUST nevertheless validate the
+authoritative input required for its role and fail closed when that input is
+missing, conflicting, or outside the claim boundary.
 
 An application or runtime claims the `asp-jws-detached` Receipt Signing Profile
 only when it supports the canonical detached payload, ES256 verification,
@@ -10360,12 +10544,11 @@ historical public-key retention, and the no-downgrade behavior defined above.
 It MUST emit every signature required for its producer role and reject required
 or present signatures that do not verify.
 
-### Proof-Bound Grant-Enforcing Application
+### Proof-Bound Action Executor Profile
 
-An application conforms to the Proof-Bound Grant-Enforcing Application profile
-when it:
+An Action Executor conforms to the Proof-Bound Action Executor Profile when it
+independently satisfies the Action Executor Profile and:
 
-- satisfies the Grant-Enforcing Application profile
 - accepts Agent Surface actions only under the Proof-Bound Credential Profile
 - verifies the per-request proof-of-possession or bound-channel authentication
 - applies the method-specific DPoP, mTLS, or proof-bound session checks defined
@@ -10373,37 +10556,44 @@ when it:
 - rejects a bearer token, cookie, or reusable session identifier as sufficient
   authority by itself
 
-### Runtime-Attested Grant-Enforcing Application
+### Runtime Attestation Role Requirements
 
-An application conforms to this optional profile when it:
+Selecting Runtime Attestation does not create a combined conformance role. The
+following requirements apply independently to every claimed role:
 
-- satisfies the Grant-Enforcing Application and Runtime Identity profiles
-- advertises the Runtime Attestation framework, endpoint, concrete profiles,
-  and exact Verifier-to-profile relationships in its pinned manifest
-- implements the authenticated single-use challenge and requires every
-  concrete profile to bind its nonce, application audience, runtime identity
-  binding and revision, proof key, and exact `grant_request_hash`
-- authenticates Attestation Results, verifies complete Target Environment
-  coverage, applies its own Relying Party policy, and never treats raw Evidence
-  or an Attester self-assertion as an accepted Result
-- derives the stable Grant and credential bindings only from a current accepted
-  appraisal and verifies their proof-key cross-binding
-- maintains the authoritative mutable appraisal state machine outside the
-  Grant, applies the strictest freshness input, and checks current `accepted`
-  state on issuance, introspection, every action, and session resume
-- makes every other appraisal state inactive, fences affected sessions before
-  another effect, and never falls back to another profile, Verifier, proof key,
-  older Result, or unattested runtime
-- distinguishes an in-place appraisal refresh from a material identity,
-  profile, Verifier, proof-key, or coverage change that requires a new Grant and
-  Consent Preview, and performs semantic revocation for a revoked binding
-- exposes only the privacy-minimized stable binding, assurance, and coarse
-  authorized state outside its Verifier boundary, never raw Evidence,
-  measurements, reference values, hardware identifiers, or diagnostics
+- the Surface Publisher advertises the framework, endpoint, concrete profiles,
+  and exact Verifier-to-profile relationships in the pinned manifest
+- the Grant Issuer implements the authenticated single-use challenge, requires
+  every concrete profile to bind its nonce, application audience, runtime
+  identity binding and revision, proof key, and exact `grant_request_hash`, and
+  derives stable Grant and credential bindings only from a current accepted
+  appraisal with verified proof-key cross-binding
+- the Action Executor checks the current authoritative `accepted` state on
+  every action and session resume, independently of any issuer or conformance
+  claim, and rejects a stale, inactive, mismatched, or unavailable appraisal
+- the Runtime Mediator supports the exact selected concrete profile, protects
+  its proof key and raw Evidence, authenticates every challenge and binding,
+  and rejects a non-accepted, mismatched, downgraded, or fallback result before
+  storing or using a Grant
 
-### Application Runtime Profile
+The Grant Issuer authenticates Attestation Results, verifies complete Target
+Environment coverage, applies its own Relying Party policy, and never treats raw
+Evidence or an Attester self-assertion as an accepted Result. It maintains the
+authoritative mutable appraisal state machine outside the Grant, applies the
+strictest freshness input, makes every state other than `accepted` inactive,
+and fences affected sessions before another effect. No role falls back to
+another profile, Verifier, proof key, older Result, or unattested runtime.
 
-An application runtime conforms to this profile when it:
+An in-place appraisal refresh is distinct from a material identity, profile,
+Verifier, proof-key, or coverage change that requires a new Grant and Consent
+Preview. A revoked binding triggers semantic revocation. Every role exposes
+outside the Verifier boundary only the privacy-minimized stable binding,
+assurance, and coarse authorized state, never raw Evidence, measurements,
+reference values, hardware identifiers, or diagnostics.
+
+### Runtime Mediator Profile
+
+An application runtime conforms to the Runtime Mediator Profile when it:
 
 - discovers and validates Agent Surface Manifests
 - recomputes `surface_hash` and pins the exact manifest snapshot
@@ -10453,11 +10643,11 @@ An application runtime conforms to this profile when it:
 - treats a separately granted child runtime as its own controlling runtime and
   preserves parent linkage, attenuation, and cascade revocation
 - implements RAR, Token Exchange, introspection, and revocation processing when
-  using the OAuth Grant Lifecycle Application profile
+  interacting with the OAuth Grant Issuer Profile
 - requests and validates the manifest-pinned `credential_audience` without
   treating it as action or control-operation authority
 - implements the Proof-Bound Credential Profile when the application requires
-  the Proof-Bound Grant-Enforcing Application profile
+  the Proof-Bound Action Executor Profile
 - enforces local policy and approval rules
 - when selecting the Approval Receipt Profile, constructs the exact Grant
   requirement projection, obtains and records fresh runtime approvals, stops on
@@ -10495,7 +10685,8 @@ An application runtime conforms to this profile when it:
   as authority
 - handles stale previews, reservation conflicts, and partial or unknown recovery
   outcomes without blind retry
-- records local audit events and runtime receipts
+- records local audit events and emits runtime receipts only when it separately
+  claims the runtime-role Receipt Producer Profile
 - durably deduplicates event deliveries, acknowledges only after its processing
   decision is stable, preserves opaque cursors, applies explicit gap recovery,
   enforces negotiated event backpressure, and deduplicates before allocating an
@@ -10518,9 +10709,9 @@ An application runtime conforms to this profile when it:
   freezes local use while revocation confirmation is unknown, and treats
   application state or introspection as authoritative over cached active state
 
-### Agent Adapter
+### Agent Adapter Profile
 
-An adapter conforms to this draft when it:
+An adapter conforms to the Agent Adapter Profile when it:
 
 - runs under runtime supervision
 - does not require raw app credentials
@@ -10533,6 +10724,10 @@ An adapter conforms to this draft when it:
   authority
 - preserves session and grant identifiers in audit context
 - preserves valid trace ids and creates a new span id for each adapter operation
+- never fabricates consent, approval, grant, policy decision, app effect, or
+  receipt evidence and never treats a conformance claim as authority
+- fails closed instead of blindly retrying when authority, session generation,
+  idempotency state, effect outcome, or recovery state is stale or unknown
 
 ## Application MVP Mapping
 

@@ -118,8 +118,8 @@
           "anchorId": "agent-does-not-receive-raw-authority"
         },
         {
-          "heading": "Application Runtime Profile",
-          "anchorId": "application-runtime-profile"
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         }
       ],
       "status": "present",
@@ -144,7 +144,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "application-runtime-profile"
+          "ref": "runtime-mediator-profile"
         }
       ]
     },
@@ -225,12 +225,12 @@
           "anchorId": "stolen-grant-credential"
         },
         {
-          "heading": "Proof-Bound Grant-Enforcing Application",
-          "anchorId": "proof-bound-grant-enforcing-application"
+          "heading": "Proof-Bound Action Executor Profile",
+          "anchorId": "proof-bound-action-executor-profile"
         }
       ],
       "status": "present",
-      "rationale": "Proof-Bound Credential и Proof-Bound Grant-Enforcing profiles требуют per-request possession proof; DPoP, mTLS и server-session проверки имеют отдельную корректную replay semantics.",
+      "rationale": "Proof-Bound Credential и Proof-Bound Action Executor profiles требуют per-request possession proof; DPoP, mTLS и server-session проверки имеют отдельную корректную replay semantics.",
       "priority": "P0",
       "profile": "oauth-grants",
       "depends_on": [
@@ -258,7 +258,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "proof-bound-grant-enforcing-application"
+          "ref": "proof-bound-action-executor-profile"
         }
       ]
     },
@@ -282,8 +282,8 @@
           "anchorId": "raw-token-leakage"
         },
         {
-          "heading": "Agent Adapter",
-          "anchorId": "agent-adapter"
+          "heading": "Agent Adapter Profile",
+          "anchorId": "agent-adapter-profile"
         }
       ],
       "status": "present",
@@ -312,7 +312,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "agent-adapter"
+          "ref": "agent-adapter-profile"
         }
       ]
     },
@@ -1064,12 +1064,16 @@
           "anchorId": "surface-downgrade"
         },
         {
-          "heading": "Surface-Only Application",
-          "anchorId": "surface-only-application"
+          "heading": "Surface Publisher Profile",
+          "anchorId": "surface-publisher-profile"
         },
         {
-          "heading": "Grant-Enforcing Application",
-          "anchorId": "grant-enforcing-application"
+          "heading": "Grant Issuer Profile",
+          "anchorId": "grant-issuer-profile"
+        },
+        {
+          "heading": "Action Executor Profile",
+          "anchorId": "action-executor-profile"
         }
       ],
       "status": "present",
@@ -1127,11 +1131,15 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "surface-only-application"
+          "ref": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
-          "ref": "grant-enforcing-application"
+          "ref": "grant-issuer-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-executor-profile"
         }
       ]
     },
@@ -1870,8 +1878,8 @@
           "anchorId": "app-receipt"
         },
         {
-          "heading": "Receipt-Producing Application",
-          "anchorId": "receipt-producing-application"
+          "heading": "Receipt Producer Profile",
+          "anchorId": "receipt-producer-profile"
         }
       ],
       "rationale": "Определён отдельный Approval Receipt Profile для approve/deny с явной Grant caveat, producer-role mapping, exact invocation binding, expiry, idempotent replay и causal side links из action receipts.",
@@ -1914,7 +1922,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "receipt-producing-application"
+          "ref": "receipt-producer-profile"
         }
       ]
     },
@@ -2225,8 +2233,8 @@
           "anchorId": "privacy-considerations"
         },
         {
-          "heading": "Application Runtime Profile",
-          "anchorId": "application-runtime-profile"
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         }
       ],
       "rationale": "Normative profile теперь отделяет training use от plaintext retention, hash-binds canonical class set, задаёт whole-source enforcement и fail-closed attenuation без ложного обещания provider compliance или unlearning.",
@@ -2265,7 +2273,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "application-runtime-profile"
+          "ref": "runtime-mediator-profile"
         }
       ]
     },
@@ -2302,12 +2310,16 @@
           "anchorId": "privacy-considerations"
         },
         {
-          "heading": "Grant-Enforcing Application",
-          "anchorId": "grant-enforcing-application"
+          "heading": "Grant Issuer Profile",
+          "anchorId": "grant-issuer-profile"
         },
         {
-          "heading": "Application Runtime Profile",
-          "anchorId": "application-runtime-profile"
+          "heading": "Action Executor Profile",
+          "anchorId": "action-executor-profile"
+        },
+        {
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         }
       ],
       "rationale": "Normative profile теперь классифицирует полный data-bearing path, связывает его с deterministic exposure ceiling и fail-closed lifecycle без ложного утверждения о verified downstream topology.",
@@ -2346,11 +2358,15 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "grant-enforcing-application"
+          "ref": "grant-issuer-profile"
         },
         {
           "kind": "rfc_anchor",
-          "ref": "application-runtime-profile"
+          "ref": "action-executor-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-mediator-profile"
         }
       ]
     },
@@ -2480,8 +2496,8 @@
           "anchorId": "privacy-considerations"
         },
         {
-          "heading": "Application Runtime Profile",
-          "anchorId": "application-runtime-profile"
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         }
       ],
       "rationale": "Runtime identity нормализован как независимые authentication, management, locality и assurance facets со stable binding, lifecycle, privacy и Grant verification rules.",
@@ -2523,7 +2539,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "application-runtime-profile"
+          "ref": "runtime-mediator-profile"
         }
       ]
     },
@@ -2568,8 +2584,8 @@
           "anchorId": "error-model"
         },
         {
-          "heading": "Application Runtime Profile",
-          "anchorId": "application-runtime-profile"
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         }
       ],
       "rationale": "Определены required v1alpha1 source fields, exact-artifact hash, named crypto/trust/status profile, verification order, Grant tuple, lifecycle и authority boundary.",
@@ -2615,7 +2631,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "application-runtime-profile"
+          "ref": "runtime-mediator-profile"
         }
       ]
     },
@@ -2685,8 +2701,8 @@
           "anchorId": "capability-matching"
         },
         {
-          "heading": "Application Runtime Profile",
-          "anchorId": "application-runtime-profile"
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         }
       ],
       "rationale": "Определён closed local Capability Match Result с canonical request binding, candidate states/reasons, freshness, privacy и строгой границей с consent и authority.",
@@ -2713,7 +2729,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "application-runtime-profile"
+          "ref": "runtime-mediator-profile"
         }
       ]
     },
@@ -2750,8 +2766,8 @@
           "anchorId": "privacy-considerations"
         },
         {
-          "heading": "Runtime-Attested Grant-Enforcing Application",
-          "anchorId": "runtime-attested-grant-enforcing-application"
+          "heading": "Runtime Attestation Role Requirements",
+          "anchorId": "runtime-attestation-role-requirements"
         }
       ],
       "rationale": "Определён optional RATS-aligned framework с concrete-profile discovery, nonce/request/proof-key binding, immutable Grant projection, mutable appraisal lifecycle, fail-closed enforcement и privacy boundary; базовый MVP остаётся unattested.",
@@ -2789,7 +2805,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "runtime-attested-grant-enforcing-application"
+          "ref": "runtime-attestation-role-requirements"
         }
       ]
     },
@@ -2826,8 +2842,8 @@
           "anchorId": "malicious-or-compromised-application"
         },
         {
-          "heading": "Application Runtime Profile",
-          "anchorId": "application-runtime-profile"
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         },
         {
           "heading": "Example End-to-End Flow",
@@ -2871,7 +2887,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "application-runtime-profile"
+          "ref": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
@@ -3364,26 +3380,42 @@
       "description": "разделить conformance на Surface Publisher, Grant Issuer, Action Executor, Receipt Producer, Runtime Mediator и Agent Adapter.",
       "category": "Conformance / tooling / adoption",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
           "heading": "Conformance",
           "anchorId": "conformance"
         },
         {
-          "heading": "Grant-Enforcing Application",
-          "anchorId": "grant-enforcing-application"
+          "heading": "Conformance Claim and Composition Rules",
+          "anchorId": "conformance-claim-and-composition-rules"
         },
         {
-          "heading": "Application Runtime Profile",
-          "anchorId": "application-runtime-profile"
+          "heading": "Surface Publisher Profile",
+          "anchorId": "surface-publisher-profile"
         },
         {
-          "heading": "Agent Adapter",
-          "anchorId": "agent-adapter"
+          "heading": "Grant Issuer Profile",
+          "anchorId": "grant-issuer-profile"
+        },
+        {
+          "heading": "Action Executor Profile",
+          "anchorId": "action-executor-profile"
+        },
+        {
+          "heading": "Receipt Producer Profile",
+          "anchorId": "receipt-producer-profile"
+        },
+        {
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
+        },
+        {
+          "heading": "Agent Adapter Profile",
+          "anchorId": "agent-adapter-profile"
         }
       ],
-      "rationale": "Role profiles уже есть, но Grant Issuer и Action Executor объединены, а именование ролей не унифицировано.",
+      "rationale": "RFC определяет шесть независимо заявляемых versioned role profiles, запрещает partial и authority-bearing self-claims, сохраняет ответственность при composition и delegation и задаёт fail-closed negative boundaries для каждой роли.",
       "priority": "P2",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -3392,7 +3424,7 @@
         30
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -3400,15 +3432,31 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "grant-enforcing-application"
+          "ref": "conformance-claim-and-composition-rules"
         },
         {
           "kind": "rfc_anchor",
-          "ref": "application-runtime-profile"
+          "ref": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
-          "ref": "agent-adapter"
+          "ref": "grant-issuer-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-executor-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-producer-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-mediator-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-adapter-profile"
         }
       ]
     },
@@ -3433,8 +3481,8 @@
           "anchorId": "actions"
         },
         {
-          "heading": "Surface-Only Application",
-          "anchorId": "surface-only-application"
+          "heading": "Surface Publisher Profile",
+          "anchorId": "surface-publisher-profile"
         }
       ],
       "rationale": "Проверяемые требования существуют, но linter, ruleset и diagnostics contract отсутствуют.",
