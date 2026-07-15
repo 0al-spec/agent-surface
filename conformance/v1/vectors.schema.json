@@ -1,0 +1,572 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/vectors/v1",
+  "title": "ASP Declarative Conformance Vectors v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "suite_id",
+    "suite_version",
+    "vectors"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./vectors.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "suite_id": {
+      "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
+    },
+    "suite_version": {
+      "const": "1.0.0"
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 24,
+      "items": {
+        "$ref": "#/$defs/vector"
+      }
+    }
+  },
+  "$defs": {
+    "profileId": {
+      "enum": [
+        "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
+      ]
+    },
+    "featureId": {
+      "enum": [
+        "agent-surface/feature/proposal-only",
+        "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1"
+      ]
+    },
+    "requirementId": {
+      "type": "string",
+      "pattern": "^ASP-(SP|GI|AE|RP|RM|AA)-[0-9]{3}$"
+    },
+    "vectorId": {
+      "type": "string",
+      "pattern": "^ASP-V-(SP|GI|AE|RP|RM|AA)-[0-9]{3}$"
+    },
+    "setupToken": {
+      "enum": [
+        "active_grant",
+        "active_execution_token",
+        "active_proof_session",
+        "active_reservation",
+        "active_session",
+        "application_receipt_producer",
+        "approval_profile_selected",
+        "capability_match_current",
+        "closed_companion_set",
+        "complete_references",
+        "control_event_endpoint",
+        "current_attestation",
+        "current_runtime_identity",
+        "current_surface",
+        "derived_active_grant",
+        "existing_idempotency_record",
+        "existing_revocation_record",
+        "normalized_input",
+        "passport_profile_selected",
+        "pinned_input_schema",
+        "passport_status_current",
+        "proposal_only_surface",
+        "remote_privacy_profile_selected",
+        "runtime_receipt_producer",
+        "standard_surface",
+        "training_profile_selected",
+        "trusted_counterpart",
+        "typed_runtime_api",
+        "valid_credential",
+        "valid_grant_tuple",
+        "valid_manifest",
+        "valid_policy"
+      ]
+    },
+    "operation": {
+      "enum": [
+        "issue_grant",
+        "invoke_action",
+        "mediate_action",
+        "mediate_grant",
+        "produce_receipt",
+        "publish_manifest",
+        "replay_action",
+        "retry_outcome",
+        "revoke_grant",
+        "translate_action",
+        "verify_receipt"
+      ]
+    },
+    "inputVariant": {
+      "enum": [
+        "application_claims_runtime_observation",
+        "approval_hash_substitution",
+        "claimed_issuer_mismatched_grant",
+        "different_execution_hash",
+        "different_input_hash",
+        "different_input_schema_hash",
+        "fabricated_receipt",
+        "incomplete_references",
+        "passport_status_unavailable",
+        "policy_denied",
+        "proposal_only_state_change",
+        "raw_credential",
+        "raw_credential_release",
+        "receipt_claims_authority",
+        "receipt_hash_mutated",
+        "revocation_state_unknown",
+        "revoked_grant",
+        "runtime_attestation_unavailable",
+        "runtime_claims_application_effect",
+        "runtime_identity_mismatch",
+        "sender_credential_wrong_audience",
+        "stale_capability_match",
+        "stale_surface",
+        "stronger_action_substitution",
+        "training_policy_wider",
+        "unclosed_companion_set",
+        "unknown_outcome_new_key",
+        "unknown_outcome_retry",
+        "unknown_remote_path",
+        "non_fixed_point_input",
+        "proof_session_binding_mismatch",
+        "exact_revocation_replay",
+        "valid",
+        "valid_application_receipt",
+        "valid_runtime_receipt",
+        "version_hash_reuse",
+        "wider_returned_grant",
+        "widened_action_set"
+      ]
+    },
+    "aspError": {
+      "enum": [
+        "action_unknown",
+        "execution_transition_invalid",
+        "grant_missing",
+        "grant_proof_invalid",
+        "grant_revoked",
+        "idempotency_conflict",
+        "input_not_normalized",
+        "input_unknown",
+        "integrity_mismatch",
+        "outcome_unknown",
+        "passport_status_unavailable",
+        "scope_denied",
+        "surface_incompatible",
+        "training_use_denied",
+        "risk_denied",
+        "runtime_untrusted"
+      ]
+    },
+    "policyReason": {
+      "enum": [
+        "approval_denied",
+        "approval_required",
+        "approval_satisfied",
+        "app_policy_denied",
+        "binding_invalid",
+        "limit_exceeded",
+        "local_policy_denied",
+        "policy_allowed",
+        "resource_denied",
+        "scope_denied"
+      ]
+    },
+    "matchReason": {
+      "enum": [
+        "input_unknown"
+      ]
+    },
+    "observationToken": {
+      "enum": [
+        "action_accepted",
+        "action_rejected",
+        "adapter_request_rejected",
+        "application_receipt_emitted",
+        "approval_not_reopened",
+        "child_grant_revoked",
+        "control_event_emitted",
+        "credential_invalidated",
+        "credential_rejected",
+        "current_state_checked",
+        "denial_recorded",
+        "grant_issued",
+        "grant_rejected",
+        "grant_revoked",
+        "input_schema_checked",
+        "execution_token_invalidated",
+        "local_denial_recorded",
+        "manifest_published",
+        "manifest_rejected",
+        "mediation_stopped",
+        "normalization_checked",
+        "original_result_replayed",
+        "original_revocation_replayed",
+        "proof_rejected",
+        "proof_session_invalidated",
+        "receipt_rejected",
+        "receipt_verified",
+        "reservation_invalidated",
+        "revocation_confirmed",
+        "revocation_fence_established",
+        "runtime_receipt_emitted",
+        "same_receipt_replayed",
+        "tuple_checked",
+        "typed_request_forwarded"
+      ]
+    },
+    "stateName": {
+      "enum": [
+        "action.dispatch_count",
+        "action.effect_count",
+        "adapter.fabricated_evidence_count",
+        "adapter.forwarded_count",
+        "approval.interaction_count",
+        "budget.application_charge",
+        "credential.issued_count",
+        "credential.accepted_count",
+        "credential.active_count",
+        "credential.adapter_retained_count",
+        "credential.agent_visible_count",
+        "control_event.emitted_count",
+        "execution_token.active_count",
+        "grant.child_active_count",
+        "grant.issued_count",
+        "grant.lifecycle",
+        "idempotency.record_count",
+        "idempotency.record_version",
+        "manifest.accepted_count",
+        "receipt.application_count",
+        "receipt.runtime_count",
+        "proof_session.accepted_count",
+        "proof_session.active_count",
+        "reservation.active_count",
+        "revocation.confirmed_count",
+        "revocation.confirmed_after_effective",
+        "revocation.effective_count",
+        "revocation.fence_count",
+        "runtime.credential_release_count",
+        "runtime.remote_disclosure_count",
+        "runtime.retry_count",
+        "runtime.stored_grant_width",
+        "runtime.training_dispatch_count",
+        "surface.version_binding_count"
+      ]
+    },
+    "stateValue": {
+      "oneOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "absent",
+            "active",
+            "inactive",
+            "present",
+            "revoked",
+            "unchanged"
+          ]
+        }
+      ]
+    },
+    "stateDelta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "before",
+        "after"
+      ],
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/stateName"
+        },
+        "before": {
+          "$ref": "#/$defs/stateValue"
+        },
+        "after": {
+          "$ref": "#/$defs/stateValue"
+        }
+      }
+    },
+    "stimulus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "input_variant"
+      ],
+      "properties": {
+        "operation": {
+          "$ref": "#/$defs/operation"
+        },
+        "input_variant": {
+          "$ref": "#/$defs/inputVariant"
+        }
+      }
+    },
+    "counterpartRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id"
+      ],
+      "properties": {
+        "profile_id": {
+          "$ref": "#/$defs/profileId"
+        },
+        "producer_role": {
+          "enum": [
+            "application",
+            "runtime"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "profile_id": {
+                "const": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1"
+              }
+            },
+            "required": [
+              "profile_id"
+            ]
+          },
+          "then": {
+            "required": [
+              "producer_role"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "producer_role"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "vector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vector_id",
+        "title",
+        "profile_id",
+        "polarity",
+        "requirement_ids",
+        "features",
+        "execution_class",
+        "cross_role_attack",
+        "setup",
+        "stimulus",
+        "required_observations",
+        "forbidden_observations",
+        "state_deltas"
+      ],
+      "properties": {
+        "vector_id": {
+          "$ref": "#/$defs/vectorId"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_id": {
+          "$ref": "#/$defs/profileId"
+        },
+        "producer_role": {
+          "enum": [
+            "application",
+            "runtime"
+          ]
+        },
+        "polarity": {
+          "enum": [
+            "positive",
+            "negative"
+          ]
+        },
+        "baseline_vector_id": {
+          "$ref": "#/$defs/vectorId"
+        },
+        "requirement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/requirementId"
+          }
+        },
+        "features": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/featureId"
+          }
+        },
+        "execution_class": {
+          "enum": [
+            "static",
+            "behavioral",
+            "interop"
+          ]
+        },
+        "cross_role_attack": {
+          "type": "boolean"
+        },
+        "setup": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/setupToken"
+          }
+        },
+        "stimulus": {
+          "$ref": "#/$defs/stimulus"
+        },
+        "expected_error": {
+          "$ref": "#/$defs/aspError"
+        },
+        "expected_policy_reason": {
+          "$ref": "#/$defs/policyReason"
+        },
+        "expected_match_reason": {
+          "$ref": "#/$defs/matchReason"
+        },
+        "required_counterparts": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/counterpartRequirement"
+          }
+        },
+        "required_observations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/observationToken"
+          }
+        },
+        "forbidden_observations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/observationToken"
+          }
+        },
+        "state_deltas": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/stateDelta"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "execution_class": {
+                "const": "interop"
+              }
+            },
+            "required": [
+              "execution_class"
+            ]
+          },
+          "then": {
+            "required": [
+              "required_counterparts"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "required_counterparts"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "polarity": {
+                "const": "negative"
+              }
+            },
+            "required": [
+              "polarity"
+            ]
+          },
+          "then": {
+            "required": [
+              "baseline_vector_id"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "baseline_vector_id"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "profile_id": {
+                "const": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1"
+              }
+            },
+            "required": [
+              "profile_id"
+            ]
+          },
+          "then": {
+            "required": [
+              "producer_role"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "producer_role"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

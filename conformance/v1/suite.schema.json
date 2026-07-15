@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/suite/v1",
+  "title": "ASP Conformance Suite Catalog v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "suite_id",
+    "suite_version",
+    "protocol_version",
+    "specification",
+    "profiles",
+    "features",
+    "requirements"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./suite.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "suite_id": {
+      "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
+    },
+    "suite_version": {
+      "const": "1.0.0"
+    },
+    "protocol_version": {
+      "const": "agent-surface/0.1"
+    },
+    "specification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "hash_domain"
+      ],
+      "properties": {
+        "path": {
+          "const": "drafts/agent-surface.md"
+        },
+        "hash_domain": {
+          "const": "ASP-SPECIFICATION-SOURCE-V1"
+        }
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/profile"
+      }
+    },
+    "features": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/feature"
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/requirement"
+      }
+    }
+  },
+  "$defs": {
+    "profileId": {
+      "enum": [
+        "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
+      ]
+    },
+    "featureId": {
+      "enum": [
+        "agent-surface/feature/proposal-only",
+        "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1"
+      ]
+    },
+    "requirementId": {
+      "type": "string",
+      "pattern": "^ASP-(SP|GI|AE|RP|RM|AA)-[0-9]{3}$"
+    },
+    "vectorId": {
+      "type": "string",
+      "pattern": "^ASP-V-(SP|GI|AE|RP|RM|AA)-[0-9]{3}$"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "role",
+        "requirement_ids"
+      ],
+      "properties": {
+        "profile_id": {
+          "$ref": "#/$defs/profileId"
+        },
+        "role": {
+          "enum": [
+            "surface_publisher",
+            "grant_issuer",
+            "action_executor",
+            "receipt_producer",
+            "runtime_mediator",
+            "agent_adapter"
+          ]
+        },
+        "requirement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/requirementId"
+          }
+        }
+      }
+    },
+    "feature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feature_id",
+        "title",
+        "rfc_anchor",
+        "requirement_ids"
+      ],
+      "properties": {
+        "feature_id": {
+          "$ref": "#/$defs/featureId"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rfc_anchor": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "requirement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/requirementId"
+          }
+        }
+      }
+    },
+    "applicability": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "always"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "feature_id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "feature"
+            },
+            "feature_id": {
+              "$ref": "#/$defs/featureId"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "producer_role"
+          ],
+          "properties": {
+            "kind": {
+              "const": "producer_role"
+            },
+            "producer_role": {
+              "enum": [
+                "application",
+                "runtime"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "title",
+        "profile_id",
+        "rfc_anchor",
+        "applicability",
+        "execution_class",
+        "vector_ids"
+      ],
+      "properties": {
+        "requirement_id": {
+          "$ref": "#/$defs/requirementId"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_id": {
+          "$ref": "#/$defs/profileId"
+        },
+        "rfc_anchor": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "applicability": {
+          "$ref": "#/$defs/applicability"
+        },
+        "execution_class": {
+          "enum": [
+            "static",
+            "behavioral",
+            "interop"
+          ]
+        },
+        "vector_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/vectorId"
+          }
+        }
+      }
+    }
+  }
+}

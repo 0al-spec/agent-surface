@@ -1,0 +1,587 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/fixtures/v1",
+  "title": "ASP Canonical Semantic Fixtures v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "suite_id",
+    "suite_version",
+    "fixture_catalog_id",
+    "fixtures",
+    "mutations"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./fixtures.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "suite_id": {
+      "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
+    },
+    "suite_version": {
+      "const": "1.0.0"
+    },
+    "fixture_catalog_id": {
+      "const": "agent-surface/conformance/fixtures/v1"
+    },
+    "fixtures": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/fixture"
+      },
+      "allOf": [
+        { "$ref": "#/$defs/fixtureCoverage" }
+      ]
+    },
+    "mutations": {
+      "type": "array",
+      "minItems": 38,
+      "maxItems": 38,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/mutation"
+      },
+      "allOf": [
+        { "$ref": "#/$defs/mutationCoverage" }
+      ]
+    }
+  },
+  "$defs": {
+    "fixtureId": {
+      "enum": [
+        "ASP-F-SP-001",
+        "ASP-F-GI-001",
+        "ASP-F-GI-006",
+        "ASP-F-GI-007",
+        "ASP-F-AE-001",
+        "ASP-F-AE-002",
+        "ASP-F-RP-001",
+        "ASP-F-RP-002",
+        "ASP-F-RM-001",
+        "ASP-F-AA-001"
+      ]
+    },
+    "baselineVectorId": {
+      "enum": [
+        "ASP-V-SP-001",
+        "ASP-V-GI-001",
+        "ASP-V-GI-006",
+        "ASP-V-GI-007",
+        "ASP-V-AE-001",
+        "ASP-V-AE-002",
+        "ASP-V-RP-001",
+        "ASP-V-RP-002",
+        "ASP-V-RM-001",
+        "ASP-V-AA-001"
+      ]
+    },
+    "mutationId": {
+      "enum": [
+        "ASP-M-APPLICATION-CLAIMS-RUNTIME-OBSERVATION",
+        "ASP-M-APPROVAL-HASH-SUBSTITUTION",
+        "ASP-M-CLAIMED-ISSUER-MISMATCHED-GRANT",
+        "ASP-M-DIFFERENT-EXECUTION-HASH",
+        "ASP-M-DIFFERENT-INPUT-HASH",
+        "ASP-M-DIFFERENT-INPUT-SCHEMA-HASH",
+        "ASP-M-EXACT-REVOCATION-REPLAY",
+        "ASP-M-FABRICATED-RECEIPT",
+        "ASP-M-INCOMPLETE-REFERENCES",
+        "ASP-M-PASSPORT-STATUS-UNAVAILABLE",
+        "ASP-M-POLICY-DENIED",
+        "ASP-M-PROOF-SESSION-BINDING-MISMATCH",
+        "ASP-M-PROPOSAL-ONLY-STATE-CHANGE",
+        "ASP-M-RAW-CREDENTIAL",
+        "ASP-M-RAW-CREDENTIAL-RELEASE",
+        "ASP-M-RECEIPT-CLAIMS-AUTHORITY",
+        "ASP-M-RECEIPT-HASH-MUTATED",
+        "ASP-M-REVOCATION-STATE-UNKNOWN",
+        "ASP-M-REVOKED-GRANT",
+        "ASP-M-RUNTIME-ATTESTATION-UNAVAILABLE",
+        "ASP-M-RUNTIME-CLAIMS-APPLICATION-EFFECT",
+        "ASP-M-RUNTIME-IDENTITY-MISMATCH",
+        "ASP-M-SENDER-CREDENTIAL-WRONG-AUDIENCE",
+        "ASP-M-STALE-CAPABILITY-MATCH",
+        "ASP-M-STALE-SURFACE",
+        "ASP-M-STRONGER-ACTION-SUBSTITUTION",
+        "ASP-M-TRAINING-POLICY-WIDER",
+        "ASP-M-UNCLOSED-COMPANION-SET",
+        "ASP-M-NON-FIXED-POINT-INPUT",
+        "ASP-M-UNKNOWN-OUTCOME-NEW-KEY",
+        "ASP-M-UNKNOWN-OUTCOME-RETRY",
+        "ASP-M-UNKNOWN-REMOTE-PATH",
+        "ASP-M-VALID",
+        "ASP-M-VALID-APPLICATION-RECEIPT",
+        "ASP-M-VALID-RUNTIME-RECEIPT",
+        "ASP-M-VERSION-HASH-REUSE",
+        "ASP-M-WIDENED-ACTION-SET",
+        "ASP-M-WIDER-RETURNED-GRANT"
+      ]
+    },
+    "inputVariant": {
+      "enum": [
+        "application_claims_runtime_observation",
+        "approval_hash_substitution",
+        "claimed_issuer_mismatched_grant",
+        "different_execution_hash",
+        "different_input_hash",
+        "different_input_schema_hash",
+        "exact_revocation_replay",
+        "fabricated_receipt",
+        "incomplete_references",
+        "passport_status_unavailable",
+        "policy_denied",
+        "proof_session_binding_mismatch",
+        "proposal_only_state_change",
+        "raw_credential",
+        "raw_credential_release",
+        "receipt_claims_authority",
+        "receipt_hash_mutated",
+        "revocation_state_unknown",
+        "revoked_grant",
+        "runtime_attestation_unavailable",
+        "runtime_claims_application_effect",
+        "runtime_identity_mismatch",
+        "sender_credential_wrong_audience",
+        "stale_capability_match",
+        "stale_surface",
+        "stronger_action_substitution",
+        "training_policy_wider",
+        "unclosed_companion_set",
+        "non_fixed_point_input",
+        "unknown_outcome_new_key",
+        "unknown_outcome_retry",
+        "unknown_remote_path",
+        "valid",
+        "valid_application_receipt",
+        "valid_runtime_receipt",
+        "version_hash_reuse",
+        "widened_action_set",
+        "wider_returned_grant"
+      ]
+    },
+    "actionSet": {
+      "oneOf": [
+        { "const": ["action.read"] },
+        { "const": ["action.read", "action.write"] }
+      ]
+    },
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "version",
+        "retained_hash",
+        "candidate_hash",
+        "references",
+        "mode",
+        "action_semantics"
+      ],
+      "properties": {
+        "status": { "enum": ["current", "stale"] },
+        "version": { "const": "surface_v1" },
+        "retained_hash": { "const": "surface_hash_a" },
+        "candidate_hash": { "enum": ["surface_hash_a", "surface_hash_b"] },
+        "references": { "enum": ["complete", "incomplete"] },
+        "mode": { "enum": ["standard", "proposal_only"] },
+        "action_semantics": { "enum": ["closed_read_propose", "state_changing"] }
+      }
+    },
+    "grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "issuer",
+        "claimed_issuer",
+        "requested_actions",
+        "issued_actions",
+        "companion_closure",
+        "passport_status",
+        "revocation_state",
+        "revocation_request_hash",
+        "recorded_revocation_request_hash"
+      ],
+      "properties": {
+        "status": { "enum": ["active", "revoked"] },
+        "issuer": { "const": "issuer_a" },
+        "claimed_issuer": { "enum": ["issuer_a", "issuer_b"] },
+        "requested_actions": { "$ref": "#/$defs/actionSet" },
+        "issued_actions": { "$ref": "#/$defs/actionSet" },
+        "companion_closure": { "enum": ["closed", "unclosed"] },
+        "passport_status": { "enum": ["current", "unavailable"] },
+        "revocation_state": { "enum": ["active", "revoked", "unknown"] },
+        "revocation_request_hash": { "enum": ["revocation_hash_a", "revocation_hash_b"] },
+        "recorded_revocation_request_hash": { "const": "revocation_hash_a" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_hash",
+        "recorded_input_hash",
+        "input_schema_hash",
+        "recorded_input_schema_hash",
+        "normalization",
+        "execution_hash",
+        "recorded_execution_hash",
+        "approval_hash",
+        "recorded_approval_hash",
+        "policy",
+        "runtime_identity",
+        "bound_runtime_identity",
+        "sender_credential_audience",
+        "bound_credential_audience",
+        "proof_session_binding",
+        "bound_session_binding",
+        "attestation",
+        "outcome_state",
+        "retry_key"
+      ],
+      "properties": {
+        "input_hash": { "enum": ["input_hash_a", "input_hash_b"] },
+        "recorded_input_hash": { "const": "input_hash_a" },
+        "input_schema_hash": { "enum": ["input_schema_hash_a", "input_schema_hash_b"] },
+        "recorded_input_schema_hash": { "const": "input_schema_hash_a" },
+        "normalization": { "enum": ["fixed_point", "non_fixed_point"] },
+        "execution_hash": { "enum": ["execution_hash_a", "execution_hash_b"] },
+        "recorded_execution_hash": { "const": "execution_hash_a" },
+        "approval_hash": { "enum": ["approval_hash_a", "approval_hash_b"] },
+        "recorded_approval_hash": { "const": "approval_hash_a" },
+        "policy": { "enum": ["allow", "deny"] },
+        "runtime_identity": { "enum": ["runtime_identity_a", "runtime_identity_b"] },
+        "bound_runtime_identity": { "const": "runtime_identity_a" },
+        "sender_credential_audience": { "enum": ["credential_audience_a", "credential_audience_b"] },
+        "bound_credential_audience": { "const": "credential_audience_a" },
+        "proof_session_binding": { "enum": ["session_binding_a", "session_binding_b"] },
+        "bound_session_binding": { "const": "session_binding_a" },
+        "attestation": { "enum": ["current", "unavailable"] },
+        "outcome_state": { "enum": ["known", "unknown"] },
+        "retry_key": { "enum": ["same", "new"] }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer_role",
+        "claimed_observation",
+        "integrity",
+        "authority_use",
+        "origin"
+      ],
+      "properties": {
+        "producer_role": { "enum": ["application", "runtime"] },
+        "claimed_observation": { "enum": ["application_effect", "runtime_observation"] },
+        "integrity": { "enum": ["valid", "mutated"] },
+        "authority_use": { "enum": ["prohibited", "attempted"] },
+        "origin": { "enum": ["observed", "fabricated"] }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "returned_grant_width",
+        "credential_release",
+        "revocation_state",
+        "remote_path",
+        "training_policy",
+        "capability_match"
+      ],
+      "properties": {
+        "returned_grant_width": { "enum": ["equal", "wider"] },
+        "credential_release": { "enum": ["none", "raw"] },
+        "revocation_state": { "enum": ["current", "unknown"] },
+        "remote_path": { "enum": ["known", "unknown"] },
+        "training_policy": { "enum": ["exact", "wider"] },
+        "capability_match": { "enum": ["current", "stale"] }
+      }
+    },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "credential_input",
+        "action_authority",
+        "receipt_evidence",
+        "unknown_outcome_handling"
+      ],
+      "properties": {
+        "credential_input": { "enum": ["none", "raw"] },
+        "action_authority": { "enum": ["exact", "stronger"] },
+        "receipt_evidence": { "enum": ["observed", "fabricated"] },
+        "unknown_outcome_handling": { "enum": ["stop", "retry"] }
+      }
+    },
+    "semanticDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface",
+        "grant",
+        "execution",
+        "receipt",
+        "runtime",
+        "adapter"
+      ],
+      "properties": {
+        "surface": { "$ref": "#/$defs/surface" },
+        "grant": { "$ref": "#/$defs/grant" },
+        "execution": { "$ref": "#/$defs/execution" },
+        "receipt": { "$ref": "#/$defs/receipt" },
+        "runtime": { "$ref": "#/$defs/runtime" },
+        "adapter": { "$ref": "#/$defs/adapter" }
+      }
+    },
+    "fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fixture_id", "baseline_vector_id", "document"],
+      "properties": {
+        "fixture_id": { "$ref": "#/$defs/fixtureId" },
+        "baseline_vector_id": { "$ref": "#/$defs/baselineVectorId" },
+        "document": { "$ref": "#/$defs/semanticDocument" }
+      },
+      "allOf": [
+        { "$ref": "#/$defs/fixtureBinding" }
+      ]
+    },
+    "patchPath": {
+      "enum": [
+        "/surface/status",
+        "/surface/candidate_hash",
+        "/surface/references",
+        "/surface/mode",
+        "/surface/action_semantics",
+        "/grant/status",
+        "/grant/claimed_issuer",
+        "/grant/issued_actions",
+        "/grant/companion_closure",
+        "/grant/passport_status",
+        "/grant/revocation_state",
+        "/grant/revocation_request_hash",
+        "/execution/input_hash",
+        "/execution/input_schema_hash",
+        "/execution/normalization",
+        "/execution/execution_hash",
+        "/execution/approval_hash",
+        "/execution/policy",
+        "/execution/runtime_identity",
+        "/execution/sender_credential_audience",
+        "/execution/proof_session_binding",
+        "/execution/attestation",
+        "/execution/outcome_state",
+        "/execution/retry_key",
+        "/receipt/claimed_observation",
+        "/receipt/integrity",
+        "/receipt/authority_use",
+        "/receipt/origin",
+        "/runtime/returned_grant_width",
+        "/runtime/credential_release",
+        "/runtime/revocation_state",
+        "/runtime/remote_path",
+        "/runtime/training_policy",
+        "/runtime/capability_match",
+        "/adapter/credential_input",
+        "/adapter/action_authority",
+        "/adapter/receipt_evidence",
+        "/adapter/unknown_outcome_handling"
+      ]
+    },
+    "pathAndValue": {
+      "oneOf": [
+        { "properties": { "path": { "const": "/surface/status" }, "value": { "enum": ["current", "stale"] } } },
+        { "properties": { "path": { "const": "/surface/candidate_hash" }, "value": { "enum": ["surface_hash_a", "surface_hash_b"] } } },
+        { "properties": { "path": { "const": "/surface/references" }, "value": { "enum": ["complete", "incomplete"] } } },
+        { "properties": { "path": { "const": "/surface/mode" }, "value": { "enum": ["standard", "proposal_only"] } } },
+        { "properties": { "path": { "const": "/surface/action_semantics" }, "value": { "enum": ["closed_read_propose", "state_changing"] } } },
+        { "properties": { "path": { "const": "/grant/status" }, "value": { "enum": ["active", "revoked"] } } },
+        { "properties": { "path": { "const": "/grant/claimed_issuer" }, "value": { "enum": ["issuer_a", "issuer_b"] } } },
+        { "properties": { "path": { "const": "/grant/issued_actions" }, "value": { "$ref": "#/$defs/actionSet" } } },
+        { "properties": { "path": { "const": "/grant/companion_closure" }, "value": { "enum": ["closed", "unclosed"] } } },
+        { "properties": { "path": { "const": "/grant/passport_status" }, "value": { "enum": ["current", "unavailable"] } } },
+        { "properties": { "path": { "const": "/grant/revocation_state" }, "value": { "enum": ["active", "revoked", "unknown"] } } },
+        { "properties": { "path": { "const": "/grant/revocation_request_hash" }, "value": { "enum": ["revocation_hash_a", "revocation_hash_b"] } } },
+        { "properties": { "path": { "const": "/execution/input_hash" }, "value": { "enum": ["input_hash_a", "input_hash_b"] } } },
+        { "properties": { "path": { "const": "/execution/input_schema_hash" }, "value": { "enum": ["input_schema_hash_a", "input_schema_hash_b"] } } },
+        { "properties": { "path": { "const": "/execution/normalization" }, "value": { "enum": ["fixed_point", "non_fixed_point"] } } },
+        { "properties": { "path": { "const": "/execution/execution_hash" }, "value": { "enum": ["execution_hash_a", "execution_hash_b"] } } },
+        { "properties": { "path": { "const": "/execution/approval_hash" }, "value": { "enum": ["approval_hash_a", "approval_hash_b"] } } },
+        { "properties": { "path": { "const": "/execution/policy" }, "value": { "enum": ["allow", "deny"] } } },
+        { "properties": { "path": { "const": "/execution/runtime_identity" }, "value": { "enum": ["runtime_identity_a", "runtime_identity_b"] } } },
+        { "properties": { "path": { "const": "/execution/sender_credential_audience" }, "value": { "enum": ["credential_audience_a", "credential_audience_b"] } } },
+        { "properties": { "path": { "const": "/execution/proof_session_binding" }, "value": { "enum": ["session_binding_a", "session_binding_b"] } } },
+        { "properties": { "path": { "const": "/execution/attestation" }, "value": { "enum": ["current", "unavailable"] } } },
+        { "properties": { "path": { "const": "/execution/outcome_state" }, "value": { "enum": ["known", "unknown"] } } },
+        { "properties": { "path": { "const": "/execution/retry_key" }, "value": { "enum": ["same", "new"] } } },
+        { "properties": { "path": { "const": "/receipt/claimed_observation" }, "value": { "enum": ["application_effect", "runtime_observation"] } } },
+        { "properties": { "path": { "const": "/receipt/integrity" }, "value": { "enum": ["valid", "mutated"] } } },
+        { "properties": { "path": { "const": "/receipt/authority_use" }, "value": { "enum": ["prohibited", "attempted"] } } },
+        { "properties": { "path": { "const": "/receipt/origin" }, "value": { "enum": ["observed", "fabricated"] } } },
+        { "properties": { "path": { "const": "/runtime/returned_grant_width" }, "value": { "enum": ["equal", "wider"] } } },
+        { "properties": { "path": { "const": "/runtime/credential_release" }, "value": { "enum": ["none", "raw"] } } },
+        { "properties": { "path": { "const": "/runtime/revocation_state" }, "value": { "enum": ["current", "unknown"] } } },
+        { "properties": { "path": { "const": "/runtime/remote_path" }, "value": { "enum": ["known", "unknown"] } } },
+        { "properties": { "path": { "const": "/runtime/training_policy" }, "value": { "enum": ["exact", "wider"] } } },
+        { "properties": { "path": { "const": "/runtime/capability_match" }, "value": { "enum": ["current", "stale"] } } },
+        { "properties": { "path": { "const": "/adapter/credential_input" }, "value": { "enum": ["none", "raw"] } } },
+        { "properties": { "path": { "const": "/adapter/action_authority" }, "value": { "enum": ["exact", "stronger"] } } },
+        { "properties": { "path": { "const": "/adapter/receipt_evidence" }, "value": { "enum": ["observed", "fabricated"] } } },
+        { "properties": { "path": { "const": "/adapter/unknown_outcome_handling" }, "value": { "enum": ["stop", "retry"] } } }
+      ]
+    },
+    "patchOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "path", "value"],
+      "properties": {
+        "op": { "const": "replace" },
+        "path": { "$ref": "#/$defs/patchPath" },
+        "value": {}
+      },
+      "allOf": [
+        { "$ref": "#/$defs/pathAndValue" }
+      ]
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mutation_id", "input_variant", "patch"],
+      "properties": {
+        "mutation_id": { "$ref": "#/$defs/mutationId" },
+        "input_variant": { "$ref": "#/$defs/inputVariant" },
+        "patch": {
+          "type": "array",
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/patchOperation" }
+        }
+      },
+      "allOf": [
+        { "$ref": "#/$defs/mutationBinding" }
+      ]
+    },
+    "fixtureBinding": {
+      "oneOf": [
+        { "properties": { "fixture_id": { "const": "ASP-F-SP-001" }, "baseline_vector_id": { "const": "ASP-V-SP-001" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-GI-001" }, "baseline_vector_id": { "const": "ASP-V-GI-001" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-GI-006" }, "baseline_vector_id": { "const": "ASP-V-GI-006" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-GI-007" }, "baseline_vector_id": { "const": "ASP-V-GI-007" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-001" }, "baseline_vector_id": { "const": "ASP-V-AE-001" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-002" }, "baseline_vector_id": { "const": "ASP-V-AE-002" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RP-001" }, "baseline_vector_id": { "const": "ASP-V-RP-001" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RP-002" }, "baseline_vector_id": { "const": "ASP-V-RP-002" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-001" }, "baseline_vector_id": { "const": "ASP-V-RM-001" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AA-001" }, "baseline_vector_id": { "const": "ASP-V-AA-001" } }, "required": ["fixture_id", "baseline_vector_id"] }
+      ]
+    },
+    "mutationBinding": {
+      "oneOf": [
+        { "properties": { "mutation_id": { "const": "ASP-M-APPLICATION-CLAIMS-RUNTIME-OBSERVATION" }, "input_variant": { "const": "application_claims_runtime_observation" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-APPROVAL-HASH-SUBSTITUTION" }, "input_variant": { "const": "approval_hash_substitution" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-CLAIMED-ISSUER-MISMATCHED-GRANT" }, "input_variant": { "const": "claimed_issuer_mismatched_grant" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-DIFFERENT-EXECUTION-HASH" }, "input_variant": { "const": "different_execution_hash" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-DIFFERENT-INPUT-HASH" }, "input_variant": { "const": "different_input_hash" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-DIFFERENT-INPUT-SCHEMA-HASH" }, "input_variant": { "const": "different_input_schema_hash" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-EXACT-REVOCATION-REPLAY" }, "input_variant": { "const": "exact_revocation_replay" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-FABRICATED-RECEIPT" }, "input_variant": { "const": "fabricated_receipt" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-INCOMPLETE-REFERENCES" }, "input_variant": { "const": "incomplete_references" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PASSPORT-STATUS-UNAVAILABLE" }, "input_variant": { "const": "passport_status_unavailable" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-POLICY-DENIED" }, "input_variant": { "const": "policy_denied" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PROOF-SESSION-BINDING-MISMATCH" }, "input_variant": { "const": "proof_session_binding_mismatch" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PROPOSAL-ONLY-STATE-CHANGE" }, "input_variant": { "const": "proposal_only_state_change" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RAW-CREDENTIAL" }, "input_variant": { "const": "raw_credential" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RAW-CREDENTIAL-RELEASE" }, "input_variant": { "const": "raw_credential_release" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RECEIPT-CLAIMS-AUTHORITY" }, "input_variant": { "const": "receipt_claims_authority" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RECEIPT-HASH-MUTATED" }, "input_variant": { "const": "receipt_hash_mutated" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-REVOCATION-STATE-UNKNOWN" }, "input_variant": { "const": "revocation_state_unknown" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-REVOKED-GRANT" }, "input_variant": { "const": "revoked_grant" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RUNTIME-ATTESTATION-UNAVAILABLE" }, "input_variant": { "const": "runtime_attestation_unavailable" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RUNTIME-CLAIMS-APPLICATION-EFFECT" }, "input_variant": { "const": "runtime_claims_application_effect" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RUNTIME-IDENTITY-MISMATCH" }, "input_variant": { "const": "runtime_identity_mismatch" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-SENDER-CREDENTIAL-WRONG-AUDIENCE" }, "input_variant": { "const": "sender_credential_wrong_audience" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-STALE-CAPABILITY-MATCH" }, "input_variant": { "const": "stale_capability_match" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-STALE-SURFACE" }, "input_variant": { "const": "stale_surface" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-STRONGER-ACTION-SUBSTITUTION" }, "input_variant": { "const": "stronger_action_substitution" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-TRAINING-POLICY-WIDER" }, "input_variant": { "const": "training_policy_wider" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-UNCLOSED-COMPANION-SET" }, "input_variant": { "const": "unclosed_companion_set" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-NON-FIXED-POINT-INPUT" }, "input_variant": { "const": "non_fixed_point_input" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-UNKNOWN-OUTCOME-NEW-KEY" }, "input_variant": { "const": "unknown_outcome_new_key" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-UNKNOWN-OUTCOME-RETRY" }, "input_variant": { "const": "unknown_outcome_retry" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-UNKNOWN-REMOTE-PATH" }, "input_variant": { "const": "unknown_remote_path" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-VALID" }, "input_variant": { "const": "valid" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-VALID-APPLICATION-RECEIPT" }, "input_variant": { "const": "valid_application_receipt" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-VALID-RUNTIME-RECEIPT" }, "input_variant": { "const": "valid_runtime_receipt" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-VERSION-HASH-REUSE" }, "input_variant": { "const": "version_hash_reuse" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-WIDENED-ACTION-SET" }, "input_variant": { "const": "widened_action_set" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-WIDER-RETURNED-GRANT" }, "input_variant": { "const": "wider_returned_grant" } }, "required": ["mutation_id", "input_variant"] }
+      ]
+    },
+    "fixtureCoverage": {
+      "allOf": [
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-SP-001" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-GI-001" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-GI-006" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-GI-007" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-001" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-002" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RP-001" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RP-002" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-001" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AA-001" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
+      ]
+    },
+    "mutationCoverage": {
+      "allOf": [
+        { "contains": { "properties": { "input_variant": { "const": "application_claims_runtime_observation" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "approval_hash_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "claimed_issuer_mismatched_grant" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "different_execution_hash" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "different_input_hash" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "different_input_schema_hash" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "exact_revocation_replay" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "fabricated_receipt" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "incomplete_references" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "passport_status_unavailable" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "policy_denied" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "proof_session_binding_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "proposal_only_state_change" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "raw_credential" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "raw_credential_release" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "receipt_claims_authority" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "receipt_hash_mutated" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "revocation_state_unknown" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "revoked_grant" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "runtime_attestation_unavailable" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "runtime_claims_application_effect" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "runtime_identity_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "sender_credential_wrong_audience" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "stale_capability_match" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "stale_surface" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "stronger_action_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "training_policy_wider" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "unclosed_companion_set" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "non_fixed_point_input" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "unknown_outcome_new_key" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "unknown_outcome_retry" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "unknown_remote_path" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "valid" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "valid_application_receipt" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "valid_runtime_receipt" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "version_hash_reuse" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "widened_action_set" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "wider_returned_grant" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
+      ]
+    }
+  }
+}

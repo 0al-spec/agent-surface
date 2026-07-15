@@ -1086,6 +1086,11 @@ defined in Proposal-Only Surface Mode. An implementation that does not
 understand the value MUST reject the manifest as `surface_incompatible` rather
 than ignore it.
 
+This version defines the exact protocol identifier `agent-surface/0.1`.
+Publishers, consumers, conformance claims, and conformance reports MUST compare
+that value case-sensitively and MUST NOT substitute an alias or a compatible-
+looking version label.
+
 ### Surface Hash
 
 Every manifest MUST contain `surface_hash` computed with the Canonical Object
@@ -10171,8 +10176,9 @@ all-or-nothing application profile:
 The identifiers above name the exact role-profile versions defined by this
 draft. A similar name, an older version, an implementation-specific label, or
 an unknown profile identifier MUST NOT be substituted. This draft does not
-define a manifest `conformance` member, a signed conformance certificate, a
-certification authority, or a machine-readable test report. If a future profile
+define a manifest `conformance` member, a signed conformance certificate, or a
+certification authority. It defines the descriptive machine-readable test
+report below, but that report is not protocol authority. If a future profile
 adds claim metadata to a manifest, that metadata MUST use a closed versioned
 shape and be included in the manifest hashing view.
 
@@ -10240,6 +10246,131 @@ The role boundaries have these required fail-closed cases:
 | Receipt Producer | Claiming another producer role's observation, producing a receipt outside the authoritative decision record, downgrading an invalid signature, or treating a receipt as action authority. |
 | Runtime Mediator | Using a stale match or Consent Preview, storing a wider Grant, releasing a Grant Credential, or continuing while revocation state is unknown. |
 | Agent Adapter | Receiving credentials, selecting stronger authority, fabricating approval/effect/receipt evidence, or blindly retrying a partial or unknown outcome. |
+
+### Interoperability Test Suite
+
+The versioned suite identifier
+`https://github.com/0al-spec/agent-surface/conformance/suite/v1` targets the
+exact protocol identifier `agent-surface/0.1` and the six role-profile
+identifiers above. Its canonical matrix, vectors, semantic fixtures, schemas,
+and runner contract are published under `conformance/v1/` in this specification
+repository. Stable requirement, vector, fixture, and mutation identifiers MUST
+NOT be reused with different semantics.
+
+The v1 matrix is an executable high-risk coverage subset. It covers manifest
+integrity and proposal-only bounds, exact Grant attenuation and revocation,
+Grant verification, idempotent replay and conflicts, denied actions, receipt
+role integrity, runtime mediation, and adapter authority boundaries. It does
+not enumerate every normative requirement in every role profile. Consequently,
+a `pass` suite verdict means only that every applicable vector in the exact
+catalog revision passed. It MUST NOT be represented as complete role-profile
+conformance, certification, interoperability with arbitrary implementations,
+or current operational security.
+
+One test run and one report evaluate exactly one profile identifier for one
+named deployment boundary and one implementation artifact and configuration.
+The subject binds their digests, the exact protocol identifier, and the complete
+set of optional features in scope. A Receipt Producer subject additionally
+binds exactly one `producer_role`, `application` or `runtime`; that field is
+invalid for every other role. Co-located roles require separate reports. A
+counterpart participating in an `interop` vector MUST match every exact profile
+and Receipt Producer role required by that vector, use another deployment
+boundary and implementation artifact, and be bound into the observation. An
+unrelated, same-boundary, suite-fixture, or self-asserted counterpart does not
+satisfy the vector and gives no conformance credit to any role.
+
+Each matrix requirement has closed applicability: unconditional, selected
+optional feature, or Receipt Producer role. Before deriving applicability, the
+runner obtains a feature inventory from the separately configured probe and
+requires it to equal the subject's complete declared feature scope. An operator
+or subject MUST NOT hide a supported, advertised, selected, accepted, invoked,
+or produced feature or mark an applicable case as not applicable. A selected
+feature with no matrix row for the target role is reported as uncovered and
+makes the suite verdict `incomplete`. Unknown profiles, features, producer
+roles, requirement ids, vector ids, results, members, or applicability states
+invalidate the run rather than weakening its closure.
+
+Vectors use only the suite's closed declarative operation, fixture, mutation,
+assertion, observation, and state-delta vocabulary. Each case resolves to one
+digest-bound semantic baseline and an exact closed `replace` patch. Vectors
+MUST NOT contain executable code, shell commands, or target URLs.
+
+The separately configured stimulus adapter receives the resolved fixture,
+setup, operation, subject, and required counterpart topology, but it MUST NOT
+receive expected errors, policy or match reasons, observation tokens, or state
+values. A separate authoritative probe discovers feature inventory and returns
+sanitized observations after execution. The runner alone compares those
+observations with its oracle and decides the result.
+
+The runner invokes fresh adapter and probe processes with a fresh working
+directory, constrained environment, process-group timeout, file-size,
+file-descriptor, and CPU limits, and bounded captured output for every vector.
+Both executables are trusted test components; these limits do not sandbox them
+or block filesystem and network
+access. Operators MUST isolate the harness and non-production subject
+environment for their risk model. Concurrency tests use deterministic barriers
+around the specified linearization point rather than timing sleeps.
+
+A negative vector passes only when the observed ASP decision and namespaced ASP
+error, Policy Decision reason, or Capability Match reason, where the RFC defines
+one, match the expected values and every declared
+postcondition holds. Error status alone is insufficient. The vector can require
+zero new effects, budget revisions, idempotency records, credentials, receipts,
+Grant records, or control events, or the exact receipt and lifecycle deltas
+required by that denial phase. A crash, timeout, malformed response,
+unavailable authoritative probe, or unknown state is an execution error, never
+a successful rejection. HTTP status codes are not assertions because this
+draft does not define their mapping.
+
+The report binds the exact suite and specification sources, ordered applicable
+requirements and vectors, each vector digest, subject and counterpart artifacts,
+runner, adapter and probe entry-point digests, configuration digests and
+versions, execution environment, run identifier, and run interval. Each
+observation binds that run identifier, the complete subject, harness, and exact
+participating counterparts.
+The report contains one result for every applicable vector. The validator
+recomputes all applicability, digests, vector closure, result counts, and the
+suite verdict:
+
+- any assertion failure produces `fail`;
+- otherwise any missing result, execution error, unavailable probe, uncovered
+  selected feature, suite-fixture subject, or stale binding produces
+  `incomplete`;
+- only a complete applicable set of passing results produces `pass`.
+
+The catalog digest is SHA-256 over the ASCII domain
+`ASP-CONFORMANCE-CATALOG-V1` followed by a zero octet, then each canonical
+catalog path in lexicographic order as UTF-8, a zero octet, its raw file bytes,
+and a final zero octet. The canonical set is exactly `fixtures.json`,
+`fixtures.schema.json`, `observation.schema.json`, `report.schema.json`,
+`subject.schema.json`, `suite.json`, `suite.schema.json`, `vectors.json`,
+and `vectors.schema.json`, each under `conformance/v1/`. The specification
+digest uses the ASCII domain
+`ASP-SPECIFICATION-SOURCE-V1`, a zero octet, and the raw bytes of
+`drafts/agent-surface.md`. A vector digest uses the ASCII domain
+`ASP-CONFORMANCE-VECTOR-V1`, a zero octet, and the RFC 8785 serialization of
+the vector object. The subject digest uses the ASCII domain
+`ASP-CONFORMANCE-SUBJECT-V1`, a zero octet, and the RFC 8785 serialization of
+the complete subject object, including counterpart bindings. A counterpart
+entry and the complete runner object use the same form with domains
+`ASP-CONFORMANCE-COUNTERPART-V1` and `ASP-CONFORMANCE-HARNESS-V1`.
+The canonical runner entry point and configured adapter and probe entry points
+use raw bytes under `ASP-CONFORMANCE-RUNNER-V1`,
+`ASP-CONFORMANCE-ADAPTER-V1`, and `ASP-CONFORMANCE-PROBE-V1`. Each digest is
+encoded as `sha-256:` followed by canonical unpadded base64url. These digests
+bind bytes and catalog selection; they do not authenticate an implementation,
+runner, operator, or report.
+
+Reports and observations MUST NOT contain Grant Credentials, execution tokens,
+private keys, raw Attestation Evidence, hidden policy text, or real sensitive
+application payloads. A report is descriptive test evidence only. It is not a
+Grant, credential, receipt, approval, attestation result, trust anchor, action
+authority, or permission to skip ordinary current-state verification. A
+repository self-test subject MUST declare `subject_kind: suite_fixture`; its
+verdict remains `incomplete` even when every assertion matches. A suite
+self-check can establish machine validation of its catalog; `interop_tested`
+maturity requires successful use with independently implemented participant
+boundaries and cannot be derived from the repository's own fixtures.
 
 ### Surface Publisher Profile
 

@@ -1,0 +1,395 @@
+{
+  "$schema": "./fixtures.schema.json",
+  "schema_version": 1,
+  "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
+  "suite_version": "1.0.0",
+  "fixture_catalog_id": "agent-surface/conformance/fixtures/v1",
+  "fixtures": [
+    {
+      "fixture_id": "ASP-F-SP-001",
+      "baseline_vector_id": "ASP-V-SP-001",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-GI-001",
+      "baseline_vector_id": "ASP-V-GI-001",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-GI-006",
+      "baseline_vector_id": "ASP-V-GI-006",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-GI-007",
+      "baseline_vector_id": "ASP-V-GI-007",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "revoked", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "revoked", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-001",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-002",
+      "baseline_vector_id": "ASP-V-AE-002",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RP-001",
+      "baseline_vector_id": "ASP-V-RP-001",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RP-002",
+      "baseline_vector_id": "ASP-V-RP-002",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RM-001",
+      "baseline_vector_id": "ASP-V-RM-001",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AA-001",
+      "baseline_vector_id": "ASP-V-AA-001",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" }
+      }
+    }
+  ],
+  "mutations": [
+    {
+      "mutation_id": "ASP-M-APPLICATION-CLAIMS-RUNTIME-OBSERVATION",
+      "input_variant": "application_claims_runtime_observation",
+      "patch": [
+        { "op": "replace", "path": "/receipt/claimed_observation", "value": "runtime_observation" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-APPROVAL-HASH-SUBSTITUTION",
+      "input_variant": "approval_hash_substitution",
+      "patch": [
+        { "op": "replace", "path": "/execution/approval_hash", "value": "approval_hash_b" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-CLAIMED-ISSUER-MISMATCHED-GRANT",
+      "input_variant": "claimed_issuer_mismatched_grant",
+      "patch": [
+        { "op": "replace", "path": "/grant/claimed_issuer", "value": "issuer_b" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-DIFFERENT-EXECUTION-HASH",
+      "input_variant": "different_execution_hash",
+      "patch": [
+        { "op": "replace", "path": "/execution/execution_hash", "value": "execution_hash_b" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-DIFFERENT-INPUT-HASH",
+      "input_variant": "different_input_hash",
+      "patch": [
+        { "op": "replace", "path": "/execution/input_hash", "value": "input_hash_b" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-DIFFERENT-INPUT-SCHEMA-HASH",
+      "input_variant": "different_input_schema_hash",
+      "patch": [
+        { "op": "replace", "path": "/execution/input_schema_hash", "value": "input_schema_hash_b" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-EXACT-REVOCATION-REPLAY",
+      "input_variant": "exact_revocation_replay",
+      "patch": []
+    },
+    {
+      "mutation_id": "ASP-M-FABRICATED-RECEIPT",
+      "input_variant": "fabricated_receipt",
+      "patch": [
+        { "op": "replace", "path": "/adapter/receipt_evidence", "value": "fabricated" },
+        { "op": "replace", "path": "/receipt/origin", "value": "fabricated" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-INCOMPLETE-REFERENCES",
+      "input_variant": "incomplete_references",
+      "patch": [
+        { "op": "replace", "path": "/surface/references", "value": "incomplete" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-NON-FIXED-POINT-INPUT",
+      "input_variant": "non_fixed_point_input",
+      "patch": [
+        { "op": "replace", "path": "/execution/normalization", "value": "non_fixed_point" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PASSPORT-STATUS-UNAVAILABLE",
+      "input_variant": "passport_status_unavailable",
+      "patch": [
+        { "op": "replace", "path": "/grant/passport_status", "value": "unavailable" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-POLICY-DENIED",
+      "input_variant": "policy_denied",
+      "patch": [
+        { "op": "replace", "path": "/execution/policy", "value": "deny" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PROOF-SESSION-BINDING-MISMATCH",
+      "input_variant": "proof_session_binding_mismatch",
+      "patch": [
+        { "op": "replace", "path": "/execution/proof_session_binding", "value": "session_binding_b" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PROPOSAL-ONLY-STATE-CHANGE",
+      "input_variant": "proposal_only_state_change",
+      "patch": [
+        { "op": "replace", "path": "/surface/mode", "value": "proposal_only" },
+        { "op": "replace", "path": "/surface/action_semantics", "value": "state_changing" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-RAW-CREDENTIAL",
+      "input_variant": "raw_credential",
+      "patch": [
+        { "op": "replace", "path": "/adapter/credential_input", "value": "raw" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-RAW-CREDENTIAL-RELEASE",
+      "input_variant": "raw_credential_release",
+      "patch": [
+        { "op": "replace", "path": "/runtime/credential_release", "value": "raw" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-RECEIPT-CLAIMS-AUTHORITY",
+      "input_variant": "receipt_claims_authority",
+      "patch": [
+        { "op": "replace", "path": "/receipt/authority_use", "value": "attempted" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-RECEIPT-HASH-MUTATED",
+      "input_variant": "receipt_hash_mutated",
+      "patch": [
+        { "op": "replace", "path": "/receipt/integrity", "value": "mutated" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-REVOCATION-STATE-UNKNOWN",
+      "input_variant": "revocation_state_unknown",
+      "patch": [
+        { "op": "replace", "path": "/grant/revocation_state", "value": "unknown" },
+        { "op": "replace", "path": "/runtime/revocation_state", "value": "unknown" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-REVOKED-GRANT",
+      "input_variant": "revoked_grant",
+      "patch": [
+        { "op": "replace", "path": "/grant/status", "value": "revoked" },
+        { "op": "replace", "path": "/grant/revocation_state", "value": "revoked" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-RUNTIME-ATTESTATION-UNAVAILABLE",
+      "input_variant": "runtime_attestation_unavailable",
+      "patch": [
+        { "op": "replace", "path": "/execution/attestation", "value": "unavailable" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-RUNTIME-CLAIMS-APPLICATION-EFFECT",
+      "input_variant": "runtime_claims_application_effect",
+      "patch": [
+        { "op": "replace", "path": "/receipt/claimed_observation", "value": "application_effect" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-RUNTIME-IDENTITY-MISMATCH",
+      "input_variant": "runtime_identity_mismatch",
+      "patch": [
+        { "op": "replace", "path": "/execution/runtime_identity", "value": "runtime_identity_b" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-SENDER-CREDENTIAL-WRONG-AUDIENCE",
+      "input_variant": "sender_credential_wrong_audience",
+      "patch": [
+        { "op": "replace", "path": "/execution/sender_credential_audience", "value": "credential_audience_b" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-STALE-CAPABILITY-MATCH",
+      "input_variant": "stale_capability_match",
+      "patch": [
+        { "op": "replace", "path": "/runtime/capability_match", "value": "stale" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-STALE-SURFACE",
+      "input_variant": "stale_surface",
+      "patch": [
+        { "op": "replace", "path": "/surface/status", "value": "stale" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-STRONGER-ACTION-SUBSTITUTION",
+      "input_variant": "stronger_action_substitution",
+      "patch": [
+        { "op": "replace", "path": "/adapter/action_authority", "value": "stronger" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-TRAINING-POLICY-WIDER",
+      "input_variant": "training_policy_wider",
+      "patch": [
+        { "op": "replace", "path": "/runtime/training_policy", "value": "wider" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-UNCLOSED-COMPANION-SET",
+      "input_variant": "unclosed_companion_set",
+      "patch": [
+        { "op": "replace", "path": "/grant/companion_closure", "value": "unclosed" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-UNKNOWN-OUTCOME-NEW-KEY",
+      "input_variant": "unknown_outcome_new_key",
+      "patch": [
+        { "op": "replace", "path": "/execution/outcome_state", "value": "unknown" },
+        { "op": "replace", "path": "/execution/retry_key", "value": "new" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-UNKNOWN-OUTCOME-RETRY",
+      "input_variant": "unknown_outcome_retry",
+      "patch": [
+        { "op": "replace", "path": "/execution/outcome_state", "value": "unknown" },
+        { "op": "replace", "path": "/adapter/unknown_outcome_handling", "value": "retry" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-UNKNOWN-REMOTE-PATH",
+      "input_variant": "unknown_remote_path",
+      "patch": [
+        { "op": "replace", "path": "/runtime/remote_path", "value": "unknown" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-VALID",
+      "input_variant": "valid",
+      "patch": []
+    },
+    {
+      "mutation_id": "ASP-M-VALID-APPLICATION-RECEIPT",
+      "input_variant": "valid_application_receipt",
+      "patch": []
+    },
+    {
+      "mutation_id": "ASP-M-VALID-RUNTIME-RECEIPT",
+      "input_variant": "valid_runtime_receipt",
+      "patch": []
+    },
+    {
+      "mutation_id": "ASP-M-VERSION-HASH-REUSE",
+      "input_variant": "version_hash_reuse",
+      "patch": [
+        { "op": "replace", "path": "/surface/candidate_hash", "value": "surface_hash_b" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-WIDENED-ACTION-SET",
+      "input_variant": "widened_action_set",
+      "patch": [
+        { "op": "replace", "path": "/grant/issued_actions", "value": ["action.read", "action.write"] }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-WIDER-RETURNED-GRANT",
+      "input_variant": "wider_returned_grant",
+      "patch": [
+        { "op": "replace", "path": "/runtime/returned_grant_width", "value": "wider" }
+      ]
+    }
+  ]
+}
