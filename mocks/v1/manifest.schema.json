@@ -1,0 +1,257 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/mocks/schemas/manifest/v1",
+  "title": "ASP Reference Mock Bundle Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "manifest_id",
+    "manifest_version",
+    "protocol_version",
+    "claim_effect",
+    "participant_protocol",
+    "boundary_model",
+    "families",
+    "feature_inventory",
+    "entrypoints",
+    "artifacts"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./manifest.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "manifest_id": {
+      "const": "https://github.com/0al-spec/agent-surface/mocks/v1"
+    },
+    "manifest_version": {
+      "const": "1.0.0"
+    },
+    "protocol_version": {
+      "const": "agent-surface/0.1"
+    },
+    "claim_effect": {
+      "const": "suite_fixture_only"
+    },
+    "participant_protocol": {
+      "const": "asp-mock-participant/1"
+    },
+    "boundary_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "initialization",
+        "storage",
+        "corruption_policy"
+      ],
+      "properties": {
+        "scope": {
+          "const": [
+            "run_id",
+            "vector_id",
+            "boundary_id"
+          ]
+        },
+        "initialization": {
+          "const": "exactly_once"
+        },
+        "storage": {
+          "const": "separate_authoritative_journal_per_family"
+        },
+        "corruption_policy": {
+          "const": "fail_closed"
+        }
+      }
+    },
+    "families": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/family"
+      }
+    },
+    "feature_inventory": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/features"
+      }
+    },
+    "entrypoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mock_app",
+        "mock_runtime",
+        "adapter",
+        "probe",
+        "validator"
+      ],
+      "properties": {
+        "mock_app": {
+          "const": "mocks/mock_app.py"
+        },
+        "mock_runtime": {
+          "const": "mocks/mock_runtime.py"
+        },
+        "adapter": {
+          "const": "mocks/adapter.py"
+        },
+        "probe": {
+          "const": "mocks/probe.py"
+        },
+        "validator": {
+          "const": "mocks/check.py"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$"
+    },
+    "profile": {
+      "enum": [
+        "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
+      ]
+    },
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boundary_id",
+        "profile_id"
+      ],
+      "properties": {
+        "boundary_id": {
+          "type": "string",
+          "pattern": "^mock-(app|runtime)/[a-z-]+$"
+        },
+        "profile_id": {
+          "$ref": "#/$defs/profile"
+        },
+        "producer_role": {
+          "enum": [
+            "application",
+            "runtime"
+          ]
+        }
+      }
+    },
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family_id",
+        "participant_id",
+        "roles"
+      ],
+      "properties": {
+        "family_id": {
+          "enum": [
+            "app",
+            "runtime"
+          ]
+        },
+        "participant_id": {
+          "enum": [
+            "asp-reference-mock-app",
+            "asp-reference-mock-runtime"
+          ]
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/role"
+          }
+        }
+      }
+    },
+    "feature": {
+      "enum": [
+        "agent-surface/feature/proposal-only",
+        "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1"
+      ]
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "feature_ids"
+      ],
+      "properties": {
+        "profile_id": {
+          "$ref": "#/$defs/profile"
+        },
+        "feature_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/feature"
+          }
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "enum": [
+            "mocks/README.md",
+            "mocks/__init__.py",
+            "mocks/adapter.py",
+            "mocks/behavior.py",
+            "mocks/check.py",
+            "mocks/mock_app.py",
+            "mocks/mock_runtime.py",
+            "mocks/participant.py",
+            "mocks/probe.py",
+            "mocks/state.py",
+            "mocks/tests/test_mocks.py",
+            "mocks/v1/manifest.schema.json"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,520 @@
+"""Security and fail-closed tests for the bundled ASP reference mocks."""
+
+from __future__ import annotations
+
+import ast
+import base64
+import hashlib
+import inspect
+import io
+import json
+import shutil
+import tempfile
+import unittest
+from pathlib import Path
+from typing import Any
+
+from conformance.check import ConformanceError, _resolved_fixture, run_suite, validate_catalog
+from mocks.behavior import (
+    AE,
+    GI,
+    RM,
+    RP,
+    SP,
+    BehaviorResult,
+    FEATURE_INVENTORY,
+    evaluate,
+    family_for,
+)
+from mocks.participant import ParticipantError, inventory, load_request
+from mocks.state import JournalStore, Scope, StateError
+
+
+ROOT = Path(__file__).resolve().parents[2]
+MOCK_ROOT = ROOT / "mocks"
+
+
+def digest(label: str) -> str:
+    value = hashlib.sha256(label.encode("utf-8")).digest()
+    return "sha-256:" + base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+
+
+class MockBehaviorSecurityTests(unittest.TestCase):
+    """Exercise semantics without giving the behavior core a catalog oracle."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.catalog = validate_catalog(ROOT)
+
+    def evaluate_vector(self, vector_id: str) -> tuple[dict[str, Any], BehaviorResult]:
+        vector = self.catalog.vectors[vector_id]
+        fixture = _resolved_fixture(self.catalog, vector)
+        initial_state = [
+            {"state": delta["state"], "value": delta["before"]}
+            for delta in vector["state_deltas"]
+        ]
+        result = evaluate(
+            profile_id=vector["profile_id"],
+            producer_role=vector.get("producer_role"),
+            operation=vector["stimulus"]["operation"],
+            document=fixture["document"],
+            initial_state=initial_state,
+        )
+        return vector, result
+
+    def assert_matches_catalog_oracle(self, vector_id: str) -> BehaviorResult:
+        vector, result = self.evaluate_vector(vector_id)
+        self.assertEqual(set(result.tokens), set(vector["required_observations"]))
+        self.assertEqual(result.asp_error, vector.get("expected_error"))
+        self.assertEqual(
+            result.policy_reason, vector.get("expected_policy_reason")
+        )
+        self.assertEqual(result.match_reason, vector.get("expected_match_reason"))
+        expected_before = {
+            delta["state"]: delta["before"] for delta in vector["state_deltas"]
+        }
+        expected_after = {
+            delta["state"]: delta["after"] for delta in vector["state_deltas"]
+        }
+        self.assertEqual(dict(result.state_before), expected_before)
+        self.assertEqual(dict(result.state_after), expected_after)
+        return result
+
+    def test_all_catalog_decisions_are_derived_without_oracle_arguments(self) -> None:
+        parameters = set(inspect.signature(evaluate).parameters)
+        self.assertEqual(
+            parameters,
+            {
+                "profile_id",
+                "producer_role",
+                "operation",
+                "document",
+                "initial_state",
+            },
+        )
+        self.assertFalse(
+            parameters
+            & {
+                "vector_id",
+                "expected_error",
+                "expected_policy_reason",
+                "expected_match_reason",
+                "required_observations",
+                "forbidden_observations",
+                "state_deltas",
+            }
+        )
+        self.assertEqual(len(self.catalog.vectors), 47)
+        for vector_id in self.catalog.vectors:
+            with self.subTest(vector_id=vector_id):
+                self.assert_matches_catalog_oracle(vector_id)
+
+    def test_opaque_case_label_cannot_change_behavior(self) -> None:
+        vector = self.catalog.vectors["ASP-V-AE-004"]
+        fixture = _resolved_fixture(self.catalog, vector)
+        arguments = {
+            "profile_id": vector["profile_id"],
+            "producer_role": vector.get("producer_role"),
+            "operation": vector["stimulus"]["operation"],
+            "document": fixture["document"],
+            "initial_state": [
+                {"state": delta["state"], "value": delta["before"]}
+                for delta in vector["state_deltas"]
+            ],
+        }
+        labeled_cases = [
+            {"opaque_case_label": label, "arguments": arguments}
+            for label in ("case-alpha", "case-omega")
+        ]
+        results = [evaluate(**case["arguments"]) for case in labeled_cases]
+        self.assertEqual(results[0], results[1])
+
+    def test_mock_sources_have_no_catalog_or_expected_oracle_dependency(self) -> None:
+        source_names = {
+            "participant.py",
+            "behavior.py",
+            "adapter.py",
+            "probe.py",
+            "mock_app.py",
+            "mock_runtime.py",
+        }
+        sources = sorted(
+            path
+            for path in MOCK_ROOT.rglob("*.py")
+            if path.name in source_names and "tests" not in path.parts
+        )
+        self.assertEqual({path.name for path in sources}, source_names)
+        forbidden_literals = (
+            "vectors.json",
+            "suite.json",
+            "ASP-V-",
+            "expected_",
+            "required_observations",
+            "forbidden_observations",
+        )
+        for path in sources:
+            source = path.read_text(encoding="utf-8")
+            with self.subTest(path=path):
+                for literal in forbidden_literals:
+                    self.assertNotIn(literal, source)
+                tree = ast.parse(source, filename=str(path))
+                imported_roots = {
+                    alias.name.split(".", 1)[0]
+                    for node in ast.walk(tree)
+                    if isinstance(node, ast.Import)
+                    for alias in node.names
+                }
+                imported_roots.update(
+                    node.module.split(".", 1)[0]
+                    for node in ast.walk(tree)
+                    if isinstance(node, ast.ImportFrom) and node.module
+                )
+                self.assertNotIn("conformance", imported_roots)
+
+    def test_raw_credentials_and_authority_widening_fail_without_release(self) -> None:
+        for vector_id in ("ASP-V-RM-002", "ASP-V-RM-003", "ASP-V-AA-002"):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertNotIn("action_accepted", result.tokens)
+                for state, before in result.state_before.items():
+                    if state in {
+                        "runtime.credential_release_count",
+                        "credential.agent_visible_count",
+                        "credential.adapter_retained_count",
+                        "runtime.stored_grant_width",
+                    }:
+                        self.assertEqual(result.state_after[state], before)
+
+    def test_revoked_or_unknown_authority_never_dispatches(self) -> None:
+        for vector_id in ("ASP-V-AE-006", "ASP-V-RM-004"):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertNotIn("action_accepted", result.tokens)
+                self.assertNotIn("typed_request_forwarded", result.tokens)
+                if "action.dispatch_count" in result.state_before:
+                    self.assertEqual(
+                        result.state_after["action.dispatch_count"],
+                        result.state_before["action.dispatch_count"],
+                    )
+
+    def test_idempotency_conflicts_have_no_additional_effect(self) -> None:
+        for vector_id in (
+            "ASP-V-AE-004",
+            "ASP-V-AE-005",
+            "ASP-V-AE-010",
+            "ASP-V-AE-014",
+        ):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertEqual(result.asp_error, "idempotency_conflict")
+                for state in (
+                    "action.dispatch_count",
+                    "action.effect_count",
+                    "budget.application_charge",
+                    "idempotency.record_count",
+                    "idempotency.record_version",
+                    "receipt.application_count",
+                ):
+                    self.assertEqual(result.state_after[state], result.state_before[state])
+
+    def test_receipt_role_forgery_never_creates_authoritative_evidence(self) -> None:
+        for vector_id in (
+            "ASP-V-RP-003",
+            "ASP-V-RP-004",
+            "ASP-V-RP-007",
+            "ASP-V-RP-008",
+            "ASP-V-AA-004",
+        ):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertNotIn("action_accepted", result.tokens)
+                for state, before in result.state_before.items():
+                    if (
+                        state.startswith("receipt.")
+                        or state == "adapter.fabricated_evidence_count"
+                    ):
+                        self.assertEqual(result.state_after[state], before)
+
+
+class MockStateSecurityTests(unittest.TestCase):
+    def journal(self, scope: Scope, *, marker: str = "original") -> dict[str, Any]:
+        return {
+            "run_id": scope.run_id,
+            "vector_id": scope.vector_id,
+            "boundary_id": scope.boundary_id,
+            "marker": marker,
+        }
+
+    def test_journal_scope_is_initialized_exactly_once(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = JournalStore(directory)
+            scope = Scope("run-a", "vector-a", "boundary-a")
+            journal = self.journal(scope)
+            path = store.initialize(scope, journal)
+            self.assertEqual(store.read(scope), journal)
+            self.assertEqual(path.name, "journal.json")
+            with self.assertRaisesRegex(StateError, "already initialized"):
+                store.initialize(scope, journal)
+
+    def test_initialize_rejects_non_ijson_before_creating_scope(self) -> None:
+        invalid_values = (1.5, 2**53, "\ud800")
+        for value in invalid_values:
+            with self.subTest(value=repr(value)), tempfile.TemporaryDirectory() as directory:
+                store = JournalStore(directory)
+                scope = Scope("run-a", "vector-a", "boundary-a")
+                journal = self.journal(scope)
+                journal["invalid"] = value
+                with self.assertRaises(StateError):
+                    store.initialize(scope, journal)
+                self.assertFalse((store.root / scope.key).exists())
+
+    def test_family_boundary_run_and_vector_namespaces_are_disjoint(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            app_store = JournalStore(root / "app")
+            runtime_store = JournalStore(root / "runtime")
+            scopes = (
+                Scope("run-a", "vector-a", "boundary-a"),
+                Scope("run-b", "vector-a", "boundary-a"),
+                Scope("run-a", "vector-b", "boundary-a"),
+                Scope("run-a", "vector-a", "boundary-b"),
+            )
+            paths = []
+            for index, scope in enumerate(scopes):
+                marker = f"app-{index}"
+                paths.append(app_store.initialize(scope, self.journal(scope, marker=marker)))
+                self.assertEqual(app_store.read(scope)["marker"], marker)
+            self.assertEqual(len({path.parent for path in paths}), len(scopes))
+
+            runtime_path = runtime_store.initialize(
+                scopes[0], self.journal(scopes[0], marker="runtime")
+            )
+            self.assertNotEqual(runtime_path.parent, paths[0].parent)
+            self.assertEqual(app_store.read(scopes[0])["marker"], "app-0")
+            self.assertEqual(runtime_store.read(scopes[0])["marker"], "runtime")
+
+    def test_scope_binding_conflicts_and_stale_binding_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = JournalStore(directory)
+            scope = Scope("run-a", "vector-a", "boundary-a")
+            wrong = self.journal(scope)
+            wrong["boundary_id"] = "boundary-b"
+            with self.assertRaisesRegex(StateError, "conflicts"):
+                store.initialize(scope, wrong)
+
+            path = store.initialize(scope, self.journal(scope))
+            value = json.loads(path.read_text(encoding="utf-8"))
+            value["run_id"] = "stale-run"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            with self.assertRaisesRegex(StateError, "stale run_id"):
+                store.read(scope)
+
+    def test_truncated_duplicate_and_incomplete_journals_fail_closed(self) -> None:
+        corrupt_payloads = (
+            "{",
+            '{"run_id":"run-a","run_id":"run-a","vector_id":"vector-a",'
+            '"boundary_id":"boundary-a"}',
+            '{"run_id":"run-a","vector_id":"vector-a",'
+            '"boundary_id":"boundary-a","counter":1.5}',
+            '{"run_id":"run-a","vector_id":"vector-a",'
+            '"boundary_id":"boundary-a","counter":9007199254740992}',
+            '{"run_id":"run-a","vector_id":"vector-a",'
+            '"boundary_id":"boundary-a","text":"\\ud800"}',
+        )
+        for payload in corrupt_payloads:
+            with self.subTest(payload=payload), tempfile.TemporaryDirectory() as directory:
+                store = JournalStore(directory)
+                scope = Scope("run-a", "vector-a", "boundary-a")
+                path = store.initialize(scope, self.journal(scope))
+                path.write_text(payload, encoding="utf-8")
+                with self.assertRaisesRegex(StateError, "corrupt"):
+                    store.read(scope)
+
+        with tempfile.TemporaryDirectory() as directory:
+            store = JournalStore(directory)
+            scope = Scope("run-a", "vector-a", "boundary-a")
+            path = store.initialize(scope, self.journal(scope))
+            (path.parent / "journal.json.tmp").write_text("{}", encoding="utf-8")
+            with self.assertRaisesRegex(StateError, "absent or incomplete"):
+                store.read(scope)
+
+    def test_scope_directory_symlink_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = JournalStore(root / "store")
+            scope = Scope("run-a", "vector-a", "boundary-a")
+            external = root / "external"
+            external.mkdir()
+            (external / "journal.json").write_text(
+                json.dumps(self.journal(scope)), encoding="utf-8"
+            )
+            store.root.mkdir(parents=True)
+            (store.root / scope.key).symlink_to(external, target_is_directory=True)
+            with self.assertRaises(StateError):
+                store.read(scope)
+
+    def test_participant_input_rejects_duplicate_members_and_floats(self) -> None:
+        with self.assertRaisesRegex(ParticipantError, "duplicate JSON"):
+            load_request(io.StringIO('{"operation":"a","operation":"b"}'))
+        with self.assertRaisesRegex(ParticipantError, "floating-point"):
+            load_request(io.StringIO('{"operation":1.5}'))
+        with self.assertRaisesRegex(ParticipantError, "safe range"):
+            load_request(io.StringIO('{"operation":9007199254740992}'))
+        with self.assertRaisesRegex(ParticipantError, "invalid Unicode"):
+            load_request(io.StringIO('{"operation":"\\ud800"}'))
+
+    def test_journal_rejects_invalid_unicode_member_names_before_write(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = JournalStore(directory)
+            scope = Scope("run-a", "vector-a", "boundary-a")
+            journal = self.journal(scope)
+            journal["\ud800"] = "value"
+            with self.assertRaisesRegex(StateError, "invalid Unicode"):
+                store.initialize(scope, journal)
+            self.assertFalse(store._directory(scope).exists())
+
+
+class MockParticipantSecurityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.catalog = validate_catalog(ROOT)
+
+    def inventory_request(self, profile_id: str, producer_role: str | None = None) -> dict:
+        locator: dict[str, Any] = {
+            "profile_id": profile_id,
+            "boundary_id": "test/boundary",
+        }
+        if producer_role is not None:
+            locator["producer_role"] = producer_role
+        return {
+            "probe_protocol": "asp-conformance-probe/1",
+            "operation": "inventory",
+            "run_id": "run-role-ownership",
+            "subject_sha256": digest("subject"),
+            "harness_sha256": digest("harness"),
+            "subject_locator": locator,
+        }
+
+    def subject(self, *, subject_kind: str = "suite_fixture") -> dict[str, Any]:
+        counterparts: list[dict[str, Any]] = []
+        for index, (profile_id, producer_role) in enumerate(
+            (
+                (RM, None),
+                (GI, None),
+                (RP, "runtime"),
+            ),
+            start=1,
+        ):
+            counterpart = {
+                "kind": "suite_fixture",
+                "boundary_id": f"mock/counterpart-{index}",
+                "profile_id": profile_id,
+                "artifact_sha256": digest(f"counterpart-artifact-{index}"),
+                "configuration_sha256": digest(f"counterpart-config-{index}"),
+            }
+            if producer_role is not None:
+                counterpart["producer_role"] = producer_role
+            counterparts.append(counterpart)
+        return {
+            "schema_version": 1,
+            "subject_kind": subject_kind,
+            "subject_id": "mock-action-executor",
+            "boundary_id": "mock/app",
+            "implementation": {
+                "name": "reference-mock-app",
+                "version": "1.0.0",
+                "artifact_sha256": digest("mock-app-artifact"),
+                "configuration_sha256": digest("mock-app-configuration"),
+            },
+            "profile_id": AE,
+            "protocol_version": "agent-surface/0.1",
+            "features": list(FEATURE_INVENTORY[AE]),
+            "counterparts": counterparts,
+        }
+
+    def run_subject(
+        self,
+        subject: dict[str, Any],
+        *,
+        adapter: Path | None = None,
+        probe: Path | None = None,
+    ) -> dict[str, Any]:
+        return run_suite(
+            subject=subject,
+            adapter=adapter or MOCK_ROOT / "adapter.py",
+            probe=probe or MOCK_ROOT / "probe.py",
+            adapter_id="reference-mock-adapter",
+            adapter_version="1.0.0",
+            adapter_configuration_sha256=digest("mock-adapter-configuration"),
+            probe_id="reference-mock-probe",
+            probe_version="1.0.0",
+            probe_configuration_sha256=digest("mock-probe-configuration"),
+            root=ROOT,
+        )
+
+    def test_app_and_runtime_role_ownership_is_closed(self) -> None:
+        self.assertEqual(family_for(SP), "app")
+        self.assertEqual(family_for(GI), "app")
+        self.assertEqual(family_for(AE), "app")
+        self.assertEqual(family_for(RP, "application"), "app")
+        self.assertEqual(family_for(RM), "runtime")
+        self.assertEqual(family_for(RP, "runtime"), "runtime")
+
+        self.assertEqual(inventory("app", self.inventory_request(SP))["feature_ids"], list(FEATURE_INVENTORY[SP]))
+        self.assertEqual(inventory("runtime", self.inventory_request(RM))["feature_ids"], list(FEATURE_INVENTORY[RM]))
+        with self.assertRaisesRegex(ParticipantError, "outside"):
+            inventory("runtime", self.inventory_request(SP))
+        with self.assertRaisesRegex(ParticipantError, "outside"):
+            inventory("app", self.inventory_request(RM))
+
+    def test_canonical_bundle_binds_the_security_test_artifact(self) -> None:
+        manifest = json.loads(
+            (MOCK_ROOT / "v1" / "manifest.json").read_text(encoding="utf-8")
+        )
+        artifact_paths = [item["path"] for item in manifest["artifacts"]]
+        self.assertIn("mocks/tests/test_mocks.py", artifact_paths)
+
+    def test_suite_fixture_counterparts_leave_interop_unavailable_and_incomplete(self) -> None:
+        report = self.run_subject(self.subject())
+        interop_results = [
+            result
+            for result in report["results"]
+            if self.catalog.vectors[result["vector_id"]]["execution_class"] == "interop"
+        ]
+        behavioral_results = [
+            result
+            for result in report["results"]
+            if self.catalog.vectors[result["vector_id"]]["execution_class"] != "interop"
+        ]
+        self.assertTrue(interop_results)
+        self.assertTrue(behavioral_results)
+        self.assertTrue(
+            all(
+                result["status"] == "error"
+                and result["failure_token"] == "unavailable_probe"
+                and not result["observation_ids"]
+                for result in interop_results
+            )
+        )
+        self.assertTrue(all(result["status"] == "pass" for result in behavioral_results))
+        self.assertEqual(report["summary"]["suite_verdict"], "incomplete")
+        self.assertEqual(
+            report["summary"]["incomplete_reasons"],
+            ["execution_error", "suite_fixture"],
+        )
+
+    def test_bundled_or_byte_identical_mocks_cannot_claim_implementation(self) -> None:
+        subject = self.subject(subject_kind="implementation")
+        with self.assertRaisesRegex(ConformanceError, "reference fixtures"):
+            self.run_subject(subject)
+
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = Path(directory) / "renamed-adapter.py"
+            probe = Path(directory) / "renamed-probe.py"
+            shutil.copy2(MOCK_ROOT / "adapter.py", adapter)
+            shutil.copy2(MOCK_ROOT / "probe.py", probe)
+            with self.assertRaisesRegex(ConformanceError, "reference fixtures"):
+                self.run_subject(subject, adapter=adapter, probe=probe)
+
+if __name__ == "__main__":
+    unittest.main()
