@@ -28,6 +28,14 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Set up Rust
+        shell: bash
+        run: >-
+          rustup toolchain install 1.97.0
+          --profile minimal
+          --component rustfmt
+          --component clippy
+
       - name: Check required RFC draft
         shell: bash
         run: |

@@ -1,0 +1,4 @@
+[workspace]
+members = ["tools/asp-manifest-linter"]
+resolver = "3"
+

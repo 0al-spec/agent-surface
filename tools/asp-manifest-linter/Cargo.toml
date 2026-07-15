@@ -1,0 +1,24 @@
+[package]
+name = "asp-manifest-linter"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Fail-closed linter for Agent Surface Protocol manifests"
+repository = "https://github.com/0al-spec/agent-surface"
+rust-version = "1.97"
+
+[lib]
+name = "asp_manifest_linter"
+path = "src/lib.rs"
+
+[[bin]]
+name = "asp-lint"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.6", features = ["derive"] }
+jsonschema = { version = "0.47", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+

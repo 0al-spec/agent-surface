@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/tools/asp-manifest-linter/rules/schema/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "ruleset_id", "ruleset_version", "rules"],
+  "properties": {
+    "$schema": {"const": "../../schema/rules.schema.json"},
+    "schema_version": {"const": 1},
+    "ruleset_id": {"const": "https://github.com/0al-spec/agent-surface/tools/asp-manifest-linter/rules/v1"},
+    "ruleset_version": {"const": "1.0.0"},
+    "rules": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {"$ref": "#/$defs/rule"}
+    }
+  },
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule_id", "title", "severity", "rfc_anchor", "help"],
+      "properties": {
+        "rule_id": {
+          "enum": [
+            "ASP-LINT-SCHEMA-001",
+            "ASP-LINT-RISK-001",
+            "ASP-LINT-IDEMPOTENCY-001",
+            "ASP-LINT-SCOPE-001"
+          ]
+        },
+        "title": {"type": "string", "minLength": 1},
+        "severity": {"enum": ["error", "warning"]},
+        "rfc_anchor": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "help": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
+

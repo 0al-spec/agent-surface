@@ -14,6 +14,7 @@ agent-surface/
   drafts/                  Source RFCs written in Markdown.
   conformance/             Executable role matrix, vectors, schemas, and runner.
   mocks/                   Synthetic Mock App and Mock Runtime suite fixtures.
+  tools/                   Rust protocol tooling and machine-readable rules.
   schema/                  Optional JSON/YAML schemas.
   generated/               Optional generated XML, TXT, or PDF artifacts.
   examples/                Optional example manifests, grants, and receipts.
@@ -68,6 +69,10 @@ agent-surface/
   stores, and tests mutually consistent and run `make mock-check`. Mock-backed
   subjects remain `suite_fixture`; the versioned mock control protocol is not
   an ASP wire protocol and must use only synthetic data.
+- Keep the ASP manifest linter implementation, rule registry, diagnostic
+  schemas, fixtures, and `Cargo.lock` consistent and run
+  `make manifest-lint-check`. Linter output is static declaration evidence,
+  not protocol authority or a conformance claim.
 - Prefer proposal-first workflows for risky actions:
 
   ```text
