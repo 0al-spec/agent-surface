@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/subject/v1",
+  "title": "ASP Atomic Conformance Subject v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "subject_kind",
+    "subject_id",
+    "boundary_id",
+    "implementation",
+    "profile_id",
+    "protocol_version",
+    "features",
+    "counterparts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "subject_kind": {
+      "enum": [
+        "implementation",
+        "suite_fixture"
+      ]
+    },
+    "subject_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "boundary_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$"
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "artifact_sha256",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "artifact_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "profile_id": {
+      "$ref": "#/$defs/profileId"
+    },
+    "protocol_version": {
+      "const": "agent-surface/0.1"
+    },
+    "features": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/featureId"
+      }
+    },
+    "producer_role": {
+      "enum": [
+        "application",
+        "runtime"
+      ]
+    },
+    "counterparts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/counterpart"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "profile_id": {
+            "const": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1"
+          }
+        },
+        "required": [
+          "profile_id"
+        ]
+      },
+      "then": {
+        "required": [
+          "producer_role"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "producer_role"
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$"
+    },
+    "profileId": {
+      "enum": [
+        "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
+      ]
+    },
+    "featureId": {
+      "enum": [
+        "agent-surface/feature/proposal-only",
+        "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1"
+      ]
+    },
+    "counterpart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "boundary_id",
+        "profile_id",
+        "artifact_sha256",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "implementation",
+            "suite_fixture"
+          ]
+        },
+        "boundary_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$"
+        },
+        "profile_id": {
+          "$ref": "#/$defs/profileId"
+        },
+        "producer_role": {
+          "enum": [
+            "application",
+            "runtime"
+          ]
+        },
+        "artifact_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "profile_id": {
+                "const": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1"
+              }
+            },
+            "required": [
+              "profile_id"
+            ]
+          },
+          "then": {
+            "required": [
+              "producer_role"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "producer_role"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

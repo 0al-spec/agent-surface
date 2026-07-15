@@ -1,0 +1,2447 @@
+{
+  "$schema": "./vectors.schema.json",
+  "schema_version": 1,
+  "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
+  "suite_version": "1.0.0",
+  "vectors": [
+    {
+      "vector_id": "ASP-V-SP-001",
+      "title": "Publish a complete valid manifest",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-SP-001"
+      ],
+      "features": [],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "complete_references",
+        "standard_surface"
+      ],
+      "stimulus": {
+        "operation": "publish_manifest",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "manifest_published"
+      ],
+      "forbidden_observations": [
+        "manifest_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "surface.version_binding_count",
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-SP-002",
+      "title": "Reject reuse of a surface version with another hash",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-SP-001",
+      "requirement_ids": [
+        "ASP-SP-001"
+      ],
+      "features": [],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "complete_references"
+      ],
+      "stimulus": {
+        "operation": "publish_manifest",
+        "input_variant": "version_hash_reuse"
+      },
+      "expected_error": "surface_incompatible",
+      "required_observations": [
+        "manifest_rejected"
+      ],
+      "forbidden_observations": [
+        "manifest_published"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "surface.version_binding_count",
+          "before": 1,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-SP-003",
+      "title": "Reject incomplete manifest references",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-SP-001",
+      "requirement_ids": [
+        "ASP-SP-001"
+      ],
+      "features": [],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "standard_surface"
+      ],
+      "stimulus": {
+        "operation": "publish_manifest",
+        "input_variant": "incomplete_references"
+      },
+      "expected_error": "surface_incompatible",
+      "required_observations": [
+        "manifest_rejected"
+      ],
+      "forbidden_observations": [
+        "manifest_published"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-SP-004",
+      "title": "Reject state-changing semantics on a proposal-only surface",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-SP-001",
+      "requirement_ids": [
+        "ASP-SP-002"
+      ],
+      "features": [
+        "agent-surface/feature/proposal-only"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "valid_manifest",
+        "complete_references",
+        "proposal_only_surface"
+      ],
+      "stimulus": {
+        "operation": "publish_manifest",
+        "input_variant": "proposal_only_state_change"
+      },
+      "expected_error": "surface_incompatible",
+      "required_observations": [
+        "manifest_rejected"
+      ],
+      "forbidden_observations": [
+        "manifest_published"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-GI-001",
+      "title": "Issue an exact attenuated Grant from the current surface",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-GI-001",
+        "ASP-GI-002"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "closed_companion_set",
+        "valid_grant_tuple"
+      ],
+      "stimulus": {
+        "operation": "issue_grant",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "grant_issued",
+        "tuple_checked"
+      ],
+      "forbidden_observations": [
+        "grant_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.issued_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "credential.issued_count",
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-GI-002",
+      "title": "Reject issuance against a stale surface",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-GI-001",
+      "requirement_ids": [
+        "ASP-GI-001"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "valid_manifest",
+        "closed_companion_set",
+        "valid_grant_tuple"
+      ],
+      "stimulus": {
+        "operation": "issue_grant",
+        "input_variant": "stale_surface"
+      },
+      "required_observations": [
+        "grant_rejected",
+        "current_state_checked"
+      ],
+      "forbidden_observations": [
+        "grant_issued"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.issued_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-GI-003",
+      "title": "Reject an action set widened beyond the request",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-GI-001",
+      "requirement_ids": [
+        "ASP-GI-001"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "closed_companion_set",
+        "valid_grant_tuple"
+      ],
+      "stimulus": {
+        "operation": "issue_grant",
+        "input_variant": "widened_action_set"
+      },
+      "required_observations": [
+        "grant_rejected"
+      ],
+      "forbidden_observations": [
+        "grant_issued"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.issued_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-GI-004",
+      "title": "Reject an action allow-list missing a required companion",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-GI-001",
+      "requirement_ids": [
+        "ASP-GI-002"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "valid_grant_tuple"
+      ],
+      "stimulus": {
+        "operation": "issue_grant",
+        "input_variant": "unclosed_companion_set"
+      },
+      "required_observations": [
+        "grant_rejected"
+      ],
+      "forbidden_observations": [
+        "grant_issued"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.issued_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-GI-005",
+      "title": "Fail closed when selected Passport status is unavailable",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-GI-001",
+      "requirement_ids": [
+        "ASP-GI-003"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "closed_companion_set",
+        "valid_grant_tuple",
+        "passport_profile_selected"
+      ],
+      "stimulus": {
+        "operation": "issue_grant",
+        "input_variant": "passport_status_unavailable"
+      },
+      "required_observations": [
+        "grant_rejected",
+        "current_state_checked"
+      ],
+      "forbidden_observations": [
+        "grant_issued"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.issued_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-GI-006",
+      "title": "Revoke the complete semantic Grant lineage",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-GI-004"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "derived_active_grant",
+        "valid_credential",
+        "active_proof_session",
+        "active_execution_token",
+        "active_reservation",
+        "active_session",
+        "control_event_endpoint",
+        "current_surface"
+      ],
+      "stimulus": {
+        "operation": "revoke_grant",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "grant_revoked",
+        "child_grant_revoked",
+        "credential_invalidated",
+        "proof_session_invalidated",
+        "execution_token_invalidated",
+        "reservation_invalidated",
+        "control_event_emitted",
+        "revocation_fence_established",
+        "revocation_confirmed"
+      ],
+      "forbidden_observations": [
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.lifecycle",
+          "before": "active",
+          "after": "revoked"
+        },
+        {
+          "state": "grant.child_active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "credential.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "proof_session.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "execution_token.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "reservation.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "control_event.emitted_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "revocation.effective_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "revocation.confirmed_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "revocation.confirmed_after_effective",
+          "before": false,
+          "after": true
+        },
+        {
+          "state": "revocation.fence_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-GI-007",
+      "title": "Replay a confirmed semantic revocation without repeating side effects",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-GI-004"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "existing_revocation_record",
+        "current_surface"
+      ],
+      "stimulus": {
+        "operation": "revoke_grant",
+        "input_variant": "exact_revocation_replay"
+      },
+      "required_observations": [
+        "grant_revoked",
+        "original_revocation_replayed",
+        "revocation_confirmed"
+      ],
+      "forbidden_observations": [
+        "child_grant_revoked",
+        "credential_invalidated",
+        "proof_session_invalidated",
+        "execution_token_invalidated",
+        "reservation_invalidated",
+        "control_event_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.lifecycle",
+          "before": "revoked",
+          "after": "revoked"
+        },
+        {
+          "state": "grant.child_active_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.active_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "proof_session.active_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "execution_token.active_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "reservation.active_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "control_event.emitted_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "revocation.effective_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "revocation.confirmed_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "revocation.confirmed_after_effective",
+          "before": true,
+          "after": true
+        },
+        {
+          "state": "revocation.fence_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-001",
+      "title": "Admit an action under an exact active Grant tuple",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-001"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+          "producer_role": "application"
+        }
+      ],
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "active_grant",
+        "valid_grant_tuple",
+        "valid_credential",
+        "active_session",
+        "normalized_input",
+        "valid_policy",
+        "application_receipt_producer"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "action_accepted",
+        "tuple_checked",
+        "current_state_checked",
+        "application_receipt_emitted"
+      ],
+      "forbidden_observations": [
+        "action_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-002",
+      "title": "Replay the immutable original result without a second effect",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-002"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_grant_tuple",
+        "valid_credential",
+        "active_session",
+        "normalized_input",
+        "existing_idempotency_record",
+        "application_receipt_producer"
+      ],
+      "stimulus": {
+        "operation": "replay_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "original_result_replayed",
+        "same_receipt_replayed"
+      ],
+      "forbidden_observations": [
+        "action_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_version",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 1,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-003",
+      "title": "Reject a mismatched Grant tuple despite an issuer conformance claim",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-001"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+        }
+      ],
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_credential",
+        "active_session",
+        "trusted_counterpart"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "claimed_issuer_mismatched_grant"
+      },
+      "expected_error": "integrity_mismatch",
+      "required_observations": [
+        "action_rejected",
+        "tuple_checked"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-004",
+      "title": "Reject idempotency-key reuse with a different input hash",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-003"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_grant_tuple",
+        "valid_credential",
+        "active_session",
+        "existing_idempotency_record"
+      ],
+      "stimulus": {
+        "operation": "replay_action",
+        "input_variant": "different_input_hash"
+      },
+      "expected_error": "idempotency_conflict",
+      "required_observations": [
+        "action_rejected",
+        "approval_not_reopened"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_version",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "approval.interaction_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 1,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-005",
+      "title": "Reject idempotency-key reuse with a different execution hash",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-003"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_grant_tuple",
+        "valid_credential",
+        "active_session",
+        "existing_idempotency_record"
+      ],
+      "stimulus": {
+        "operation": "replay_action",
+        "input_variant": "different_execution_hash"
+      },
+      "expected_error": "idempotency_conflict",
+      "required_observations": [
+        "action_rejected",
+        "approval_not_reopened"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_version",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "approval.interaction_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 1,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-006",
+      "title": "Reject a revoked Grant before lookup or effect",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-001"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+        }
+      ],
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_grant_tuple",
+        "valid_credential",
+        "active_session"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "revoked_grant"
+      },
+      "expected_error": "grant_revoked",
+      "required_observations": [
+        "action_rejected",
+        "current_state_checked"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-007",
+      "title": "Record a high-risk policy denial without effect or budget charge",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-004"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_grant_tuple",
+        "valid_credential",
+        "active_session",
+        "application_receipt_producer"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "policy_denied"
+      },
+      "expected_error": "risk_denied",
+      "required_observations": [
+        "action_rejected",
+        "denial_recorded",
+        "application_receipt_emitted"
+      ],
+      "forbidden_observations": [
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-008",
+      "title": "Reject a mismatched current Runtime Identity revision",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-005"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1"
+      ],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+        }
+      ],
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_credential",
+        "active_session"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "runtime_identity_mismatch"
+      },
+      "expected_error": "runtime_untrusted",
+      "required_observations": [
+        "action_rejected",
+        "current_state_checked"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-009",
+      "title": "Reject unavailable current Runtime Attestation state",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1"
+      ],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+        }
+      ],
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_credential",
+        "active_session"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "runtime_attestation_unavailable"
+      },
+      "expected_error": "runtime_untrusted",
+      "required_observations": [
+        "action_rejected",
+        "current_state_checked"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-010",
+      "title": "Reject substitution of the admitted Approval Receipt hash set",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-007"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1"
+      ],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+          "producer_role": "runtime"
+        }
+      ],
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_grant_tuple",
+        "valid_credential",
+        "active_session",
+        "existing_idempotency_record",
+        "approval_profile_selected"
+      ],
+      "stimulus": {
+        "operation": "replay_action",
+        "input_variant": "approval_hash_substitution"
+      },
+      "expected_error": "idempotency_conflict",
+      "required_observations": [
+        "action_rejected",
+        "approval_not_reopened"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_version",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "approval.interaction_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 1,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-011",
+      "title": "Reject a sender credential for the wrong endpoint audience",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-001"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+        }
+      ],
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_credential",
+        "active_session"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "sender_credential_wrong_audience"
+      },
+      "expected_error": "grant_proof_invalid",
+      "required_observations": [
+        "credential_rejected",
+        "tuple_checked",
+        "action_rejected"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "credential.accepted_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-012",
+      "title": "Reject a sender proof bound to another ASP session",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-001"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+        }
+      ],
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_credential",
+        "active_session"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "proof_session_binding_mismatch"
+      },
+      "expected_error": "grant_proof_invalid",
+      "required_observations": [
+        "proof_rejected",
+        "tuple_checked",
+        "action_rejected"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "proof_session.accepted_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-013",
+      "title": "Reject input that is not a fixed point of manifest-pinned normalization",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-008"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_credential",
+        "active_session",
+        "pinned_input_schema"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "non_fixed_point_input"
+      },
+      "expected_error": "input_not_normalized",
+      "required_observations": [
+        "input_schema_checked",
+        "normalization_checked",
+        "action_rejected"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-014",
+      "title": "Reject idempotency-key reuse with another input schema hash",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-001",
+      "requirement_ids": [
+        "ASP-AE-003"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "active_grant",
+        "valid_credential",
+        "active_session",
+        "normalized_input",
+        "pinned_input_schema",
+        "existing_idempotency_record"
+      ],
+      "stimulus": {
+        "operation": "replay_action",
+        "input_variant": "different_input_schema_hash"
+      },
+      "expected_error": "idempotency_conflict",
+      "required_observations": [
+        "input_schema_checked",
+        "normalization_checked",
+        "action_rejected",
+        "approval_not_reopened"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_version",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "approval.interaction_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 1,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RP-001",
+      "title": "Produce a valid application-role receipt",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "producer_role": "application",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RP-001"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1"
+        }
+      ],
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "application_receipt_producer",
+        "valid_policy"
+      ],
+      "stimulus": {
+        "operation": "produce_receipt",
+        "input_variant": "valid_application_receipt"
+      },
+      "required_observations": [
+        "application_receipt_emitted",
+        "receipt_verified"
+      ],
+      "forbidden_observations": [
+        "runtime_receipt_emitted",
+        "receipt_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "receipt.runtime_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RP-002",
+      "title": "Produce a valid runtime-role receipt",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "producer_role": "runtime",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RP-002"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
+        }
+      ],
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "runtime_receipt_producer",
+        "valid_policy"
+      ],
+      "stimulus": {
+        "operation": "produce_receipt",
+        "input_variant": "valid_runtime_receipt"
+      },
+      "required_observations": [
+        "runtime_receipt_emitted",
+        "receipt_verified"
+      ],
+      "forbidden_observations": [
+        "application_receipt_emitted",
+        "receipt_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.runtime_count",
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RP-003",
+      "title": "Reject an application producer claiming a runtime observation",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "producer_role": "application",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RP-001",
+      "requirement_ids": [
+        "ASP-RP-001"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
+        }
+      ],
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "application_receipt_producer",
+        "trusted_counterpart"
+      ],
+      "stimulus": {
+        "operation": "produce_receipt",
+        "input_variant": "application_claims_runtime_observation"
+      },
+      "expected_error": "integrity_mismatch",
+      "required_observations": [
+        "receipt_rejected"
+      ],
+      "forbidden_observations": [
+        "application_receipt_emitted",
+        "runtime_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.runtime_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RP-004",
+      "title": "Reject a runtime producer claiming an application effect",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "producer_role": "runtime",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RP-002",
+      "requirement_ids": [
+        "ASP-RP-002"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1"
+        }
+      ],
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "runtime_receipt_producer",
+        "trusted_counterpart"
+      ],
+      "stimulus": {
+        "operation": "produce_receipt",
+        "input_variant": "runtime_claims_application_effect"
+      },
+      "expected_error": "integrity_mismatch",
+      "required_observations": [
+        "receipt_rejected"
+      ],
+      "forbidden_observations": [
+        "application_receipt_emitted",
+        "runtime_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.runtime_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RP-005",
+      "title": "Reject a receipt with a mutated complete-object hash",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "producer_role": "application",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RP-001",
+      "requirement_ids": [
+        "ASP-RP-003"
+      ],
+      "features": [],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "application_receipt_producer"
+      ],
+      "stimulus": {
+        "operation": "verify_receipt",
+        "input_variant": "receipt_hash_mutated"
+      },
+      "expected_error": "integrity_mismatch",
+      "required_observations": [
+        "receipt_rejected"
+      ],
+      "forbidden_observations": [
+        "receipt_verified",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "receipt.application_count",
+          "before": 1,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RP-006",
+      "title": "Reject a runtime receipt with a mutated complete-object hash",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "producer_role": "runtime",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RP-002",
+      "requirement_ids": [
+        "ASP-RP-004"
+      ],
+      "features": [],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "runtime_receipt_producer"
+      ],
+      "stimulus": {
+        "operation": "verify_receipt",
+        "input_variant": "receipt_hash_mutated"
+      },
+      "expected_error": "integrity_mismatch",
+      "required_observations": [
+        "receipt_rejected"
+      ],
+      "forbidden_observations": [
+        "receipt_verified",
+        "runtime_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "receipt.runtime_count",
+          "before": 1,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RP-007",
+      "title": "Reject application receipt input that claims action authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "producer_role": "application",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RP-001",
+      "requirement_ids": [
+        "ASP-RP-005"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "application_receipt_producer"
+      ],
+      "stimulus": {
+        "operation": "produce_receipt",
+        "input_variant": "receipt_claims_authority"
+      },
+      "required_observations": [
+        "receipt_rejected"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted",
+        "runtime_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.runtime_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RP-008",
+      "title": "Reject runtime receipt input that claims action authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "producer_role": "runtime",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RP-002",
+      "requirement_ids": [
+        "ASP-RP-006"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "runtime_receipt_producer"
+      ],
+      "stimulus": {
+        "operation": "produce_receipt",
+        "input_variant": "receipt_claims_authority"
+      },
+      "required_observations": [
+        "receipt_rejected"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted",
+        "runtime_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.runtime_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-001",
+      "title": "Mediate an exact typed action under a narrowed Grant",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-001"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1"
+        }
+      ],
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "active_grant",
+        "valid_grant_tuple",
+        "valid_credential",
+        "active_session",
+        "typed_runtime_api",
+        "trusted_counterpart"
+      ],
+      "stimulus": {
+        "operation": "mediate_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "typed_request_forwarded",
+        "action_accepted",
+        "tuple_checked"
+      ],
+      "forbidden_observations": [
+        "mediation_stopped"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-002",
+      "title": "Reject a returned Grant wider than the confirmed request",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-001",
+      "requirement_ids": [
+        "ASP-RM-001"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+        }
+      ],
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "valid_grant_tuple",
+        "trusted_counterpart"
+      ],
+      "stimulus": {
+        "operation": "mediate_grant",
+        "input_variant": "wider_returned_grant"
+      },
+      "expected_error": "integrity_mismatch",
+      "required_observations": [
+        "grant_rejected",
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "typed_request_forwarded"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-003",
+      "title": "Reject unconstrained raw credential release",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-001",
+      "requirement_ids": [
+        "ASP-RM-002"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_credential",
+        "active_session",
+        "typed_runtime_api"
+      ],
+      "stimulus": {
+        "operation": "mediate_action",
+        "input_variant": "raw_credential_release"
+      },
+      "expected_policy_reason": "local_policy_denied",
+      "required_observations": [
+        "local_denial_recorded",
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "typed_request_forwarded"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.credential_release_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.adapter_retained_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-004",
+      "title": "Stop mediation while revocation state is unknown",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-001",
+      "requirement_ids": [
+        "ASP-RM-003"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_credential",
+        "active_session"
+      ],
+      "stimulus": {
+        "operation": "mediate_action",
+        "input_variant": "revocation_state_unknown"
+      },
+      "required_observations": [
+        "current_state_checked",
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "typed_request_forwarded",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.lifecycle",
+          "before": "active",
+          "after": "inactive"
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-005",
+      "title": "Do not retry an unknown outcome under a new key",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-001",
+      "requirement_ids": [
+        "ASP-RM-004"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_credential",
+        "active_session",
+        "typed_runtime_api"
+      ],
+      "stimulus": {
+        "operation": "retry_outcome",
+        "input_variant": "unknown_outcome_new_key"
+      },
+      "expected_error": "outcome_unknown",
+      "required_observations": [
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "typed_request_forwarded",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.retry_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 1,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-006",
+      "title": "Reject an invalid Grant despite an upstream conformance claim",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-001",
+      "requirement_ids": [
+        "ASP-RM-005"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+        }
+      ],
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "trusted_counterpart"
+      ],
+      "stimulus": {
+        "operation": "mediate_grant",
+        "input_variant": "claimed_issuer_mismatched_grant"
+      },
+      "expected_error": "integrity_mismatch",
+      "required_observations": [
+        "grant_rejected",
+        "tuple_checked",
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "typed_request_forwarded"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-007",
+      "title": "Block disclosure while the remote-processing path is unknown",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-001",
+      "requirement_ids": [
+        "ASP-RM-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_credential",
+        "active_session",
+        "remote_privacy_profile_selected"
+      ],
+      "stimulus": {
+        "operation": "mediate_action",
+        "input_variant": "unknown_remote_path"
+      },
+      "expected_match_reason": "input_unknown",
+      "required_observations": [
+        "current_state_checked",
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "typed_request_forwarded",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "runtime.remote_disclosure_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-008",
+      "title": "Block a training dispatch with a wider recipient policy",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-001",
+      "requirement_ids": [
+        "ASP-RM-007"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_credential",
+        "active_session",
+        "training_profile_selected"
+      ],
+      "stimulus": {
+        "operation": "mediate_action",
+        "input_variant": "training_policy_wider"
+      },
+      "expected_error": "training_use_denied",
+      "required_observations": [
+        "local_denial_recorded",
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "typed_request_forwarded",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "runtime.training_dispatch_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-009",
+      "title": "Discard a stale Capability Match Result before consent",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-001",
+      "requirement_ids": [
+        "ASP-RM-008"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "valid_manifest",
+        "capability_match_current"
+      ],
+      "stimulus": {
+        "operation": "mediate_grant",
+        "input_variant": "stale_capability_match"
+      },
+      "expected_match_reason": "input_unknown",
+      "required_observations": [
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "grant_issued",
+        "typed_request_forwarded"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AA-001",
+      "title": "Translate an exact typed action through the runtime API",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AA-001"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
+        }
+      ],
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "typed_runtime_api",
+        "trusted_counterpart"
+      ],
+      "stimulus": {
+        "operation": "translate_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "typed_request_forwarded"
+      ],
+      "forbidden_observations": [
+        "adapter_request_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "adapter.forwarded_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "adapter.fabricated_evidence_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AA-002",
+      "title": "Reject a raw application credential",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AA-001",
+      "requirement_ids": [
+        "ASP-AA-002"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "typed_runtime_api"
+      ],
+      "stimulus": {
+        "operation": "translate_action",
+        "input_variant": "raw_credential"
+      },
+      "required_observations": [
+        "adapter_request_rejected",
+        "local_denial_recorded"
+      ],
+      "forbidden_observations": [
+        "typed_request_forwarded"
+      ],
+      "state_deltas": [
+        {
+          "state": "adapter.forwarded_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.adapter_retained_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AA-003",
+      "title": "Reject substitution of a stronger action",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AA-001",
+      "requirement_ids": [
+        "ASP-AA-001"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
+        }
+      ],
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "typed_runtime_api",
+        "trusted_counterpart"
+      ],
+      "stimulus": {
+        "operation": "translate_action",
+        "input_variant": "stronger_action_substitution"
+      },
+      "required_observations": [
+        "adapter_request_rejected"
+      ],
+      "forbidden_observations": [
+        "typed_request_forwarded",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "adapter.forwarded_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AA-004",
+      "title": "Reject fabrication of receipt evidence",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AA-001",
+      "requirement_ids": [
+        "ASP-AA-003"
+      ],
+      "features": [],
+      "execution_class": "interop",
+      "required_counterparts": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
+        }
+      ],
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "typed_runtime_api",
+        "trusted_counterpart"
+      ],
+      "stimulus": {
+        "operation": "translate_action",
+        "input_variant": "fabricated_receipt"
+      },
+      "expected_error": "integrity_mismatch",
+      "required_observations": [
+        "adapter_request_rejected",
+        "receipt_rejected"
+      ],
+      "forbidden_observations": [
+        "typed_request_forwarded",
+        "application_receipt_emitted",
+        "runtime_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "adapter.fabricated_evidence_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "adapter.forwarded_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AA-005",
+      "title": "Do not blindly retry an unknown outcome",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AA-001",
+      "requirement_ids": [
+        "ASP-AA-004"
+      ],
+      "features": [],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "typed_runtime_api"
+      ],
+      "stimulus": {
+        "operation": "retry_outcome",
+        "input_variant": "unknown_outcome_retry"
+      },
+      "expected_error": "outcome_unknown",
+      "required_observations": [
+        "adapter_request_rejected"
+      ],
+      "forbidden_observations": [
+        "typed_request_forwarded",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.retry_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "adapter.forwarded_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    }
+  ]
+}

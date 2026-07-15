@@ -1,0 +1,458 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/report/v1",
+  "title": "ASP Atomic Conformance Report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "report_profile",
+    "report_id",
+    "run_id",
+    "claim_effect",
+    "suite",
+    "subject",
+    "runner",
+    "started_at",
+    "finished_at",
+    "feature_inventory",
+    "applicability",
+    "results",
+    "observations",
+    "summary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./report.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "report_profile": {
+      "const": "https://github.com/0al-spec/agent-surface/conformance/report/v1"
+    },
+    "report_id": {
+      "type": "string",
+      "pattern": "^report-[A-Za-z0-9._:-]{1,128}$"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "claim_effect": {
+      "const": "descriptive_only"
+    },
+    "suite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "suite_id",
+        "suite_version",
+        "protocol_version",
+        "catalog_sha256",
+        "specification_sha256"
+      ],
+      "properties": {
+        "suite_id": {
+          "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
+        },
+        "suite_version": {
+          "const": "1.0.0"
+        },
+        "protocol_version": {
+          "const": "agent-surface/0.1"
+        },
+        "catalog_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "specification_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "subject": {
+      "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/subject/v1"
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runner_id",
+        "runner_version",
+        "runner_artifact_sha256",
+        "adapter_id",
+        "adapter_version",
+        "adapter_artifact_sha256",
+        "adapter_configuration_sha256",
+        "probe_id",
+        "probe_version",
+        "probe_artifact_sha256",
+        "probe_configuration_sha256",
+        "timeout_seconds",
+        "execution_environment"
+      ],
+      "properties": {
+        "runner_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "runner_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "runner_artifact_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "adapter_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "adapter_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "adapter_artifact_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "adapter_configuration_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "probe_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "probe_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "probe_artifact_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "probe_configuration_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30
+        },
+        "execution_environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "os",
+            "architecture",
+            "python"
+          ],
+          "properties": {
+            "os": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "architecture": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "python": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        }
+      }
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "feature_inventory": {
+      "$ref": "#/$defs/featureInventory"
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applicable_vector_ids",
+        "not_applicable",
+        "uncovered_feature_ids"
+      ],
+      "properties": {
+        "applicable_vector_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/vectorId"
+          }
+        },
+        "not_applicable": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "vector_id",
+              "reason"
+            ],
+            "properties": {
+              "vector_id": {
+                "$ref": "#/$defs/vectorId"
+              },
+              "reason": {
+                "enum": [
+                  "feature_not_selected",
+                  "producer_role_mismatch"
+                ]
+              }
+            }
+          }
+        },
+        "uncovered_feature_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/featureId"
+          }
+        }
+      }
+    },
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/result"
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/observation/v1"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "suite_verdict",
+        "total",
+        "passed",
+        "failed",
+        "errors",
+        "not_applicable",
+        "incomplete_reasons"
+      ],
+      "properties": {
+        "suite_verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "incomplete"
+          ]
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "errors": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_applicable": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incomplete_reasons": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "execution_error",
+              "uncovered_feature",
+              "suite_fixture"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$"
+    },
+    "featureId": {
+      "enum": [
+        "agent-surface/feature/proposal-only",
+        "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1"
+      ]
+    },
+    "featureInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "run_id",
+        "subject_sha256",
+        "harness_sha256",
+        "captured_at",
+        "feature_ids"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "run_id": {
+          "type": "string",
+          "pattern": "^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "subject_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "harness_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "feature_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/featureId"
+          }
+        }
+      }
+    },
+    "vectorId": {
+      "type": "string",
+      "pattern": "^ASP-V-(SP|GI|AE|RP|RM|AA)-[0-9]{3}$"
+    },
+    "requirementId": {
+      "type": "string",
+      "pattern": "^ASP-(SP|GI|AE|RP|RM|AA)-[0-9]{3}$"
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vector_id",
+        "vector_sha256",
+        "status",
+        "requirement_ids",
+        "observation_ids"
+      ],
+      "properties": {
+        "vector_id": {
+          "$ref": "#/$defs/vectorId"
+        },
+        "vector_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "error"
+          ]
+        },
+        "requirement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/requirementId"
+          }
+        },
+        "observation_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^obs-[A-Za-z0-9._:-]{1,128}$"
+          }
+        },
+        "failure_token": {
+          "enum": [
+            "adapter_error",
+            "assertion_failed",
+            "invalid_observation",
+            "timeout",
+            "unavailable_probe"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "pass"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "failure_token"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "failure_token"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "error"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "else": {
+            "properties": {
+              "observation_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -62,6 +62,7 @@ agent-surface/
   .github/
     PULL_REQUEST_TEMPLATE.md
     workflows/docs.yml       Markdown, RFC, and dashboard checks.
+  conformance/             Versioned executable matrix, vectors, schemas, and runner.
   drafts/                  Source RFCs written in Markdown.
   review/                  Source data, template, and generated RFC review dashboard.
   LICENSE                  MIT license for repository source code.
@@ -95,8 +96,10 @@ canonical planning metadata. Reverse `blocks` links and `readiness` are derived
 during the build and MUST NOT be stored in `review-data.json`. A card is ready
 when every direct dependency has `present` coverage and at least `specified`
 maturity; the card's own coverage does not affect whether it is ready to be
-worked on. Maturity above `specified` remains fail-closed until authoritative
-evidence resolvers are added to the validation gate.
+worked on. `machine_validated` maturity is accepted only when canonical local
+schema and registry evidence resolves and the conformance catalog passes its
+semantic validator. Higher maturity remains fail-closed until implementation
+and independent interop evidence resolvers are added to the validation gate.
 The canonical file keeps `planning_metadata_mode` set to `required`;
 `transitional` exists only so schema v2 can validate the stacked migration
 without silently changing the v2 contract.
@@ -106,6 +109,41 @@ target release, and readiness. Its counters and Next/Previous navigation use
 the filtered card set. Dependency chips select the referenced card and relax
 only filters that would otherwise hide it.
 
+## Executable Conformance Suite
+
+The versioned suite in [`conformance/v1`](conformance/v1) maps stable
+requirements for the six role profiles to positive and negative vectors. Its
+runner executes one atomic role boundary through a separate adapter and emits a
+closed machine-readable report:
+
+```sh
+make conformance-check
+python3 conformance/check.py run \
+  --subject subject.json \
+  --adapter /absolute/path/to/test-adapter \
+  --adapter-id example-adapter \
+  --adapter-version 1.0.0 \
+  --adapter-configuration-sha256 "$ADAPTER_CONFIG_SHA256" \
+  --probe /absolute/path/to/authoritative-probe \
+  --probe-id example-probe \
+  --probe-version 1.0.0 \
+  --probe-configuration-sha256 "$PROBE_CONFIG_SHA256" \
+  --output report.json
+python3 conformance/check.py verify-report report.json \
+  --adapter /absolute/path/to/test-adapter \
+  --probe /absolute/path/to/authoritative-probe
+```
+
+Catalog vectors contain no commands, code, or target URLs. Digest-bound
+fixtures provide exact baseline documents and closed mutations. The runner
+invokes a stimulus adapter and separate authoritative probe without a shell,
+with a fresh working directory, minimal environment, process-group timeout, and
+captured-output limit for each vector. The adapter never receives the expected
+oracle. Both executables remain trusted test code and must be isolated by the
+operator. A report verdict is descriptive evidence for that exact catalog,
+subject artifact, configuration, harness, and run. It is not certification,
+protocol authority, or proof of complete role conformance.
+
 ## Status
 
 The specification is experimental and subject to change. The current draft is
@@ -114,9 +152,9 @@ shape, grant lifecycle, receipt semantics, and MVP boundaries.
 
 ## License
 
-- Specifications and documents in `drafts/`, `schema/`, `generated/`, and
-  `docs/` are licensed under the Creative Commons Attribution 4.0 International
-  License (CC BY 4.0).
+- Specifications and documents in `drafts/`, `schema/`, `generated/`, `docs/`,
+  and the declarative catalog under `conformance/v1/` are licensed under the
+  Creative Commons Attribution 4.0 International License (CC BY 4.0).
 - Source code and tooling, if added later, are licensed under the MIT License.
 
 See [LICENSE](./LICENSE) and [LICENSE-CC-BY-4.0](./LICENSE-CC-BY-4.0).

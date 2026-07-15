@@ -1,0 +1,595 @@
+{
+  "$schema": "./suite.schema.json",
+  "schema_version": 1,
+  "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
+  "suite_version": "1.0.0",
+  "protocol_version": "agent-surface/0.1",
+  "specification": {
+    "path": "drafts/agent-surface.md",
+    "hash_domain": "ASP-SPECIFICATION-SOURCE-V1"
+  },
+  "profiles": [
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "role": "surface_publisher",
+      "requirement_ids": [
+        "ASP-SP-001",
+        "ASP-SP-002"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "role": "grant_issuer",
+      "requirement_ids": [
+        "ASP-GI-001",
+        "ASP-GI-002",
+        "ASP-GI-003",
+        "ASP-GI-004"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "role": "action_executor",
+      "requirement_ids": [
+        "ASP-AE-001",
+        "ASP-AE-002",
+        "ASP-AE-003",
+        "ASP-AE-004",
+        "ASP-AE-005",
+        "ASP-AE-006",
+        "ASP-AE-007",
+        "ASP-AE-008"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "role": "receipt_producer",
+      "requirement_ids": [
+        "ASP-RP-001",
+        "ASP-RP-002",
+        "ASP-RP-003",
+        "ASP-RP-004",
+        "ASP-RP-005",
+        "ASP-RP-006"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "role": "runtime_mediator",
+      "requirement_ids": [
+        "ASP-RM-001",
+        "ASP-RM-002",
+        "ASP-RM-003",
+        "ASP-RM-004",
+        "ASP-RM-005",
+        "ASP-RM-006",
+        "ASP-RM-007",
+        "ASP-RM-008"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "role": "agent_adapter",
+      "requirement_ids": [
+        "ASP-AA-001",
+        "ASP-AA-002",
+        "ASP-AA-003",
+        "ASP-AA-004"
+      ]
+    }
+  ],
+  "features": [
+    {
+      "feature_id": "agent-surface/feature/proposal-only",
+      "title": "Proposal-Only Surface Mode",
+      "rfc_anchor": "proposal-only-surface-mode",
+      "requirement_ids": [
+        "ASP-SP-002"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+      "title": "Minimal Agent Passport Grant-Issuance Profile",
+      "rfc_anchor": "minimal-agent-passport-grant-issuance-profile",
+      "requirement_ids": [
+        "ASP-GI-003"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
+      "title": "Runtime Identity Profile",
+      "rfc_anchor": "runtime-identity-profile",
+      "requirement_ids": [
+        "ASP-AE-005"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
+      "title": "Remote Processing Privacy Profile",
+      "rfc_anchor": "remote-processing-privacy-profile",
+      "requirement_ids": [
+        "ASP-RM-006"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
+      "title": "Agent Training Use Policy Profile",
+      "rfc_anchor": "agent-training-use-policy-profile",
+      "requirement_ids": [
+        "ASP-RM-007"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
+      "title": "Runtime Attestation Optional Profile",
+      "rfc_anchor": "runtime-attestation-optional-profile",
+      "requirement_ids": [
+        "ASP-AE-006"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+      "title": "Approval Receipt Profile",
+      "rfc_anchor": "approval-receipt-profile",
+      "requirement_ids": [
+        "ASP-AE-007"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
+      "title": "Capability Match Result Profile",
+      "rfc_anchor": "capability-match-result-object",
+      "requirement_ids": [
+        "ASP-RM-008"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "requirement_id": "ASP-SP-001",
+      "title": "Publish a complete manifest with an injective surface version and hash binding",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "rfc_anchor": "surface-publisher-profile",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "static",
+      "vector_ids": [
+        "ASP-V-SP-001",
+        "ASP-V-SP-002",
+        "ASP-V-SP-003"
+      ]
+    },
+    {
+      "requirement_id": "ASP-SP-002",
+      "title": "Keep a proposal-only surface closed over read and propose semantics",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "rfc_anchor": "proposal-only-surface-mode",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "agent-surface/feature/proposal-only"
+      },
+      "execution_class": "static",
+      "vector_ids": [
+        "ASP-V-SP-004"
+      ]
+    },
+    {
+      "requirement_id": "ASP-GI-001",
+      "title": "Issue only an exact attenuation of the current verified surface and request",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "rfc_anchor": "grant-issuer-profile",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-GI-001",
+        "ASP-V-GI-002",
+        "ASP-V-GI-003"
+      ]
+    },
+    {
+      "requirement_id": "ASP-GI-002",
+      "title": "Reject an action allow-list not closed over required companions",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "rfc_anchor": "grant-issuer-profile",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-GI-001",
+        "ASP-V-GI-004"
+      ]
+    },
+    {
+      "requirement_id": "ASP-GI-003",
+      "title": "Fail closed when selected Passport status is unavailable",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "rfc_anchor": "minimal-agent-passport-grant-issuance-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-GI-005"
+      ]
+    },
+    {
+      "requirement_id": "ASP-GI-004",
+      "title": "Apply semantic revocation to the Grant lineage before confirming",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "rfc_anchor": "revocation-semantics",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-GI-006",
+        "ASP-V-GI-007"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-001",
+      "title": "Independently verify the exact active Grant and delegate tuple before admission",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "action-executor-profile",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "interop",
+      "vector_ids": [
+        "ASP-V-AE-001",
+        "ASP-V-AE-003",
+        "ASP-V-AE-006",
+        "ASP-V-AE-011",
+        "ASP-V-AE-012"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-002",
+      "title": "Return the immutable original outcome for an exact idempotent replay",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "idempotency",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AE-002"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-003",
+      "title": "Reject reuse of an idempotency key with changed input or execution binding",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "idempotency",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AE-004",
+        "ASP-V-AE-005",
+        "ASP-V-AE-014"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-004",
+      "title": "Deny a policy-rejected action without effect or budget admission",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "error-model",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AE-007"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-005",
+      "title": "Revalidate the exact current Runtime Identity projection",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "runtime-identity-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1"
+      },
+      "execution_class": "interop",
+      "vector_ids": [
+        "ASP-V-AE-008"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-006",
+      "title": "Reject unavailable or non-accepted current Runtime Attestation state",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "runtime-attestation-role-requirements",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1"
+      },
+      "execution_class": "interop",
+      "vector_ids": [
+        "ASP-V-AE-009"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-007",
+      "title": "Bind the exact admitted Approval Receipt role map into idempotency",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "approval-receipt-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1"
+      },
+      "execution_class": "interop",
+      "vector_ids": [
+        "ASP-V-AE-010"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-008",
+      "title": "Reject non-fixed-point input before idempotency lookup or effect",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "idempotency-input-normalization",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AE-013"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RP-001",
+      "title": "Produce only application-authoritative receipt observations",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "rfc_anchor": "receipt-producer-profile",
+      "applicability": {
+        "kind": "producer_role",
+        "producer_role": "application"
+      },
+      "execution_class": "interop",
+      "vector_ids": [
+        "ASP-V-RP-001",
+        "ASP-V-RP-003"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RP-002",
+      "title": "Produce only runtime-authoritative receipt observations",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "rfc_anchor": "receipt-producer-profile",
+      "applicability": {
+        "kind": "producer_role",
+        "producer_role": "runtime"
+      },
+      "execution_class": "interop",
+      "vector_ids": [
+        "ASP-V-RP-002",
+        "ASP-V-RP-004"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RP-003",
+      "title": "Reject an application receipt whose complete hashing view does not match its hash",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "rfc_anchor": "receipt-hash-chain",
+      "applicability": {
+        "kind": "producer_role",
+        "producer_role": "application"
+      },
+      "execution_class": "static",
+      "vector_ids": [
+        "ASP-V-RP-005"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RP-004",
+      "title": "Reject a runtime receipt whose complete hashing view does not match its hash",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "rfc_anchor": "receipt-hash-chain",
+      "applicability": {
+        "kind": "producer_role",
+        "producer_role": "runtime"
+      },
+      "execution_class": "static",
+      "vector_ids": [
+        "ASP-V-RP-006"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RP-005",
+      "title": "Reject application receipt input that claims action authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "rfc_anchor": "receipt-producer-profile",
+      "applicability": {
+        "kind": "producer_role",
+        "producer_role": "application"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RP-007"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RP-006",
+      "title": "Reject runtime receipt input that claims action authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "rfc_anchor": "receipt-producer-profile",
+      "applicability": {
+        "kind": "producer_role",
+        "producer_role": "runtime"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RP-008"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-001",
+      "title": "Store and mediate only a Grant equal to or narrower than confirmed authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "runtime-mediator-profile",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "interop",
+      "vector_ids": [
+        "ASP-V-RM-001",
+        "ASP-V-RM-002"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-002",
+      "title": "Keep the Grant Credential in runtime custody absent explicit constrained release",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "runtime-mediator-profile",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-003"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-003",
+      "title": "Stop new use while authoritative revocation state is unknown",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "revocation-semantics",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-004"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-004",
+      "title": "Do not blindly retry a partial or unknown outcome with new authority state",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "error-model",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-005"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-005",
+      "title": "Validate upstream role output independently of its conformance claim",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "conformance-claim-and-composition-rules",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "interop",
+      "vector_ids": [
+        "ASP-V-RM-006"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-006",
+      "title": "Block disclosure while the complete remote-processing path is unknown",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "remote-processing-privacy-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-007"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-007",
+      "title": "Block training dispatch when a recipient policy exceeds the permitted set",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "agent-training-use-policy-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-008"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-008",
+      "title": "Discard a stale Capability Match Result before selection or consent",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "capability-match-result-object",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-009"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AA-001",
+      "title": "Translate only the exact typed action, mode, session, and trace through runtime APIs",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "rfc_anchor": "agent-adapter-profile",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "interop",
+      "vector_ids": [
+        "ASP-V-AA-001",
+        "ASP-V-AA-003"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AA-002",
+      "title": "Reject raw application credentials and Grant Credentials",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "rfc_anchor": "agent-adapter-profile",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AA-002"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AA-003",
+      "title": "Never fabricate approval, effect, or receipt evidence",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "rfc_anchor": "agent-adapter-profile",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "interop",
+      "vector_ids": [
+        "ASP-V-AA-004"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AA-004",
+      "title": "Fail closed instead of blindly retrying an unknown outcome",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "rfc_anchor": "agent-adapter-profile",
+      "applicability": {
+        "kind": "always"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AA-005"
+      ]
+    }
+  ]
+}

@@ -2,18 +2,46 @@
 
 from __future__ import annotations
 
+import importlib
 import json
+import sys
 from collections import Counter, deque
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
 
 
 REVIEW_DIR = Path(__file__).resolve().parent
+REPO_ROOT = REVIEW_DIR.parent
 DATA_PATH = REVIEW_DIR / "review-data.json"
 SCHEMA_PATH = REVIEW_DIR / "review-data.schema.json"
+CONFORMANCE_V1_DIR = REPO_ROOT / "conformance" / "v1"
+CONFORMANCE_REGISTRIES = {
+    Path("conformance/v1/suite.json"),
+    Path("conformance/v1/vectors.json"),
+    Path("conformance/v1/fixtures.json"),
+}
+MACHINE_VALIDATED_REVIEW_BINDINGS = {
+    60: {
+        "rfc_anchor": {"interoperability-test-suite"},
+        "schema": {
+            "conformance/v1/suite.schema.json",
+            "conformance/v1/vectors.schema.json",
+            "conformance/v1/fixtures.schema.json",
+            "conformance/v1/subject.schema.json",
+            "conformance/v1/observation.schema.json",
+            "conformance/v1/report.schema.json",
+        },
+        "registry": {
+            "conformance/v1/suite.json",
+            "conformance/v1/vectors.json",
+            "conformance/v1/fixtures.json",
+        },
+    }
+}
 MATURITY_ORDER = (
     "proposal",
     "specified",
@@ -108,17 +136,25 @@ def validate_review_payload(
             raise ValueError(f"Review #{review_id} has duplicate evidence references: {formatted}")
         evidence_kinds = {item["kind"] for item in evidence}
         for item in evidence:
-            if item["kind"] != "rfc_anchor":
-                raise ValueError(
-                    f"Review #{review_id} evidence kind {item['kind']!r} is not supported "
-                    "until an authoritative resolver is configured"
-                )
+            kind = item["kind"]
             ref = item["ref"]
-            if ref not in actual_anchor_ids:
-                raise ValueError(f"Review #{review_id} evidence references unknown RFC anchor: {ref}")
-            if ref not in review_anchor_ids:
+            if kind == "rfc_anchor":
+                if ref not in actual_anchor_ids:
+                    raise ValueError(
+                        f"Review #{review_id} evidence references unknown RFC anchor: {ref}"
+                    )
+                if ref not in review_anchor_ids:
+                    raise ValueError(
+                        f"Review #{review_id} RFC evidence {ref!r} must also be declared in anchors"
+                    )
+            elif kind == "schema":
+                _validate_schema_evidence(review_id, ref)
+            elif kind == "registry":
+                _validate_registry_evidence(review_id, ref)
+            else:
                 raise ValueError(
-                    f"Review #{review_id} RFC evidence {ref!r} must also be declared in anchors"
+                    f"Review #{review_id} evidence kind {kind!r} is not supported "
+                    "until an authoritative resolver is configured"
                 )
 
         maturity = review.get("maturity")
@@ -127,7 +163,7 @@ def validate_review_payload(
                 raise ValueError(
                     f"Review #{review_id} status {review['status']!r} cannot exceed proposal maturity"
                 )
-            _validate_maturity_evidence(review_id, maturity, evidence_kinds)
+            _validate_maturity_evidence(review_id, maturity, evidence)
 
 
 def normalize_reviews(
@@ -246,12 +282,113 @@ def _validate_dependency_graph(
 
 
 def _validate_maturity_evidence(
-    review_id: int, maturity: str, evidence_kinds: set[str]
+    review_id: int, maturity: str, evidence: list[dict[str, str]]
 ) -> None:
-    if maturity not in {"proposal", "specified"}:
+    evidence_kinds = {item["kind"] for item in evidence}
+    if maturity not in {"proposal", "specified", "machine_validated"}:
         raise ValueError(
             f"Review #{review_id} maturity {maturity!r} is not supported until "
             "authoritative evidence resolvers are configured"
         )
     if maturity == "specified" and "rfc_anchor" not in evidence_kinds:
         raise ValueError(f"Review #{review_id} maturity {maturity!r} requires rfc_anchor evidence")
+    if maturity == "machine_validated":
+        binding = MACHINE_VALIDATED_REVIEW_BINDINGS.get(review_id)
+        if binding is None:
+            raise ValueError(
+                f"Review #{review_id} has no authoritative machine-validation binding"
+            )
+        evidence_refs = {
+            kind: {item["ref"] for item in evidence if item["kind"] == kind}
+            for kind in binding
+        }
+        missing = {
+            kind: sorted(required_refs - evidence_refs[kind])
+            for kind, required_refs in binding.items()
+            if required_refs - evidence_refs[kind]
+        }
+        if missing:
+            details = "; ".join(
+                f"{kind}: {', '.join(refs)}" for kind, refs in sorted(missing.items())
+            )
+            raise ValueError(
+                f"Review #{review_id} maturity {maturity!r} is missing bound evidence: "
+                + details
+            )
+
+
+def _resolve_repository_evidence_file(review_id: int, kind: str, ref: str) -> Path:
+    """Resolve one evidence ref without permitting paths outside the repository."""
+
+    relative_path = Path(ref)
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        raise ValueError(
+            f"Review #{review_id} {kind} evidence ref must be repository-relative "
+            f"and must not contain '..': {ref!r}"
+        )
+    try:
+        resolved_path = (REPO_ROOT / relative_path).resolve(strict=True)
+        resolved_path.relative_to(REPO_ROOT)
+    except (FileNotFoundError, OSError, ValueError) as error:
+        raise ValueError(
+            f"Review #{review_id} {kind} evidence ref does not resolve to a repository file: "
+            f"{ref!r}"
+        ) from error
+    if not resolved_path.is_file():
+        raise ValueError(
+            f"Review #{review_id} {kind} evidence ref is not a regular file: {ref!r}"
+        )
+    return resolved_path
+
+
+def _validate_schema_evidence(review_id: int, ref: str) -> None:
+    schema_path = _resolve_repository_evidence_file(review_id, "schema", ref)
+    if schema_path.parent != CONFORMANCE_V1_DIR or not schema_path.name.endswith(
+        ".schema.json"
+    ):
+        raise ValueError(
+            f"Review #{review_id} schema evidence must reference "
+            f"conformance/v1/*.schema.json: {ref!r}"
+        )
+    try:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        Draft202012Validator.check_schema(schema)
+    except (OSError, json.JSONDecodeError, SchemaError) as error:
+        raise ValueError(
+            f"Review #{review_id} schema evidence is not a valid Draft 2020-12 schema: "
+            f"{ref!r}"
+        ) from error
+
+
+def _validate_registry_evidence(review_id: int, ref: str) -> None:
+    registry_path = _resolve_repository_evidence_file(review_id, "registry", ref)
+    relative_path = registry_path.relative_to(REPO_ROOT)
+    if relative_path not in CONFORMANCE_REGISTRIES:
+        raise ValueError(
+            f"Review #{review_id} registry evidence must reference "
+            "conformance/v1/suite.json, conformance/v1/vectors.json, or "
+            "conformance/v1/fixtures.json: "
+            f"{ref!r}"
+        )
+
+    root_is_first = bool(sys.path) and sys.path[0] == str(REPO_ROOT)
+    if not root_is_first:
+        sys.path.insert(0, str(REPO_ROOT))
+    try:
+        conformance_check = importlib.import_module("conformance.check")
+        module_path = Path(conformance_check.__file__).resolve()
+        expected_module_path = REPO_ROOT / "conformance" / "check.py"
+        if module_path != expected_module_path:
+            raise ValueError(
+                f"loaded non-canonical conformance validator: {module_path}"
+            )
+        validate_catalog = getattr(conformance_check, "validate_catalog")
+        validate_catalog(REPO_ROOT)
+    except Exception as error:
+        raise ValueError(
+            f"Review #{review_id} registry evidence failed canonical catalog validation: "
+            f"{ref!r}: {error}"
+        ) from error
+    finally:
+        if not root_is_first:
+            sys.path.pop(0)

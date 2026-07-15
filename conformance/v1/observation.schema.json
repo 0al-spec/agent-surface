@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/observation/v1",
+  "title": "ASP Sanitized Conformance Observation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "subject_sha256",
+    "harness_sha256",
+    "counterpart_sha256s",
+    "observation_id",
+    "vector_id",
+    "step_id",
+    "tokens",
+    "state_deltas",
+    "captured_at",
+    "sanitization"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "subject_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "harness_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "counterpart_sha256s": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/digest"
+      }
+    },
+    "observation_id": {
+      "type": "string",
+      "pattern": "^obs-[A-Za-z0-9._:-]{1,128}$"
+    },
+    "vector_id": {
+      "$ref": "#/$defs/vectorId"
+    },
+    "step_id": {
+      "const": "final"
+    },
+    "tokens": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/observationToken"
+      }
+    },
+    "asp_error": {
+      "$ref": "#/$defs/aspError"
+    },
+    "policy_reason": {
+      "enum": [
+        "approval_denied",
+        "approval_required",
+        "approval_satisfied",
+        "app_policy_denied",
+        "binding_invalid",
+        "limit_exceeded",
+        "local_policy_denied",
+        "policy_allowed",
+        "resource_denied",
+        "scope_denied"
+      ]
+    },
+    "match_reason": {
+      "const": "input_unknown"
+    },
+    "state_deltas": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/stateDelta"
+      }
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sanitization": {
+      "const": "synthetic_or_redacted"
+    },
+    "evidence_sha256": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$"
+    },
+    "vectorId": {
+      "type": "string",
+      "pattern": "^ASP-V-(SP|GI|AE|RP|RM|AA)-[0-9]{3}$"
+    },
+    "aspError": {
+      "enum": [
+        "action_unknown",
+        "execution_transition_invalid",
+        "grant_missing",
+        "grant_proof_invalid",
+        "grant_revoked",
+        "idempotency_conflict",
+        "input_not_normalized",
+        "integrity_mismatch",
+        "outcome_unknown",
+        "passport_status_unavailable",
+        "risk_denied",
+        "scope_denied",
+        "surface_incompatible",
+        "training_use_denied",
+        "runtime_untrusted"
+      ]
+    },
+    "observationToken": {
+      "enum": [
+        "action_accepted",
+        "action_rejected",
+        "adapter_request_rejected",
+        "application_receipt_emitted",
+        "approval_not_reopened",
+        "child_grant_revoked",
+        "control_event_emitted",
+        "credential_invalidated",
+        "credential_rejected",
+        "current_state_checked",
+        "denial_recorded",
+        "grant_issued",
+        "grant_rejected",
+        "grant_revoked",
+        "execution_token_invalidated",
+        "input_schema_checked",
+        "local_denial_recorded",
+        "manifest_published",
+        "manifest_rejected",
+        "mediation_stopped",
+        "normalization_checked",
+        "original_result_replayed",
+        "original_revocation_replayed",
+        "proof_rejected",
+        "proof_session_invalidated",
+        "receipt_rejected",
+        "receipt_verified",
+        "reservation_invalidated",
+        "revocation_confirmed",
+        "revocation_fence_established",
+        "runtime_receipt_emitted",
+        "same_receipt_replayed",
+        "tuple_checked",
+        "typed_request_forwarded"
+      ]
+    },
+    "stateName": {
+      "enum": [
+        "action.dispatch_count",
+        "action.effect_count",
+        "adapter.fabricated_evidence_count",
+        "adapter.forwarded_count",
+        "approval.interaction_count",
+        "budget.application_charge",
+        "control_event.emitted_count",
+        "credential.accepted_count",
+        "credential.active_count",
+        "credential.adapter_retained_count",
+        "credential.agent_visible_count",
+        "credential.issued_count",
+        "execution_token.active_count",
+        "grant.child_active_count",
+        "grant.issued_count",
+        "grant.lifecycle",
+        "idempotency.record_count",
+        "idempotency.record_version",
+        "manifest.accepted_count",
+        "proof_session.accepted_count",
+        "proof_session.active_count",
+        "receipt.application_count",
+        "receipt.runtime_count",
+        "reservation.active_count",
+        "revocation.confirmed_after_effective",
+        "revocation.confirmed_count",
+        "revocation.effective_count",
+        "revocation.fence_count",
+        "runtime.credential_release_count",
+        "runtime.remote_disclosure_count",
+        "runtime.retry_count",
+        "runtime.stored_grant_width",
+        "runtime.training_dispatch_count",
+        "surface.version_binding_count"
+      ]
+    },
+    "stateValue": {
+      "oneOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "absent",
+            "active",
+            "inactive",
+            "present",
+            "revoked",
+            "unchanged"
+          ]
+        }
+      ]
+    },
+    "stateDelta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "before",
+        "after"
+      ],
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/stateName"
+        },
+        "before": {
+          "$ref": "#/$defs/stateValue"
+        },
+        "after": {
+          "$ref": "#/$defs/stateValue"
+        }
+      }
+    }
+  }
+}

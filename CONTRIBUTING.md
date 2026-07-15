@@ -12,6 +12,7 @@ policy-enforcing runtime.
 ```text
 agent-surface/
   drafts/                  Source RFCs written in Markdown.
+  conformance/             Executable role matrix, vectors, schemas, and runner.
   schema/                  Optional JSON/YAML schemas.
   generated/               Optional generated XML, TXT, or PDF artifacts.
   examples/                Optional example manifests, grants, and receipts.
@@ -60,6 +61,8 @@ agent-surface/
   - `App Receipt`
 
 - Keep schemas and examples in sync with the RFC text when they are added.
+- Keep conformance matrix, vector, fixture, schema, runner, and report changes mutually
+  consistent and run `make conformance-check`.
 - Prefer proposal-first workflows for risky actions:
 
   ```text
