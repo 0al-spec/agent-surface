@@ -10372,6 +10372,51 @@ self-check can establish machine validation of its catalog; `interop_tested`
 maturity requires successful use with independently implemented participant
 boundaries and cannot be derived from the repository's own fixtures.
 
+### Reference Mock Participants
+
+This repository publishes a reference Mock App and Mock Runtime under `mocks/`
+so an operator can exercise the conformance harness without a real agent or a
+production application. The closed participant manifest
+`mocks/v1/manifest.json` binds the exact mock protocol version, participant
+identifiers, boundary identifiers, role assignments, feature inventory,
+entry points, and artifact digests. The adjacent JSON Schema and the repository
+mock validator define the machine-checked bundle shape.
+Its `claim_effect` value MUST be exactly `suite_fixture_only` and MUST NOT be
+overridden by an operator, adapter, probe, subject document, or report.
+
+The reference participants are conformance-suite fixtures, not ASP
+implementations. Every subject or counterpart backed by this bundle MUST use
+`subject_kind: suite_fixture`. A report that uses either participant therefore
+remains `incomplete` with the `suite_fixture` reason even when every applicable
+assertion passes. Such a report gives no implementation-conformance,
+interoperability, certification, deployment-readiness, or production-security
+credit. In particular, the two participants are maintained together and MUST
+NOT be represented as independently implemented boundaries.
+
+The versioned mock participant protocol is an internal harness control
+protocol. It carries deterministic setup, stimulus, and sanitized observation
+messages between the runner and the mock entry points. It is not an ASP wire
+protocol, transport binding, discovery mechanism, Grant, credential, receipt,
+or authority channel, and implementations MUST NOT expose it as any of those.
+Changing the mock protocol does not change ASP wire semantics or establish a
+new ASP compatibility claim.
+
+The Mock App and Mock Runtime MUST keep disjoint authority stores. The Mock App
+owns only synthetic application-side manifest, Grant, action-admission, effect,
+and App Receipt state. The Mock Runtime owns only synthetic runtime-side local
+policy, credential-custody, mediation, safety, and Runtime Receipt state.
+Each participant MUST NOT read or mutate the other's authority store to satisfy
+an assertion. Cross-participant behavior uses only the typed mock exchange
+declared by the manifest, while the probe returns privacy-minimized observations
+derived from the owning participant's resulting state.
+
+All mock inputs, identifiers, payloads, keys, credentials, evidence, and state
+are deterministic synthetic test values. The bundle MUST NOT accept or retain
+production secrets, user content, tenant data, private keys, live Grant
+Credentials, execution tokens, cookies, or raw Runtime Attestation Evidence.
+The synthetic agent-side input is a fixed typed fixture and is not evidence of
+agent identity, capability, intent, approval, or successful agent execution.
+
 ### Surface Publisher Profile
 
 A component conforms to the Surface Publisher Profile when it:

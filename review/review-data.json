@@ -3504,22 +3504,14 @@
       "description": "дать reference fixtures для тестирования приложений и runtimes без реального агента.",
       "category": "Conformance / tooling / adoption",
       "side": "right",
-      "status": "missing",
+      "status": "present",
       "anchors": [
         {
-          "heading": "Conceptual Architecture",
-          "anchorId": "conceptual-architecture"
-        },
-        {
-          "heading": "Application MVP Mapping",
-          "anchorId": "application-mvp-mapping"
-        },
-        {
-          "heading": "Example End-to-End Flow",
-          "anchorId": "example-end-to-end-flow"
+          "heading": "Reference Mock Participants",
+          "anchorId": "reference-mock-participants"
         }
       ],
-      "rationale": "Есть architecture и implementation roadmap, но reference fixtures или mock implementations не заявлены.",
+      "rationale": "Определены machine-validated reference Mock App и Mock Runtime: закрытый versioned manifest, synthetic-only mock control protocol, раздельные authority stores и suite-fixture-only evidence без implementation или interop credit.",
       "priority": "P3",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -3527,11 +3519,33 @@
         19,
         28,
         30,
-        56
+        56,
+        60
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "machine_validated",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-mock-participants"
+        },
+        {
+          "kind": "schema",
+          "ref": "mocks/v1/manifest.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "mocks/v1/manifest.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_app.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_runtime.py"
+        }
+      ]
     },
     {
       "id": 59,

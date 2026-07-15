@@ -63,6 +63,7 @@ agent-surface/
     PULL_REQUEST_TEMPLATE.md
     workflows/docs.yml       Markdown, RFC, and dashboard checks.
   conformance/             Versioned executable matrix, vectors, schemas, and runner.
+  mocks/                   Synthetic Mock App and Mock Runtime suite fixtures.
   drafts/                  Source RFCs written in Markdown.
   review/                  Source data, template, and generated RFC review dashboard.
   LICENSE                  MIT license for repository source code.
@@ -96,10 +97,13 @@ canonical planning metadata. Reverse `blocks` links and `readiness` are derived
 during the build and MUST NOT be stored in `review-data.json`. A card is ready
 when every direct dependency has `present` coverage and at least `specified`
 maturity; the card's own coverage does not affect whether it is ready to be
-worked on. `machine_validated` maturity is accepted only when canonical local
-schema and registry evidence resolves and the conformance catalog passes its
-semantic validator. Higher maturity remains fail-closed until implementation
-and independent interop evidence resolvers are added to the validation gate.
+worked on. `machine_validated` maturity is accepted only through a card-specific
+binding whose canonical local schema, registry, and any declared implementation
+artifacts resolve through their authoritative validator. The conformance suite
+and reference mock bundle have separate bindings; mock implementation paths
+identify suite-fixture tooling and do not grant ASP implementation credit.
+Higher maturity remains fail-closed until implementation and independent
+interop evidence resolvers are added to the validation gate.
 The canonical file keeps `planning_metadata_mode` set to `required`;
 `transitional` exists only so schema v2 can validate the stacked migration
 without silently changing the v2 contract.
@@ -143,6 +147,24 @@ oracle. Both executables remain trusted test code and must be isolated by the
 operator. A report verdict is descriptive evidence for that exact catalog,
 subject artifact, configuration, harness, and run. It is not certification,
 protocol authority, or proof of complete role conformance.
+
+## Reference Mock Participants
+
+The synthetic Mock App and Mock Runtime exercise the runner without a real
+agent or production service:
+
+```sh
+make mock-check
+```
+
+Their closed manifest, schema, validator, and tests live under [`mocks/`](mocks).
+The two participants use separate application-side and runtime-side authority
+stores and exchange only versioned mock control messages. That control protocol
+is a harness interface, not an ASP wire protocol. Every mock-backed conformance
+subject is a `suite_fixture`, so even a fully matching run remains `incomplete`
+and supplies neither implementation nor interoperability credit. The bundle
+uses deterministic synthetic data only and must never receive production
+credentials, secrets, user content, or attestation evidence.
 
 ## Status
 

@@ -1,0 +1,122 @@
+{
+  "$schema": "./manifest.schema.json",
+  "schema_version": 1,
+  "manifest_id": "https://github.com/0al-spec/agent-surface/mocks/v1",
+  "manifest_version": "1.0.0",
+  "protocol_version": "agent-surface/0.1",
+  "claim_effect": "suite_fixture_only",
+  "participant_protocol": "asp-mock-participant/1",
+  "boundary_model": {
+    "scope": [
+      "run_id",
+      "vector_id",
+      "boundary_id"
+    ],
+    "initialization": "exactly_once",
+    "storage": "separate_authoritative_journal_per_family",
+    "corruption_policy": "fail_closed"
+  },
+  "families": [
+    {
+      "family_id": "app",
+      "participant_id": "asp-reference-mock-app",
+      "roles": [
+        {
+          "boundary_id": "mock-app/surface",
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1"
+        },
+        {
+          "boundary_id": "mock-app/grant",
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+        },
+        {
+          "boundary_id": "mock-app/action",
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1"
+        },
+        {
+          "boundary_id": "mock-app/receipt",
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+          "producer_role": "application"
+        }
+      ]
+    },
+    {
+      "family_id": "runtime",
+      "participant_id": "asp-reference-mock-runtime",
+      "roles": [
+        {
+          "boundary_id": "mock-runtime/mediator",
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
+        },
+        {
+          "boundary_id": "mock-runtime/adapter",
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
+        },
+        {
+          "boundary_id": "mock-runtime/receipt",
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+          "producer_role": "runtime"
+        }
+      ]
+    }
+  ],
+  "feature_inventory": [
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "feature_ids": [
+        "agent-surface/feature/proposal-only"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "feature_ids": [
+        "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "feature_ids": [
+        "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "feature_ids": []
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "feature_ids": [
+        "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "feature_ids": []
+    }
+  ],
+  "entrypoints": {
+    "mock_app": "mocks/mock_app.py",
+    "mock_runtime": "mocks/mock_runtime.py",
+    "adapter": "mocks/adapter.py",
+    "probe": "mocks/probe.py",
+    "validator": "mocks/check.py"
+  },
+  "artifacts": [
+    {"path": "mocks/README.md", "sha256": "sha-256:t8OK5-iD5oRqFnyFl-20w_NfMF938VprqUvAtY1vr0c"},
+    {"path": "mocks/__init__.py", "sha256": "sha-256:BsfdRwWRgFGRkYGJXv7IzCic49jakLU-zptUO2OWXmw"},
+    {"path": "mocks/adapter.py", "sha256": "sha-256:IGlWx3ZyWCgba5r7t2p8xqV8TQA9GW63fGrtqxILTGU"},
+    {"path": "mocks/behavior.py", "sha256": "sha-256:VEjLkMmeYSsxAno3TFITWpS_e72T9SIlgfAzV76V9Lk"},
+    {"path": "mocks/check.py", "sha256": "sha-256:yewr85JEzTJy-z8AsQomnmy9e5g_qRK4U_dt452dnoM"},
+    {"path": "mocks/mock_app.py", "sha256": "sha-256:xut85g6x4h4IZaUdl4nm2UMHt_bPYdwbbB1rjwIU3Ak"},
+    {"path": "mocks/mock_runtime.py", "sha256": "sha-256:kBnne5rKRRegfgltpYI69G8cnfIXKvvs0ZdQd6KYscw"},
+    {"path": "mocks/participant.py", "sha256": "sha-256:l7G0zgpijCXdx-eNJyHdiNI0VBx1yPDXq-5WZ7tnXRo"},
+    {"path": "mocks/probe.py", "sha256": "sha-256:5h0zdHg9iBfWMA27AqWoA_t9nN6MskfnKaXwWMsYGnc"},
+    {"path": "mocks/state.py", "sha256": "sha-256:Krs_13wEMi8Un-SHXrnKfl7SqSRVSEo9n_0wb_CH070"},
+    {"path": "mocks/tests/test_mocks.py", "sha256": "sha-256:dt3JdQu8Lke7eaxRAJxuaPlrH3KkuXMqTXWm8s1mnUo"},
+    {"path": "mocks/v1/manifest.schema.json", "sha256": "sha-256:L1Iw3CN6fqicinahijXpZlbA7Mq-w2HfMY6Q9me0HjU"}
+  ]
+}

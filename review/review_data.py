@@ -24,7 +24,21 @@ CONFORMANCE_REGISTRIES = {
     Path("conformance/v1/vectors.json"),
     Path("conformance/v1/fixtures.json"),
 }
+MOCK_SCHEMA = Path("mocks/v1/manifest.schema.json")
+MOCK_REGISTRY = Path("mocks/v1/manifest.json")
+MOCK_IMPLEMENTATIONS = {
+    Path("mocks/mock_app.py"),
+    Path("mocks/mock_runtime.py"),
+}
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
+    58: {
+        "rfc_anchor": {"reference-mock-participants"},
+        "schema": {MOCK_SCHEMA.as_posix()},
+        "registry": {MOCK_REGISTRY.as_posix()},
+        "implementation": {
+            path.as_posix() for path in MOCK_IMPLEMENTATIONS
+        },
+    },
     60: {
         "rfc_anchor": {"interoperability-test-suite"},
         "schema": {
@@ -42,6 +56,7 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         },
     }
 }
+EXACT_MACHINE_VALIDATED_REVIEW_IDS = {58}
 MATURITY_ORDER = (
     "proposal",
     "specified",
@@ -151,6 +166,8 @@ def validate_review_payload(
                 _validate_schema_evidence(review_id, ref)
             elif kind == "registry":
                 _validate_registry_evidence(review_id, ref)
+            elif kind == "implementation":
+                _validate_implementation_evidence(review_id, ref)
             else:
                 raise ValueError(
                     f"Review #{review_id} evidence kind {kind!r} is not supported "
@@ -300,8 +317,16 @@ def _validate_maturity_evidence(
             )
         evidence_refs = {
             kind: {item["ref"] for item in evidence if item["kind"] == kind}
-            for kind in binding
+            for kind in {item["kind"] for item in evidence} | set(binding)
         }
+        if review_id in EXACT_MACHINE_VALIDATED_REVIEW_IDS:
+            expected = {kind: set(refs) for kind, refs in binding.items()}
+            actual = {kind: refs for kind, refs in evidence_refs.items() if refs}
+            if actual != expected:
+                raise ValueError(
+                    f"Review #{review_id} maturity {maturity!r} does not match "
+                    "its exact authoritative evidence binding"
+                )
         missing = {
             kind: sorted(required_refs - evidence_refs[kind])
             for kind, required_refs in binding.items()
@@ -343,12 +368,16 @@ def _resolve_repository_evidence_file(review_id: int, kind: str, ref: str) -> Pa
 
 def _validate_schema_evidence(review_id: int, ref: str) -> None:
     schema_path = _resolve_repository_evidence_file(review_id, "schema", ref)
-    if schema_path.parent != CONFORMANCE_V1_DIR or not schema_path.name.endswith(
-        ".schema.json"
-    ):
+    relative_path = schema_path.relative_to(REPO_ROOT)
+    is_conformance_schema = (
+        schema_path.parent == CONFORMANCE_V1_DIR
+        and schema_path.name.endswith(".schema.json")
+    )
+    is_bound_mock_schema = review_id == 58 and relative_path == MOCK_SCHEMA
+    if not is_conformance_schema and not is_bound_mock_schema:
         raise ValueError(
             f"Review #{review_id} schema evidence must reference "
-            f"conformance/v1/*.schema.json: {ref!r}"
+            f"conformance/v1/*.schema.json or its exact bound mock schema: {ref!r}"
         )
     try:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
@@ -363,6 +392,9 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
 def _validate_registry_evidence(review_id: int, ref: str) -> None:
     registry_path = _resolve_repository_evidence_file(review_id, "registry", ref)
     relative_path = registry_path.relative_to(REPO_ROOT)
+    if review_id == 58 and relative_path == MOCK_REGISTRY:
+        _validate_mock_bundle_evidence(review_id, "registry", ref)
+        return
     if relative_path not in CONFORMANCE_REGISTRIES:
         raise ValueError(
             f"Review #{review_id} registry evidence must reference "
@@ -388,6 +420,41 @@ def _validate_registry_evidence(review_id: int, ref: str) -> None:
         raise ValueError(
             f"Review #{review_id} registry evidence failed canonical catalog validation: "
             f"{ref!r}: {error}"
+        ) from error
+    finally:
+        if not root_is_first:
+            sys.path.pop(0)
+
+
+def _validate_implementation_evidence(review_id: int, ref: str) -> None:
+    implementation_path = _resolve_repository_evidence_file(
+        review_id, "implementation", ref
+    )
+    relative_path = implementation_path.relative_to(REPO_ROOT)
+    if review_id != 58 or relative_path not in MOCK_IMPLEMENTATIONS:
+        raise ValueError(
+            f"Review #{review_id} implementation evidence must reference an exact "
+            f"bound Mock App or Mock Runtime entry point: {ref!r}"
+        )
+    _validate_mock_bundle_evidence(review_id, "implementation", ref)
+
+
+def _validate_mock_bundle_evidence(review_id: int, kind: str, ref: str) -> None:
+    root_is_first = bool(sys.path) and sys.path[0] == str(REPO_ROOT)
+    if not root_is_first:
+        sys.path.insert(0, str(REPO_ROOT))
+    try:
+        mock_check = importlib.import_module("mocks.check")
+        module_path = Path(mock_check.__file__).resolve()
+        expected_module_path = REPO_ROOT / "mocks" / "check.py"
+        if module_path != expected_module_path:
+            raise ValueError(f"loaded non-canonical mock validator: {module_path}")
+        validate_bundle = getattr(mock_check, "validate_bundle")
+        validate_bundle(REPO_ROOT)
+    except Exception as error:
+        raise ValueError(
+            f"Review #{review_id} {kind} evidence failed canonical mock bundle "
+            f"validation: {ref!r}: {error}"
         ) from error
     finally:
         if not root_is_first:
