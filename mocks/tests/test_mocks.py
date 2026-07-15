@@ -503,6 +503,39 @@ class MockParticipantSecurityTests(unittest.TestCase):
             ["execution_error", "suite_fixture"],
         )
 
+    def test_metadata_only_implementation_counterparts_cannot_enable_interop(self) -> None:
+        subject = self.subject()
+        for counterpart in subject["counterparts"]:
+            counterpart["kind"] = "implementation"
+        report = self.run_subject(subject)
+        interop_results = [
+            result
+            for result in report["results"]
+            if self.catalog.vectors[result["vector_id"]]["execution_class"]
+            == "interop"
+        ]
+        self.assertTrue(interop_results)
+        self.assertTrue(
+            all(
+                result["status"] == "error"
+                and result["failure_token"]
+                in {"adapter_error", "unavailable_probe"}
+                and not result["observation_ids"]
+                for result in interop_results
+            )
+        )
+        self.assertTrue(
+            any(
+                result["failure_token"] == "adapter_error"
+                for result in interop_results
+            )
+        )
+        self.assertEqual(report["summary"]["suite_verdict"], "incomplete")
+        self.assertEqual(
+            report["summary"]["incomplete_reasons"],
+            ["execution_error", "suite_fixture"],
+        )
+
     def test_bundled_or_byte_identical_mocks_cannot_claim_implementation(self) -> None:
         subject = self.subject(subject_kind="implementation")
         with self.assertRaisesRegex(ConformanceError, "reference fixtures"):

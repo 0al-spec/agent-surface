@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-import hashlib
 import json
 import sys
 from datetime import datetime, timezone
@@ -96,21 +94,6 @@ def _now() -> str:
     )
 
 
-def _canonical_bytes(value: Mapping[str, Any]) -> bytes:
-    return json.dumps(
-        value,
-        ensure_ascii=False,
-        allow_nan=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-
-
-def _domain_digest(domain: str, value: Mapping[str, Any]) -> str:
-    digest = hashlib.sha256(domain.encode("ascii") + b"\0" + _canonical_bytes(value)).digest()
-    return "sha-256:" + base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
-
-
 def _object(value: Any, label: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise ParticipantError(f"{label} must be an object")
@@ -145,39 +128,14 @@ def inventory(family: str, request: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _counterpart_digests(
-    subject: Mapping[str, Any], required: Any
-) -> list[str]:
+def _counterpart_digests(required: Any) -> list[str]:
     if not isinstance(required, list):
         raise ParticipantError("required_counterparts must be an array")
-    counterparts = subject.get("counterparts")
-    if not isinstance(counterparts, list):
-        raise ParticipantError("subject counterparts must be an array")
-    subject_implementation = _object(
-        subject.get("implementation"), "subject implementation"
-    )
-    subject_artifact = subject_implementation.get("artifact_sha256")
-    if not isinstance(subject_artifact, str):
-        raise ParticipantError("subject implementation requires artifact_sha256")
-    matched: list[Mapping[str, Any]] = []
-    for requirement_value in required:
-        requirement = _object(requirement_value, "counterpart requirement")
-        candidates = [
-            item
-            for item in counterparts
-            if isinstance(item, Mapping)
-            and item.get("kind") == "implementation"
-            and item.get("profile_id") == requirement.get("profile_id")
-            and item.get("producer_role") == requirement.get("producer_role")
-            and item.get("boundary_id") != subject.get("boundary_id")
-            and isinstance(item.get("artifact_sha256"), str)
-            and item.get("artifact_sha256") != subject_artifact
-            and item not in matched
-        ]
-        if len(candidates) != 1:
-            raise ParticipantError("required counterpart topology is unavailable or ambiguous")
-        matched.append(candidates[0])
-    return [_domain_digest("ASP-CONFORMANCE-COUNTERPART-V1", item) for item in matched]
+    if required:
+        raise ParticipantError(
+            "reference mocks cannot satisfy independent counterpart requirements"
+        )
+    return []
 
 
 def execute(
@@ -229,7 +187,7 @@ def execute(
         "profile_id": profile_id,
         "operation": operation,
         "counterpart_sha256s": _counterpart_digests(
-            subject, case.get("required_counterparts")
+            case.get("required_counterparts")
         ),
         **result.as_journal_fields(),
     }
