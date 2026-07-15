@@ -10417,6 +10417,48 @@ Credentials, execution tokens, cookies, or raw Runtime Attestation Evidence.
 The synthetic agent-side input is a fixed typed fixture and is not evidence of
 agent identity, capability, intent, approval, or successful agent execution.
 
+### Reference Manifest Linter
+
+This repository publishes the `asp-lint` reference CLI under
+`tools/asp-manifest-linter/` for deterministic static checking of an Agent
+Surface Manifest. The versioned rule registry and its JSON Schema define stable
+rule identifiers, severity, RFC anchors, and operator help. The adjacent
+diagnostics JSON Schema defines the machine-readable report contract. A rule
+identifier MUST NOT be reused with different semantics within the same
+ruleset version.
+
+The v1 ruleset contains exactly these checks:
+
+| Rule | Static requirement |
+| --- | --- |
+| `ASP-LINT-SCHEMA-001` | Every resource and event declares a non-empty `schema`; every action declares non-empty `input_schema` and `output_schema`. |
+| `ASP-LINT-RISK-001` | Every action declares a non-empty `risk` label. |
+| `ASP-LINT-IDEMPOTENCY-001` | A side-effecting, state-changing-mode, or persisted proposal action declares required idempotency, fixed-point normalization, the required input hash profile, and `input_schema_hash`. |
+| `ASP-LINT-SCOPE-001` | Scope identifiers are unique; resource, action, and non-control event references resolve exactly; control events omit `scope`. |
+
+The CLI MUST parse the complete input before applying rules and MUST fail
+closed on duplicate object members, floating-point values, integers outside
+the I-JSON safe range, malformed Unicode, trailing JSON, a non-object root, or
+non-array `scopes`, `resources`, `actions`, or `events`. It returns status `0`
+only when no finding exists, status `1` when one or more lint findings exist,
+and status `2` when input or tool integrity prevents a safe result. A JSON
+report binds the exact tool and ruleset versions, input source label, counts,
+stable rule identifiers, severity, JSON Pointer, message, and operator help.
+
+Reference linting is offline. It MUST NOT execute manifest content, contact a
+schema host, follow a network reference, inspect production credentials or
+state, or infer a missing declaration. `self-check` validates the rule registry
+against its schema, requires the registry to match the implemented rule set,
+validates a generated report against the diagnostics schema, and requires the
+compiled schema and registry bytes to equal the selected repository artifacts.
+
+A clean lint report is static evidence about those exact v1 declarations only.
+It does not validate remote schema bytes, `surface_hash`, issuer identity,
+current Grant state, authorization, approval, effects, receipts, runtime
+behavior, interoperability, conformance, certification, or deployment
+security. Consumers MUST continue every ordinary protocol and current-state
+check defined by this specification.
+
 ### Surface Publisher Profile
 
 A component conforms to the Surface Publisher Profile when it:

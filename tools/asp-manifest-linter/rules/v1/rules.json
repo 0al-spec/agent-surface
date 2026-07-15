@@ -1,0 +1,36 @@
+{
+  "$schema": "../../schema/rules.schema.json",
+  "schema_version": 1,
+  "ruleset_id": "https://github.com/0al-spec/agent-surface/tools/asp-manifest-linter/rules/v1",
+  "ruleset_version": "1.0.0",
+  "rules": [
+    {
+      "rule_id": "ASP-LINT-SCHEMA-001",
+      "title": "Schema declarations",
+      "severity": "error",
+      "rfc_anchor": "actions",
+      "help": "Declare resource and event schema plus action input_schema and output_schema URIs."
+    },
+    {
+      "rule_id": "ASP-LINT-RISK-001",
+      "title": "Action risk labels",
+      "severity": "warning",
+      "rfc_anchor": "risk-taxonomy",
+      "help": "Declare the most severe applicable standard or mapped extension risk label."
+    },
+    {
+      "rule_id": "ASP-LINT-IDEMPOTENCY-001",
+      "title": "Idempotency closure",
+      "severity": "error",
+      "rfc_anchor": "actions",
+      "help": "State-changing and persisted proposal actions require fixed-point normalization, input hashing, and input_schema_hash."
+    },
+    {
+      "rule_id": "ASP-LINT-SCOPE-001",
+      "title": "Scope consistency",
+      "severity": "error",
+      "rfc_anchor": "required-top-level-fields",
+      "help": "Declare each referenced scope exactly once; control events omit scope and non-control events require one."
+    }
+  ]
+}

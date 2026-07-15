@@ -1,0 +1,17 @@
+{
+  "protocol": "agent-surface/0.1",
+  "scopes": [{"id": "tasks.write"}],
+  "resources": [],
+  "actions": [
+    {
+      "id": "task.create",
+      "scope": "tasks.write",
+      "risk": "write",
+      "side_effect": true,
+      "execution": {"mode": "commit", "operation_id": "task.create"},
+      "input_schema": "https://example.com/task-input.json",
+      "output_schema": "https://example.com/task-output.json"
+    }
+  ],
+  "events": []
+}

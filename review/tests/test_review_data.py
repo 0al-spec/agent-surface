@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import sys
 import unittest
 from collections import Counter
@@ -19,6 +20,7 @@ from build_review import (  # noqa: E402
     serialize_inline_json,
 )
 from review_data import (  # noqa: E402
+    _cargo_command,
     load_review_payload,
     normalize_reviews,
     validate_review_payload,
@@ -45,6 +47,20 @@ class ReviewDataValidationTests(unittest.TestCase):
 
     def test_canonical_review_data_is_valid(self) -> None:
         validate_review_payload(load_review_payload(), self.heading_ids)
+
+    def test_linter_self_check_honors_cargo_override(self) -> None:
+        previous = os.environ.get("CARGO")
+        try:
+            os.environ["CARGO"] = 'cargo-wrapper --channel "pinned toolchain"'
+            self.assertEqual(
+                _cargo_command(),
+                ["cargo-wrapper", "--channel", "pinned toolchain"],
+            )
+        finally:
+            if previous is None:
+                os.environ.pop("CARGO", None)
+            else:
+                os.environ["CARGO"] = previous
 
     def test_valid_v2_planning_bundle_is_accepted(self) -> None:
         validate_review_payload(self.valid_payload(), self.heading_ids)
@@ -166,6 +182,61 @@ class ReviewDataValidationTests(unittest.TestCase):
                 ]
                 self.assert_invalid(payload, "missing bound evidence")
 
+    def test_linter_machine_validation_requires_the_exact_bound_evidence(self) -> None:
+        for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.machine_validated_payload()
+                review = next(item for item in payload["reviews"] if item["id"] == 57)
+                removed = False
+                retained = []
+                for item in review["evidence"]:
+                    if item["kind"] == missing_kind and not removed:
+                        removed = True
+                        continue
+                    retained.append(item)
+                review["evidence"] = retained
+                self.assertTrue(removed)
+                self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    def test_linter_machine_validation_rejects_extra_evidence(self) -> None:
+        payload = self.machine_validated_payload()
+        review = next(item for item in payload["reviews"] if item["id"] == 57)
+        review["anchors"].append(
+            {
+                "heading": "Conceptual Architecture",
+                "anchorId": "conceptual-architecture",
+            }
+        )
+        review["evidence"].append(
+            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+        )
+        self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    def test_other_review_cannot_borrow_linter_evidence(self) -> None:
+        cases = (
+            (
+                "schema",
+                "tools/asp-manifest-linter/schema/rules.schema.json",
+                "exact bound tooling schema",
+            ),
+            (
+                "registry",
+                "tools/asp-manifest-linter/rules/v1/rules.json",
+                "conformance/v1/suite.json",
+            ),
+            (
+                "implementation",
+                "tools/asp-manifest-linter/src/main.rs",
+                "exact bound tooling entry point",
+            ),
+        )
+        for kind, ref, message in cases:
+            with self.subTest(kind=kind):
+                payload = self.machine_validated_payload()
+                review = payload["reviews"][0]
+                review["evidence"].append({"kind": kind, "ref": ref})
+                self.assert_invalid(payload, message)
+
     def test_mock_machine_validation_requires_the_exact_bound_evidence(self) -> None:
         for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
             with self.subTest(missing_kind=missing_kind):
@@ -201,13 +272,13 @@ class ReviewDataValidationTests(unittest.TestCase):
             (
                 "schema",
                 "mocks/v1/manifest.schema.json",
-                "exact bound mock schema",
+                "exact bound tooling schema",
             ),
             ("registry", "mocks/v1/manifest.json", "conformance/v1/suite.json"),
             (
                 "implementation",
                 "mocks/mock_app.py",
-                "exact bound Mock App or Mock Runtime",
+                "exact bound tooling entry point",
             ),
         )
         for kind, ref, message in cases:
@@ -316,14 +387,14 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 60)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 288)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 294)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 49, "proposal": 9, "machine_validated": 2}),
+            Counter({"specified": 49, "proposal": 8, "machine_validated": 3}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 51, "partial": 3, "missing": 6}),
+            Counter({"present": 52, "partial": 3, "missing": 5}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 125)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -419,6 +490,14 @@ class ReviewDataValidationTests(unittest.TestCase):
                 "runtime-mediator-profile",
                 "agent-adapter-profile",
             ],
+        )
+        self.assertEqual(reviews_by_id[57]["status"], "present")
+        self.assertEqual(reviews_by_id[57]["maturity"], "machine_validated")
+        self.assertEqual(reviews_by_id[57]["depends_on"], [13, 15, 19, 20])
+        self.assertEqual(reviews_by_id[57]["readiness"], "ready")
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[57]["anchors"]],
+            ["reference-manifest-linter"],
         )
         self.assertEqual(reviews_by_id[58]["status"], "present")
         self.assertEqual(reviews_by_id[58]["maturity"], "machine_validated")

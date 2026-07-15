@@ -1,0 +1,20 @@
+{
+  "protocol": "agent-surface/0.1",
+  "scopes": [{"id": "tasks.read"}],
+  "resources": [
+    {"id": "task", "read_scope": "tasks.read", "schema": "https://example.com/task.json"}
+  ],
+  "actions": [
+    {
+      "id": "task.get",
+      "scope": "tasks.read",
+      "risk": "read",
+      "side_effect": false,
+      "execution": {"mode": "read", "operation_id": "task.get"},
+      "output_schema": "https://example.com/task-output.json"
+    }
+  ],
+  "events": [
+    {"id": "task.updated", "scope": "tasks.read", "schema": "https://example.com/task-event.json"}
+  ]
+}

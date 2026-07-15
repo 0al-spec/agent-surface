@@ -64,6 +64,7 @@ agent-surface/
     workflows/docs.yml       Markdown, RFC, and dashboard checks.
   conformance/             Versioned executable matrix, vectors, schemas, and runner.
   mocks/                   Synthetic Mock App and Mock Runtime suite fixtures.
+  tools/                   Rust tooling, including the ASP manifest linter.
   drafts/                  Source RFCs written in Markdown.
   review/                  Source data, template, and generated RFC review dashboard.
   LICENSE                  MIT license for repository source code.
@@ -166,6 +167,24 @@ and supplies neither implementation nor interoperability credit. The bundle
 uses deterministic synthetic data only and must never receive production
 credentials, secrets, user content, or attestation evidence.
 
+## ASP Manifest Linter
+
+The Rust `asp-lint` CLI performs deterministic offline checks for missing
+schema declarations, risk labels, idempotency closure, and inconsistent scope
+references:
+
+```sh
+make manifest-lint-check
+cargo run --locked -p asp-manifest-linter -- check manifest.json
+cargo run --locked -p asp-manifest-linter -- check manifest.json --format json
+```
+
+The canonical rules, diagnostic schemas, fixtures, and implementation live in
+[`tools/asp-manifest-linter/`](tools/asp-manifest-linter). The parser rejects
+ambiguous JSON before linting. A clean result is static declaration evidence
+only; it does not verify remote schema bytes, authority, runtime behavior,
+interoperability, or deployment security.
+
 ## Status
 
 The specification is experimental and subject to change. The current draft is
@@ -177,7 +196,7 @@ shape, grant lifecycle, receipt semantics, and MVP boundaries.
 - Specifications and documents in `drafts/`, `schema/`, `generated/`, `docs/`,
   and the declarative catalog under `conformance/v1/` are licensed under the
   Creative Commons Attribution 4.0 International License (CC BY 4.0).
-- Source code and tooling, if added later, are licensed under the MIT License.
+- Source code and tooling are licensed under the MIT License.
 
 See [LICENSE](./LICENSE) and [LICENSE-CC-BY-4.0](./LICENSE-CC-BY-4.0).
 
