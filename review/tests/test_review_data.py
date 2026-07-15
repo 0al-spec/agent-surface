@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import sys
 import unittest
 from collections import Counter
@@ -19,6 +20,7 @@ from build_review import (  # noqa: E402
     serialize_inline_json,
 )
 from review_data import (  # noqa: E402
+    _cargo_command,
     load_review_payload,
     normalize_reviews,
     validate_review_payload,
@@ -45,6 +47,20 @@ class ReviewDataValidationTests(unittest.TestCase):
 
     def test_canonical_review_data_is_valid(self) -> None:
         validate_review_payload(load_review_payload(), self.heading_ids)
+
+    def test_linter_self_check_honors_cargo_override(self) -> None:
+        previous = os.environ.get("CARGO")
+        try:
+            os.environ["CARGO"] = 'cargo-wrapper --channel "pinned toolchain"'
+            self.assertEqual(
+                _cargo_command(),
+                ["cargo-wrapper", "--channel", "pinned toolchain"],
+            )
+        finally:
+            if previous is None:
+                os.environ.pop("CARGO", None)
+            else:
+                os.environ["CARGO"] = previous
 
     def test_valid_v2_planning_bundle_is_accepted(self) -> None:
         validate_review_payload(self.valid_payload(), self.heading_ids)

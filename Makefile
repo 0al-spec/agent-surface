@@ -1,5 +1,6 @@
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 CARGO ?= cargo
+export CARGO
 
 .PHONY: conformance-validate conformance-test conformance-check mock-validate mock-test mock-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check review-build review-data-check review-test review-js-test review-check
 

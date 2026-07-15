@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -485,14 +486,12 @@ def _validate_linter_bundle_evidence(review_id: int, kind: str, ref: str) -> Non
 
 @lru_cache(maxsize=1)
 def _run_linter_self_check() -> None:
-    cargo = shutil.which("cargo")
-    if cargo is None:
-        raise ValueError("cargo is unavailable")
+    cargo_command = _cargo_command()
     environment = dict(os.environ)
     environment["CARGO_TERM_COLOR"] = "never"
     process = subprocess.run(
         [
-            cargo,
+            *cargo_command,
             "run",
             "--quiet",
             "--locked",
@@ -513,6 +512,19 @@ def _run_linter_self_check() -> None:
     if process.returncode != 0:
         details = process.stderr.strip() or process.stdout.strip() or "unknown error"
         raise ValueError(f"cargo self-check exited {process.returncode}: {details}")
+
+
+def _cargo_command() -> list[str]:
+    override = os.environ.get("CARGO")
+    if override is not None:
+        command = shlex.split(override)
+        if not command:
+            raise ValueError("CARGO override is empty")
+        return command
+    cargo = shutil.which("cargo")
+    if cargo is None:
+        raise ValueError("cargo is unavailable")
+    return [cargo]
 
 
 def _validate_mock_bundle_evidence(review_id: int, kind: str, ref: str) -> None:
