@@ -1076,6 +1076,32 @@ def _summary(
     }
 
 
+def _is_bundled_fixture_executable(executable: Path, root: Path) -> bool:
+    """Recognize canonical or byte-identical repository fixture executables."""
+
+    fixture_directories = (
+        root / "conformance" / "tests",
+        root / "mocks",
+    )
+    executable_bytes = executable.read_bytes()
+    executable_digest = hashlib.sha256(executable_bytes).digest()
+    for directory in fixture_directories:
+        if not directory.exists():
+            continue
+        resolved_directory = directory.resolve()
+        if executable.is_relative_to(resolved_directory):
+            return True
+        for candidate in resolved_directory.rglob("*.py"):
+            if (
+                candidate.is_file()
+                and os.access(candidate, os.X_OK)
+                and hashlib.sha256(candidate.read_bytes()).digest()
+                == executable_digest
+            ):
+                return True
+    return False
+
+
 def run_suite(
     *,
     subject: dict[str, Any],
@@ -1107,13 +1133,12 @@ def run_suite(
     probe = executables["probe"]
     catalog = validate_catalog(root)
     validate_subject(subject, catalog)
-    fixture_directory = (root / "conformance" / "tests").resolve()
     if subject["subject_kind"] == "implementation" and any(
-        executable.is_relative_to(fixture_directory)
+        _is_bundled_fixture_executable(executable, root)
         for executable in executables.values()
     ):
         raise ConformanceError(
-            "repository self-test fixtures cannot produce implementation evidence"
+            "repository reference fixtures cannot produce implementation evidence"
         )
     observation_schema = _schema_for(catalog, "observation")
     run_id = f"urn:uuid:{uuid.uuid4()}"

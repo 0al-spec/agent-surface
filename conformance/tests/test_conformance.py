@@ -250,6 +250,12 @@ class ConformanceSuiteTests(unittest.TestCase):
                 verify_report(report, root=ROOT)
         self.assertEqual(exercised_vector_ids, set(self.catalog.vectors))
 
+    def test_repository_fixtures_cannot_claim_implementation_evidence(self) -> None:
+        subject = self.subject(next(iter(PROFILE_ROLES)))
+        subject["subject_kind"] = "implementation"
+        with self.assertRaisesRegex(ConformanceError, "reference fixtures"):
+            self.run_subject(subject)
+
     def test_assertion_mismatch_derives_fail(self) -> None:
         profile_id = next(
             item for item in PROFILE_ROLES if item != RECEIPT_PROFILE
