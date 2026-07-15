@@ -3579,7 +3579,7 @@
       "description": "подготовить набор обязательных тестов для grant verification, idempotency conflicts, revocation, receipts и denied actions.",
       "category": "Conformance / tooling / adoption",
       "side": "right",
-      "status": "missing",
+      "status": "present",
       "anchors": [
         {
           "heading": "Idempotency",
@@ -3596,9 +3596,13 @@
         {
           "heading": "Conformance",
           "anchorId": "conformance"
+        },
+        {
+          "heading": "Interoperability Test Suite",
+          "anchorId": "interoperability-test-suite"
         }
       ],
-      "rationale": "Нормативные области для тестов определены, но обязательных test cases и interop suite нет.",
+      "rationale": "Определён versioned executable suite для шести role profiles: closed matrix, positive/negative vectors, isolated adapter protocol, fail-closed applicability и проверяемый descriptive report с точными catalog, specification, subject и implementation bindings.",
       "priority": "P2",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -3611,8 +3615,65 @@
         56
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "machine_validated",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "idempotency"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "revocation-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "conformance"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "interoperability-test-suite"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/suite.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/vectors.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/fixtures.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/subject.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/observation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/report.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/suite.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/vectors.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/fixtures.json"
+        }
+      ]
     }
   ]
 }

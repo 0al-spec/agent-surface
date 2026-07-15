@@ -36,6 +36,9 @@ class ReviewDataValidationTests(unittest.TestCase):
     def valid_payload(self) -> dict[str, object]:
         return self.fixture("valid-minimal-v2.json")
 
+    def machine_validated_payload(self) -> dict[str, object]:
+        return copy.deepcopy(load_review_payload())
+
     def assert_invalid(self, payload: dict[str, object], message: str) -> None:
         with self.assertRaisesRegex(ValueError, message):
             validate_review_payload(payload, self.heading_ids)
@@ -146,21 +149,72 @@ class ReviewDataValidationTests(unittest.TestCase):
     def test_unresolved_evidence_kind_is_rejected(self) -> None:
         payload = self.valid_payload()
         payload["reviews"][0]["evidence"].append(
-            {"kind": "schema", "ref": "does-not-exist.schema.json"}
+            {"kind": "test", "ref": "conformance/tests/test_conformance.py"}
         )
         self.assert_invalid(payload, "authoritative resolver")
 
-    def test_unverifiable_maturity_levels_are_rejected(self) -> None:
-        payload = self.valid_payload()
+    def test_machine_validated_evidence_is_accepted(self) -> None:
+        validate_review_payload(self.machine_validated_payload(), self.heading_ids)
+
+    def test_machine_validated_requires_all_authoritative_evidence_kinds(self) -> None:
+        for missing_kind in ("rfc_anchor", "schema", "registry"):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.machine_validated_payload()
+                review = payload["reviews"][-1]
+                review["evidence"] = [
+                    item for item in review["evidence"] if item["kind"] != missing_kind
+                ]
+                self.assert_invalid(payload, "missing bound evidence")
+
+    def test_unbound_review_cannot_borrow_conformance_evidence(self) -> None:
+        payload = self.machine_validated_payload()
+        source = payload["reviews"][-1]
         review = payload["reviews"][0]
         review["status"] = "present"
+        review["maturity"] = "machine_validated"
+        review["evidence"] = [
+            *review["evidence"],
+            *(item for item in source["evidence"] if item["kind"] != "rfc_anchor"),
+        ]
+        self.assert_invalid(payload, "no authoritative machine-validation binding")
+
+    def test_missing_schema_evidence_is_rejected(self) -> None:
+        payload = self.valid_payload()
+        payload["reviews"][0]["evidence"].append(
+            {"kind": "schema", "ref": "conformance/v1/missing.schema.json"}
+        )
+        self.assert_invalid(payload, "does not resolve to a repository file")
+
+    def test_escaping_schema_evidence_is_rejected(self) -> None:
+        for ref in ("../outside.schema.json", "/tmp/outside.schema.json"):
+            with self.subTest(ref=ref):
+                payload = self.valid_payload()
+                payload["reviews"][0]["evidence"].append({"kind": "schema", "ref": ref})
+                self.assert_invalid(payload, "must be repository-relative")
+
+    def test_schema_evidence_outside_conformance_v1_is_rejected(self) -> None:
+        payload = self.valid_payload()
+        payload["reviews"][0]["evidence"].append(
+            {"kind": "schema", "ref": "review/review-data.schema.json"}
+        )
+        self.assert_invalid(payload, r"conformance/v1/\*\.schema\.json")
+
+    def test_registry_evidence_outside_canonical_catalog_is_rejected(self) -> None:
+        payload = self.valid_payload()
+        payload["reviews"][0]["evidence"].append(
+            {"kind": "registry", "ref": "review/review-data.json"}
+        )
+        self.assert_invalid(payload, "conformance/v1/suite.json")
+
+    def test_unverifiable_higher_maturity_levels_are_rejected(self) -> None:
         for maturity in (
-            "machine_validated",
             "implementation_tested",
             "interop_tested",
             "stable",
         ):
             with self.subTest(maturity=maturity):
+                payload = self.machine_validated_payload()
+                review = payload["reviews"][-1]
                 review["maturity"] = maturity
                 self.assert_invalid(payload, "authoritative evidence resolvers")
 
@@ -211,13 +265,14 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 60)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 283)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 49, "proposal": 11}),
+            Counter({"specified": 49, "proposal": 10, "machine_validated": 1}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 49, "partial": 3, "missing": 8}),
+            Counter({"present": 50, "partial": 3, "missing": 7}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 124)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -247,13 +302,16 @@ class ReviewDataValidationTests(unittest.TestCase):
                 }
             ),
         )
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 269)
         for review in reviews:
             if review["status"] == "missing":
                 self.assertEqual(review["evidence"], [])
             else:
                 self.assertEqual(
-                    [item["ref"] for item in review["evidence"]],
+                    [
+                        item["ref"]
+                        for item in review["evidence"]
+                        if item["kind"] == "rfc_anchor"
+                    ],
                     [anchor["anchorId"] for anchor in review["anchors"]],
                 )
 
