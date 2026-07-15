@@ -13,6 +13,7 @@ policy-enforcing runtime.
 agent-surface/
   drafts/                  Source RFCs written in Markdown.
   conformance/             Executable role matrix, vectors, schemas, and runner.
+  mocks/                   Synthetic Mock App and Mock Runtime suite fixtures.
   schema/                  Optional JSON/YAML schemas.
   generated/               Optional generated XML, TXT, or PDF artifacts.
   examples/                Optional example manifests, grants, and receipts.
@@ -63,6 +64,10 @@ agent-surface/
 - Keep schemas and examples in sync with the RFC text when they are added.
 - Keep conformance matrix, vector, fixture, schema, runner, and report changes mutually
   consistent and run `make conformance-check`.
+- Keep the reference mock manifest, schema, entry points, separate authority
+  stores, and tests mutually consistent and run `make mock-check`. Mock-backed
+  subjects remain `suite_fixture`; the versioned mock control protocol is not
+  an ASP wire protocol and must use only synthetic data.
 - Prefer proposal-first workflows for risky actions:
 
   ```text

@@ -166,6 +166,57 @@ class ReviewDataValidationTests(unittest.TestCase):
                 ]
                 self.assert_invalid(payload, "missing bound evidence")
 
+    def test_mock_machine_validation_requires_the_exact_bound_evidence(self) -> None:
+        for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.machine_validated_payload()
+                review = next(item for item in payload["reviews"] if item["id"] == 58)
+                removed = False
+                retained = []
+                for item in review["evidence"]:
+                    if item["kind"] == missing_kind and not removed:
+                        removed = True
+                        continue
+                    retained.append(item)
+                review["evidence"] = retained
+                self.assertTrue(removed)
+                self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    def test_mock_machine_validation_rejects_extra_evidence(self) -> None:
+        payload = self.machine_validated_payload()
+        review = next(item for item in payload["reviews"] if item["id"] == 58)
+        review["anchors"].append(
+            {
+                "heading": "Conceptual Architecture",
+                "anchorId": "conceptual-architecture",
+            }
+        )
+        review["evidence"].append(
+            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+        )
+        self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    def test_other_review_cannot_borrow_mock_bundle_evidence(self) -> None:
+        cases = (
+            (
+                "schema",
+                "mocks/v1/manifest.schema.json",
+                "exact bound mock schema",
+            ),
+            ("registry", "mocks/v1/manifest.json", "conformance/v1/suite.json"),
+            (
+                "implementation",
+                "mocks/mock_app.py",
+                "exact bound Mock App or Mock Runtime",
+            ),
+        )
+        for kind, ref, message in cases:
+            with self.subTest(kind=kind):
+                payload = self.machine_validated_payload()
+                review = payload["reviews"][0]
+                review["evidence"].append({"kind": kind, "ref": ref})
+                self.assert_invalid(payload, message)
+
     def test_unbound_review_cannot_borrow_conformance_evidence(self) -> None:
         payload = self.machine_validated_payload()
         source = payload["reviews"][-1]
@@ -265,16 +316,16 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 60)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 283)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 288)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 49, "proposal": 10, "machine_validated": 1}),
+            Counter({"specified": 49, "proposal": 9, "machine_validated": 2}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 50, "partial": 3, "missing": 7}),
+            Counter({"present": 51, "partial": 3, "missing": 6}),
         )
-        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 124)
+        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 125)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
         self.assertEqual(
             [
@@ -369,7 +420,14 @@ class ReviewDataValidationTests(unittest.TestCase):
                 "agent-adapter-profile",
             ],
         )
+        self.assertEqual(reviews_by_id[58]["status"], "present")
+        self.assertEqual(reviews_by_id[58]["maturity"], "machine_validated")
+        self.assertEqual(reviews_by_id[58]["depends_on"], [13, 19, 28, 30, 56, 60])
         self.assertEqual(reviews_by_id[58]["readiness"], "ready")
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[58]["anchors"]],
+            ["reference-mock-participants"],
+        )
         self.assertEqual(reviews_by_id[60]["readiness"], "ready")
         for review in reviews:
             for dependency_id in review["depends_on"]:
