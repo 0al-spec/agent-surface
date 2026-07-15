@@ -18,4 +18,3 @@
     {"id": "task.updated", "scope": "tasks.read", "schema": "https://example.com/task-event.json"}
   ]
 }
-

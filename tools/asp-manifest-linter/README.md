@@ -38,4 +38,3 @@ checked against their repository copies by `self-check`.
 The linter checks declarations only. It does not verify remote schema bytes,
 `surface_hash`, issuer identity, runtime behavior, Grant state, approval,
 effects, receipts, or interoperability.
-
