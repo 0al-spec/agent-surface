@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
+import shutil
+import subprocess
 import sys
 from collections import Counter, deque
 from collections.abc import Mapping, Sequence
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +28,15 @@ CONFORMANCE_REGISTRIES = {
     Path("conformance/v1/vectors.json"),
     Path("conformance/v1/fixtures.json"),
 }
+LINTER_SCHEMAS = {
+    Path("tools/asp-manifest-linter/schema/diagnostics.schema.json"),
+    Path("tools/asp-manifest-linter/schema/rules.schema.json"),
+}
+LINTER_REGISTRY = Path("tools/asp-manifest-linter/rules/v1/rules.json")
+LINTER_IMPLEMENTATIONS = {
+    Path("tools/asp-manifest-linter/src/lib.rs"),
+    Path("tools/asp-manifest-linter/src/main.rs"),
+}
 MOCK_SCHEMA = Path("mocks/v1/manifest.schema.json")
 MOCK_REGISTRY = Path("mocks/v1/manifest.json")
 MOCK_IMPLEMENTATIONS = {
@@ -31,6 +44,14 @@ MOCK_IMPLEMENTATIONS = {
     Path("mocks/mock_runtime.py"),
 }
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
+    57: {
+        "rfc_anchor": {"reference-manifest-linter"},
+        "schema": {path.as_posix() for path in LINTER_SCHEMAS},
+        "registry": {LINTER_REGISTRY.as_posix()},
+        "implementation": {
+            path.as_posix() for path in LINTER_IMPLEMENTATIONS
+        },
+    },
     58: {
         "rfc_anchor": {"reference-mock-participants"},
         "schema": {MOCK_SCHEMA.as_posix()},
@@ -56,7 +77,7 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         },
     }
 }
-EXACT_MACHINE_VALIDATED_REVIEW_IDS = {58}
+EXACT_MACHINE_VALIDATED_REVIEW_IDS = {57, 58}
 MATURITY_ORDER = (
     "proposal",
     "specified",
@@ -373,11 +394,17 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
         schema_path.parent == CONFORMANCE_V1_DIR
         and schema_path.name.endswith(".schema.json")
     )
+    is_bound_linter_schema = review_id == 57 and relative_path in LINTER_SCHEMAS
     is_bound_mock_schema = review_id == 58 and relative_path == MOCK_SCHEMA
-    if not is_conformance_schema and not is_bound_mock_schema:
+    if (
+        not is_conformance_schema
+        and not is_bound_linter_schema
+        and not is_bound_mock_schema
+    ):
         raise ValueError(
             f"Review #{review_id} schema evidence must reference "
-            f"conformance/v1/*.schema.json or its exact bound mock schema: {ref!r}"
+            "conformance/v1/*.schema.json or an exact bound tooling schema: "
+            f"{ref!r}"
         )
     try:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
@@ -392,6 +419,9 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
 def _validate_registry_evidence(review_id: int, ref: str) -> None:
     registry_path = _resolve_repository_evidence_file(review_id, "registry", ref)
     relative_path = registry_path.relative_to(REPO_ROOT)
+    if review_id == 57 and relative_path == LINTER_REGISTRY:
+        _validate_linter_bundle_evidence(review_id, "registry", ref)
+        return
     if review_id == 58 and relative_path == MOCK_REGISTRY:
         _validate_mock_bundle_evidence(review_id, "registry", ref)
         return
@@ -431,12 +461,58 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         review_id, "implementation", ref
     )
     relative_path = implementation_path.relative_to(REPO_ROOT)
-    if review_id != 58 or relative_path not in MOCK_IMPLEMENTATIONS:
+    if review_id == 57 and relative_path in LINTER_IMPLEMENTATIONS:
+        _validate_linter_bundle_evidence(review_id, "implementation", ref)
+        return
+    if review_id == 58 and relative_path in MOCK_IMPLEMENTATIONS:
+        _validate_mock_bundle_evidence(review_id, "implementation", ref)
+        return
+    raise ValueError(
+        f"Review #{review_id} implementation evidence must reference an exact "
+        f"bound tooling entry point: {ref!r}"
+    )
+
+
+def _validate_linter_bundle_evidence(review_id: int, kind: str, ref: str) -> None:
+    try:
+        _run_linter_self_check()
+    except Exception as error:
         raise ValueError(
-            f"Review #{review_id} implementation evidence must reference an exact "
-            f"bound Mock App or Mock Runtime entry point: {ref!r}"
-        )
-    _validate_mock_bundle_evidence(review_id, "implementation", ref)
+            f"Review #{review_id} {kind} evidence failed canonical Rust linter "
+            f"self-check: {ref!r}: {error}"
+        ) from error
+
+
+@lru_cache(maxsize=1)
+def _run_linter_self_check() -> None:
+    cargo = shutil.which("cargo")
+    if cargo is None:
+        raise ValueError("cargo is unavailable")
+    environment = dict(os.environ)
+    environment["CARGO_TERM_COLOR"] = "never"
+    process = subprocess.run(
+        [
+            cargo,
+            "run",
+            "--quiet",
+            "--locked",
+            "-p",
+            "asp-manifest-linter",
+            "--",
+            "self-check",
+            "--root",
+            str(REPO_ROOT),
+        ],
+        cwd=REPO_ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        check=False,
+    )
+    if process.returncode != 0:
+        details = process.stderr.strip() or process.stdout.strip() or "unknown error"
+        raise ValueError(f"cargo self-check exited {process.returncode}: {details}")
 
 
 def _validate_mock_bundle_evidence(review_id: int, kind: str, ref: str) -> None:

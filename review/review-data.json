@@ -3466,26 +3466,14 @@
       "description": "сделать tooling, который проверяет missing schemas, missing risk labels, missing idempotency и inconsistent scopes.",
       "category": "Conformance / tooling / adoption",
       "side": "left",
-      "status": "missing",
+      "status": "present",
       "anchors": [
         {
-          "heading": "Required Top-Level Fields",
-          "anchorId": "required-top-level-fields"
-        },
-        {
-          "heading": "Resources",
-          "anchorId": "resources"
-        },
-        {
-          "heading": "Actions",
-          "anchorId": "actions"
-        },
-        {
-          "heading": "Surface Publisher Profile",
-          "anchorId": "surface-publisher-profile"
+          "heading": "Reference Manifest Linter",
+          "anchorId": "reference-manifest-linter"
         }
       ],
-      "rationale": "Проверяемые требования существуют, но linter, ruleset и diagnostics contract отсутствуют.",
+      "rationale": "Определён machine-validated Rust linter: strict offline parser, четыре versioned rules, stable JSON Pointer diagnostics, machine-readable report schema, fixtures и CI quality gate.",
       "priority": "P3",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -3495,8 +3483,33 @@
         20
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "machine_validated",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-manifest-linter"
+        },
+        {
+          "kind": "schema",
+          "ref": "tools/asp-manifest-linter/schema/diagnostics.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "tools/asp-manifest-linter/schema/rules.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "tools/asp-manifest-linter/rules/v1/rules.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "tools/asp-manifest-linter/src/lib.rs"
+        },
+        {
+          "kind": "implementation",
+          "ref": "tools/asp-manifest-linter/src/main.rs"
+        }
+      ]
     },
     {
       "id": 58,
