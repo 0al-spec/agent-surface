@@ -2,7 +2,7 @@
   "$schema": "./suite.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.0.0",
+  "suite_version": "1.1.0",
   "protocol_version": "agent-surface/0.1",
   "specification": {
     "path": "drafts/agent-surface.md",
@@ -14,7 +14,8 @@
       "role": "surface_publisher",
       "requirement_ids": [
         "ASP-SP-001",
-        "ASP-SP-002"
+        "ASP-SP-002",
+        "ASP-SP-003"
       ]
     },
     {
@@ -38,7 +39,9 @@
         "ASP-AE-005",
         "ASP-AE-006",
         "ASP-AE-007",
-        "ASP-AE-008"
+        "ASP-AE-008",
+        "ASP-AE-009",
+        "ASP-AE-010"
       ]
     },
     {
@@ -64,7 +67,8 @@
         "ASP-RM-005",
         "ASP-RM-006",
         "ASP-RM-007",
-        "ASP-RM-008"
+        "ASP-RM-008",
+        "ASP-RM-009"
       ]
     },
     {
@@ -141,6 +145,17 @@
       "rfc_anchor": "capability-match-result-object",
       "requirement_ids": [
         "ASP-RM-008"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1",
+      "title": "Operational Limits Profile",
+      "rfc_anchor": "rate-limits-and-quotas",
+      "requirement_ids": [
+        "ASP-SP-003",
+        "ASP-AE-009",
+        "ASP-AE-010",
+        "ASP-RM-009"
       ]
     }
   ],
@@ -589,6 +604,73 @@
       "execution_class": "behavioral",
       "vector_ids": [
         "ASP-V-AA-005"
+      ]
+    },
+    {
+      "requirement_id": "ASP-SP-003",
+      "title": "Validate closed Operational Limits declarations and manifest bindings",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "rfc_anchor": "rate-limits-and-quotas",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      },
+      "execution_class": "static",
+      "vector_ids": [
+        "ASP-V-SP-005",
+        "ASP-V-SP-006"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-009",
+      "title": "Enforce action limits atomically before workload admission",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "rate-limits-and-quotas",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AE-015",
+        "ASP-V-AE-016",
+        "ASP-V-AE-017",
+        "ASP-V-AE-018",
+        "ASP-V-AE-019",
+        "ASP-V-AE-020"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-010",
+      "title": "Charge event limits once per logical delivery identity",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "event-delivery-semantics",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AE-021",
+        "ASP-V-AE-022",
+        "ASP-V-AE-023"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-009",
+      "title": "Schedule conservatively and honor rate_limited retry policy",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "runtime-mediator-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-010",
+        "ASP-V-RM-011",
+        "ASP-V-RM-013",
+        "ASP-V-RM-012"
       ]
     }
   ]

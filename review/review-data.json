@@ -3284,7 +3284,7 @@
           "anchorId": "runtime-mediator-profile"
         }
       ],
-      "rationale": "RFC определяет hash-bound Operational Limits Profile: per-Grant action windows и in-flight slots, per-subscription event first-delivery windows, atomic admission, idempotent replay, privacy-minimized rate_limited/429 и capacity/overload 503 semantics, а также строгую границу с Grant budgets, event backpressure и runaway guards.",
+      "rationale": "RFC определяет hash-bound Operational Limits Profile; executable schemas, semantic cases и vectors проверяют closed manifest bindings, безопасную привязку раскрываемых limit_id, atomic multi-window/slot rejection без новых reservation/effects, replay/event accounting и rate_limited retry с hint и без него. Семантическая privacy-проверка произвольных extension members, retry behavior для capacity_state_unavailable/service_unavailable и HTTP 429/503 transport assertions остаются за пределами текущего executable subset.",
       "priority": "P2",
       "profile": "operations-safety",
       "depends_on": [
@@ -3296,7 +3296,7 @@
         54
       ],
       "target_release": null,
-      "maturity": "specified",
+      "maturity": "machine_validated",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -3345,6 +3345,58 @@
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/capacity-error.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/fixtures.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/observation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/operational-limits.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/report.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/schema-cases.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/subject.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/suite.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/vectors.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/fixtures.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/schema-cases.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/suite.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/vectors.json"
         }
       ]
     },
@@ -3756,11 +3808,7 @@
         },
         {
           "kind": "schema",
-          "ref": "conformance/v1/suite.schema.json"
-        },
-        {
-          "kind": "schema",
-          "ref": "conformance/v1/vectors.schema.json"
+          "ref": "conformance/v1/capacity-error.schema.json"
         },
         {
           "kind": "schema",
@@ -3768,15 +3816,39 @@
         },
         {
           "kind": "schema",
-          "ref": "conformance/v1/subject.schema.json"
-        },
-        {
-          "kind": "schema",
           "ref": "conformance/v1/observation.schema.json"
         },
         {
           "kind": "schema",
+          "ref": "conformance/v1/operational-limits.schema.json"
+        },
+        {
+          "kind": "schema",
           "ref": "conformance/v1/report.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/schema-cases.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/subject.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/suite.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/vectors.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/fixtures.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/schema-cases.json"
         },
         {
           "kind": "registry",
@@ -3785,10 +3857,6 @@
         {
           "kind": "registry",
           "ref": "conformance/v1/vectors.json"
-        },
-        {
-          "kind": "registry",
-          "ref": "conformance/v1/fixtures.json"
         }
       ]
     }

@@ -22,7 +22,7 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "vectors": {
       "type": "array",
@@ -52,7 +52,8 @@
         "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
         "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
         "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
-        "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1"
+        "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
       ]
     },
     "requirementId": {
@@ -96,7 +97,12 @@
         "valid_credential",
         "valid_grant_tuple",
         "valid_manifest",
-        "valid_policy"
+        "valid_policy",
+        "operational_limits_selected",
+        "authoritative_limiter_state",
+        "existing_operational_admission",
+        "active_event_subscription",
+        "capacity_response_received"
       ]
     },
     "operation": {
@@ -111,7 +117,10 @@
         "retry_outcome",
         "revoke_grant",
         "translate_action",
-        "verify_receipt"
+        "verify_receipt",
+        "deliver_event",
+        "retransmit_event",
+        "handle_capacity_response"
       ]
     },
     "inputVariant": {
@@ -153,7 +162,14 @@
         "valid_runtime_receipt",
         "version_hash_reuse",
         "wider_returned_grant",
-        "widened_action_set"
+        "widened_action_set",
+        "operational_limit_unresolved_control_event",
+        "conjunctive_window_exhausted",
+        "operational_in_flight_exhausted",
+        "operational_state_unavailable",
+        "operational_conflicting_reuse_at_capacity",
+        "event_first_delivery_exhausted",
+        "non_retryable_rate_limit"
       ]
     },
     "aspError": {
@@ -173,7 +189,10 @@
         "surface_incompatible",
         "training_use_denied",
         "risk_denied",
-        "runtime_untrusted"
+        "runtime_untrusted",
+        "rate_limited",
+        "capacity_state_unavailable",
+        "service_unavailable"
       ]
     },
     "policyReason": {
@@ -230,7 +249,26 @@
         "runtime_receipt_emitted",
         "same_receipt_replayed",
         "tuple_checked",
-        "typed_request_forwarded"
+        "typed_request_forwarded",
+        "operational_limits_validated",
+        "operational_limits_checked",
+        "operational_admission_committed",
+        "operational_capacity_rejected",
+        "capacity_response_validated",
+        "operational_state_retained",
+        "operational_identity_reused",
+        "event_first_delivery_admitted",
+        "event_transmitted",
+        "event_delivery_retransmitted",
+        "event_identity_reused",
+        "event_delivery_queued",
+        "operational_planning_reserved",
+        "retry_delay_floor_satisfied",
+        "local_backoff_selected",
+        "semantic_identity_reused",
+        "per_attempt_authentication_applied",
+        "retry_scheduled",
+        "retry_suppressed"
       ]
     },
     "stateName": {
@@ -268,7 +306,25 @@
         "runtime.retry_count",
         "runtime.stored_grant_width",
         "runtime.training_dispatch_count",
-        "surface.version_binding_count"
+        "surface.version_binding_count",
+        "application.workload_count",
+        "operational.action.window_count",
+        "operational.action.secondary_window_count",
+        "operational.action.slot_acquisition_count",
+        "operational.action.in_flight_count",
+        "operational.event.delivery_record_count",
+        "operational.event.delivery_identity_count",
+        "operational.event.first_delivery_count",
+        "operational.event.in_flight_count",
+        "operational.event.transmission_count",
+        "operational.event.queued_count",
+        "event.cursor_advance_count",
+        "runtime.local_window_count",
+        "runtime.local_in_flight_count",
+        "runtime.semantic_idempotency_binding_count",
+        "runtime.runaway_guard_epoch",
+        "runtime.retry_delay_floor_seconds",
+        "runtime.retry_wait_pending"
       ]
     },
     "stateValue": {

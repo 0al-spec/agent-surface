@@ -387,10 +387,10 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 60)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 306)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 323)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 50, "proposal": 7, "machine_validated": 3}),
+            Counter({"specified": 49, "proposal": 7, "machine_validated": 4}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
@@ -474,7 +474,12 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(reviews_by_id[51]["maturity"], "specified")
         self.assertEqual(reviews_by_id[52]["maturity"], "specified")
         self.assertEqual(reviews_by_id[53]["status"], "present")
-        self.assertEqual(reviews_by_id[53]["maturity"], "specified")
+        self.assertEqual(reviews_by_id[53]["maturity"], "machine_validated")
+        self.assertEqual(len(reviews_by_id[53]["evidence"]), 25)
+        self.assertEqual(
+            Counter(item["kind"] for item in reviews_by_id[53]["evidence"]),
+            Counter({"rfc_anchor": 12, "schema": 9, "registry": 4}),
+        )
         self.assertEqual(
             reviews_by_id[53]["depends_on"],
             [13, 21, 26, 30, 51, 54],
@@ -532,6 +537,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             ["reference-mock-participants"],
         )
         self.assertEqual(reviews_by_id[60]["readiness"], "ready")
+        self.assertEqual(len(reviews_by_id[60]["evidence"]), 18)
         for review in reviews:
             for dependency_id in review["depends_on"]:
                 self.assertIn(review["id"], reviews_by_id[dependency_id]["blocks"])

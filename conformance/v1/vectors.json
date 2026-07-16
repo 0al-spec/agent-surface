@@ -2,7 +2,7 @@
   "$schema": "./vectors.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.0.0",
+  "suite_version": "1.1.0",
   "vectors": [
     {
       "vector_id": "ASP-V-SP-001",
@@ -2442,6 +2442,1092 @@
           "after": 0
         }
       ]
+    },
+    {
+      "vector_id": "ASP-V-SP-005",
+      "title": "Accept a closed and fully bound Operational Limits declaration",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-SP-003"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "valid_manifest",
+        "operational_limits_selected"
+      ],
+      "stimulus": {
+        "operation": "publish_manifest",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "operational_limits_validated",
+        "manifest_published"
+      ],
+      "forbidden_observations": [
+        "manifest_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "surface.version_binding_count",
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-SP-006",
+      "title": "Reject an unresolved or control-event Operational Limits target",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "negative",
+      "requirement_ids": [
+        "ASP-SP-003"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "valid_manifest",
+        "operational_limits_selected"
+      ],
+      "stimulus": {
+        "operation": "publish_manifest",
+        "input_variant": "operational_limit_unresolved_control_event"
+      },
+      "required_observations": [
+        "manifest_rejected"
+      ],
+      "forbidden_observations": [
+        "operational_limits_validated",
+        "manifest_published"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "surface.version_binding_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "baseline_vector_id": "ASP-V-SP-005",
+      "expected_error": "surface_incompatible"
+    },
+    {
+      "vector_id": "ASP-V-AE-015",
+      "title": "Atomically admit a fresh action inside every applicable limit",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "active_session",
+        "operational_limits_selected",
+        "authoritative_limiter_state"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "operational_limits_checked",
+        "operational_admission_committed",
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "forbidden_observations": [
+        "operational_capacity_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "operational.action.window_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "operational.action.secondary_window_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "operational.action.slot_acquisition_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "application.workload_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "operational.action.in_flight_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-016",
+      "title": "Reject an action when a conjunctive window is exhausted",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "requirement_ids": [
+        "ASP-AE-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "active_session",
+        "operational_limits_selected",
+        "authoritative_limiter_state"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "conjunctive_window_exhausted"
+      },
+      "required_observations": [
+        "operational_limits_checked",
+        "operational_capacity_rejected"
+      ],
+      "forbidden_observations": [
+        "operational_admission_committed",
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "operational.action.window_count",
+          "before": 9,
+          "after": 9
+        },
+        {
+          "state": "operational.action.secondary_window_count",
+          "before": 10,
+          "after": 10
+        },
+        {
+          "state": "operational.action.slot_acquisition_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "application.workload_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "reservation.active_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "operational.action.in_flight_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "baseline_vector_id": "ASP-V-AE-015",
+      "expected_error": "rate_limited"
+    },
+    {
+      "vector_id": "ASP-V-AE-017",
+      "title": "Reject an action when its in-flight limit is exhausted",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "requirement_ids": [
+        "ASP-AE-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "active_session",
+        "operational_limits_selected",
+        "authoritative_limiter_state"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "operational_in_flight_exhausted"
+      },
+      "required_observations": [
+        "operational_limits_checked",
+        "operational_capacity_rejected"
+      ],
+      "forbidden_observations": [
+        "operational_admission_committed",
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "operational.action.window_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "operational.action.secondary_window_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "operational.action.in_flight_count",
+          "before": 3,
+          "after": 3
+        },
+        {
+          "state": "operational.action.slot_acquisition_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "application.workload_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "reservation.active_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "baseline_vector_id": "ASP-V-AE-015",
+      "expected_error": "rate_limited"
+    },
+    {
+      "vector_id": "ASP-V-AE-018",
+      "title": "Fail closed when authoritative limiter state is unavailable",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "requirement_ids": [
+        "ASP-AE-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "active_session",
+        "operational_limits_selected",
+        "authoritative_limiter_state"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "operational_state_unavailable"
+      },
+      "required_observations": [
+        "operational_capacity_rejected",
+        "operational_state_retained"
+      ],
+      "forbidden_observations": [
+        "operational_admission_committed",
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "operational.action.window_count",
+          "before": 4,
+          "after": 4
+        },
+        {
+          "state": "operational.action.secondary_window_count",
+          "before": 7,
+          "after": 7
+        },
+        {
+          "state": "operational.action.slot_acquisition_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "application.workload_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "reservation.active_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "operational.action.in_flight_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "baseline_vector_id": "ASP-V-AE-015",
+      "expected_error": "capacity_state_unavailable"
+    },
+    {
+      "vector_id": "ASP-V-AE-019",
+      "title": "Replay a completed action without consuming capacity again",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "active_session",
+        "operational_limits_selected",
+        "authoritative_limiter_state",
+        "existing_idempotency_record",
+        "existing_operational_admission"
+      ],
+      "stimulus": {
+        "operation": "replay_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "original_result_replayed",
+        "operational_identity_reused"
+      ],
+      "forbidden_observations": [
+        "operational_admission_committed",
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "operational.action.window_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "operational.action.secondary_window_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "operational.action.slot_acquisition_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "application.workload_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "reservation.active_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "operational.action.in_flight_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-020",
+      "title": "Prefer idempotency conflict over an exhausted capacity response",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "requirement_ids": [
+        "ASP-AE-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "valid_grant_tuple",
+        "active_session",
+        "operational_limits_selected",
+        "authoritative_limiter_state",
+        "existing_idempotency_record",
+        "existing_operational_admission"
+      ],
+      "stimulus": {
+        "operation": "replay_action",
+        "input_variant": "operational_conflicting_reuse_at_capacity"
+      },
+      "required_observations": [
+        "action_rejected"
+      ],
+      "forbidden_observations": [
+        "operational_capacity_rejected",
+        "operational_admission_committed",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "operational.action.window_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "operational.action.secondary_window_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "operational.action.slot_acquisition_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "application.workload_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "reservation.active_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "operational.action.in_flight_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "baseline_vector_id": "ASP-V-AE-019",
+      "expected_error": "idempotency_conflict"
+    },
+    {
+      "vector_id": "ASP-V-AE-021",
+      "title": "Charge and transmit a first logical event delivery once",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-010"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "operational_limits_selected",
+        "authoritative_limiter_state",
+        "active_event_subscription"
+      ],
+      "stimulus": {
+        "operation": "deliver_event",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "event_first_delivery_admitted",
+        "event_transmitted"
+      ],
+      "forbidden_observations": [
+        "event_delivery_queued",
+        "operational_capacity_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "operational.event.delivery_record_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "operational.event.delivery_identity_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "operational.event.first_delivery_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "operational.event.transmission_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "event.cursor_advance_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "operational.event.in_flight_count",
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-022",
+      "title": "Retransmit the same event delivery identity without charging again",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-010"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "operational_limits_selected",
+        "authoritative_limiter_state",
+        "active_event_subscription",
+        "existing_operational_admission"
+      ],
+      "stimulus": {
+        "operation": "retransmit_event",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "event_delivery_retransmitted",
+        "event_identity_reused",
+        "event_transmitted"
+      ],
+      "forbidden_observations": [
+        "event_first_delivery_admitted",
+        "operational_capacity_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "operational.event.delivery_record_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "operational.event.delivery_identity_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "operational.event.first_delivery_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "operational.event.transmission_count",
+          "before": 1,
+          "after": 2
+        },
+        {
+          "state": "event.cursor_advance_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "operational.event.in_flight_count",
+          "before": 1,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-023",
+      "title": "Queue a first event delivery when capacity is exhausted",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "requirement_ids": [
+        "ASP-AE-010"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "operational_limits_selected",
+        "authoritative_limiter_state",
+        "active_event_subscription"
+      ],
+      "stimulus": {
+        "operation": "deliver_event",
+        "input_variant": "event_first_delivery_exhausted"
+      },
+      "required_observations": [
+        "operational_capacity_rejected",
+        "event_delivery_queued"
+      ],
+      "forbidden_observations": [
+        "event_first_delivery_admitted",
+        "event_transmitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "operational.event.delivery_record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "operational.event.delivery_identity_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "operational.event.first_delivery_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "operational.event.transmission_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "operational.event.queued_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "event.cursor_advance_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "operational.event.in_flight_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "baseline_vector_id": "ASP-V-AE-021"
+    },
+    {
+      "vector_id": "ASP-V-RM-010",
+      "title": "Reserve local capacity conservatively before mediated dispatch",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "operational_limits_selected",
+        "authoritative_limiter_state"
+      ],
+      "stimulus": {
+        "operation": "mediate_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "operational_limits_checked",
+        "operational_planning_reserved"
+      ],
+      "forbidden_observations": [
+        "retry_scheduled",
+        "operational_capacity_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.local_window_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "runtime.local_in_flight_count",
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-011",
+      "title": "Retry a retryable capacity response with stable semantics and per-attempt authentication",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_capacity_response",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "capacity_response_validated",
+        "retry_delay_floor_satisfied",
+        "semantic_identity_reused",
+        "per_attempt_authentication_applied",
+        "retry_scheduled"
+      ],
+      "forbidden_observations": [
+        "retry_suppressed"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.local_window_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "runtime.local_in_flight_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "runtime.semantic_idempotency_binding_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "runtime.retry_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "runtime.retry_delay_floor_seconds",
+          "before": 0,
+          "after": 12
+        },
+        {
+          "state": "runtime.retry_wait_pending",
+          "before": false,
+          "after": true
+        },
+        {
+          "state": "runtime.runaway_guard_epoch",
+          "before": 7,
+          "after": 7
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-013",
+      "title": "Retry a retryable rate limit without an application hint using local backoff",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_capacity_response",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "capacity_response_validated",
+        "local_backoff_selected",
+        "semantic_identity_reused",
+        "per_attempt_authentication_applied",
+        "retry_scheduled"
+      ],
+      "forbidden_observations": [
+        "retry_delay_floor_satisfied",
+        "retry_suppressed"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.local_window_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "runtime.local_in_flight_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "runtime.semantic_idempotency_binding_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "runtime.retry_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "runtime.retry_delay_floor_seconds",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "runtime.retry_wait_pending",
+          "before": false,
+          "after": true
+        },
+        {
+          "state": "runtime.runaway_guard_epoch",
+          "before": 7,
+          "after": 7
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-012",
+      "title": "Suppress retry for a non-retryable capacity response",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "requirement_ids": [
+        "ASP-RM-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_capacity_response",
+        "input_variant": "non_retryable_rate_limit"
+      },
+      "required_observations": [
+        "capacity_response_validated",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "retry_scheduled",
+        "per_attempt_authentication_applied"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.local_window_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "runtime.local_in_flight_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "runtime.semantic_idempotency_binding_count",
+          "before": 1,
+          "after": 1
+        },
+        {
+          "state": "runtime.retry_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "runtime.retry_delay_floor_seconds",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "runtime.retry_wait_pending",
+          "before": false,
+          "after": false
+        },
+        {
+          "state": "runtime.runaway_guard_epoch",
+          "before": 7,
+          "after": 7
+        }
+      ],
+      "baseline_vector_id": "ASP-V-RM-011"
     }
   ]
 }

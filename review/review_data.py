@@ -24,10 +24,25 @@ REPO_ROOT = REVIEW_DIR.parent
 DATA_PATH = REVIEW_DIR / "review-data.json"
 SCHEMA_PATH = REVIEW_DIR / "review-data.schema.json"
 CONFORMANCE_V1_DIR = REPO_ROOT / "conformance" / "v1"
+CONFORMANCE_SCHEMAS = {
+    Path(f"conformance/v1/{name}.schema.json")
+    for name in (
+        "capacity-error",
+        "fixtures",
+        "observation",
+        "operational-limits",
+        "report",
+        "schema-cases",
+        "subject",
+        "suite",
+        "vectors",
+    )
+}
 CONFORMANCE_REGISTRIES = {
     Path("conformance/v1/suite.json"),
     Path("conformance/v1/vectors.json"),
     Path("conformance/v1/fixtures.json"),
+    Path("conformance/v1/schema-cases.json"),
 }
 LINTER_SCHEMAS = {
     Path("tools/asp-manifest-linter/schema/diagnostics.schema.json"),
@@ -45,6 +60,24 @@ MOCK_IMPLEMENTATIONS = {
     Path("mocks/mock_runtime.py"),
 }
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
+    53: {
+        "rfc_anchor": {
+            "required-top-level-fields",
+            "example-manifest",
+            "actions",
+            "events",
+            "rate-limits-and-quotas",
+            "event-subscription-authority",
+            "event-delivery-semantics",
+            "retention-and-backpressure",
+            "error-model",
+            "surface-publisher-profile",
+            "action-executor-profile",
+            "runtime-mediator-profile",
+        },
+        "schema": {path.as_posix() for path in CONFORMANCE_SCHEMAS},
+        "registry": {path.as_posix() for path in CONFORMANCE_REGISTRIES},
+    },
     57: {
         "rfc_anchor": {"reference-manifest-linter"},
         "schema": {path.as_posix() for path in LINTER_SCHEMAS},
@@ -63,22 +96,11 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
     },
     60: {
         "rfc_anchor": {"interoperability-test-suite"},
-        "schema": {
-            "conformance/v1/suite.schema.json",
-            "conformance/v1/vectors.schema.json",
-            "conformance/v1/fixtures.schema.json",
-            "conformance/v1/subject.schema.json",
-            "conformance/v1/observation.schema.json",
-            "conformance/v1/report.schema.json",
-        },
-        "registry": {
-            "conformance/v1/suite.json",
-            "conformance/v1/vectors.json",
-            "conformance/v1/fixtures.json",
-        },
+        "schema": {path.as_posix() for path in CONFORMANCE_SCHEMAS},
+        "registry": {path.as_posix() for path in CONFORMANCE_REGISTRIES},
     }
 }
-EXACT_MACHINE_VALIDATED_REVIEW_IDS = {57, 58}
+EXACT_MACHINE_VALIDATED_REVIEW_IDS = {53, 57, 58}
 MATURITY_ORDER = (
     "proposal",
     "specified",
@@ -430,7 +452,7 @@ def _validate_registry_evidence(review_id: int, ref: str) -> None:
         raise ValueError(
             f"Review #{review_id} registry evidence must reference "
             "conformance/v1/suite.json, conformance/v1/vectors.json, or "
-            "conformance/v1/fixtures.json: "
+            "conformance/v1/fixtures.json, or conformance/v1/schema-cases.json: "
             f"{ref!r}"
         )
 

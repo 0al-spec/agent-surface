@@ -125,9 +125,41 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertGreaterEqual(len(self.catalog.requirements), 24)
-        self.assertGreaterEqual(len(self.catalog.vectors), 24)
+        self.assertEqual(self.catalog.suite["suite_version"], "1.1.0")
+        self.assertEqual(len(self.catalog.features), 9)
+        self.assertEqual(len(self.catalog.requirements), 36)
+        self.assertEqual(len(self.catalog.vectors), 62)
+        self.assertEqual(len(self.catalog.fixtures), 18)
+        self.assertEqual(len(self.catalog.mutations), 45)
+        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 36)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
+
+    def test_schema_case_polarities_are_executable_and_fail_closed(self) -> None:
+        cases = self.catalog.schema_case_catalog["cases"]
+        for schema_id in {
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+        }:
+            self.assertEqual(
+                {case["polarity"] for case in cases if case["schema_id"] == schema_id},
+                {"positive", "negative"},
+            )
+
+        root = self.catalog_copy()
+        path = root / "conformance" / "v1" / "schema-cases.json"
+        corpus = json.loads(path.read_text(encoding="utf-8"))
+        positive = next(case for case in corpus["cases"] if case["polarity"] == "positive")
+        negative = next(
+            case
+            for case in corpus["cases"]
+            if case["polarity"] == "negative"
+            and case["schema_id"] == positive["schema_id"]
+        )
+        negative["instance_json"] = positive["instance_json"]
+        negative["context"] = positive["context"]
+        path.write_text(json.dumps(corpus), encoding="utf-8")
+        with self.assertRaisesRegex(ConformanceError, "negative schema case .* passed"):
+            validate_catalog(root)
 
     def test_every_role_has_positive_and_negative_vectors(self) -> None:
         for profile_id in PROFILE_ROLES:
@@ -176,6 +208,33 @@ class ConformanceSuiteTests(unittest.TestCase):
                 and vector["producer_role"] == producer_role
             }
             self.assertEqual(polarities, {"positive", "negative"})
+
+    def test_operational_feature_requires_semantic_fixture_state(self) -> None:
+        root = self.catalog_copy()
+        fixtures_path = root / "conformance" / "v1" / "fixtures.json"
+        fixtures = json.loads(fixtures_path.read_text(encoding="utf-8"))
+        fixture = next(
+            item
+            for item in fixtures["fixtures"]
+            if item["baseline_vector_id"] == "ASP-V-SP-005"
+        )
+        fixture["document"].pop("operational")
+        fixtures_path.write_text(json.dumps(fixtures), encoding="utf-8")
+        with self.assertRaisesRegex(ConformanceError, "feature selection.*differ"):
+            validate_catalog(root)
+
+        root = self.catalog_copy()
+        fixtures_path = root / "conformance" / "v1" / "fixtures.json"
+        fixtures = json.loads(fixtures_path.read_text(encoding="utf-8"))
+        fixtures_by_baseline = {
+            item["baseline_vector_id"]: item for item in fixtures["fixtures"]
+        }
+        fixtures_by_baseline["ASP-V-SP-001"]["document"]["operational"] = copy.deepcopy(
+            fixtures_by_baseline["ASP-V-SP-005"]["document"]["operational"]
+        )
+        fixtures_path.write_text(json.dumps(fixtures), encoding="utf-8")
+        with self.assertRaisesRegex(ConformanceError, "feature selection.*differ"):
+            validate_catalog(root)
 
     def test_strict_json_rejects_duplicate_keys_and_floats(self) -> None:
         with self.assertRaisesRegex(ConformanceError, "duplicate JSON"):

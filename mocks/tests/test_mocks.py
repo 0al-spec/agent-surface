@@ -104,7 +104,7 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 "state_deltas",
             }
         )
-        self.assertEqual(len(self.catalog.vectors), 47)
+        self.assertEqual(len(self.catalog.vectors), 62)
         for vector_id in self.catalog.vectors:
             with self.subTest(vector_id=vector_id):
                 self.assert_matches_catalog_oracle(vector_id)
@@ -216,6 +216,68 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                     "receipt.application_count",
                 ):
                     self.assertEqual(result.state_after[state], result.state_before[state])
+
+    def test_operational_rejections_fail_closed_before_workload_or_retry(self) -> None:
+        for vector_id in (
+            "ASP-V-AE-016",
+            "ASP-V-AE-017",
+            "ASP-V-AE-018",
+            "ASP-V-AE-020",
+            "ASP-V-AE-023",
+            "ASP-V-RM-012",
+        ):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertNotIn("action_accepted", result.tokens)
+                self.assertNotIn("operational_admission_committed", result.tokens)
+                self.assertNotIn("retry_scheduled", result.tokens)
+                for state, before in result.state_before.items():
+                    if state in {
+                        "application.workload_count",
+                        "receipt.application_count",
+                        "action.dispatch_count",
+                        "action.effect_count",
+                        "idempotency.record_count",
+                        "budget.application_charge",
+                        "reservation.active_count",
+                        "operational.action.window_count",
+                        "operational.action.secondary_window_count",
+                        "operational.action.slot_acquisition_count",
+                        "operational.action.in_flight_count",
+                        "runtime.retry_count",
+                    }:
+                        self.assertEqual(result.state_after[state], before)
+
+    def test_capacity_response_releases_local_slots_and_preserves_guards(self) -> None:
+        retryable = self.assert_matches_catalog_oracle("ASP-V-RM-011")
+        no_hint = self.assert_matches_catalog_oracle("ASP-V-RM-013")
+        stopped = self.assert_matches_catalog_oracle("ASP-V-RM-012")
+        for result in (retryable, no_hint, stopped):
+            self.assertEqual(result.state_after["runtime.local_window_count"], 0)
+            self.assertEqual(result.state_after["runtime.local_in_flight_count"], 0)
+            self.assertEqual(
+                result.state_after["runtime.runaway_guard_epoch"],
+                result.state_before["runtime.runaway_guard_epoch"],
+            )
+
+        self.assertEqual(retryable.state_after["runtime.retry_delay_floor_seconds"], 12)
+        self.assertEqual(
+            no_hint.state_after["runtime.retry_delay_floor_seconds"],
+            no_hint.state_before["runtime.retry_delay_floor_seconds"],
+        )
+        self.assertIn("local_backoff_selected", no_hint.tokens)
+        self.assertTrue(retryable.state_after["runtime.retry_wait_pending"])
+        self.assertTrue(no_hint.state_after["runtime.retry_wait_pending"])
+        self.assertFalse(stopped.state_after["runtime.retry_wait_pending"])
+        self.assertEqual(stopped.state_after["runtime.retry_delay_floor_seconds"], 0)
+
+    def test_replay_and_retransmission_do_not_consume_first_admission_again(self) -> None:
+        for vector_id in ("ASP-V-AE-019", "ASP-V-AE-022"):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                for state, before in result.state_before.items():
+                    if state != "operational.event.transmission_count":
+                        self.assertEqual(result.state_after[state], before)
 
     def test_receipt_role_forgery_never_creates_authoritative_evidence(self) -> None:
         for vector_id in (
