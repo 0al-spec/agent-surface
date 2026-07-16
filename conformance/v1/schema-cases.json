@@ -1,0 +1,549 @@
+{
+  "$schema": "./schema-cases.schema.json",
+  "schema_version": 1,
+  "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
+  "suite_version": "1.1.0",
+  "cases": [
+    {
+      "case_id": "ASP-SC-OL-001",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "positive",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"windows\":[{\"limit_id\":\"comment-per-minute\",\"max_admissions\":20,\"window_seconds\":60}]}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-002",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "positive",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"in_flight\":{\"limit_id\":\"comment-in-flight\",\"max\":4}}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-003",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "positive",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[],\"events\":[{\"event_id\":\"task.created\",\"partition\":\"subscription\",\"windows\":[{\"limit_id\":\"task-per-minute\",\"max_first_deliveries\":120,\"window_seconds\":60}]}]}",
+      "context": {
+        "action_ids": [],
+        "idempotency_required_action_ids": [],
+        "event_ids": [
+          "task.created"
+        ],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-004",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "positive",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"windows\":[{\"limit_id\":\"comment-per-minute\",\"max_admissions\":20,\"window_seconds\":60}],\"in_flight\":{\"limit_id\":\"comment-in-flight\",\"max\":4}}],\"events\":[{\"event_id\":\"task.created\",\"partition\":\"subscription\",\"windows\":[{\"limit_id\":\"task-per-minute\",\"max_first_deliveries\":120,\"window_seconds\":60}]}]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [
+          "task.created"
+        ],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-005",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "positive",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"windows\":[{\"limit_id\":\"comment-per-minute\",\"max_admissions\":20,\"window_seconds\":60},{\"limit_id\":\"comment-per-hour\",\"max_admissions\":1000,\"window_seconds\":3600}]}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-101",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[],\"events\":[]}",
+      "context": {
+        "action_ids": [],
+        "idempotency_required_action_ids": [],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-102",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"windows\":[]}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-103",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\"}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-104",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://example.invalid/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"in_flight\":{\"limit_id\":\"comment-in-flight\",\"max\":4}}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-105",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"subscription\",\"in_flight\":{\"limit_id\":\"comment-in-flight\",\"max\":4}}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-106",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"in_flight\":{\"limit_id\":\"comment-in-flight\",\"max\":4},\"unknown\":true}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-107",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"in_flight\":{\"limit_id\":\"comment-in-flight\",\"max\":0}}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-108",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"in_flight\":{\"limit_id\":\"comment-in-flight\",\"max\":9007199254740992}}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-109",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"in_flight\":{\"limit_id\":\"comment-in-flight\",\"max\":4}},{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"in_flight\":{\"limit_id\":\"comment-in-flight\",\"max\":4}}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-110",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"windows\":[{\"limit_id\":\"minute-a\",\"max_admissions\":20,\"window_seconds\":60}]},{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"in_flight\":{\"limit_id\":\"slot-b\",\"max\":4}}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-111",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"windows\":[{\"limit_id\":\"shared-limit\",\"max_admissions\":20,\"window_seconds\":60}]}],\"events\":[{\"event_id\":\"task.created\",\"partition\":\"subscription\",\"windows\":[{\"limit_id\":\"shared-limit\",\"max_first_deliveries\":120,\"window_seconds\":60}]}]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [
+          "task.created"
+        ],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-112",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"missing.action\",\"partition\":\"grant\",\"in_flight\":{\"limit_id\":\"missing-slot\",\"max\":4}}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [
+          "comment.create"
+        ],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-113",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[{\"action_id\":\"comment.create\",\"partition\":\"grant\",\"in_flight\":{\"limit_id\":\"comment-slot\",\"max\":4}}],\"events\":[]}",
+      "context": {
+        "action_ids": [
+          "comment.create"
+        ],
+        "idempotency_required_action_ids": [],
+        "event_ids": [],
+        "control_event_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-114",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[],\"events\":[{\"event_id\":\"budget.warning\",\"partition\":\"subscription\",\"windows\":[{\"limit_id\":\"control-limit\",\"max_first_deliveries\":10,\"window_seconds\":60}]}]}",
+      "context": {
+        "action_ids": [],
+        "idempotency_required_action_ids": [],
+        "event_ids": [
+          "budget.warning"
+        ],
+        "control_event_ids": [
+          "budget.warning"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-OL-115",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1\",\"actions\":[],\"events\":[{\"event_id\":\"custom.control\",\"partition\":\"subscription\",\"windows\":[{\"limit_id\":\"custom-control-per-minute\",\"max_first_deliveries\":10,\"window_seconds\":60}]}]}",
+      "context": {
+        "action_ids": [],
+        "idempotency_required_action_ids": [],
+        "event_ids": [
+          "custom.control"
+        ],
+        "control_event_ids": [
+          "custom.control"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-001",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "positive",
+      "instance_json": "{\"code\":\"rate_limited\",\"description\":\"Capacity did not admit the request.\",\"retryable\":false}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-002",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "positive",
+      "instance_json": "{\"code\":\"rate_limited\",\"description\":\"Capacity did not admit the request.\",\"retryable\":true,\"limit\":{\"limit_ids\":[\"comment-per-minute\"],\"retry_after_seconds\":12}}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-003",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "positive",
+      "instance_json": "{\"code\":\"capacity_state_unavailable\",\"description\":\"Authoritative limiter state is unavailable.\",\"retryable\":false}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-004",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "positive",
+      "instance_json": "{\"code\":\"service_unavailable\",\"description\":\"Shared service capacity is unavailable.\",\"retryable\":true}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-005",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "positive",
+      "instance_json": "{\"code\":\"service_unavailable\",\"description\":\"Shared service capacity is unavailable.\",\"retryable\":true,\"extension_example\":{\"mode\":\"degraded\"}}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-006",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "positive",
+      "instance_json": "{\"code\":\"rate_limited\",\"description\":\"Capacity did not admit the request.\",\"retryable\":true}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-007",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "positive",
+      "instance_json": "{\"code\":\"rate_limited\",\"description\":\"Capacity did not admit the request.\",\"retryable\":true,\"limit\":{\"limit_ids\":[\"comment-per-minute\"]}}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-101",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "negative",
+      "instance_json": "{\"code\":\"rate_limited\",\"description\":\"Capacity did not admit the request.\",\"retryable\":false,\"limit\":{\"retry_after_seconds\":12}}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-102",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "negative",
+      "instance_json": "{\"code\":\"capacity_state_unavailable\",\"description\":\"Authoritative limiter state is unavailable.\",\"retryable\":false,\"limit\":{}}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-103",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "negative",
+      "instance_json": "{\"code\":\"rate_limited\",\"description\":\"Capacity did not admit the request.\",\"retryable\":true,\"limit\":{\"retry_after_seconds\":0}}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-104",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "negative",
+      "instance_json": "{\"code\":\"rate_limited\",\"description\":\"Capacity did not admit the request.\",\"retryable\":true,\"limit\":{\"limit_ids\":[\"same\",\"same\"]}}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-105",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "negative",
+      "instance_json": "{\"code\":\"service_unavailable\",\"description\":\"\",\"retryable\":true}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-106",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "negative",
+      "instance_json": "{\"code\":\"rate_limited\",\"description\":\"Capacity did not admit the request.\",\"retryable\":true,\"limit\":{\"remaining\":10}}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-107",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "negative",
+      "instance_json": "{\"code\":\"rate_limited\",\"description\":\"Capacity did not admit the request.\",\"retryable\":true,\"limit\":{\"limit_ids\":[\"undeclared-limit\"],\"retry_after_seconds\":12}}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-108",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "negative",
+      "instance_json": "{\"code\":\"rate_limited\",\"description\":\"Capacity did not admit the request.\",\"retryable\":true,\"limit\":{\"limit_ids\":[\"cross-partition-limit\"],\"retry_after_seconds\":12}}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute",
+          "cross-partition-limit"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-CE-109",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+      "polarity": "negative",
+      "instance_json": "{\"code\":\"service_unavailable\",\"description\":\"Shared service capacity is unavailable.\",\"retryable\":false,\"limit\":{}}",
+      "context": {
+        "declared_limit_ids": [
+          "comment-per-minute"
+        ],
+        "disclosable_limit_ids": [
+          "comment-per-minute"
+        ]
+      }
+    }
+  ]
+}

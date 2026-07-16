@@ -24,15 +24,15 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "fixture_catalog_id": {
       "const": "agent-surface/conformance/fixtures/v1"
     },
     "fixtures": {
       "type": "array",
-      "minItems": 10,
-      "maxItems": 10,
+      "minItems": 18,
+      "maxItems": 18,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/fixture"
@@ -43,8 +43,8 @@
     },
     "mutations": {
       "type": "array",
-      "minItems": 38,
-      "maxItems": 38,
+      "minItems": 45,
+      "maxItems": 45,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/mutation"
@@ -66,7 +66,15 @@
         "ASP-F-RP-001",
         "ASP-F-RP-002",
         "ASP-F-RM-001",
-        "ASP-F-AA-001"
+        "ASP-F-AA-001",
+        "ASP-F-SP-005",
+        "ASP-F-AE-015",
+        "ASP-F-AE-019",
+        "ASP-F-AE-021",
+        "ASP-F-AE-022",
+        "ASP-F-RM-010",
+        "ASP-F-RM-011",
+        "ASP-F-RM-013"
       ]
     },
     "baselineVectorId": {
@@ -80,7 +88,15 @@
         "ASP-V-RP-001",
         "ASP-V-RP-002",
         "ASP-V-RM-001",
-        "ASP-V-AA-001"
+        "ASP-V-AA-001",
+        "ASP-V-SP-005",
+        "ASP-V-AE-015",
+        "ASP-V-AE-019",
+        "ASP-V-AE-021",
+        "ASP-V-AE-022",
+        "ASP-V-RM-010",
+        "ASP-V-RM-011",
+        "ASP-V-RM-013"
       ]
     },
     "mutationId": {
@@ -94,6 +110,7 @@
         "ASP-M-EXACT-REVOCATION-REPLAY",
         "ASP-M-FABRICATED-RECEIPT",
         "ASP-M-INCOMPLETE-REFERENCES",
+        "ASP-M-NON-FIXED-POINT-INPUT",
         "ASP-M-PASSPORT-STATUS-UNAVAILABLE",
         "ASP-M-POLICY-DENIED",
         "ASP-M-PROOF-SESSION-BINDING-MISMATCH",
@@ -113,7 +130,6 @@
         "ASP-M-STRONGER-ACTION-SUBSTITUTION",
         "ASP-M-TRAINING-POLICY-WIDER",
         "ASP-M-UNCLOSED-COMPANION-SET",
-        "ASP-M-NON-FIXED-POINT-INPUT",
         "ASP-M-UNKNOWN-OUTCOME-NEW-KEY",
         "ASP-M-UNKNOWN-OUTCOME-RETRY",
         "ASP-M-UNKNOWN-REMOTE-PATH",
@@ -122,7 +138,14 @@
         "ASP-M-VALID-RUNTIME-RECEIPT",
         "ASP-M-VERSION-HASH-REUSE",
         "ASP-M-WIDENED-ACTION-SET",
-        "ASP-M-WIDER-RETURNED-GRANT"
+        "ASP-M-WIDER-RETURNED-GRANT",
+        "ASP-M-OPERATIONAL-LIMIT-UNRESOLVED-CONTROL-EVENT",
+        "ASP-M-CONJUNCTIVE-WINDOW-EXHAUSTED",
+        "ASP-M-OPERATIONAL-IN-FLIGHT-EXHAUSTED",
+        "ASP-M-OPERATIONAL-STATE-UNAVAILABLE",
+        "ASP-M-OPERATIONAL-CONFLICTING-REUSE-AT-CAPACITY",
+        "ASP-M-EVENT-FIRST-DELIVERY-EXHAUSTED",
+        "ASP-M-NON-RETRYABLE-RATE-LIMIT"
       ]
     },
     "inputVariant": {
@@ -136,6 +159,7 @@
         "exact_revocation_replay",
         "fabricated_receipt",
         "incomplete_references",
+        "non_fixed_point_input",
         "passport_status_unavailable",
         "policy_denied",
         "proof_session_binding_mismatch",
@@ -155,7 +179,6 @@
         "stronger_action_substitution",
         "training_policy_wider",
         "unclosed_companion_set",
-        "non_fixed_point_input",
         "unknown_outcome_new_key",
         "unknown_outcome_retry",
         "unknown_remote_path",
@@ -164,7 +187,14 @@
         "valid_runtime_receipt",
         "version_hash_reuse",
         "widened_action_set",
-        "wider_returned_grant"
+        "wider_returned_grant",
+        "operational_limit_unresolved_control_event",
+        "conjunctive_window_exhausted",
+        "operational_in_flight_exhausted",
+        "operational_state_unavailable",
+        "operational_conflicting_reuse_at_capacity",
+        "event_first_delivery_exhausted",
+        "non_retryable_rate_limit"
       ]
     },
     "actionSet": {
@@ -340,7 +370,8 @@
         "execution": { "$ref": "#/$defs/execution" },
         "receipt": { "$ref": "#/$defs/receipt" },
         "runtime": { "$ref": "#/$defs/runtime" },
-        "adapter": { "$ref": "#/$defs/adapter" }
+        "adapter": { "$ref": "#/$defs/adapter" },
+        "operational": { "$ref": "#/$defs/operational" }
       }
     },
     "fixture": {
@@ -395,7 +426,12 @@
         "/adapter/credential_input",
         "/adapter/action_authority",
         "/adapter/receipt_evidence",
-        "/adapter/unknown_outcome_handling"
+        "/adapter/unknown_outcome_handling",
+        "/operational/declaration",
+        "/operational/action_capacity",
+        "/operational/limiter_state",
+        "/operational/event_capacity",
+        "/operational/capacity_response"
       ]
     },
     "pathAndValue": {
@@ -437,7 +473,12 @@
         { "properties": { "path": { "const": "/adapter/credential_input" }, "value": { "enum": ["none", "raw"] } } },
         { "properties": { "path": { "const": "/adapter/action_authority" }, "value": { "enum": ["exact", "stronger"] } } },
         { "properties": { "path": { "const": "/adapter/receipt_evidence" }, "value": { "enum": ["observed", "fabricated"] } } },
-        { "properties": { "path": { "const": "/adapter/unknown_outcome_handling" }, "value": { "enum": ["stop", "retry"] } } }
+        { "properties": { "path": { "const": "/adapter/unknown_outcome_handling" }, "value": { "enum": ["stop", "retry"] } } },
+        { "properties": { "path": { "const": "/operational/declaration" }, "value": { "enum": ["invalid_target"] } } },
+        { "properties": { "path": { "const": "/operational/action_capacity" }, "value": { "enum": ["window_exhausted", "in_flight_exhausted"] } } },
+        { "properties": { "path": { "const": "/operational/limiter_state" }, "value": { "enum": ["unavailable"] } } },
+        { "properties": { "path": { "const": "/operational/event_capacity" }, "value": { "enum": ["window_exhausted"] } } },
+        { "properties": { "path": { "const": "/operational/capacity_response" }, "value": { "const": { "code": "rate_limited", "description": "Application capacity did not admit this request.", "retryable": false } } } }
       ]
     },
     "patchOperation": {
@@ -482,7 +523,15 @@
         { "properties": { "fixture_id": { "const": "ASP-F-RP-001" }, "baseline_vector_id": { "const": "ASP-V-RP-001" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-RP-002" }, "baseline_vector_id": { "const": "ASP-V-RP-002" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-RM-001" }, "baseline_vector_id": { "const": "ASP-V-RM-001" } }, "required": ["fixture_id", "baseline_vector_id"] },
-        { "properties": { "fixture_id": { "const": "ASP-F-AA-001" }, "baseline_vector_id": { "const": "ASP-V-AA-001" } }, "required": ["fixture_id", "baseline_vector_id"] }
+        { "properties": { "fixture_id": { "const": "ASP-F-AA-001" }, "baseline_vector_id": { "const": "ASP-V-AA-001" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-SP-005" }, "baseline_vector_id": { "const": "ASP-V-SP-005" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-015" }, "baseline_vector_id": { "const": "ASP-V-AE-015" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-019" }, "baseline_vector_id": { "const": "ASP-V-AE-019" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-021" }, "baseline_vector_id": { "const": "ASP-V-AE-021" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-022" }, "baseline_vector_id": { "const": "ASP-V-AE-022" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-010" }, "baseline_vector_id": { "const": "ASP-V-RM-010" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-011" }, "baseline_vector_id": { "const": "ASP-V-RM-011" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-013" }, "baseline_vector_id": { "const": "ASP-V-RM-013" } }, "required": ["fixture_id", "baseline_vector_id"] }
       ]
     },
     "mutationBinding": {
@@ -496,6 +545,7 @@
         { "properties": { "mutation_id": { "const": "ASP-M-EXACT-REVOCATION-REPLAY" }, "input_variant": { "const": "exact_revocation_replay" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-FABRICATED-RECEIPT" }, "input_variant": { "const": "fabricated_receipt" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-INCOMPLETE-REFERENCES" }, "input_variant": { "const": "incomplete_references" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-NON-FIXED-POINT-INPUT" }, "input_variant": { "const": "non_fixed_point_input" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-PASSPORT-STATUS-UNAVAILABLE" }, "input_variant": { "const": "passport_status_unavailable" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-POLICY-DENIED" }, "input_variant": { "const": "policy_denied" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-PROOF-SESSION-BINDING-MISMATCH" }, "input_variant": { "const": "proof_session_binding_mismatch" } }, "required": ["mutation_id", "input_variant"] },
@@ -515,7 +565,6 @@
         { "properties": { "mutation_id": { "const": "ASP-M-STRONGER-ACTION-SUBSTITUTION" }, "input_variant": { "const": "stronger_action_substitution" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-TRAINING-POLICY-WIDER" }, "input_variant": { "const": "training_policy_wider" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-UNCLOSED-COMPANION-SET" }, "input_variant": { "const": "unclosed_companion_set" } }, "required": ["mutation_id", "input_variant"] },
-        { "properties": { "mutation_id": { "const": "ASP-M-NON-FIXED-POINT-INPUT" }, "input_variant": { "const": "non_fixed_point_input" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-UNKNOWN-OUTCOME-NEW-KEY" }, "input_variant": { "const": "unknown_outcome_new_key" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-UNKNOWN-OUTCOME-RETRY" }, "input_variant": { "const": "unknown_outcome_retry" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-UNKNOWN-REMOTE-PATH" }, "input_variant": { "const": "unknown_remote_path" } }, "required": ["mutation_id", "input_variant"] },
@@ -524,7 +573,14 @@
         { "properties": { "mutation_id": { "const": "ASP-M-VALID-RUNTIME-RECEIPT" }, "input_variant": { "const": "valid_runtime_receipt" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-VERSION-HASH-REUSE" }, "input_variant": { "const": "version_hash_reuse" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-WIDENED-ACTION-SET" }, "input_variant": { "const": "widened_action_set" } }, "required": ["mutation_id", "input_variant"] },
-        { "properties": { "mutation_id": { "const": "ASP-M-WIDER-RETURNED-GRANT" }, "input_variant": { "const": "wider_returned_grant" } }, "required": ["mutation_id", "input_variant"] }
+        { "properties": { "mutation_id": { "const": "ASP-M-WIDER-RETURNED-GRANT" }, "input_variant": { "const": "wider_returned_grant" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-OPERATIONAL-LIMIT-UNRESOLVED-CONTROL-EVENT" }, "input_variant": { "const": "operational_limit_unresolved_control_event" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-CONJUNCTIVE-WINDOW-EXHAUSTED" }, "input_variant": { "const": "conjunctive_window_exhausted" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-OPERATIONAL-IN-FLIGHT-EXHAUSTED" }, "input_variant": { "const": "operational_in_flight_exhausted" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-OPERATIONAL-STATE-UNAVAILABLE" }, "input_variant": { "const": "operational_state_unavailable" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-OPERATIONAL-CONFLICTING-REUSE-AT-CAPACITY" }, "input_variant": { "const": "operational_conflicting_reuse_at_capacity" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-EVENT-FIRST-DELIVERY-EXHAUSTED" }, "input_variant": { "const": "event_first_delivery_exhausted" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-NON-RETRYABLE-RATE-LIMIT" }, "input_variant": { "const": "non_retryable_rate_limit" } }, "required": ["mutation_id", "input_variant"] }
       ]
     },
     "fixtureCoverage": {
@@ -538,7 +594,15 @@
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RP-001" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RP-002" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-001" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AA-001" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AA-001" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-SP-005" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-015" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-019" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-021" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-022" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-010" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-011" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-013" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "mutationCoverage": {
@@ -552,6 +616,7 @@
         { "contains": { "properties": { "input_variant": { "const": "exact_revocation_replay" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "fabricated_receipt" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "incomplete_references" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "non_fixed_point_input" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "passport_status_unavailable" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "policy_denied" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "proof_session_binding_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
@@ -571,7 +636,6 @@
         { "contains": { "properties": { "input_variant": { "const": "stronger_action_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "training_policy_wider" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "unclosed_companion_set" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "input_variant": { "const": "non_fixed_point_input" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "unknown_outcome_new_key" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "unknown_outcome_retry" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "unknown_remote_path" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
@@ -580,8 +644,50 @@
         { "contains": { "properties": { "input_variant": { "const": "valid_runtime_receipt" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "version_hash_reuse" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "widened_action_set" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "input_variant": { "const": "wider_returned_grant" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "input_variant": { "const": "wider_returned_grant" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "operational_limit_unresolved_control_event" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "conjunctive_window_exhausted" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "operational_in_flight_exhausted" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "operational_state_unavailable" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "operational_conflicting_reuse_at_capacity" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "event_first_delivery_exhausted" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "non_retryable_rate_limit" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
       ]
+    },
+    "limitIdSet": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "operational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declaration",
+        "limiter_state",
+        "action_capacity",
+        "event_capacity",
+        "capacity_response",
+        "declared_limit_ids",
+        "disclosable_limit_ids"
+      ],
+      "properties": {
+        "declaration": { "enum": ["valid", "invalid_target"] },
+        "limiter_state": { "enum": ["available", "unavailable"] },
+        "action_capacity": { "enum": ["available", "window_exhausted", "in_flight_exhausted"] },
+        "event_capacity": { "enum": ["available", "window_exhausted"] },
+        "capacity_response": {
+          "oneOf": [
+            { "const": "none" },
+            { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1" }
+          ]
+        },
+        "declared_limit_ids": { "$ref": "#/$defs/limitIdSet" },
+        "disclosable_limit_ids": { "$ref": "#/$defs/limitIdSet" }
+      }
     }
   }
 }

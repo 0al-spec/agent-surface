@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+  "title": "ASP Operational Limits Profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "actions",
+    "events"
+  ],
+  "properties": {
+    "profile": {
+      "const": "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+    },
+    "actions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/actionLimit"
+      }
+    },
+    "events": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/eventLimit"
+      }
+    }
+  },
+  "anyOf": [
+    {
+      "properties": {
+        "actions": {
+          "minItems": 1
+        }
+      }
+    },
+    {
+      "properties": {
+        "events": {
+          "minItems": 1
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "positiveSafeInteger": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "actionWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "limit_id",
+        "max_admissions",
+        "window_seconds"
+      ],
+      "properties": {
+        "limit_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "max_admissions": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        },
+        "window_seconds": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        }
+      }
+    },
+    "inFlight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "limit_id",
+        "max"
+      ],
+      "properties": {
+        "limit_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "max": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        }
+      }
+    },
+    "actionLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "partition"
+      ],
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "partition": {
+          "const": "grant"
+        },
+        "windows": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/actionWindow"
+          }
+        },
+        "in_flight": {
+          "$ref": "#/$defs/inFlight"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "windows"
+          ]
+        },
+        {
+          "required": [
+            "in_flight"
+          ]
+        }
+      ]
+    },
+    "eventWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "limit_id",
+        "max_first_deliveries",
+        "window_seconds"
+      ],
+      "properties": {
+        "limit_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "max_first_deliveries": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        },
+        "window_seconds": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        }
+      }
+    },
+    "eventLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "partition",
+        "windows"
+      ],
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "partition": {
+          "const": "subscription"
+        },
+        "windows": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/eventWindow"
+          }
+        }
+      }
+    }
+  }
+}

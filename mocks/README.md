@@ -20,6 +20,10 @@ therefore cannot become implementation or interoperability evidence.
 producer role, operation, resolved semantic document, and initial authoritative
 state. It does not read the conformance suite, vectors, fixture labels, expected
 errors, or expected observations. Decisions are derived from semantic fields.
+The Operational Limits feature paths cover manifest binding, atomic action
+admission, fail-closed limiter-state loss, idempotent replay precedence,
+first-delivery versus retransmission accounting, and runtime `rate_limited`
+retry policy.
 
 The internal `asp-mock-participant/1` protocol is test control plumbing, not an
 ASP wire binding. `mock_app.py` and `mock_runtime.py` accept one closed envelope

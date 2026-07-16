@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/schema-cases/v1",
+  "title": "ASP Conformance Schema Cases v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "suite_id",
+    "suite_version",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./schema-cases.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "suite_id": {
+      "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
+    },
+    "suite_version": {
+      "const": "1.1.0"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "operationalContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_ids",
+        "idempotency_required_action_ids",
+        "event_ids",
+        "control_event_ids"
+      ],
+      "properties": {
+        "action_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "idempotency_required_action_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "event_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "control_event_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "capacityContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declared_limit_ids",
+        "disclosable_limit_ids"
+      ],
+      "properties": {
+        "declared_limit_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "disclosable_limit_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "schema_id",
+        "polarity",
+        "instance_json",
+        "context"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^ASP-SC-(OL|CE)-[0-9]{3}$"
+        },
+        "schema_id": {
+          "enum": [
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1"
+          ]
+        },
+        "polarity": {
+          "enum": [
+            "positive",
+            "negative"
+          ]
+        },
+        "instance_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "context": {}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "schema_id": {
+                "const": "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1"
+              }
+            },
+            "required": [
+              "schema_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "context": {
+                "$ref": "#/$defs/operationalContext"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "context": {
+                "$ref": "#/$defs/capacityContext"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

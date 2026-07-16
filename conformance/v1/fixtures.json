@@ -2,7 +2,7 @@
   "$schema": "./fixtures.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.0.0",
+  "suite_version": "1.1.0",
   "fixture_catalog_id": "agent-surface/conformance/fixtures/v1",
   "fixtures": [
     {
@@ -123,6 +123,110 @@
         "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
         "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
         "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-SP-005",
+      "baseline_vector_id": "ASP-V-SP-005",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "operational": { "declaration": "valid", "limiter_state": "available", "action_capacity": "available", "event_capacity": "available", "capacity_response": "none", "declared_limit_ids": ["comment-per-minute"], "disclosable_limit_ids": ["comment-per-minute"] }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-015",
+      "baseline_vector_id": "ASP-V-AE-015",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "operational": { "declaration": "valid", "limiter_state": "available", "action_capacity": "available", "event_capacity": "available", "capacity_response": "none", "declared_limit_ids": ["comment-per-minute", "comment-per-hour"], "disclosable_limit_ids": ["comment-per-minute", "comment-per-hour"] }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-019",
+      "baseline_vector_id": "ASP-V-AE-019",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "operational": { "declaration": "valid", "limiter_state": "available", "action_capacity": "window_exhausted", "event_capacity": "available", "capacity_response": "none", "declared_limit_ids": ["comment-per-minute", "comment-per-hour"], "disclosable_limit_ids": ["comment-per-minute", "comment-per-hour"] }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-021",
+      "baseline_vector_id": "ASP-V-AE-021",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "operational": { "declaration": "valid", "limiter_state": "available", "action_capacity": "available", "event_capacity": "available", "capacity_response": "none", "declared_limit_ids": ["task-per-minute"], "disclosable_limit_ids": ["task-per-minute"] }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-022",
+      "baseline_vector_id": "ASP-V-AE-022",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "operational": { "declaration": "valid", "limiter_state": "available", "action_capacity": "available", "event_capacity": "available", "capacity_response": "none", "declared_limit_ids": ["task-per-minute"], "disclosable_limit_ids": ["task-per-minute"] }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RM-010",
+      "baseline_vector_id": "ASP-V-RM-010",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "operational": { "declaration": "valid", "limiter_state": "available", "action_capacity": "available", "event_capacity": "available", "capacity_response": "none" , "declared_limit_ids": ["comment-per-minute"], "disclosable_limit_ids": ["comment-per-minute"]}
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RM-011",
+      "baseline_vector_id": "ASP-V-RM-011",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "operational": { "declaration": "valid", "limiter_state": "available", "action_capacity": "available", "event_capacity": "available", "capacity_response": { "code": "rate_limited", "description": "Application capacity did not admit this request.", "retryable": true, "limit": { "limit_ids": ["comment-per-minute"], "retry_after_seconds": 12 } } , "declared_limit_ids": ["comment-per-minute"], "disclosable_limit_ids": ["comment-per-minute"]}
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RM-013",
+      "baseline_vector_id": "ASP-V-RM-013",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "operational": { "declaration": "valid", "limiter_state": "available", "action_capacity": "available", "event_capacity": "available", "capacity_response": { "code": "rate_limited", "description": "Application capacity did not admit this request.", "retryable": true }, "declared_limit_ids": ["comment-per-minute"], "disclosable_limit_ids": ["comment-per-minute"] }
       }
     }
   ],
@@ -389,6 +493,55 @@
       "input_variant": "wider_returned_grant",
       "patch": [
         { "op": "replace", "path": "/runtime/returned_grant_width", "value": "wider" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-OPERATIONAL-LIMIT-UNRESOLVED-CONTROL-EVENT",
+      "input_variant": "operational_limit_unresolved_control_event",
+      "patch": [
+        { "op": "replace", "path": "/operational/declaration", "value": "invalid_target" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-CONJUNCTIVE-WINDOW-EXHAUSTED",
+      "input_variant": "conjunctive_window_exhausted",
+      "patch": [
+        { "op": "replace", "path": "/operational/action_capacity", "value": "window_exhausted" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-OPERATIONAL-IN-FLIGHT-EXHAUSTED",
+      "input_variant": "operational_in_flight_exhausted",
+      "patch": [
+        { "op": "replace", "path": "/operational/action_capacity", "value": "in_flight_exhausted" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-OPERATIONAL-STATE-UNAVAILABLE",
+      "input_variant": "operational_state_unavailable",
+      "patch": [
+        { "op": "replace", "path": "/operational/limiter_state", "value": "unavailable" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-OPERATIONAL-CONFLICTING-REUSE-AT-CAPACITY",
+      "input_variant": "operational_conflicting_reuse_at_capacity",
+      "patch": [
+        { "op": "replace", "path": "/execution/execution_hash", "value": "execution_hash_b" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-EVENT-FIRST-DELIVERY-EXHAUSTED",
+      "input_variant": "event_first_delivery_exhausted",
+      "patch": [
+        { "op": "replace", "path": "/operational/event_capacity", "value": "window_exhausted" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-NON-RETRYABLE-RATE-LIMIT",
+      "input_variant": "non_retryable_rate_limit",
+      "patch": [
+        { "op": "replace", "path": "/operational/capacity_response", "value": { "code": "rate_limited", "description": "Application capacity did not admit this request.", "retryable": false } }
       ]
     }
   ]

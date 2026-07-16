@@ -18,18 +18,22 @@ AE = "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1"
 RP = "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1"
 RM = "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
 AA = "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
+OPERATIONAL_LIMITS = (
+    "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+)
 
 APP_PROFILES = frozenset({SP, GI, AE})
 RUNTIME_PROFILES = frozenset({RM, AA})
 PRODUCER_ROLES = frozenset({"application", "runtime"})
 
 FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
-    SP: ("agent-surface/feature/proposal-only",),
+    SP: ("agent-surface/feature/proposal-only", OPERATIONAL_LIMITS),
     GI: (
         "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
     ),
     AE: (
         "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+        OPERATIONAL_LIMITS,
         "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
         "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
     ),
@@ -37,6 +41,7 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
     RM: (
         "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
         "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
+        OPERATIONAL_LIMITS,
         "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
     ),
     AA: (),
@@ -154,6 +159,13 @@ def _surface(operation: str, document: Mapping[str, Any], state: _Transition) ->
     if operation != "publish_manifest":
         raise BehaviorError(f"Surface Publisher does not support {operation!r}")
     surface = _section(document, "surface")
+    operational = document.get("operational")
+    if operational is not None:
+        operational = _section(document, "operational")
+        if operational.get("declaration") != "valid":
+            return state.result(
+                "rejected", "manifest_rejected", asp_error="surface_incompatible"
+            )
     incompatible = (
         surface.get("references") != "complete"
         or surface.get("candidate_hash") != surface.get("retained_hash")
@@ -168,6 +180,10 @@ def _surface(operation: str, document: Mapping[str, Any], state: _Transition) ->
         )
     state.increment("manifest.accepted_count")
     state.increment("surface.version_binding_count")
+    if operational is not None:
+        return state.result(
+            "accepted", "operational_limits_validated", "manifest_published"
+        )
     return state.result("accepted", "manifest_published")
 
 
@@ -235,6 +251,39 @@ def _grant(operation: str, document: Mapping[str, Any], state: _Transition) -> B
 def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> BehaviorResult:
     grant = _section(document, "grant")
     execution = _section(document, "execution")
+    operational = document.get("operational")
+    if operation in {"deliver_event", "retransmit_event"}:
+        operational = _section(document, "operational")
+        if operation == "retransmit_event":
+            state.increment("operational.event.transmission_count")
+            return state.result(
+                "accepted",
+                "event_delivery_retransmitted",
+                "event_identity_reused",
+                "event_transmitted",
+            )
+        if (
+            operational.get("limiter_state") != "available"
+            or operational.get("event_capacity") != "available"
+        ):
+            state.increment("operational.event.queued_count")
+            return state.result(
+                "rejected",
+                "operational_capacity_rejected",
+                "event_delivery_queued",
+            )
+        for name in (
+            "operational.event.delivery_record_count",
+            "operational.event.delivery_identity_count",
+            "operational.event.first_delivery_count",
+            "operational.event.in_flight_count",
+            "operational.event.transmission_count",
+            "event.cursor_advance_count",
+        ):
+            state.increment(name)
+        return state.result(
+            "accepted", "event_first_delivery_admitted", "event_transmitted"
+        )
     if operation == "replay_action":
         if execution.get("input_schema_hash") != execution.get("recorded_input_schema_hash"):
             return state.result(
@@ -261,11 +310,19 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
                 ("approval_hash", "recorded_approval_hash"),
             )
         ):
+            if operational is not None:
+                return state.result(
+                    "rejected", "action_rejected", asp_error="idempotency_conflict"
+                )
             return state.result(
                 "rejected",
                 "action_rejected",
                 "approval_not_reopened",
                 asp_error="idempotency_conflict",
+            )
+        if operational is not None:
+            return state.result(
+                "replayed", "original_result_replayed", "operational_identity_reused"
             )
         return state.result("replayed", "original_result_replayed", "same_receipt_replayed")
     if operation != "invoke_action":
@@ -318,6 +375,41 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
             "denial_recorded",
             "application_receipt_emitted",
             asp_error="risk_denied",
+        )
+    if operational is not None:
+        operational = _section(document, "operational")
+        if operational.get("limiter_state") != "available":
+            return state.result(
+                "rejected",
+                "operational_capacity_rejected",
+                "operational_state_retained",
+                asp_error="capacity_state_unavailable",
+            )
+        if operational.get("action_capacity") != "available":
+            return state.result(
+                "rejected",
+                "operational_limits_checked",
+                "operational_capacity_rejected",
+                asp_error="rate_limited",
+            )
+        for name in (
+            "operational.action.window_count",
+            "operational.action.secondary_window_count",
+            "operational.action.slot_acquisition_count",
+            "application.workload_count",
+            "receipt.application_count",
+            "action.dispatch_count",
+            "action.effect_count",
+            "idempotency.record_count",
+            "budget.application_charge",
+        ):
+            state.increment(name)
+        return state.result(
+            "accepted",
+            "operational_limits_checked",
+            "operational_admission_committed",
+            "action_accepted",
+            "application_receipt_emitted",
         )
     for name in (
         "action.dispatch_count",
@@ -382,6 +474,53 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
     grant = _section(document, "grant")
     execution = _section(document, "execution")
     runtime = _section(document, "runtime")
+    operational = document.get("operational")
+    if operation == "handle_capacity_response":
+        operational = _section(document, "operational")
+        response = operational.get("capacity_response")
+        if not isinstance(response, Mapping) or response.get("code") != "rate_limited":
+            raise BehaviorError("capacity response must be a rate_limited envelope")
+        state.set("runtime.local_window_count", 0)
+        state.set("runtime.local_in_flight_count", 0)
+        if response.get("retryable") is True:
+            limit = response.get("limit")
+            if limit is not None and not isinstance(limit, Mapping):
+                raise BehaviorError("capacity response limit must be an object")
+            retry_after = (
+                limit.get("retry_after_seconds") if limit is not None else None
+            )
+            if retry_after is not None:
+                if (
+                    isinstance(retry_after, bool)
+                    or not isinstance(retry_after, int)
+                    or retry_after < 1
+                ):
+                    raise BehaviorError(
+                        "capacity response retry delay must be a positive integer"
+                    )
+                state.set("runtime.retry_delay_floor_seconds", retry_after)
+            state.increment("runtime.retry_count")
+            state.set("runtime.retry_wait_pending", True)
+            delay_observation = (
+                "retry_delay_floor_satisfied"
+                if retry_after is not None
+                else "local_backoff_selected"
+            )
+            return state.result(
+                "accepted",
+                "capacity_response_validated",
+                delay_observation,
+                "semantic_identity_reused",
+                "per_attempt_authentication_applied",
+                "retry_scheduled",
+            )
+        if response.get("retryable") is False:
+            return state.result(
+                "stopped",
+                "capacity_response_validated",
+                "retry_suppressed",
+            )
+        raise BehaviorError("capacity response must be retryable or non_retryable")
     if operation == "mediate_grant":
         if grant.get("claimed_issuer") != grant.get("issuer"):
             return state.result(
@@ -435,6 +574,15 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
             "local_denial_recorded",
             "mediation_stopped",
             asp_error="training_use_denied",
+        )
+    if operational is not None:
+        for name in (
+            "runtime.local_window_count",
+            "runtime.local_in_flight_count",
+        ):
+            state.increment(name)
+        return state.result(
+            "accepted", "operational_limits_checked", "operational_planning_reserved"
         )
     state.increment("action.dispatch_count")
     state.increment("runtime.stored_grant_width")

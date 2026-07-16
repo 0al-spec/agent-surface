@@ -10598,8 +10598,10 @@ NOT be reused with different semantics.
 The v1 matrix is an executable high-risk coverage subset. It covers manifest
 integrity and proposal-only bounds, exact Grant attenuation and revocation,
 Grant verification, idempotent replay and conflicts, denied actions, receipt
-role integrity, runtime mediation, and adapter authority boundaries. It does
-not enumerate every normative requirement in every role profile. Consequently,
+role integrity, runtime mediation, adapter authority boundaries, and the
+Operational Limits declaration, action-admission, logical event-delivery, and
+retry contracts. It does not enumerate every normative requirement in every
+role profile. Consequently,
 a `pass` suite verdict means only that every applicable vector in the exact
 catalog revision passed. It MUST NOT be represented as complete role-profile
 conformance, certification, interoperability with arbitrary implementations,
@@ -10633,6 +10635,23 @@ assertion, observation, and state-delta vocabulary. Each case resolves to one
 digest-bound semantic baseline and an exact closed `replace` patch. Vectors
 MUST NOT contain executable code, shell commands, or target URLs.
 
+The versioned `schema-cases.json` corpus executes positive and negative cases
+for the Operational Limits declaration and operational-capacity error envelope.
+Each candidate is carried as an inert JSON string so malformed I-JSON,
+duplicate-member, unsafe-integer, schema-invalid, and semantic binding failures
+can be represented without making the corpus itself invalid. The validator
+parses each candidate with the suite's strict I-JSON rules, validates it against
+its versioned JSON Schema, and, for a declaration, checks action and event
+resolution, idempotency eligibility, globally unique `limit_id` values, and the
+core control event plus manifest-declared control-event exclusion against the
+case's closed manifest context. For a capacity envelope it additionally
+requires every disclosed `limit_id` to be both manifest-declared and safe for
+the authenticated active partition. The common capacity envelope remains open
+to extension members as required by the Error Model, while its `limit` member
+remains closed.
+A positive case that fails or a negative case that passes invalidates the
+catalog.
+
 The separately configured stimulus adapter receives the resolved fixture,
 setup, operation, subject, and required counterpart topology, but it MUST NOT
 receive expected errors, policy or match reasons, observation tokens, or state
@@ -10657,8 +10676,10 @@ zero new effects, budget revisions, idempotency records, credentials, receipts,
 Grant records, or control events, or the exact receipt and lifecycle deltas
 required by that denial phase. A crash, timeout, malformed response,
 unavailable authoritative probe, or unknown state is an execution error, never
-a successful rejection. HTTP status codes are not assertions because this
-draft does not define their mapping.
+a successful rejection. An HTTP status is an assertion only when a vector
+explicitly selects a binding for which this draft defines a normative mapping.
+The current Operational Limits cases validate the transport-neutral capacity
+envelope and do not infer an HTTP status from an ASP error code alone.
 
 The report binds the exact suite and specification sources, ordered applicable
 requirements and vectors, each vector digest, subject and counterpart artifacts,
@@ -10679,10 +10700,12 @@ suite verdict:
 The catalog digest is SHA-256 over the ASCII domain
 `ASP-CONFORMANCE-CATALOG-V1` followed by a zero octet, then each canonical
 catalog path in lexicographic order as UTF-8, a zero octet, its raw file bytes,
-and a final zero octet. The canonical set is exactly `fixtures.json`,
-`fixtures.schema.json`, `observation.schema.json`, `report.schema.json`,
-`subject.schema.json`, `suite.json`, `suite.schema.json`, `vectors.json`,
-and `vectors.schema.json`, each under `conformance/v1/`. The specification
+and a final zero octet. The canonical set is exactly
+`capacity-error.schema.json`, `fixtures.json`, `fixtures.schema.json`,
+`observation.schema.json`, `operational-limits.schema.json`,
+`report.schema.json`, `schema-cases.json`, `schema-cases.schema.json`,
+`subject.schema.json`, `suite.json`, `suite.schema.json`, `vectors.json`, and
+`vectors.schema.json`, each under `conformance/v1/`. The specification
 digest uses the ASCII domain
 `ASP-SPECIFICATION-SOURCE-V1`, a zero octet, and the raw bytes of
 `drafts/agent-surface.md`. A vector digest uses the ASCII domain

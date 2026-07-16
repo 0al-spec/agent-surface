@@ -11,9 +11,11 @@ object.
 `conformance/v1/suite.json` is the authoritative role, feature, requirement,
 and vector matrix. `conformance/v1/vectors.json` contains the closed
 declarative scenarios. `conformance/v1/fixtures.json` binds every scenario to
-one exact semantic baseline and one closed mutation patch. The adjacent JSON
-Schemas define the catalog, fixtures, subject, observation, and report wire
-shapes.
+one exact semantic baseline and one closed mutation patch.
+`conformance/v1/schema-cases.json` carries executable positive and negative
+strict-I-JSON cases for the Operational Limits declaration and capacity-error
+envelope. The adjacent JSON Schemas define those protocol objects and the
+catalog, fixtures, subject, observation, and report wire shapes.
 
 Each run evaluates one exact profile for one named deployment boundary. A
 product that implements several profiles runs and reports each profile
@@ -27,18 +29,22 @@ does not give them, or the target, another role claim.
 All digests use SHA-256 and the text representation
 `sha-256:<base64url-without-padding>`. The single `catalog_sha256` digest uses
 the exact RFC-defined `ASP-CONFORMANCE-CATALOG-V1` domain. Hash the ASCII domain
-string, one zero octet, and then each of these nine canonical repo-relative
+string, one zero octet, and then each of these thirteen canonical repo-relative
 paths in lexicographic order:
 
-1. `conformance/v1/fixtures.json`
-2. `conformance/v1/fixtures.schema.json`
-3. `conformance/v1/observation.schema.json`
-4. `conformance/v1/report.schema.json`
-5. `conformance/v1/subject.schema.json`
-6. `conformance/v1/suite.json`
-7. `conformance/v1/suite.schema.json`
-8. `conformance/v1/vectors.json`
-9. `conformance/v1/vectors.schema.json`
+1. `conformance/v1/capacity-error.schema.json`
+2. `conformance/v1/fixtures.json`
+3. `conformance/v1/fixtures.schema.json`
+4. `conformance/v1/observation.schema.json`
+5. `conformance/v1/operational-limits.schema.json`
+6. `conformance/v1/report.schema.json`
+7. `conformance/v1/schema-cases.json`
+8. `conformance/v1/schema-cases.schema.json`
+9. `conformance/v1/subject.schema.json`
+10. `conformance/v1/suite.json`
+11. `conformance/v1/suite.schema.json`
+12. `conformance/v1/vectors.json`
+13. `conformance/v1/vectors.schema.json`
 
 For each file, hash its path as UTF-8, a zero octet, its exact raw bytes, and a
 final zero octet. No newline, whitespace, Unicode, or JSON member-order
@@ -140,9 +146,10 @@ A negative vector references a valid positive baseline. It changes only the
 named input variant and fixture state. Passing a negative vector requires both
 the expected rejection and all fail-closed postconditions. Merely returning the
 expected error is insufficient. In particular, a runner verifies that
-forbidden effects, dispatch, budget charges, idempotency mutation, credential
-release, fabricated evidence, and blind retries did not occur. Denial receipts
-are expected only where the vector explicitly requires them.
+forbidden effects, dispatch, budget reservations or charges, idempotency
+mutation, credential release, fabricated evidence, and blind retries did not
+occur. Denial receipts are expected only where the vector explicitly requires
+them.
 
 ## Verdict computation
 
@@ -183,7 +190,10 @@ policy text, user content, tenant data, or unsanitized logs. Identifiers in
 catalog artifacts are test tokens, not production identifiers.
 
 Catalog and report parsers reject duplicate JSON keys, non-I-JSON values,
-unknown members, and digest mismatches. There are no extension members in
-version 1. Report signatures, if a later profile defines them, can authenticate
-report bytes but cannot turn a self-test into protocol authority or
-current-state evidence.
+unknown members, and digest mismatches. Their version 1 wire shapes have no
+extension members. The protocol capacity-error envelope remains open as the
+Error Model requires; the executable subset validates its standard members and
+safe `limit_id` binding, but cannot certify the semantic privacy of arbitrary
+extension content. Report signatures, if a later profile defines them, can
+authenticate report bytes but cannot turn a self-test into protocol authority
+or current-state evidence.

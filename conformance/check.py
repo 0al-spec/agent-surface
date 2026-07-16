@@ -39,18 +39,31 @@ RFC_PATH = ROOT / "drafts" / "agent-surface.md"
 SUITE_PATH = V1_DIR / "suite.json"
 VECTORS_PATH = V1_DIR / "vectors.json"
 FIXTURES_PATH = V1_DIR / "fixtures.json"
-SCHEMA_PATHS = {
-    name: V1_DIR / f"{name}.schema.json"
-    for name in ("suite", "vectors", "fixtures", "subject", "observation", "report")
-}
+SCHEMA_CASES_PATH = V1_DIR / "schema-cases.json"
+SCHEMA_NAMES = (
+    "capacity-error",
+    "fixtures",
+    "observation",
+    "operational-limits",
+    "report",
+    "schema-cases",
+    "subject",
+    "suite",
+    "vectors",
+)
 SCHEMA_IDS = {
     name: f"https://github.com/0al-spec/agent-surface/conformance/schemas/{name}/v1"
-    for name in ("suite", "vectors", "fixtures", "subject", "observation", "report")
+    for name in SCHEMA_NAMES
 }
-CATALOG_PATHS = tuple(
+CATALOG_RELATIVE_PATHS = tuple(
     sorted(
-        (*SCHEMA_PATHS.values(), SUITE_PATH, VECTORS_PATH, FIXTURES_PATH),
-        key=lambda path: path.relative_to(ROOT).as_posix(),
+        (
+            *(f"conformance/v1/{name}.schema.json" for name in SCHEMA_NAMES),
+            "conformance/v1/fixtures.json",
+            "conformance/v1/schema-cases.json",
+            "conformance/v1/suite.json",
+            "conformance/v1/vectors.json",
+        )
     )
 )
 SUITE_ID = "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
@@ -78,6 +91,14 @@ PROFILE_ROLES = {
     ),
 }
 SAFE_INTEGER = 2**53 - 1
+OPERATIONAL_LIMITS_SCHEMA_ID = SCHEMA_IDS["operational-limits"]
+CAPACITY_ERROR_SCHEMA_ID = SCHEMA_IDS["capacity-error"]
+OPERATIONAL_LIMITS_FEATURE_ID = (
+    "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+)
+CORE_CONTROL_EVENT_IDS = frozenset(
+    {"budget.warning", "budget.exceeded", "session.paused_budget", "grant.revoked"}
+)
 MAX_ADAPTER_OUTPUT_BYTES = 1024 * 1024
 DIGEST_PATTERN = re.compile(r"^sha-256:[A-Za-z0-9_-]{43}$")
 RFC3339_PATTERN = re.compile(
@@ -99,6 +120,7 @@ class Catalog:
     suite: dict[str, Any]
     vector_catalog: dict[str, Any]
     fixture_catalog: dict[str, Any]
+    schema_case_catalog: dict[str, Any]
     requirements: dict[str, dict[str, Any]]
     vectors: dict[str, dict[str, Any]]
     profiles: dict[str, dict[str, Any]]
@@ -242,7 +264,7 @@ def _format_schema_errors(validator: Draft202012Validator, value: Any) -> str:
 
 def _schema_registry(root: Path) -> Registry:
     resources = []
-    for name in ("suite", "vectors", "fixtures", "subject", "observation", "report"):
+    for name in SCHEMA_NAMES:
         schema = load_strict_json(
             root / "conformance" / "v1" / f"{name}.schema.json"
         )
@@ -298,6 +320,226 @@ def _validate_with_schema(
         raise ConformanceError(f"{label} does not match its schema:\n{details}")
 
 
+def validate_operational_limits(
+    value: Any,
+    context: dict[str, Any],
+    *,
+    root: Path = ROOT,
+    registry: Registry | None = None,
+    schema: dict[str, Any] | None = None,
+) -> None:
+    """Validate an Operational Limits declaration and its manifest bindings."""
+
+    _validate_ijson_value(value)
+    _validate_with_schema(
+        value,
+        schema
+        or load_strict_json(
+            root / "conformance" / "v1" / "operational-limits.schema.json"
+        ),
+        "Operational Limits declaration",
+        registry=registry or _schema_registry(root),
+    )
+
+    context_fields = (
+        "action_ids",
+        "idempotency_required_action_ids",
+        "event_ids",
+        "control_event_ids",
+    )
+    if set(context) != set(context_fields):
+        raise ConformanceError(
+            "Operational Limits context must contain exactly action_ids, "
+            "idempotency_required_action_ids, event_ids, and control_event_ids"
+        )
+    for field in context_fields:
+        identifiers = context[field]
+        if (
+            not isinstance(identifiers, list)
+            or any(not isinstance(item, str) or not item for item in identifiers)
+            or len(identifiers) != len(set(identifiers))
+        ):
+            raise ConformanceError(
+                f"Operational Limits context {field} must contain unique non-empty ids"
+            )
+
+    action_ids = set(context["action_ids"])
+    idempotent_action_ids = set(context["idempotency_required_action_ids"])
+    event_ids = set(context["event_ids"])
+    control_event_ids = set(context["control_event_ids"])
+    if not idempotent_action_ids.issubset(action_ids):
+        raise ConformanceError(
+            "idempotency_required_action_ids must be a subset of action_ids"
+        )
+    if not control_event_ids.issubset(event_ids):
+        raise ConformanceError("control_event_ids must be a subset of event_ids")
+
+    declared_actions = [item["action_id"] for item in value["actions"]]
+    if len(declared_actions) != len(set(declared_actions)):
+        raise ConformanceError("Operational Limits repeats an action_id")
+    declared_events = [item["event_id"] for item in value["events"]]
+    if len(declared_events) != len(set(declared_events)):
+        raise ConformanceError("Operational Limits repeats an event_id")
+
+    limit_ids: list[str] = []
+    for action in value["actions"]:
+        action_id = action["action_id"]
+        if action_id not in action_ids:
+            raise ConformanceError(
+                f"Operational Limits references unknown action_id {action_id!r}"
+            )
+        if action_id not in idempotent_action_ids:
+            raise ConformanceError(
+                f"limited action {action_id!r} does not require idempotency"
+            )
+        limit_ids.extend(
+            window["limit_id"] for window in action.get("windows", [])
+        )
+        if "in_flight" in action:
+            limit_ids.append(action["in_flight"]["limit_id"])
+
+    for event in value["events"]:
+        event_id = event["event_id"]
+        if event_id not in event_ids:
+            raise ConformanceError(
+                f"Operational Limits references unknown event_id {event_id!r}"
+            )
+        if event_id in CORE_CONTROL_EVENT_IDS or event_id in control_event_ids:
+            raise ConformanceError(
+                f"core control event {event_id!r} cannot be rate limited"
+            )
+        limit_ids.extend(window["limit_id"] for window in event["windows"])
+
+    duplicate_limit_ids = sorted(
+        identifier
+        for identifier, count in Counter(limit_ids).items()
+        if count > 1
+    )
+    if duplicate_limit_ids:
+        raise ConformanceError(
+            "Operational Limits repeats limit_id values: "
+            + ", ".join(duplicate_limit_ids)
+        )
+
+
+def validate_capacity_error(
+    value: Any,
+    context: dict[str, Any],
+    *,
+    root: Path = ROOT,
+    registry: Registry | None = None,
+    schema: dict[str, Any] | None = None,
+) -> None:
+    """Validate a capacity envelope and privacy-safe active-partition binding."""
+
+    _validate_ijson_value(value)
+    _validate_with_schema(
+        value,
+        schema
+        or load_strict_json(
+            root / "conformance" / "v1" / "capacity-error.schema.json"
+        ),
+        "capacity error envelope",
+        registry=registry or _schema_registry(root),
+    )
+    context_fields = ("declared_limit_ids", "disclosable_limit_ids")
+    if set(context) != set(context_fields):
+        raise ConformanceError(
+            "capacity error context must contain exactly declared_limit_ids "
+            "and disclosable_limit_ids"
+        )
+    for field in context_fields:
+        identifiers = context[field]
+        if (
+            not isinstance(identifiers, list)
+            or any(not isinstance(item, str) or not item for item in identifiers)
+            or len(identifiers) != len(set(identifiers))
+        ):
+            raise ConformanceError(
+                f"capacity error context {field} must contain unique non-empty ids"
+            )
+    declared_limit_ids = set(context["declared_limit_ids"])
+    disclosable_limit_ids = set(context["disclosable_limit_ids"])
+    if not disclosable_limit_ids.issubset(declared_limit_ids):
+        raise ConformanceError(
+            "disclosable_limit_ids must be a subset of declared_limit_ids"
+        )
+    disclosed_limit_ids = set(value.get("limit", {}).get("limit_ids", []))
+    undisclosable = sorted(disclosed_limit_ids - disclosable_limit_ids)
+    if undisclosable:
+        raise ConformanceError(
+            "capacity error discloses an undeclared or cross-partition limit_id: "
+            + ", ".join(undisclosable)
+        )
+
+
+def _validate_schema_cases(
+    root: Path,
+    catalog: dict[str, Any],
+    schemas: dict[str, dict[str, Any]],
+    registry: Registry,
+) -> None:
+    case_ids = [item["case_id"] for item in catalog["cases"]]
+    if len(case_ids) != len(set(case_ids)):
+        raise ConformanceError("schema case catalog repeats a case_id")
+
+    polarities: dict[str, set[str]] = {
+        OPERATIONAL_LIMITS_SCHEMA_ID: set(),
+        CAPACITY_ERROR_SCHEMA_ID: set(),
+    }
+    for case in catalog["cases"]:
+        schema_id = case["schema_id"]
+        expected_prefix = (
+            "ASP-SC-OL-"
+            if schema_id == OPERATIONAL_LIMITS_SCHEMA_ID
+            else "ASP-SC-CE-"
+        )
+        if not case["case_id"].startswith(expected_prefix):
+            raise ConformanceError(
+                f"schema case {case['case_id']} has a mismatched schema prefix"
+            )
+        polarities[schema_id].add(case["polarity"])
+
+        error: ConformanceError | None = None
+        try:
+            instance = loads_strict_json(
+                case["instance_json"], source=f"schema case {case['case_id']}"
+            )
+            if schema_id == OPERATIONAL_LIMITS_SCHEMA_ID:
+                validate_operational_limits(
+                    instance,
+                    case["context"],
+                    root=root,
+                    registry=registry,
+                    schema=schemas["operational-limits"],
+                )
+            else:
+                validate_capacity_error(
+                    instance,
+                    case["context"],
+                    root=root,
+                    registry=registry,
+                    schema=schemas["capacity-error"],
+                )
+        except ConformanceError as caught:
+            error = caught
+
+        if case["polarity"] == "positive" and error is not None:
+            raise ConformanceError(
+                f"positive schema case {case['case_id']} failed: {error}"
+            ) from error
+        if case["polarity"] == "negative" and error is None:
+            raise ConformanceError(
+                f"negative schema case {case['case_id']} unexpectedly passed"
+            )
+
+    for schema_id, actual in polarities.items():
+        if actual != {"positive", "negative"}:
+            raise ConformanceError(
+                f"schema case catalog requires both polarities for {schema_id}"
+            )
+
+
 def _slugify(value: str) -> str:
     normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]+", "-", normalized.lower()).strip("-") or "section"
@@ -338,11 +580,13 @@ def _semantic_validate_catalog(
     suite: dict[str, Any],
     vector_catalog: dict[str, Any],
     fixture_catalog: dict[str, Any],
+    schema_case_catalog: dict[str, Any],
 ) -> Catalog:
     if (
         suite["suite_id"] != SUITE_ID
         or vector_catalog["suite_id"] != SUITE_ID
         or fixture_catalog["suite_id"] != SUITE_ID
+        or schema_case_catalog["suite_id"] != SUITE_ID
     ):
         raise ConformanceError("catalog suite_id must be the exact ASP v1 suite identifier")
     if len(
@@ -350,6 +594,7 @@ def _semantic_validate_catalog(
             suite["suite_version"],
             vector_catalog["suite_version"],
             fixture_catalog["suite_version"],
+            schema_case_catalog["suite_version"],
         }
     ) != 1:
         raise ConformanceError("suite, vector, and fixture catalog versions differ")
@@ -525,6 +770,35 @@ def _semantic_validate_catalog(
             raise ConformanceError(
                 f"vector {vector_id} omits its applicability feature"
             )
+        has_operational_feature = OPERATIONAL_LIMITS_FEATURE_ID in vector["features"]
+        has_operational_state = "operational" in fixture["document"]
+        if has_operational_feature != has_operational_state:
+            raise ConformanceError(
+                f"Operational Limits vector {vector_id} feature selection and "
+                "fixture state differ"
+            )
+        if has_operational_feature:
+            operational_state = fixture["document"]["operational"]
+            if not set(operational_state["disclosable_limit_ids"]).issubset(
+                operational_state["declared_limit_ids"]
+            ):
+                raise ConformanceError(
+                    f"Operational Limits vector {vector_id} has unsafe limit disclosure state"
+                )
+            capacity_response = operational_state["capacity_response"]
+            if isinstance(capacity_response, dict):
+                validate_capacity_error(
+                    capacity_response,
+                    {
+                        "declared_limit_ids": operational_state[
+                            "declared_limit_ids"
+                        ],
+                        "disclosable_limit_ids": operational_state[
+                            "disclosable_limit_ids"
+                        ],
+                    },
+                    root=root,
+                )
         if vector["polarity"] == "negative":
             baseline_id = vector["baseline_vector_id"]
             baseline = vectors.get(baseline_id)
@@ -575,6 +849,7 @@ def _semantic_validate_catalog(
         suite=suite,
         vector_catalog=vector_catalog,
         fixture_catalog=fixture_catalog,
+        schema_case_catalog=schema_case_catalog,
         requirements=requirements,
         vectors=vectors,
         profiles=profiles,
@@ -590,8 +865,7 @@ def validate_catalog(root: Path = ROOT) -> Catalog:
     root = root.resolve()
     v1_dir = root / "conformance" / "v1"
     schema_paths = {
-        name: v1_dir / f"{name}.schema.json"
-        for name in ("suite", "vectors", "fixtures", "subject", "observation", "report")
+        name: v1_dir / f"{name}.schema.json" for name in SCHEMA_NAMES
     }
     schemas = {name: load_strict_json(path) for name, path in schema_paths.items()}
     for name, schema in schemas.items():
@@ -602,12 +876,26 @@ def validate_catalog(root: Path = ROOT) -> Catalog:
     suite = load_strict_json(v1_dir / "suite.json")
     vector_catalog = load_strict_json(v1_dir / "vectors.json")
     fixture_catalog = load_strict_json(v1_dir / "fixtures.json")
+    schema_case_catalog = load_strict_json(v1_dir / "schema-cases.json")
     registry = _schema_registry(root)
     _validate_schema_ref_closure(schemas, registry)
-    _validate_with_schema(suite, schemas["suite"], "suite.json")
-    _validate_with_schema(vector_catalog, schemas["vectors"], "vectors.json")
-    _validate_with_schema(fixture_catalog, schemas["fixtures"], "fixtures.json")
-    return _semantic_validate_catalog(root, suite, vector_catalog, fixture_catalog)
+    _validate_with_schema(suite, schemas["suite"], "suite.json", registry=registry)
+    _validate_with_schema(
+        vector_catalog, schemas["vectors"], "vectors.json", registry=registry
+    )
+    _validate_with_schema(
+        fixture_catalog, schemas["fixtures"], "fixtures.json", registry=registry
+    )
+    _validate_with_schema(
+        schema_case_catalog,
+        schemas["schema-cases"],
+        "schema-cases.json",
+        registry=registry,
+    )
+    _validate_schema_cases(root, schema_case_catalog, schemas, registry)
+    return _semantic_validate_catalog(
+        root, suite, vector_catalog, fixture_catalog, schema_case_catalog
+    )
 
 
 def _domain_digest(domain: str, content: bytes) -> str:
@@ -617,23 +905,8 @@ def _domain_digest(domain: str, content: bytes) -> str:
 
 def catalog_digest(root: Path = ROOT) -> str:
     payload = bytearray()
-    for path in sorted(
-        (
-            root / "conformance" / "v1" / name
-            for name in (
-                "suite.json",
-                "suite.schema.json",
-                "vectors.json",
-                "vectors.schema.json",
-                "fixtures.json",
-                "fixtures.schema.json",
-                "subject.schema.json",
-                "observation.schema.json",
-                "report.schema.json",
-            )
-        ),
-        key=lambda item: item.relative_to(root).as_posix(),
-    ):
+    for relative_path in CATALOG_RELATIVE_PATHS:
+        path = root / relative_path
         payload.extend(path.relative_to(root).as_posix().encode("utf-8"))
         payload.extend(b"\x00")
         payload.extend(path.read_bytes())
@@ -1145,7 +1418,7 @@ def run_suite(
     started_at = _utc_now()
     runner = {
         "runner_id": "asp-reference-conformance-runner",
-        "runner_version": "1.0.0",
+        "runner_version": "1.1.0",
         "runner_artifact_sha256": file_digest(
             "ASP-CONFORMANCE-RUNNER-V1", root / "conformance" / "check.py"
         ),
