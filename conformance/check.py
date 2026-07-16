@@ -1418,7 +1418,7 @@ def run_suite(
     started_at = _utc_now()
     runner = {
         "runner_id": "asp-reference-conformance-runner",
-        "runner_version": "1.1.0",
+        "runner_version": "1.2.0",
         "runner_artifact_sha256": file_digest(
             "ASP-CONFORMANCE-RUNNER-V1", root / "conformance" / "check.py"
         ),

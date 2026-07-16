@@ -29,7 +29,7 @@
       "const": "https://github.com/0al-spec/agent-surface/mocks/v1"
     },
     "manifest_version": {
-      "const": "1.1.0"
+      "const": "1.2.0"
     },
     "protocol_version": {
       "const": "agent-surface/0.1"

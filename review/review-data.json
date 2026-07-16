@@ -3284,7 +3284,7 @@
           "anchorId": "runtime-mediator-profile"
         }
       ],
-      "rationale": "RFC определяет hash-bound Operational Limits Profile; executable schemas, semantic cases и vectors проверяют closed manifest bindings, безопасную привязку раскрываемых limit_id, atomic multi-window/slot rejection без новых reservation/effects, replay/event accounting и rate_limited retry с hint и без него. Семантическая privacy-проверка произвольных extension members, retry behavior для capacity_state_unavailable/service_unavailable и HTTP 429/503 transport assertions остаются за пределами текущего executable subset.",
+      "rationale": "RFC определяет hash-bound Operational Limits Profile; executable schemas, semantic cases и vectors проверяют closed manifest bindings, безопасную привязку раскрываемых limit_id, atomic multi-window/slot rejection без новых reservation/effects, replay/event accounting и rate_limited retry с hint и без него. Runtime recovery для capacity_state_unavailable/service_unavailable вынесен в зависимый executable slice #61; семантическая privacy-проверка произвольных extension members и HTTP 429/503 transport assertions остаются за пределами текущего subset.",
       "priority": "P2",
       "profile": "operations-safety",
       "depends_on": [
@@ -3857,6 +3857,92 @@
         {
           "kind": "registry",
           "ref": "conformance/v1/vectors.json"
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "title": "Operational Capacity Failure Recovery",
+      "description": "сделать executable runtime state machine для capacity_state_unavailable и service_unavailable, включая recovery gates, retry policy и ambiguous-outcome reconciliation.",
+      "category": "Economics / limits / operations",
+      "side": "left",
+      "status": "present",
+      "anchors": [
+        {
+          "heading": "Error Model",
+          "anchorId": "error-model"
+        },
+        {
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
+        },
+        {
+          "heading": "Interoperability Test Suite",
+          "anchorId": "interoperability-test-suite"
+        },
+        {
+          "heading": "Reference Mock Participants",
+          "anchorId": "reference-mock-participants"
+        }
+      ],
+      "rationale": "Conformance Suite 1.2.0 проверяет defer до authoritative limiter recovery, retry без сброса durable windows/slots, suppression для non-retryable responses, новую capacity decision после definite service rejection и обязательную reconciliation вместо ложного service_unavailable при ambiguous outcome.",
+      "priority": "P2",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        53,
+        58,
+        60
+      ],
+      "target_release": null,
+      "maturity": "machine_validated",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "error-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-mediator-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "interoperability-test-suite"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-mock-participants"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/fixtures.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/observation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/vectors.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/fixtures.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/suite.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/vectors.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/behavior.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_runtime.py"
         }
       ]
     }

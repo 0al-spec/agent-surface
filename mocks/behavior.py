@@ -478,11 +478,84 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
     if operation == "handle_capacity_response":
         operational = _section(document, "operational")
         response = operational.get("capacity_response")
-        if not isinstance(response, Mapping) or response.get("code") != "rate_limited":
-            raise BehaviorError("capacity response must be a rate_limited envelope")
+        if not isinstance(response, Mapping):
+            raise BehaviorError("capacity response must be an error envelope")
+        code = response.get("code")
+        if code not in {
+            "rate_limited",
+            "capacity_state_unavailable",
+            "service_unavailable",
+        }:
+            raise BehaviorError("capacity response has an unsupported error code")
+        retryable = response.get("retryable")
+        if not isinstance(retryable, bool):
+            raise BehaviorError("capacity response must be retryable or non_retryable")
+        if code == "service_unavailable" and execution.get("outcome_state") != "known":
+            return state.result(
+                "stopped",
+                "capacity_response_rejected",
+                "outcome_reconciliation_required",
+                "retry_suppressed",
+                asp_error="outcome_unknown",
+            )
+
         state.set("runtime.local_window_count", 0)
         state.set("runtime.local_in_flight_count", 0)
-        if response.get("retryable") is True:
+
+        if code == "capacity_state_unavailable":
+            if retryable is False:
+                state.set("runtime.capacity_recovery_pending", False)
+                return state.result(
+                    "stopped",
+                    "capacity_response_validated",
+                    "operational_state_retained",
+                    "retry_suppressed",
+                )
+            if operational.get("limiter_state") != "available":
+                state.set("runtime.capacity_recovery_pending", True)
+                return state.result(
+                    "deferred",
+                    "capacity_response_validated",
+                    "authoritative_capacity_recovery_required",
+                    "operational_state_retained",
+                    "retry_deferred",
+                )
+            state.set("runtime.capacity_recovery_pending", False)
+            state.increment("runtime.retry_count")
+            state.set("runtime.retry_wait_pending", True)
+            return state.result(
+                "accepted",
+                "capacity_response_validated",
+                "authoritative_capacity_recovery_confirmed",
+                "operational_state_retained",
+                "local_backoff_selected",
+                "semantic_identity_reused",
+                "per_attempt_authentication_applied",
+                "retry_scheduled",
+            )
+
+        if code == "service_unavailable":
+            if retryable is False:
+                state.set("runtime.capacity_decision_pending", False)
+                return state.result(
+                    "stopped",
+                    "capacity_response_validated",
+                    "retry_suppressed",
+                )
+            state.set("runtime.capacity_decision_pending", True)
+            state.increment("runtime.retry_count")
+            state.set("runtime.retry_wait_pending", True)
+            return state.result(
+                "accepted",
+                "capacity_response_validated",
+                "capacity_decision_required",
+                "local_backoff_selected",
+                "semantic_identity_reused",
+                "per_attempt_authentication_applied",
+                "retry_scheduled",
+            )
+
+        if retryable is True:
             limit = response.get("limit")
             if limit is not None and not isinstance(limit, Mapping):
                 raise BehaviorError("capacity response limit must be an object")
@@ -514,13 +587,13 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
                 "per_attempt_authentication_applied",
                 "retry_scheduled",
             )
-        if response.get("retryable") is False:
+        if retryable is False:
             return state.result(
                 "stopped",
                 "capacity_response_validated",
                 "retry_suppressed",
             )
-        raise BehaviorError("capacity response must be retryable or non_retryable")
+        raise BehaviorError("unreachable capacity response state")
     if operation == "mediate_grant":
         if grant.get("claimed_issuer") != grant.get("issuer"):
             return state.result(

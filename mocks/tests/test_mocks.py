@@ -105,7 +105,7 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 "state_deltas",
             }
         )
-        self.assertEqual(len(self.catalog.vectors), 62)
+        self.assertEqual(len(self.catalog.vectors), 68)
         for vector_id in self.catalog.vectors:
             with self.subTest(vector_id=vector_id):
                 self.assert_matches_catalog_oracle(vector_id)
@@ -293,6 +293,57 @@ class MockBehaviorSecurityTests(unittest.TestCase):
         self.assertTrue(no_hint.state_after["runtime.retry_wait_pending"])
         self.assertFalse(stopped.state_after["runtime.retry_wait_pending"])
         self.assertEqual(stopped.state_after["runtime.retry_delay_floor_seconds"], 0)
+
+    def test_capacity_recovery_and_service_retry_are_distinct_state_machines(self) -> None:
+        deferred = self.assert_matches_catalog_oracle("ASP-V-RM-014")
+        recovered = self.assert_matches_catalog_oracle("ASP-V-RM-015")
+        recovery_stopped = self.assert_matches_catalog_oracle("ASP-V-RM-016")
+        service_retry = self.assert_matches_catalog_oracle("ASP-V-RM-017")
+        service_stopped = self.assert_matches_catalog_oracle("ASP-V-RM-018")
+        ambiguous = self.assert_matches_catalog_oracle("ASP-V-RM-019")
+
+        self.assertTrue(deferred.state_after["runtime.capacity_recovery_pending"])
+        self.assertFalse(deferred.state_after["runtime.retry_wait_pending"])
+        self.assertFalse(recovered.state_after["runtime.capacity_recovery_pending"])
+        self.assertTrue(recovered.state_after["runtime.retry_wait_pending"])
+        self.assertFalse(
+            recovery_stopped.state_after["runtime.capacity_recovery_pending"]
+        )
+        self.assertTrue(
+            service_retry.state_after["runtime.capacity_decision_pending"]
+        )
+        self.assertFalse(
+            service_stopped.state_after["runtime.capacity_decision_pending"]
+        )
+        self.assertEqual(ambiguous.asp_error, "outcome_unknown")
+        self.assertIn("outcome_reconciliation_required", ambiguous.tokens)
+        self.assertNotIn("capacity_response_validated", ambiguous.tokens)
+
+        for result in (
+            deferred,
+            recovered,
+            recovery_stopped,
+            service_retry,
+            service_stopped,
+        ):
+            self.assertEqual(result.state_after["runtime.local_window_count"], 0)
+            self.assertEqual(result.state_after["runtime.local_in_flight_count"], 0)
+            self.assertEqual(
+                result.state_after["runtime.runaway_guard_epoch"],
+                result.state_before["runtime.runaway_guard_epoch"],
+            )
+        self.assertEqual(
+            ambiguous.state_after["runtime.local_window_count"],
+            ambiguous.state_before["runtime.local_window_count"],
+        )
+        self.assertEqual(
+            ambiguous.state_after["runtime.local_in_flight_count"],
+            ambiguous.state_before["runtime.local_in_flight_count"],
+        )
+        self.assertEqual(
+            ambiguous.state_after["runtime.runaway_guard_epoch"],
+            ambiguous.state_before["runtime.runaway_guard_epoch"],
+        )
 
     def test_replay_and_retransmission_do_not_consume_first_admission_again(self) -> None:
         for vector_id in ("ASP-V-AE-019", "ASP-V-AE-022"):

@@ -59,6 +59,10 @@ MOCK_IMPLEMENTATIONS = {
     Path("mocks/mock_app.py"),
     Path("mocks/mock_runtime.py"),
 }
+CAPACITY_RECOVERY_IMPLEMENTATIONS = {
+    Path("mocks/behavior.py"),
+    Path("mocks/mock_runtime.py"),
+}
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
     53: {
         "rfc_anchor": {
@@ -98,9 +102,30 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         "rfc_anchor": {"interoperability-test-suite"},
         "schema": {path.as_posix() for path in CONFORMANCE_SCHEMAS},
         "registry": {path.as_posix() for path in CONFORMANCE_REGISTRIES},
-    }
+    },
+    61: {
+        "rfc_anchor": {
+            "error-model",
+            "runtime-mediator-profile",
+            "interoperability-test-suite",
+            "reference-mock-participants",
+        },
+        "schema": {
+            "conformance/v1/fixtures.schema.json",
+            "conformance/v1/observation.schema.json",
+            "conformance/v1/vectors.schema.json",
+        },
+        "registry": {
+            "conformance/v1/suite.json",
+            "conformance/v1/vectors.json",
+            "conformance/v1/fixtures.json",
+        },
+        "implementation": {
+            path.as_posix() for path in CAPACITY_RECOVERY_IMPLEMENTATIONS
+        },
+    },
 }
-EXACT_MACHINE_VALIDATED_REVIEW_IDS = {53, 57, 58}
+EXACT_MACHINE_VALIDATED_REVIEW_IDS = {53, 57, 58, 61}
 MATURITY_ORDER = (
     "proposal",
     "specified",
@@ -488,6 +513,9 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         _validate_linter_bundle_evidence(review_id, "implementation", ref)
         return
     if review_id == 58 and relative_path in MOCK_IMPLEMENTATIONS:
+        _validate_mock_bundle_evidence(review_id, "implementation", ref)
+        return
+    if review_id == 61 and relative_path in CAPACITY_RECOVERY_IMPLEMENTATIONS:
         _validate_mock_bundle_evidence(review_id, "implementation", ref)
         return
     raise ValueError(

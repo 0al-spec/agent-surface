@@ -24,15 +24,15 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.1.0"
+      "const": "1.2.0"
     },
     "fixture_catalog_id": {
       "const": "agent-surface/conformance/fixtures/v1"
     },
     "fixtures": {
       "type": "array",
-      "minItems": 18,
-      "maxItems": 18,
+      "minItems": 21,
+      "maxItems": 21,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/fixture"
@@ -43,8 +43,8 @@
     },
     "mutations": {
       "type": "array",
-      "minItems": 45,
-      "maxItems": 45,
+      "minItems": 48,
+      "maxItems": 48,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/mutation"
@@ -74,7 +74,10 @@
         "ASP-F-AE-022",
         "ASP-F-RM-010",
         "ASP-F-RM-011",
-        "ASP-F-RM-013"
+        "ASP-F-RM-013",
+        "ASP-F-RM-014",
+        "ASP-F-RM-015",
+        "ASP-F-RM-017"
       ]
     },
     "baselineVectorId": {
@@ -96,7 +99,10 @@
         "ASP-V-AE-022",
         "ASP-V-RM-010",
         "ASP-V-RM-011",
-        "ASP-V-RM-013"
+        "ASP-V-RM-013",
+        "ASP-V-RM-014",
+        "ASP-V-RM-015",
+        "ASP-V-RM-017"
       ]
     },
     "mutationId": {
@@ -145,7 +151,10 @@
         "ASP-M-OPERATIONAL-STATE-UNAVAILABLE",
         "ASP-M-OPERATIONAL-CONFLICTING-REUSE-AT-CAPACITY",
         "ASP-M-EVENT-FIRST-DELIVERY-EXHAUSTED",
-        "ASP-M-NON-RETRYABLE-RATE-LIMIT"
+        "ASP-M-NON-RETRYABLE-RATE-LIMIT",
+        "ASP-M-NON-RETRYABLE-CAPACITY-STATE-UNAVAILABLE",
+        "ASP-M-NON-RETRYABLE-SERVICE-UNAVAILABLE",
+        "ASP-M-AMBIGUOUS-SERVICE-OUTCOME"
       ]
     },
     "inputVariant": {
@@ -194,7 +203,10 @@
         "operational_state_unavailable",
         "operational_conflicting_reuse_at_capacity",
         "event_first_delivery_exhausted",
-        "non_retryable_rate_limit"
+        "non_retryable_rate_limit",
+        "non_retryable_capacity_state_unavailable",
+        "non_retryable_service_unavailable",
+        "ambiguous_service_outcome"
       ]
     },
     "actionSet": {
@@ -478,7 +490,9 @@
         { "properties": { "path": { "const": "/operational/action_capacity" }, "value": { "enum": ["window_exhausted", "in_flight_exhausted"] } } },
         { "properties": { "path": { "const": "/operational/limiter_state" }, "value": { "enum": ["unavailable"] } } },
         { "properties": { "path": { "const": "/operational/event_capacity" }, "value": { "enum": ["window_exhausted"] } } },
-        { "properties": { "path": { "const": "/operational/capacity_response" }, "value": { "const": { "code": "rate_limited", "description": "Application capacity did not admit this request.", "retryable": false } } } }
+        { "properties": { "path": { "const": "/operational/capacity_response" }, "value": { "const": { "code": "rate_limited", "description": "Application capacity did not admit this request.", "retryable": false } } } },
+        { "properties": { "path": { "const": "/operational/capacity_response" }, "value": { "const": { "code": "capacity_state_unavailable", "description": "Authoritative limiter state is unavailable.", "retryable": false } } } },
+        { "properties": { "path": { "const": "/operational/capacity_response" }, "value": { "const": { "code": "service_unavailable", "description": "Shared service capacity is unavailable.", "retryable": false } } } }
       ]
     },
     "patchOperation": {
@@ -531,7 +545,10 @@
         { "properties": { "fixture_id": { "const": "ASP-F-AE-022" }, "baseline_vector_id": { "const": "ASP-V-AE-022" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-RM-010" }, "baseline_vector_id": { "const": "ASP-V-RM-010" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-RM-011" }, "baseline_vector_id": { "const": "ASP-V-RM-011" } }, "required": ["fixture_id", "baseline_vector_id"] },
-        { "properties": { "fixture_id": { "const": "ASP-F-RM-013" }, "baseline_vector_id": { "const": "ASP-V-RM-013" } }, "required": ["fixture_id", "baseline_vector_id"] }
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-013" }, "baseline_vector_id": { "const": "ASP-V-RM-013" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-014" }, "baseline_vector_id": { "const": "ASP-V-RM-014" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-015" }, "baseline_vector_id": { "const": "ASP-V-RM-015" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-017" }, "baseline_vector_id": { "const": "ASP-V-RM-017" } }, "required": ["fixture_id", "baseline_vector_id"] }
       ]
     },
     "mutationBinding": {
@@ -580,7 +597,10 @@
         { "properties": { "mutation_id": { "const": "ASP-M-OPERATIONAL-STATE-UNAVAILABLE" }, "input_variant": { "const": "operational_state_unavailable" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-OPERATIONAL-CONFLICTING-REUSE-AT-CAPACITY" }, "input_variant": { "const": "operational_conflicting_reuse_at_capacity" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-EVENT-FIRST-DELIVERY-EXHAUSTED" }, "input_variant": { "const": "event_first_delivery_exhausted" } }, "required": ["mutation_id", "input_variant"] },
-        { "properties": { "mutation_id": { "const": "ASP-M-NON-RETRYABLE-RATE-LIMIT" }, "input_variant": { "const": "non_retryable_rate_limit" } }, "required": ["mutation_id", "input_variant"] }
+        { "properties": { "mutation_id": { "const": "ASP-M-NON-RETRYABLE-RATE-LIMIT" }, "input_variant": { "const": "non_retryable_rate_limit" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-NON-RETRYABLE-CAPACITY-STATE-UNAVAILABLE" }, "input_variant": { "const": "non_retryable_capacity_state_unavailable" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-NON-RETRYABLE-SERVICE-UNAVAILABLE" }, "input_variant": { "const": "non_retryable_service_unavailable" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-AMBIGUOUS-SERVICE-OUTCOME" }, "input_variant": { "const": "ambiguous_service_outcome" } }, "required": ["mutation_id", "input_variant"] }
       ]
     },
     "fixtureCoverage": {
@@ -602,7 +622,10 @@
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-022" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-010" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-011" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-013" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-013" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-014" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-015" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-017" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "mutationCoverage": {
@@ -651,7 +674,10 @@
         { "contains": { "properties": { "input_variant": { "const": "operational_state_unavailable" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "operational_conflicting_reuse_at_capacity" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "event_first_delivery_exhausted" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "input_variant": { "const": "non_retryable_rate_limit" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "input_variant": { "const": "non_retryable_rate_limit" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "non_retryable_capacity_state_unavailable" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "non_retryable_service_unavailable" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "ambiguous_service_outcome" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "limitIdSet": {
