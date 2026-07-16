@@ -262,7 +262,10 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
                 "event_identity_reused",
                 "event_transmitted",
             )
-        if operational.get("event_capacity") != "available":
+        if (
+            operational.get("limiter_state") != "available"
+            or operational.get("event_capacity") != "available"
+        ):
             state.increment("operational.event.queued_count")
             return state.result(
                 "rejected",

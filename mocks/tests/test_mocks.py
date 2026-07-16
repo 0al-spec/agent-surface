@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import base64
+import copy
 import hashlib
 import inspect
 import io
@@ -247,6 +248,28 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                         "runtime.retry_count",
                     }:
                         self.assertEqual(result.state_after[state], before)
+
+    def test_event_delivery_queues_when_limiter_state_is_unavailable(self) -> None:
+        vector = self.catalog.vectors["ASP-V-AE-023"]
+        fixture = _resolved_fixture(self.catalog, vector)
+        document = copy.deepcopy(fixture["document"])
+        document["operational"]["limiter_state"] = "unavailable"
+        document["operational"]["event_capacity"] = "available"
+        result = evaluate(
+            profile_id=vector["profile_id"],
+            producer_role=None,
+            operation=vector["stimulus"]["operation"],
+            document=document,
+            initial_state=[
+                {"state": delta["state"], "value": delta["before"]}
+                for delta in vector["state_deltas"]
+            ],
+        )
+        self.assertEqual(result.decision, "rejected")
+        self.assertIn("operational_capacity_rejected", result.tokens)
+        self.assertIn("event_delivery_queued", result.tokens)
+        self.assertEqual(result.state_after["operational.event.queued_count"], 1)
+        self.assertEqual(result.state_after["operational.event.transmission_count"], 0)
 
     def test_capacity_response_releases_local_slots_and_preserves_guards(self) -> None:
         retryable = self.assert_matches_catalog_oracle("ASP-V-RM-011")
