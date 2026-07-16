@@ -490,6 +490,11 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
         retryable = response.get("retryable")
         if not isinstance(retryable, bool):
             raise BehaviorError("capacity response must be retryable or non_retryable")
+        if (
+            code in {"capacity_state_unavailable", "service_unavailable"}
+            and "limit" in response
+        ):
+            raise BehaviorError(f"{code} capacity response must omit limit")
         if code == "service_unavailable" and execution.get("outcome_state") != "known":
             return state.result(
                 "stopped",

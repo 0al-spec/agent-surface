@@ -22,6 +22,7 @@ from mocks.behavior import (
     RM,
     RP,
     SP,
+    BehaviorError,
     BehaviorResult,
     FEATURE_INVENTORY,
     evaluate,
@@ -344,6 +345,27 @@ class MockBehaviorSecurityTests(unittest.TestCase):
             ambiguous.state_after["runtime.runaway_guard_epoch"],
             ambiguous.state_before["runtime.runaway_guard_epoch"],
         )
+
+    def test_non_rate_capacity_envelopes_with_limit_fail_closed(self) -> None:
+        for vector_id in ("ASP-V-RM-014", "ASP-V-RM-017"):
+            with self.subTest(vector_id=vector_id):
+                vector = self.catalog.vectors[vector_id]
+                fixture = _resolved_fixture(self.catalog, vector)
+                document = copy.deepcopy(fixture["document"])
+                document["operational"]["capacity_response"]["limit"] = {
+                    "retry_after_seconds": 1
+                }
+                with self.assertRaisesRegex(BehaviorError, "must omit limit"):
+                    evaluate(
+                        profile_id=vector["profile_id"],
+                        producer_role=None,
+                        operation=vector["stimulus"]["operation"],
+                        document=document,
+                        initial_state=[
+                            {"state": delta["state"], "value": delta["before"]}
+                            for delta in vector["state_deltas"]
+                        ],
+                    )
 
     def test_replay_and_retransmission_do_not_consume_first_admission_again(self) -> None:
         for vector_id in ("ASP-V-AE-019", "ASP-V-AE-022"):
