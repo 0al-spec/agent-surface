@@ -1091,6 +1091,12 @@ Publishers, consumers, conformance claims, and conformance reports MUST compare
 that value case-sensitively and MUST NOT substitute an alias or a compatible-
 looking version label.
 
+The optional top-level `operational_limits` member declares only the
+hash-bound load-planning ceilings defined in Rate Limits and Quotas. Its
+absence means that the surface publishes no standardized operational capacity
+contract; it MUST NOT be interpreted as unlimited capacity or as permission to
+ignore a `rate_limited` response.
+
 ### Surface Hash
 
 Every manifest MUST contain `surface_hash` computed with the Canonical Object
@@ -1421,6 +1427,44 @@ surface discoverable.
       "receipt": "required"
     }
   ],
+  "operational_limits": {
+    "profile": "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1",
+    "actions": [
+      {
+        "action_id": "comment.create",
+        "partition": "grant",
+        "windows": [
+          {
+            "limit_id": "comment-create-per-minute",
+            "max_admissions": 20,
+            "window_seconds": 60
+          },
+          {
+            "limit_id": "comment-create-per-day",
+            "max_admissions": 1000,
+            "window_seconds": 86400
+          }
+        ],
+        "in_flight": {
+          "limit_id": "comment-create-in-flight",
+          "max": 4
+        }
+      }
+    ],
+    "events": [
+      {
+        "event_id": "task.created",
+        "partition": "subscription",
+        "windows": [
+          {
+            "limit_id": "task-created-per-minute",
+            "max_first_deliveries": 120,
+            "window_seconds": 60
+          }
+        ]
+      }
+    ]
+  },
   "events": [
     {
       "id": "task.created",
@@ -1672,6 +1716,11 @@ and mode-specific schemas are defined by the Action Execution Model. An action
 in mode `reserve`, `commit`, `compensate`, or `revert` MUST set
 `execution_hash_profile` to `asp-jcs-sha-256`; other profile identifiers are not
 defined by this draft.
+
+A publisher MAY declare per-action operational admission windows and
+concurrency through the top-level `operational_limits` profile. Such a
+declaration is a load-planning ceiling, not action authority, approval, a Grant
+budget, an idempotency rule, or a capacity reservation.
 
 Example:
 
@@ -1932,6 +1981,177 @@ fabricate them from its local counters because the CloudEvents `source` binding
 would falsely attribute that state to the application. Their payload and
 session-fencing requirements are defined in Budget Control Events.
 
+A publisher MAY declare a first-delivery throughput ceiling for a non-control
+event through `operational_limits`. Event retry, replay, retention, negotiated
+`max_in_flight`, and runtime-directed `event.flow` remain governed by Event
+Delivery Semantics and are not replaced by that planning declaration. Core
+control events MUST NOT be subject to an operational-limit entry.
+
+### Rate Limits and Quotas
+
+The optional Operational Limits Profile publishes deterministic upper ceilings
+that a runtime can use to plan Action Requests and application-event intake.
+Its identifier is:
+
+```text
+https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1
+```
+
+`operational_limits` is a closed object containing exactly `profile`, `actions`,
+and `events`. `profile` MUST equal the identifier above. `actions` and `events`
+are arrays, at least one of which is non-empty. An action or event id appears at
+most once in its respective array, resolves exactly in the same manifest, and
+every `limit_id` is a non-empty string unique across the complete object.
+Unknown members, duplicate ids, unresolved references, an unsupported profile,
+or an invalid target make the surface `surface_incompatible`.
+
+An action limit entry has this closed shape:
+
+```json
+{
+  "action_id": "comment.create",
+  "partition": "grant",
+  "windows": [
+    {
+      "limit_id": "comment-create-per-minute",
+      "max_admissions": 20,
+      "window_seconds": 60
+    }
+  ],
+  "in_flight": {
+    "limit_id": "comment-create-in-flight",
+    "max": 4
+  }
+}
+```
+
+`partition` MUST be the literal `grant`. `windows`, when present, is a
+non-empty array of closed objects containing `limit_id`, `max_admissions`, and
+`window_seconds`. `in_flight`, when present, is a closed object containing
+`limit_id` and `max`. At least one of `windows` or `in_flight` is REQUIRED.
+Every numeric value is a positive I-JSON safe integer. Every referenced action
+MUST declare `idempotency: "required"`, so one durable logical record identifies
+the window admission and any slot across retry and reconciliation. A short
+window describes a rate ceiling; longer conjunctive windows express operational
+quotas without calendar, timezone, or reset-boundary ambiguity.
+
+For one authoritative request time `t`, a window counts distinct new logical
+admissions in the half-open monotonic interval `(t - window_seconds, t]`. The
+application MUST NOT admit the request when doing so would make the count exceed
+`max_admissions`. Every applicable window is conjunctive. The partition key is
+the server-selected tuple `(issuer, app_id, surface_hash, grant_hash, action_id)`;
+no caller-supplied subject, tenant, Grant id, or resource key can select another
+partition. `in_flight.max` counts distinct admitted idempotency records without
+an authoritative terminal outcome. Connection loss, timeout, an unknown
+effect, or a caller assertion does not release a slot; reconciliation or an
+authoritative terminal result does. The application uses one logically
+consistent monotonic duration source for each partition and MUST fail closed as
+`capacity_state_unavailable` without resetting or guessing when authoritative
+limiter state is unavailable.
+
+Each successful admission durably records its `limit_id` and elapsed-time
+evidence with, or atomically linked to, the idempotency record until every
+applicable window has expired; slot state remains until the authoritative
+terminal outcome. A distributed deployment MUST serialize competing admissions
+through one authoritative state machine. After restart, failover, clock
+rollback, or uncertain elapsed time, it retains possibly live admissions
+conservatively until it can prove expiry. It MUST NOT reset a window or slot
+because process-local monotonic state was lost.
+
+An event limit entry has this closed shape:
+
+```json
+{
+  "event_id": "task.created",
+  "partition": "subscription",
+  "windows": [
+    {
+      "limit_id": "task-created-per-minute",
+      "max_first_deliveries": 120,
+      "window_seconds": 60
+    }
+  ]
+}
+```
+
+`partition` MUST be the literal `subscription`. `windows` is REQUIRED and is a
+non-empty array of closed objects containing `limit_id`,
+`max_first_deliveries`, and `window_seconds`, all with the same string and
+positive-safe-integer requirements above. The partition key is
+`(issuer, app_id, surface_hash, subscription_id, event_id)`. A window counts
+only the first transmission of a new stable `delivery_id`; retransmission and
+replay of that delivery consume no new first-delivery unit. The negotiated
+event in-flight window remains the only core event-concurrency limit.
+
+Before first transmission, the application atomically persists the delivery
+record, its first-delivery admission marker and elapsed-time evidence, and every
+window update. A crash after that transaction is treated as an admitted first
+delivery even when the application cannot prove that bytes reached the runtime;
+the next transmission is a retry of the same `delivery_id`. A crash before the
+transaction sends nothing. Uncertain or unavailable window state queues the
+delivery fail closed and never creates an uncharged alternate identity.
+
+The application is the enforcement authority. It MUST atomically evaluate all
+applicable windows and any action in-flight slot with creation of the new
+logical admission; partial acquisition is forbidden. A runtime SHOULD use each
+declared action window as a conservative local scheduling ceiling across every
+worker that can dispatch under the same Grant. Such a scheduler uses its own
+monotonic sliding history and tentatively counts each fresh logical dispatch
+until a definite pre-admission rejection proves that no admission occurred; an
+ambiguous outcome remains counted until reconciliation or local window expiry.
+For `in_flight.max`, the runtime MUST maintain one local outstanding set keyed
+by complete idempotency binding across every such worker. It acquires one
+tentative slot before first dispatch, reuses that slot for exact retries, and
+releases it only after a definite pre-admission rejection or authoritative
+terminal reconciliation. Timeout, connection loss, or an ambiguous outcome
+retains the slot; uncertain local slot state MUST NOT be treated as available.
+These planning counters and slots neither duplicate application authority nor
+prove that capacity is available. A declaration is not a Grant, an SLA, a
+promise that the next request will succeed, or permission to exceed local
+policy.
+Application-authoritative adaptive, anti-abuse, or emergency controls MAY be
+stricter without a surface-version change. They MUST NOT be represented as a
+wider declared ceiling or used to expose another Grant, subscription, tenant,
+or caller's occupancy. The standardized partition is a planning boundary, not
+a promise that Grant rotation bypasses independent subject- or tenant-level
+defenses.
+
+A new Grant hash or event subscription intentionally starts a new standardized
+partition. Neither the profile nor a capacity response authorizes creation,
+renewal, exchange, or churn of those objects. An application that must preserve
+anti-abuse or commercial quota across such lifecycle changes enforces a
+separate server-selected lineage, subject, or tenant policy and reports no
+cross-partition counts through ASP.
+
+For an Action Request, the application validates current authority, session,
+surface, schema, normalized input, and the complete idempotency binding before
+a new operational admission. An exact completed replay returns the original
+immutable result and receipt reference without consuming another window unit
+or slot. An exact in-progress replay refers to the same record and slot; it does
+not start a second effect. Conflicting reuse remains `idempotency_conflict` and
+MUST NOT be hidden by `rate_limited`.
+
+A fresh operational rejection occurs before a new idempotency record, budget
+reservation or charge, app receipt, action effect, or application workload is
+created. A runtime receipt already finalized before dispatch remains truthful
+runtime evidence, but the application MUST NOT fabricate an app action receipt
+for a request it never semantically admitted. Perimeter throttles for malformed,
+unauthenticated, or abusive traffic are independent security controls and MUST
+NOT use caller-provided identifiers to debit another authenticated partition.
+
+When an event first delivery cannot be admitted, the application queues the
+eligible immutable projection within the effective retention window. It does
+not allocate a different delivery identity, advance the cursor silently, or
+consume control-event capacity. Expiry before first delivery produces the
+ordinary authenticated `event.gap`; an operational limit never converts
+at-least-once delivery into silent loss.
+
+Changing `operational_limits` changes the manifest hashing view and requires a
+new `surface_version` and `surface_hash`. A Grant remains pinned to its retained
+surface snapshot. A stricter current defensive throttle can deny work under an
+older snapshot, but it does not rewrite the old Grant, become a Grant caveat, or
+authorize use under a newer surface.
+
 ### CloudEvents 1.0.2 Event Binding
 
 The ASP core event format is the CloudEvents 1.0.2 information model serialized
@@ -2144,6 +2364,8 @@ grant and is not a session. A non-control subscription MUST bind:
 - the accepted event type allow-list and resource-filter projection
 - negotiated delivery profile, acknowledgement deadline, in-flight window, and
   retention window
+- the pinned Operational Limits Profile entries for every accepted event type,
+  when the manifest declares them
 
 The runtime requests a subscription through the manifest
 `event_subscription_url` or an equivalent authenticated bridge operation:
@@ -2228,6 +2450,13 @@ MUST NOT change the event projection to include newly available data. If
 current authorization or redaction policy can no longer permit the immutable
 projection, the application expires that delivery rather than sending a
 different object under the same `delivery_id`.
+
+An operational first-delivery window is checked before the first transmission
+of a new `delivery_id`. Once admitted, every retry and replay keeps that same
+logical admission and consumes no additional first-delivery unit. It still
+occupies the same negotiated in-flight slot until terminal acknowledgement.
+Thus loss of an acknowledgement cannot multiply either operational admissions
+or slots, and a runtime cannot obtain more event authority by reconnecting.
 
 The runtime MUST deduplicate on `(aspsubid, aspdeliveryid)` and retain
 enough identity state to distinguish a retry from a conflicting reuse. Seeing
@@ -2426,12 +2655,13 @@ changing the window. If the response is lost or ambiguous, the runtime MUST
 NOT assume the remote window changed; it MAY repeat the exact request or stop
 local consumption and close the channel while it reconciles state.
 
-When the window is full, the application queues eligible events within the
-effective retention window rather than exceeding the limit. If an event expires
-before first delivery, the next delivery or replay response MUST carry an
-`event.gap`; silent loss is forbidden. Implementations SHOULD expose bounded
-metrics for queued, in-flight, retried, expired, and gap states without
-including event payloads.
+When the negotiated in-flight window is full, or an applicable operational
+first-delivery window has no capacity, the application queues eligible events
+within the effective retention window rather than exceeding either limit. If
+an event expires before first delivery, the next delivery or replay response
+MUST carry an `event.gap`; silent loss is forbidden. Implementations SHOULD
+expose bounded metrics for queued, in-flight, operationally delayed, retried,
+expired, and gap states without including event payloads.
 
 Application-event backpressure MUST NOT starve the runtime control
 subscription. The application MUST reserve independent capacity for
@@ -9527,14 +9757,117 @@ Agent Surface Protocol SHOULD define structured errors:
 | `safety_guard_triggered` | A runtime runaway guard fenced the current session or lineage-delegate scope before another session creation, scheduling, or transport step. |
 | `budget_query_invalid` | A budget query id or its active, current grant, delegate, credential, surface, or application-authoritative budget binding cannot be validated; the response intentionally does not distinguish which check failed. |
 | `budget_state_unavailable` | The accounting authority cannot prove the durable grant-lineage ledger or a required reservation and therefore fails closed. |
-| `rate_limited` | The request was throttled independently of grant caveats. |
+| `rate_limited` | An authenticated caller-bound partition was throttled independently of Grant caveats and budgets. |
+| `capacity_state_unavailable` | The application cannot prove the durable operational-limit state required for safe admission and therefore fails closed without claiming exhaustion. |
+| `service_unavailable` | Shared service capacity is unavailable independently of a caller-bound partition; no manifest-declared limit is claimed. |
 
 Errors SHOULD be returned in a structured envelope containing at least the
 error code, a human-readable description, and a retryability indication.
-Mapping error codes to HTTP status codes is left to a future draft.
+Mapping error codes to HTTP status codes is left to a future draft except for
+the operational-capacity mappings defined below.
 
 Errors SHOULD be safe to show to users and precise enough for runtime policy
 debugging.
+
+`rate_limited` means that an authenticated operational partition exceeded an
+admission window, its per-Grant outstanding-action slot count, or a stricter
+defensive throttle independently of Grant authority and budgets. ASP treats
+too many outstanding requests in that caller-bound partition as caller rate
+limiting; shared service overload is not this error. Its transport-neutral
+envelope is:
+
+```json
+{
+  "code": "rate_limited",
+  "description": "Application capacity did not admit this request.",
+  "retryable": true,
+  "limit": {
+    "limit_ids": ["comment-create-per-minute"],
+    "retry_after_seconds": 12
+  }
+}
+```
+
+The envelope MUST contain `code` with the exact value `rate_limited`, a
+non-empty human-readable `description`, and a boolean `retryable`. `retryable`
+is true only when the producer has a safe basis that the unchanged logical
+request might be admitted later; it is not an instruction to retry.
+`limit`, when present, is a closed object. `limit_ids`, when present, is a
+non-empty array of unique manifest-declared ids that are safe to disclose for
+the authenticated partition. `retry_after_seconds`, when present, is a positive
+I-JSON safe integer giving the minimum delay before all disclosed window
+blockers can admit the same logical request, rounded up to whole seconds and
+never down. When both are present, the array
+contains every safely disclosed blocker used to compute that delay; hidden
+stricter controls can still prevent admission. Either member can be omitted
+when the throttle is private, shared, concurrency-based, or cannot provide a
+safe non-identifying estimate. The response MUST NOT expose remaining counts,
+raw partition keys, other callers, tenants, Grants, subscriptions, or system
+load. Presence of `retry_after_seconds` requires `retryable: true`.
+
+Every authenticated ASP HTTP endpoint returns `429 Too Many Requests` for this
+error and MUST NOT permit the response to be stored; it sends
+`Cache-Control: no-store` in addition to the RFC 6585 status semantics. When it
+sends `Retry-After`, it MUST use the `delay-seconds` form from RFC 9110 and MUST
+include the equal integer as `retry_after_seconds`. A general service overload
+not attributed to the authenticated partition uses `503 Service Unavailable`
+under RFC 9110 with ASP code `service_unavailable`; it MUST NOT carry
+`code: "rate_limited"` or a fabricated manifest limit id. Non-HTTP bindings
+carry the same ASP envelope without deriving authority from an HTTP status or
+header. HTTP `RateLimit` and vendor `X-RateLimit-*` fields are outside this core
+profile.
+
+A retry hint is neither capacity reservation nor proof that no effect occurred.
+When `retryable` is false, the runtime stops unchanged automatic retry. When it
+is true, the runtime applies its stricter local ceiling and bounded exponential
+backoff with jitter; if `retry_after_seconds` is present, it waits at least that
+delay before adding jitter. An Action Request reuses the same idempotency key,
+normalized input hash, execution context, and still-valid approval evidence. A
+throttled `budget.query` reuses the same `query_id` and complete request binding
+because no query record was allocated; it MUST NOT allocate new ids to evade
+the cardinality throttle. Any other binding follows its defined exact retry
+identity. After an ambiguous or possibly admitted action outcome the runtime
+first reconciles the authoritative idempotency record; it MUST NOT create a new
+key merely because `Retry-After` elapsed. Semantic retry identity remains
+stable, while transport authentication follows its binding-specific per-attempt
+rules. A DPoP retry creates a fresh proof JWT with a new `jti` and current `iat`,
+binds it to the unchanged semantic request, and includes the currently required
+server-provided nonce value, if any; the runtime does not invent a new nonce. An
+mTLS retry presents the same token-bound certificate over a valid or
+re-established authenticated TLS channel, and certificate reuse is not replay.
+Other proof-bound and compatibility bindings follow their selected profile.
+Every retry revalidates current Grant, session, surface, and approval state,
+remains subject to the Runtime Runaway Protection counters, and does not reset
+an event root, session epoch, or lineage guard.
+
+`capacity_state_unavailable` is distinct from proven exhaustion. It is
+returned in the common envelope with `code`, `description`, and `retryable`, and
+MUST omit `limit`. The producer MAY set `retryable` to true only when it expects
+authoritative limiter-state recovery to make the unchanged logical request safe
+to reconsider; otherwise it sets false. On HTTP it maps to `503 Service
+Unavailable`, sends `Cache-Control: no-store`, and MAY carry a `Retry-After`
+delay only when `retryable` is true and the producer has a safe recovery
+estimate. It creates no new idempotency record, budget delta, app receipt,
+workload, or effect. Recovery MUST restore or conservatively retain durable
+window and slot state; it never initializes empty counters for an existing
+partition.
+
+`service_unavailable` follows the same common envelope and omits `limit`. It is
+valid only for a definite pre-admission shared-capacity rejection. If semantic
+admission or an effect might already have occurred, the application instead
+returns `outcome_unknown` when it can do so or requires authoritative
+reconciliation; it MUST NOT disguise that ambiguity as overload. The producer
+sets `retryable` true only when the unchanged logical request can safely be
+reconsidered after shared-capacity recovery. An HTTP response uses `503 Service
+Unavailable`, `Cache-Control: no-store`, and an optional RFC 9110 `Retry-After`
+delay consistent with that retryability. It discloses no manifest limit,
+partition, caller occupancy, or remaining shared capacity.
+
+`limit_exceeded` remains Grant-budget exhaustion or occupancy saturation;
+`safety_guard_triggered` remains a runtime fence; event `max_in_flight`,
+`event.flow`, retention, and `event.gap` remain delivery backpressure. An
+implementation MUST NOT substitute `rate_limited` for any of them or use a
+capacity hint to widen their authority.
 
 An application MUST return `proposal_required` only when the requested action
 is a state-changing action in the pinned `standard` manifest, the Grant omits
@@ -9630,6 +9963,11 @@ requires explicit local resolution and, for an application session, an accepted
 authoritative resume into a new generation.
 `budget_query_invalid` is terminal for that query id; a caller MUST NOT assume
 that changing only the id repairs invalid authority.
+`capacity_state_unavailable` requires authoritative limiter-state recovery and
+MUST NOT reset windows or slots.
+`service_unavailable` requires a new capacity decision and is automatically
+retryable only when its envelope says so; it never proves non-admission after an
+ambiguous outcome.
 `event_cursor_expired` requires explicit gap recovery rather than substitution
 of another cursor. An expired token or failed precondition requires a new read
 or dry run and any required approval. A
@@ -10481,6 +10819,10 @@ A component conforms to the Surface Publisher Profile when it:
   companion-action, precondition, reservation, and recovery metadata
 - declares the required endpoints for every invocable action, including a
   proposal-only action
+- when publishing operational limits, uses the exact supported profile,
+  resolves every referenced action and non-control event exactly once, declares
+  only positive safe-integer windows and slots, and changes the surface version
+  and hash whenever that contract changes
 - declares the `at_least_once` delivery contract whenever it publishes an event
   subscription endpoint
 - declares every event type and schema so it can be mapped without ambiguity to
@@ -10616,6 +10958,15 @@ A protected-resource component conforms to the Action Executor Profile when it:
   verifies the pinned input schema, independently checks normalized-wire fixed
   points before lookup or effect, and binds each record to the normalized
   `input_hash` and execution context
+- validates and atomically enforces every pinned per-Grant operational action
+  window and in-flight slot; resolves exact and conflicting idempotency records
+  before new admission; and makes a `rate_limited`,
+  `capacity_state_unavailable`, or `service_unavailable` rejection create no new
+  idempotency record, budget delta, app receipt, workload, or effect
+- enforces pinned per-subscription first-delivery windows without charging a
+  retry or replay twice, exceeding the negotiated in-flight window, silently
+  dropping an expired queued event, or consuming capacity reserved for control
+  events
 - durably enforces write, parallel-session, and application-cost budgets across
   the grant lineage and fails closed when ledger state is uncertain
 - declares and emits application-authoritative budget control events when an
@@ -10723,7 +11074,9 @@ Every Receipt Producer:
 An application-role Receipt Producer additionally:
 
 - emits app receipts for required state-changing actions and denied or failed
-  high-risk actions
+  high-risk actions, except for the definite pre-admission `rate_limited`,
+  `capacity_state_unavailable`, and `service_unavailable` rejections that the
+  Error Model requires to create no application action receipt
 - when Approval Receipt is selected, emits immutable application-role approved
   or denied Approval Receipts, binds accepted hashes into the idempotency record
   and app action receipt, and never uses `parent_receipt_hash` for those
@@ -10882,6 +11235,12 @@ An application runtime conforms to the Runtime Mediator Profile when it:
   positive finite transport, action-repetition, epoch-root, epoch-step,
   root-action, causal-depth, and cycle limits independently of Grant budgets,
   and fails closed when guard state is unavailable
+- treats declared operational limits as scheduling ceilings rather than
+  authority or availability promises, conservatively accounts fresh dispatches
+  and outstanding idempotency tuples across workers, applies the stricter local
+  policy, preserves exact idempotency and event-delivery identity while
+  refreshing binding-specific per-attempt authentication, and uses bounded
+  backoff with jitter without resetting runaway guards
 - carries finite lineage-delegate session, root, step, and cycle admission
   guards across new session ids, child Grants, renewal, reconnect, and ordinary
   resume, and does not clear an unresolved parent fence when one session ends
@@ -11070,6 +11429,10 @@ To support Agent Surface Protocol, the next slices are:
   <https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/bindings/http-protocol-binding.md>
 - CloudEvents Distributed Tracing extension 1.0.2:
   <https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/extensions/distributed-tracing.md>
+- HTTP Semantics:
+  <https://www.rfc-editor.org/rfc/rfc9110>
+- Additional HTTP Status Codes:
+  <https://www.rfc-editor.org/rfc/rfc6585>
 - OAuth 2.0:
   <https://www.rfc-editor.org/rfc/rfc6749>
 - OAuth 2.0 Proof Key for Code Exchange:

@@ -3233,11 +3233,15 @@
       "description": "surface должен объявлять ограничения на actions/events, чтобы runtime мог планировать нагрузку.",
       "category": "Economics / limits / operations",
       "side": "left",
-      "status": "missing",
+      "status": "present",
       "anchors": [
         {
           "heading": "Required Top-Level Fields",
           "anchorId": "required-top-level-fields"
+        },
+        {
+          "heading": "Example Manifest",
+          "anchorId": "example-manifest"
         },
         {
           "heading": "Actions",
@@ -3246,17 +3250,103 @@
         {
           "heading": "Events",
           "anchorId": "events"
+        },
+        {
+          "heading": "Rate Limits and Quotas",
+          "anchorId": "rate-limits-and-quotas"
+        },
+        {
+          "heading": "Event Subscription Authority",
+          "anchorId": "event-subscription-authority"
+        },
+        {
+          "heading": "Event Delivery Semantics",
+          "anchorId": "event-delivery-semantics"
+        },
+        {
+          "heading": "Retention and Backpressure",
+          "anchorId": "retention-and-backpressure"
+        },
+        {
+          "heading": "Error Model",
+          "anchorId": "error-model"
+        },
+        {
+          "heading": "Surface Publisher Profile",
+          "anchorId": "surface-publisher-profile"
+        },
+        {
+          "heading": "Action Executor Profile",
+          "anchorId": "action-executor-profile"
+        },
+        {
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         }
       ],
-      "rationale": "Manifest не имеет rate-limit или quota declarations для actions и event delivery.",
+      "rationale": "RFC определяет hash-bound Operational Limits Profile: per-Grant action windows и in-flight slots, per-subscription event first-delivery windows, atomic admission, idempotent replay, privacy-minimized rate_limited/429 и capacity/overload 503 semantics, а также строгую границу с Grant budgets, event backpressure и runaway guards.",
       "priority": "P2",
       "profile": "operations-safety",
       "depends_on": [
-        13
+        13,
+        21,
+        26,
+        30,
+        51,
+        54
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "required-top-level-fields"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "example-manifest"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "actions"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "events"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "rate-limits-and-quotas"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "event-subscription-authority"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "event-delivery-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "retention-and-backpressure"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "error-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-publisher-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-executor-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-mediator-profile"
+        }
+      ]
     },
     {
       "id": 54,

@@ -387,16 +387,16 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 60)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 294)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 306)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 49, "proposal": 8, "machine_validated": 3}),
+            Counter({"specified": 50, "proposal": 7, "machine_validated": 3}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 52, "partial": 3, "missing": 5}),
+            Counter({"present": 53, "partial": 3, "missing": 4}),
         )
-        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 125)
+        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 130)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
         self.assertEqual(
             [
@@ -473,6 +473,30 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(reviews_by_id[45]["maturity"], "specified")
         self.assertEqual(reviews_by_id[51]["maturity"], "specified")
         self.assertEqual(reviews_by_id[52]["maturity"], "specified")
+        self.assertEqual(reviews_by_id[53]["status"], "present")
+        self.assertEqual(reviews_by_id[53]["maturity"], "specified")
+        self.assertEqual(
+            reviews_by_id[53]["depends_on"],
+            [13, 21, 26, 30, 51, 54],
+        )
+        self.assertEqual(reviews_by_id[53]["readiness"], "ready")
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[53]["anchors"]],
+            [
+                "required-top-level-fields",
+                "example-manifest",
+                "actions",
+                "events",
+                "rate-limits-and-quotas",
+                "event-subscription-authority",
+                "event-delivery-semantics",
+                "retention-and-backpressure",
+                "error-model",
+                "surface-publisher-profile",
+                "action-executor-profile",
+                "runtime-mediator-profile",
+            ],
+        )
         self.assertEqual(reviews_by_id[54]["maturity"], "specified")
         self.assertEqual(reviews_by_id[56]["status"], "present")
         self.assertEqual(reviews_by_id[56]["maturity"], "specified")
