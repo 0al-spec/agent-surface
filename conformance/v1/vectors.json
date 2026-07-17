@@ -2,7 +2,7 @@
   "$schema": "./vectors.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.2.0",
+  "suite_version": "1.3.0",
   "vectors": [
     {
       "vector_id": "ASP-V-SP-001",
@@ -3806,6 +3806,520 @@
         { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 }
       ],
       "expected_error": "outcome_unknown"
+    },
+    {
+      "vector_id": "ASP-V-AE-024",
+      "title": "Bind a caller-partition rate limit to HTTP 429 with no-store and an equal delay",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-011"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "current_surface",
+        "operational_limits_selected",
+        "http_capacity_binding_selected"
+      ],
+      "stimulus": {
+        "operation": "bind_http_capacity_response",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "http_capacity_response_bound",
+        "http_status_mapped",
+        "http_no_store_applied",
+        "http_retry_after_bound"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "operational_admission_committed"
+      ],
+      "state_deltas": [
+        { "state": "application.workload_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "idempotency.record_count", "before": 0, "after": 0 },
+        { "state": "receipt.application_count", "before": 0, "after": 0 },
+        { "state": "budget.application_charge", "before": 0, "after": 0 }
+      ],
+      "expected_error": "rate_limited"
+    },
+    {
+      "vector_id": "ASP-V-AE-025",
+      "title": "Bind unavailable authoritative limiter state to HTTP 503 without fabricating a limit",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-011"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "current_surface",
+        "operational_limits_selected",
+        "authoritative_limiter_state",
+        "http_capacity_binding_selected"
+      ],
+      "stimulus": {
+        "operation": "bind_http_capacity_response",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "http_capacity_response_bound",
+        "http_status_mapped",
+        "http_no_store_applied",
+        "http_retry_after_bound"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "operational_admission_committed"
+      ],
+      "state_deltas": [
+        { "state": "application.workload_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "idempotency.record_count", "before": 0, "after": 0 },
+        { "state": "receipt.application_count", "before": 0, "after": 0 },
+        { "state": "budget.application_charge", "before": 0, "after": 0 }
+      ],
+      "expected_error": "capacity_state_unavailable"
+    },
+    {
+      "vector_id": "ASP-V-AE-026",
+      "title": "Bind definite shared service overload to HTTP 503 without caller limit metadata",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-011"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "current_surface",
+        "operational_limits_selected",
+        "definite_pre_admission_rejection",
+        "shared_service_capacity_unavailable",
+        "http_capacity_binding_selected"
+      ],
+      "stimulus": {
+        "operation": "bind_http_capacity_response",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "http_capacity_response_bound",
+        "http_status_mapped",
+        "http_no_store_applied"
+      ],
+      "forbidden_observations": [
+        "http_retry_after_bound",
+        "action_accepted",
+        "operational_admission_committed"
+      ],
+      "state_deltas": [
+        { "state": "application.workload_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "idempotency.record_count", "before": 0, "after": 0 },
+        { "state": "receipt.application_count", "before": 0, "after": 0 },
+        { "state": "budget.application_charge", "before": 0, "after": 0 }
+      ],
+      "expected_error": "service_unavailable"
+    },
+    {
+      "vector_id": "ASP-V-RM-020",
+      "title": "Accept an authenticated HTTP 429 rate-limit binding before scheduling retry",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-010"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "http_capacity_binding_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_http_capacity_response",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "http_capacity_binding_validated",
+        "http_status_mapped",
+        "http_no_store_validated",
+        "http_retry_after_validated",
+        "capacity_response_validated",
+        "retry_delay_floor_satisfied",
+        "semantic_identity_reused",
+        "per_attempt_authentication_applied",
+        "retry_scheduled"
+      ],
+      "forbidden_observations": [
+        "http_capacity_binding_rejected",
+        "retry_suppressed"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 0 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 0 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 1 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 12 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": true },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-021",
+      "title": "Reject a rate-limit envelope carried with the wrong HTTP status",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-020",
+      "requirement_ids": [
+        "ASP-RM-010"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "http_capacity_binding_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_http_capacity_response",
+        "input_variant": "wrong_http_status"
+      },
+      "required_observations": [
+        "http_capacity_binding_rejected",
+        "capacity_response_rejected",
+        "operational_state_retained",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "http_capacity_binding_validated",
+        "capacity_response_validated",
+        "retry_scheduled"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 1 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 1 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 0 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": false },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-022",
+      "title": "Reject an HTTP capacity response without a normalized no-store directive",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-020",
+      "requirement_ids": [
+        "ASP-RM-010"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "http_capacity_binding_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_http_capacity_response",
+        "input_variant": "missing_http_no_store"
+      },
+      "required_observations": [
+        "http_capacity_binding_rejected",
+        "capacity_response_rejected",
+        "operational_state_retained",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "http_capacity_binding_validated",
+        "capacity_response_validated",
+        "retry_scheduled"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 1 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 1 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 0 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": false },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-023",
+      "title": "Reject an HTTP 429 Retry-After value that differs from the body hint",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-020",
+      "requirement_ids": [
+        "ASP-RM-010"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "http_capacity_binding_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_http_capacity_response",
+        "input_variant": "http_retry_after_mismatch"
+      },
+      "required_observations": [
+        "http_capacity_binding_rejected",
+        "capacity_response_rejected",
+        "operational_state_retained",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "http_capacity_binding_validated",
+        "capacity_response_validated",
+        "retry_scheduled"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 1 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 1 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 0 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": false },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-024",
+      "title": "Accept HTTP 503 for unavailable limiter state without bypassing recovery",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-010"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "authoritative_limiter_state",
+        "http_capacity_binding_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_http_capacity_response",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "http_capacity_binding_validated",
+        "http_status_mapped",
+        "http_no_store_validated",
+        "http_retry_after_validated",
+        "capacity_response_validated",
+        "authoritative_capacity_recovery_required",
+        "operational_state_retained",
+        "retry_deferred"
+      ],
+      "forbidden_observations": [
+        "http_capacity_binding_rejected",
+        "retry_scheduled",
+        "authoritative_capacity_recovery_confirmed"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 0 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 0 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 0 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": false },
+        { "state": "runtime.capacity_recovery_pending", "before": false, "after": true },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 },
+        { "state": "operational.action.window_count", "before": 4, "after": 4 },
+        { "state": "operational.action.in_flight_count", "before": 2, "after": 2 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-025",
+      "title": "Reject unavailable limiter state mislabeled as HTTP 429",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-024",
+      "requirement_ids": [
+        "ASP-RM-010"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "authoritative_limiter_state",
+        "http_capacity_binding_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_http_capacity_response",
+        "input_variant": "capacity_http_status_429"
+      },
+      "required_observations": [
+        "http_capacity_binding_rejected",
+        "capacity_response_rejected",
+        "operational_state_retained",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "http_capacity_binding_validated",
+        "capacity_response_validated",
+        "retry_deferred",
+        "retry_scheduled"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 1 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 1 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 0 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": false },
+        { "state": "runtime.capacity_recovery_pending", "before": false, "after": false },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 },
+        { "state": "operational.action.window_count", "before": 4, "after": 4 },
+        { "state": "operational.action.in_flight_count", "before": 2, "after": 2 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-026",
+      "title": "Accept HTTP 503 for definite shared service unavailability",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-010"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "definite_pre_admission_rejection",
+        "shared_service_capacity_unavailable",
+        "http_capacity_binding_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_http_capacity_response",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "http_capacity_binding_validated",
+        "http_status_mapped",
+        "http_no_store_validated",
+        "capacity_response_validated",
+        "capacity_decision_required",
+        "local_backoff_selected",
+        "semantic_identity_reused",
+        "per_attempt_authentication_applied",
+        "retry_scheduled"
+      ],
+      "forbidden_observations": [
+        "http_capacity_binding_rejected",
+        "http_retry_after_validated",
+        "retry_suppressed"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 0 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 0 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 1 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": true },
+        { "state": "runtime.capacity_decision_pending", "before": false, "after": true },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-027",
+      "title": "Reject the HTTP-date Retry-After form for a rate-limit response",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-020",
+      "requirement_ids": [
+        "ASP-RM-010"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "http_capacity_binding_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_http_capacity_response",
+        "input_variant": "rate_limit_http_date_retry_after"
+      },
+      "required_observations": [
+        "http_capacity_binding_rejected",
+        "capacity_response_rejected",
+        "operational_state_retained",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "http_capacity_binding_validated",
+        "capacity_response_validated",
+        "retry_scheduled"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 1 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 1 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 0 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": false },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 }
+      ]
     }
   ]
 }

@@ -91,6 +91,42 @@ PROFILE_ROLES = {
     ),
 }
 SAFE_INTEGER = 2**53 - 1
+HTTP_MONTHS = {
+    name: number
+    for number, name in enumerate(
+        ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+        start=1,
+    )
+}
+HTTP_DATE_PATTERNS = (
+    (
+        re.compile(
+            r"^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), "
+            r"(?P<day>[0-9]{2}) (?P<month>Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) "
+            r"(?P<year>[0-9]{4}) (?P<hour>[0-9]{2}):(?P<minute>[0-9]{2}):"
+            r"(?P<second>[0-9]{2}) GMT$"
+        ),
+        False,
+    ),
+    (
+        re.compile(
+            r"^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), "
+            r"(?P<day>[0-9]{2})-(?P<month>Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-"
+            r"(?P<year>[0-9]{2}) (?P<hour>[0-9]{2}):(?P<minute>[0-9]{2}):"
+            r"(?P<second>[0-9]{2}) GMT$"
+        ),
+        True,
+    ),
+    (
+        re.compile(
+            r"^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) "
+            r"(?P<month>Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) "
+            r"(?P<day> [1-9]|[0-9]{2}) (?P<hour>[0-9]{2}):(?P<minute>[0-9]{2}):"
+            r"(?P<second>[0-9]{2}) (?P<year>[0-9]{4})$"
+        ),
+        False,
+    ),
+)
 OPERATIONAL_LIMITS_SCHEMA_ID = SCHEMA_IDS["operational-limits"]
 CAPACITY_ERROR_SCHEMA_ID = SCHEMA_IDS["capacity-error"]
 OPERATIONAL_LIMITS_FEATURE_ID = (
@@ -473,6 +509,107 @@ def validate_capacity_error(
         )
 
 
+def _retry_after_projection(
+    value: Any, *, label: str
+) -> tuple[str, int | str] | None:
+    if value == "absent":
+        return None
+    if not isinstance(value, dict) or set(value) != {"form", "value"}:
+        raise ConformanceError(f"{label} is not the exact Retry-After projection")
+    form = value["form"]
+    projected = value["value"]
+    if form == "delay_seconds":
+        if (
+            isinstance(projected, bool)
+            or not isinstance(projected, int)
+            or not 1 <= projected <= SAFE_INTEGER
+        ):
+            raise ConformanceError(
+                f"{label} delay_seconds must be a positive I-JSON safe integer"
+            )
+        return form, projected
+    if form == "http_date":
+        if isinstance(projected, str) and _is_rfc9110_http_date(projected):
+            return form, projected
+        raise ConformanceError(f"{label} http_date is not RFC 9110 HTTP-date syntax")
+    raise ConformanceError(f"{label} has an invalid normalized form or value")
+
+
+def _is_rfc9110_http_date(value: str) -> bool:
+    for pattern, uses_two_digit_year in HTTP_DATE_PATTERNS:
+        match = pattern.fullmatch(value)
+        if match is None:
+            continue
+        year = int(match["year"])
+        if uses_two_digit_year:
+            year += 2000 if year <= 68 else 1900
+        try:
+            datetime(
+                year,
+                HTTP_MONTHS[match["month"]],
+                int(match["day"]),
+                int(match["hour"]),
+                int(match["minute"]),
+                int(match["second"]),
+            )
+        except ValueError:
+            return False
+        return True
+    return False
+
+
+def validate_http_capacity_projection(
+    transport: Any, response: dict[str, Any]
+) -> None:
+    """Validate one normalized authenticated HTTP capacity response projection."""
+
+    if not isinstance(transport, dict) or set(transport) != {
+        "binding",
+        "authentication",
+        "status",
+        "cache_control_no_store",
+        "retry_after",
+    }:
+        raise ConformanceError(
+            "HTTP capacity projection must contain the exact normalized fields"
+        )
+    if (
+        transport["binding"] != "http"
+        or transport["authentication"] != "authenticated"
+    ):
+        raise ConformanceError(
+            "HTTP capacity projection must select an authenticated HTTP binding"
+        )
+    code = response["code"]
+    expected_status = 429 if code == "rate_limited" else 503
+    if transport["status"] != expected_status:
+        raise ConformanceError("HTTP capacity status does not match its ASP error code")
+    if transport["cache_control_no_store"] is not True:
+        raise ConformanceError(
+            "HTTP capacity projection must contain the normalized no-store directive"
+        )
+    retry_after = _retry_after_projection(
+        transport["retry_after"], label="HTTP capacity Retry-After"
+    )
+    if retry_after is None:
+        return
+    if response["retryable"] is not True:
+        raise ConformanceError(
+            "non-retryable HTTP capacity response cannot carry Retry-After"
+        )
+    form, value = retry_after
+    if code == "rate_limited":
+        limit = response.get("limit")
+        if (
+            form != "delay_seconds"
+            or not isinstance(limit, dict)
+            or limit.get("retry_after_seconds") != value
+        ):
+            raise ConformanceError(
+                "HTTP 429 Retry-After must be delay_seconds equal to the body hint"
+            )
+
+
 def _validate_schema_cases(
     root: Path,
     catalog: dict[str, Any],
@@ -799,6 +936,51 @@ def _semantic_validate_catalog(
                     },
                     root=root,
                 )
+        operation = vector["stimulus"]["operation"]
+        selects_http_capacity = "http_capacity_binding_selected" in vector["setup"]
+        is_http_capacity_operation = operation in {
+            "bind_http_capacity_response",
+            "handle_http_capacity_response",
+        }
+        if selects_http_capacity != is_http_capacity_operation:
+            raise ConformanceError(
+                f"vector {vector_id} HTTP capacity setup and operation differ"
+            )
+        has_transport = "transport" in fixture["document"]
+        if operation == "handle_http_capacity_response":
+            if not has_transport or not isinstance(capacity_response, dict):
+                raise ConformanceError(
+                    f"HTTP capacity consumer vector {vector_id} lacks its projection"
+                )
+            validate_http_capacity_projection(
+                fixture["document"]["transport"], capacity_response
+            )
+        elif has_transport:
+            raise ConformanceError(
+                f"non-consumer vector {vector_id} carries an HTTP response projection"
+            )
+        if operation == "bind_http_capacity_response":
+            if not isinstance(capacity_response, dict):
+                raise ConformanceError(
+                    f"HTTP capacity producer vector {vector_id} lacks an error envelope"
+                )
+            hint = operational_state.get("http_retry_after_hint", "absent")
+            validate_http_capacity_projection(
+                {
+                    "binding": "http",
+                    "authentication": "authenticated",
+                    "status": 429
+                    if capacity_response["code"] == "rate_limited"
+                    else 503,
+                    "cache_control_no_store": True,
+                    "retry_after": hint,
+                },
+                capacity_response,
+            )
+        elif has_operational_feature and "http_retry_after_hint" in operational_state:
+            raise ConformanceError(
+                f"non-producer vector {vector_id} carries an HTTP retry hint"
+            )
         if vector["polarity"] == "negative":
             baseline_id = vector["baseline_vector_id"]
             baseline = vectors.get(baseline_id)
@@ -1418,7 +1600,7 @@ def run_suite(
     started_at = _utc_now()
     runner = {
         "runner_id": "asp-reference-conformance-runner",
-        "runner_version": "1.2.0",
+        "runner_version": "1.3.0",
         "runner_artifact_sha256": file_digest(
             "ASP-CONFORMANCE-RUNNER-V1", root / "conformance" / "check.py"
         ),

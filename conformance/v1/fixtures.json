@@ -2,7 +2,7 @@
   "$schema": "./fixtures.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.2.0",
+  "suite_version": "1.3.0",
   "fixture_catalog_id": "agent-surface/conformance/fixtures/v1",
   "fixtures": [
     {
@@ -266,6 +266,593 @@
         "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
         "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
         "operational": { "declaration": "valid", "limiter_state": "available", "action_capacity": "available", "event_capacity": "available", "capacity_response": { "code": "service_unavailable", "description": "Shared service capacity is unavailable.", "retryable": true }, "declared_limit_ids": ["comment-per-minute"], "disclosable_limit_ids": ["comment-per-minute"] }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-024",
+      "baseline_vector_id": "ASP-V-AE-024",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "runtime",
+          "claimed_observation": "runtime_observation",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "operational": {
+          "declaration": "valid",
+          "limiter_state": "available",
+          "action_capacity": "available",
+          "event_capacity": "available",
+          "capacity_response": {
+            "code": "rate_limited",
+            "description": "Application capacity did not admit this request.",
+            "retryable": true,
+            "limit": {
+              "limit_ids": [
+                "comment-per-minute"
+              ],
+              "retry_after_seconds": 12
+            }
+          },
+          "declared_limit_ids": [
+            "comment-per-minute"
+          ],
+          "disclosable_limit_ids": [
+            "comment-per-minute"
+          ],
+          "http_retry_after_hint": {
+            "form": "delay_seconds",
+            "value": 12
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-025",
+      "baseline_vector_id": "ASP-V-AE-025",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "runtime",
+          "claimed_observation": "runtime_observation",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "operational": {
+          "declaration": "valid",
+          "limiter_state": "unavailable",
+          "action_capacity": "available",
+          "event_capacity": "available",
+          "capacity_response": {
+            "code": "capacity_state_unavailable",
+            "description": "Authoritative limiter state is unavailable.",
+            "retryable": true
+          },
+          "declared_limit_ids": [
+            "comment-per-minute"
+          ],
+          "disclosable_limit_ids": [
+            "comment-per-minute"
+          ],
+          "http_retry_after_hint": {
+            "form": "delay_seconds",
+            "value": 30
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-026",
+      "baseline_vector_id": "ASP-V-AE-026",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "runtime",
+          "claimed_observation": "runtime_observation",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "operational": {
+          "declaration": "valid",
+          "limiter_state": "available",
+          "action_capacity": "available",
+          "event_capacity": "available",
+          "capacity_response": {
+            "code": "service_unavailable",
+            "description": "Shared service capacity is unavailable.",
+            "retryable": true
+          },
+          "declared_limit_ids": [
+            "comment-per-minute"
+          ],
+          "disclosable_limit_ids": [
+            "comment-per-minute"
+          ]
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RM-020",
+      "baseline_vector_id": "ASP-V-RM-020",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "runtime",
+          "claimed_observation": "runtime_observation",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "operational": {
+          "declaration": "valid",
+          "limiter_state": "available",
+          "action_capacity": "available",
+          "event_capacity": "available",
+          "capacity_response": {
+            "code": "rate_limited",
+            "description": "Application capacity did not admit this request.",
+            "retryable": true,
+            "limit": {
+              "limit_ids": [
+                "comment-per-minute"
+              ],
+              "retry_after_seconds": 12
+            }
+          },
+          "declared_limit_ids": [
+            "comment-per-minute"
+          ],
+          "disclosable_limit_ids": [
+            "comment-per-minute"
+          ]
+        },
+        "transport": {
+          "binding": "http",
+          "authentication": "authenticated",
+          "status": 429,
+          "cache_control_no_store": true,
+          "retry_after": {
+            "form": "delay_seconds",
+            "value": 12
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RM-024",
+      "baseline_vector_id": "ASP-V-RM-024",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "runtime",
+          "claimed_observation": "runtime_observation",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "operational": {
+          "declaration": "valid",
+          "limiter_state": "unavailable",
+          "action_capacity": "available",
+          "event_capacity": "available",
+          "capacity_response": {
+            "code": "capacity_state_unavailable",
+            "description": "Authoritative limiter state is unavailable.",
+            "retryable": true
+          },
+          "declared_limit_ids": [
+            "comment-per-minute"
+          ],
+          "disclosable_limit_ids": [
+            "comment-per-minute"
+          ]
+        },
+        "transport": {
+          "binding": "http",
+          "authentication": "authenticated",
+          "status": 503,
+          "cache_control_no_store": true,
+          "retry_after": {
+            "form": "http_date",
+            "value": "Fri, 17 Jul 2026 12:00:00 GMT"
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RM-026",
+      "baseline_vector_id": "ASP-V-RM-026",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "runtime",
+          "claimed_observation": "runtime_observation",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "operational": {
+          "declaration": "valid",
+          "limiter_state": "available",
+          "action_capacity": "available",
+          "event_capacity": "available",
+          "capacity_response": {
+            "code": "service_unavailable",
+            "description": "Shared service capacity is unavailable.",
+            "retryable": true
+          },
+          "declared_limit_ids": [
+            "comment-per-minute"
+          ],
+          "disclosable_limit_ids": [
+            "comment-per-minute"
+          ]
+        },
+        "transport": {
+          "binding": "http",
+          "authentication": "authenticated",
+          "status": 503,
+          "cache_control_no_store": true,
+          "retry_after": "absent"
+        }
       }
     }
   ],
@@ -602,6 +1189,67 @@
       "input_variant": "ambiguous_service_outcome",
       "patch": [
         { "op": "replace", "path": "/execution/outcome_state", "value": "unknown" }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-WRONG-HTTP-STATUS",
+      "input_variant": "wrong_http_status",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/transport/status",
+          "value": 503
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-MISSING-HTTP-NO-STORE",
+      "input_variant": "missing_http_no_store",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/transport/cache_control_no_store",
+          "value": false
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-HTTP-RETRY-AFTER-MISMATCH",
+      "input_variant": "http_retry_after_mismatch",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/transport/retry_after",
+          "value": {
+            "form": "delay_seconds",
+            "value": 13
+          }
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-CAPACITY-HTTP-STATUS-429",
+      "input_variant": "capacity_http_status_429",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/transport/status",
+          "value": 429
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-RATE-LIMIT-HTTP-DATE-RETRY-AFTER",
+      "input_variant": "rate_limit_http_date_retry_after",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/transport/retry_after",
+          "value": {
+            "form": "http_date",
+            "value": "Wed, 21 Oct 2015 07:28:00 GMT"
+          }
+        }
       ]
     }
   ]

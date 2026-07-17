@@ -125,12 +125,12 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.2.0")
+        self.assertEqual(self.catalog.suite["suite_version"], "1.3.0")
         self.assertEqual(len(self.catalog.features), 9)
-        self.assertEqual(len(self.catalog.requirements), 36)
-        self.assertEqual(len(self.catalog.vectors), 68)
-        self.assertEqual(len(self.catalog.fixtures), 21)
-        self.assertEqual(len(self.catalog.mutations), 48)
+        self.assertEqual(len(self.catalog.requirements), 38)
+        self.assertEqual(len(self.catalog.vectors), 79)
+        self.assertEqual(len(self.catalog.fixtures), 27)
+        self.assertEqual(len(self.catalog.mutations), 53)
         self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 36)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
 
@@ -159,6 +159,62 @@ class ConformanceSuiteTests(unittest.TestCase):
         negative["context"] = positive["context"]
         path.write_text(json.dumps(corpus), encoding="utf-8")
         with self.assertRaisesRegex(ConformanceError, "negative schema case .* passed"):
+            validate_catalog(root)
+
+    def test_http_capacity_baselines_are_semantically_bound(self) -> None:
+        http_vectors = {
+            "ASP-V-AE-024",
+            "ASP-V-AE-025",
+            "ASP-V-AE-026",
+            "ASP-V-RM-020",
+            "ASP-V-RM-021",
+            "ASP-V-RM-022",
+            "ASP-V-RM-023",
+            "ASP-V-RM-024",
+            "ASP-V-RM-025",
+            "ASP-V-RM-026",
+            "ASP-V-RM-027",
+        }
+        self.assertEqual(
+            {
+                vector_id
+                for vector_id, vector in self.catalog.vectors.items()
+                if "http_capacity_binding_selected" in vector["setup"]
+            },
+            http_vectors,
+        )
+
+        root = self.catalog_copy()
+        path = root / "conformance" / "v1" / "fixtures.json"
+        fixtures = json.loads(path.read_text(encoding="utf-8"))
+        baseline = next(
+            item
+            for item in fixtures["fixtures"]
+            if item["fixture_id"] == "ASP-F-RM-020"
+        )
+        baseline["document"]["transport"]["status"] = 503
+        path.write_text(json.dumps(fixtures), encoding="utf-8")
+        with self.assertRaisesRegex(
+            ConformanceError, "HTTP capacity status does not match"
+        ):
+            validate_catalog(root)
+
+        root = self.catalog_copy()
+        path = root / "conformance" / "v1" / "fixtures.json"
+        fixtures = json.loads(path.read_text(encoding="utf-8"))
+        baseline = next(
+            item
+            for item in fixtures["fixtures"]
+            if item["fixture_id"] == "ASP-F-RM-024"
+        )
+        baseline["document"]["transport"]["retry_after"] = {
+            "form": "http_date",
+            "value": "soon",
+        }
+        path.write_text(json.dumps(fixtures), encoding="utf-8")
+        with self.assertRaisesRegex(
+            ConformanceError, "http_date is not RFC 9110 HTTP-date syntax"
+        ):
             validate_catalog(root)
 
     def test_every_role_has_positive_and_negative_vectors(self) -> None:

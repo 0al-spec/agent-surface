@@ -2,7 +2,7 @@
   "$schema": "./manifest.schema.json",
   "schema_version": 1,
   "manifest_id": "https://github.com/0al-spec/agent-surface/mocks/v1",
-  "manifest_version": "1.2.0",
+  "manifest_version": "1.3.0",
   "protocol_version": "agent-surface/0.1",
   "claim_effect": "suite_fixture_only",
   "participant_protocol": "asp-mock-participant/1",
@@ -109,17 +109,17 @@
     "validator": "mocks/check.py"
   },
   "artifacts": [
-    {"path": "mocks/README.md", "sha256": "sha-256:drCIRn3SE7mPXrxYBBl5Dtf27jElFrskmk8je-Rarqg"},
+    {"path": "mocks/README.md", "sha256": "sha-256:dBMpj2FxwX4AHLLKWiYNjCk11fa7l34Um1z6jhQKHTo"},
     {"path": "mocks/__init__.py", "sha256": "sha-256:BsfdRwWRgFGRkYGJXv7IzCic49jakLU-zptUO2OWXmw"},
     {"path": "mocks/adapter.py", "sha256": "sha-256:IGlWx3ZyWCgba5r7t2p8xqV8TQA9GW63fGrtqxILTGU"},
-    {"path": "mocks/behavior.py", "sha256": "sha-256:w0Ajat-VrEd9KRk1hOWkXKFD9gFu-GkIIQ9L914W5ZI"},
+    {"path": "mocks/behavior.py", "sha256": "sha-256:pzf8FTYpH8Gpkw8lYeEs_53UK8rSpCG_SlkC1eEUuYw"},
     {"path": "mocks/check.py", "sha256": "sha-256:yewr85JEzTJy-z8AsQomnmy9e5g_qRK4U_dt452dnoM"},
     {"path": "mocks/mock_app.py", "sha256": "sha-256:xut85g6x4h4IZaUdl4nm2UMHt_bPYdwbbB1rjwIU3Ak"},
     {"path": "mocks/mock_runtime.py", "sha256": "sha-256:kBnne5rKRRegfgltpYI69G8cnfIXKvvs0ZdQd6KYscw"},
     {"path": "mocks/participant.py", "sha256": "sha-256:l7G0zgpijCXdx-eNJyHdiNI0VBx1yPDXq-5WZ7tnXRo"},
     {"path": "mocks/probe.py", "sha256": "sha-256:5h0zdHg9iBfWMA27AqWoA_t9nN6MskfnKaXwWMsYGnc"},
     {"path": "mocks/state.py", "sha256": "sha-256:Krs_13wEMi8Un-SHXrnKfl7SqSRVSEo9n_0wb_CH070"},
-    {"path": "mocks/tests/test_mocks.py", "sha256": "sha-256:nhhn_6gHNVBElja2L1JGT-RCJJd5BYruHqwxUpIsIHY"},
-    {"path": "mocks/v1/manifest.schema.json", "sha256": "sha-256:ZA-UJar4m-FMlnhRHh_jYFbHbThN4ceVVPPJ8VZckt0"}
+    {"path": "mocks/tests/test_mocks.py", "sha256": "sha-256:rGXLtF2069BocDMfI6Xh0mA7Z8SAUC-A1czabT_mBIY"},
+    {"path": "mocks/v1/manifest.schema.json", "sha256": "sha-256:PN86gHL9K2yjr0CI47nsxp6oS1elcKouQkTaW4v9vvs"}
   ]
 }

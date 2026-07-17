@@ -58,7 +58,7 @@
           "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
         },
         "suite_version": {
-          "const": "1.2.0"
+          "const": "1.3.0"
         },
         "protocol_version": {
           "const": "agent-surface/0.1"

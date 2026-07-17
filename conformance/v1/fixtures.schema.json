@@ -24,15 +24,15 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.2.0"
+      "const": "1.3.0"
     },
     "fixture_catalog_id": {
       "const": "agent-surface/conformance/fixtures/v1"
     },
     "fixtures": {
       "type": "array",
-      "minItems": 21,
-      "maxItems": 21,
+      "minItems": 27,
+      "maxItems": 27,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/fixture"
@@ -43,8 +43,8 @@
     },
     "mutations": {
       "type": "array",
-      "minItems": 48,
-      "maxItems": 48,
+      "minItems": 53,
+      "maxItems": 53,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/mutation"
@@ -77,7 +77,13 @@
         "ASP-F-RM-013",
         "ASP-F-RM-014",
         "ASP-F-RM-015",
-        "ASP-F-RM-017"
+        "ASP-F-RM-017",
+        "ASP-F-AE-024",
+        "ASP-F-AE-025",
+        "ASP-F-AE-026",
+        "ASP-F-RM-020",
+        "ASP-F-RM-024",
+        "ASP-F-RM-026"
       ]
     },
     "baselineVectorId": {
@@ -102,7 +108,13 @@
         "ASP-V-RM-013",
         "ASP-V-RM-014",
         "ASP-V-RM-015",
-        "ASP-V-RM-017"
+        "ASP-V-RM-017",
+        "ASP-V-AE-024",
+        "ASP-V-AE-025",
+        "ASP-V-AE-026",
+        "ASP-V-RM-020",
+        "ASP-V-RM-024",
+        "ASP-V-RM-026"
       ]
     },
     "mutationId": {
@@ -154,7 +166,12 @@
         "ASP-M-NON-RETRYABLE-RATE-LIMIT",
         "ASP-M-NON-RETRYABLE-CAPACITY-STATE-UNAVAILABLE",
         "ASP-M-NON-RETRYABLE-SERVICE-UNAVAILABLE",
-        "ASP-M-AMBIGUOUS-SERVICE-OUTCOME"
+        "ASP-M-AMBIGUOUS-SERVICE-OUTCOME",
+        "ASP-M-WRONG-HTTP-STATUS",
+        "ASP-M-MISSING-HTTP-NO-STORE",
+        "ASP-M-HTTP-RETRY-AFTER-MISMATCH",
+        "ASP-M-CAPACITY-HTTP-STATUS-429",
+        "ASP-M-RATE-LIMIT-HTTP-DATE-RETRY-AFTER"
       ]
     },
     "inputVariant": {
@@ -206,7 +223,12 @@
         "non_retryable_rate_limit",
         "non_retryable_capacity_state_unavailable",
         "non_retryable_service_unavailable",
-        "ambiguous_service_outcome"
+        "ambiguous_service_outcome",
+        "wrong_http_status",
+        "missing_http_no_store",
+        "http_retry_after_mismatch",
+        "capacity_http_status_429",
+        "rate_limit_http_date_retry_after"
       ]
     },
     "actionSet": {
@@ -365,6 +387,55 @@
         "unknown_outcome_handling": { "enum": ["stop", "retry"] }
       }
     },
+    "retryAfter": {
+      "oneOf": [
+        { "const": "absent" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["form", "value"],
+          "properties": {
+            "form": { "const": "delay_seconds" },
+            "value": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["form", "value"],
+          "properties": {
+            "form": { "const": "http_date" },
+            "value": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      ]
+    },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "binding",
+        "authentication",
+        "status",
+        "cache_control_no_store",
+        "retry_after"
+      ],
+      "properties": {
+        "binding": { "const": "http" },
+        "authentication": { "const": "authenticated" },
+        "status": { "enum": [429, 503] },
+        "cache_control_no_store": { "type": "boolean" },
+        "retry_after": { "$ref": "#/$defs/retryAfter" }
+      }
+    },
     "semanticDocument": {
       "type": "object",
       "additionalProperties": false,
@@ -383,7 +454,8 @@
         "receipt": { "$ref": "#/$defs/receipt" },
         "runtime": { "$ref": "#/$defs/runtime" },
         "adapter": { "$ref": "#/$defs/adapter" },
-        "operational": { "$ref": "#/$defs/operational" }
+        "operational": { "$ref": "#/$defs/operational" },
+        "transport": { "$ref": "#/$defs/transport" }
       }
     },
     "fixture": {
@@ -443,7 +515,10 @@
         "/operational/action_capacity",
         "/operational/limiter_state",
         "/operational/event_capacity",
-        "/operational/capacity_response"
+        "/operational/capacity_response",
+        "/transport/status",
+        "/transport/cache_control_no_store",
+        "/transport/retry_after"
       ]
     },
     "pathAndValue": {
@@ -492,7 +567,10 @@
         { "properties": { "path": { "const": "/operational/event_capacity" }, "value": { "enum": ["window_exhausted"] } } },
         { "properties": { "path": { "const": "/operational/capacity_response" }, "value": { "const": { "code": "rate_limited", "description": "Application capacity did not admit this request.", "retryable": false } } } },
         { "properties": { "path": { "const": "/operational/capacity_response" }, "value": { "const": { "code": "capacity_state_unavailable", "description": "Authoritative limiter state is unavailable.", "retryable": false } } } },
-        { "properties": { "path": { "const": "/operational/capacity_response" }, "value": { "const": { "code": "service_unavailable", "description": "Shared service capacity is unavailable.", "retryable": false } } } }
+        { "properties": { "path": { "const": "/operational/capacity_response" }, "value": { "const": { "code": "service_unavailable", "description": "Shared service capacity is unavailable.", "retryable": false } } } },
+        { "properties": { "path": { "const": "/transport/status" }, "value": { "enum": [429, 503] } } },
+        { "properties": { "path": { "const": "/transport/cache_control_no_store" }, "value": { "type": "boolean" } } },
+        { "properties": { "path": { "const": "/transport/retry_after" }, "value": { "$ref": "#/$defs/retryAfter" } } }
       ]
     },
     "patchOperation": {
@@ -548,7 +626,13 @@
         { "properties": { "fixture_id": { "const": "ASP-F-RM-013" }, "baseline_vector_id": { "const": "ASP-V-RM-013" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-RM-014" }, "baseline_vector_id": { "const": "ASP-V-RM-014" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-RM-015" }, "baseline_vector_id": { "const": "ASP-V-RM-015" } }, "required": ["fixture_id", "baseline_vector_id"] },
-        { "properties": { "fixture_id": { "const": "ASP-F-RM-017" }, "baseline_vector_id": { "const": "ASP-V-RM-017" } }, "required": ["fixture_id", "baseline_vector_id"] }
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-017" }, "baseline_vector_id": { "const": "ASP-V-RM-017" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-024" }, "baseline_vector_id": { "const": "ASP-V-AE-024" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-025" }, "baseline_vector_id": { "const": "ASP-V-AE-025" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-026" }, "baseline_vector_id": { "const": "ASP-V-AE-026" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-020" }, "baseline_vector_id": { "const": "ASP-V-RM-020" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-024" }, "baseline_vector_id": { "const": "ASP-V-RM-024" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-026" }, "baseline_vector_id": { "const": "ASP-V-RM-026" } }, "required": ["fixture_id", "baseline_vector_id"] }
       ]
     },
     "mutationBinding": {
@@ -600,7 +684,12 @@
         { "properties": { "mutation_id": { "const": "ASP-M-NON-RETRYABLE-RATE-LIMIT" }, "input_variant": { "const": "non_retryable_rate_limit" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-NON-RETRYABLE-CAPACITY-STATE-UNAVAILABLE" }, "input_variant": { "const": "non_retryable_capacity_state_unavailable" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-NON-RETRYABLE-SERVICE-UNAVAILABLE" }, "input_variant": { "const": "non_retryable_service_unavailable" } }, "required": ["mutation_id", "input_variant"] },
-        { "properties": { "mutation_id": { "const": "ASP-M-AMBIGUOUS-SERVICE-OUTCOME" }, "input_variant": { "const": "ambiguous_service_outcome" } }, "required": ["mutation_id", "input_variant"] }
+        { "properties": { "mutation_id": { "const": "ASP-M-AMBIGUOUS-SERVICE-OUTCOME" }, "input_variant": { "const": "ambiguous_service_outcome" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-WRONG-HTTP-STATUS" }, "input_variant": { "const": "wrong_http_status" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-MISSING-HTTP-NO-STORE" }, "input_variant": { "const": "missing_http_no_store" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-HTTP-RETRY-AFTER-MISMATCH" }, "input_variant": { "const": "http_retry_after_mismatch" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-CAPACITY-HTTP-STATUS-429" }, "input_variant": { "const": "capacity_http_status_429" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RATE-LIMIT-HTTP-DATE-RETRY-AFTER" }, "input_variant": { "const": "rate_limit_http_date_retry_after" } }, "required": ["mutation_id", "input_variant"] }
       ]
     },
     "fixtureCoverage": {
@@ -625,7 +714,13 @@
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-013" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-014" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-015" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-017" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-017" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-024" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-025" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-026" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-020" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-024" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-026" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "mutationCoverage": {
@@ -677,7 +772,12 @@
         { "contains": { "properties": { "input_variant": { "const": "non_retryable_rate_limit" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "non_retryable_capacity_state_unavailable" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "non_retryable_service_unavailable" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "input_variant": { "const": "ambiguous_service_outcome" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "input_variant": { "const": "ambiguous_service_outcome" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "wrong_http_status" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "missing_http_no_store" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "http_retry_after_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "capacity_http_status_429" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "rate_limit_http_date_retry_after" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "limitIdSet": {
@@ -711,6 +811,7 @@
             { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1" }
           ]
         },
+        "http_retry_after_hint": { "$ref": "#/$defs/retryAfter" },
         "declared_limit_ids": { "$ref": "#/$defs/limitIdSet" },
         "disclosable_limit_ids": { "$ref": "#/$defs/limitIdSet" }
       }
