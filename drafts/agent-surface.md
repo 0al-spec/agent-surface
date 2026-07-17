@@ -9805,6 +9805,16 @@ safe non-identifying estimate. The response MUST NOT expose remaining counts,
 raw partition keys, other callers, tenants, Grants, subscriptions, or system
 load. Presence of `retry_after_seconds` requires `retryable: true`.
 
+#### HTTP Capacity Error Binding
+
+An HTTP status or response field is transport evidence, not an ASP error
+authority by itself. A runtime recognizes an HTTP capacity error only on the
+authenticated ASP response path and only when the response carries a valid
+common error envelope whose code, status, cache directives, and retry metadata
+are mutually consistent. A proxy-generated or unauthenticated `429` or `503`
+does not create `rate_limited`, `capacity_state_unavailable`, or
+`service_unavailable` semantics.
+
 Every authenticated ASP HTTP endpoint returns `429 Too Many Requests` for this
 error and MUST NOT permit the response to be stored; it sends
 `Cache-Control: no-store` in addition to the RFC 6585 status semantics. When it
@@ -9815,7 +9825,9 @@ under RFC 9110 with ASP code `service_unavailable`; it MUST NOT carry
 `code: "rate_limited"` or a fabricated manifest limit id. Non-HTTP bindings
 carry the same ASP envelope without deriving authority from an HTTP status or
 header. HTTP `RateLimit` and vendor `X-RateLimit-*` fields are outside this core
-profile.
+profile. After normalizing the HTTP field values, `Cache-Control` MUST contain
+the `no-store` response directive; `no-cache` alone does not satisfy this
+requirement.
 
 A retry hint is neither capacity reservation nor proof that no effect occurred.
 When `retryable` is false, the runtime stops unchanged automatic retry. When it
@@ -9862,6 +9874,18 @@ reconsidered after shared-capacity recovery. An HTTP response uses `503 Service
 Unavailable`, `Cache-Control: no-store`, and an optional RFC 9110 `Retry-After`
 delay consistent with that retryability. It discloses no manifest limit,
 partition, caller occupancy, or remaining shared capacity.
+
+For either `503` mapping, `Retry-After` is permitted only when `retryable` is
+true and the producer has a safe recovery estimate. It can use either RFC 9110
+form. The field is only a minimum transport delay: for
+`capacity_state_unavailable` it does not replace authoritative limiter-state
+recovery, and for `service_unavailable` it does not replace a new shared
+capacity decision. A runtime that observes a status, authenticated response
+path, `no-store` directive, envelope code, or `Retry-After` relationship that
+does not satisfy this binding MUST reject the HTTP capacity response before
+releasing local admission state or scheduling a retry. It retains tentative
+accounting and semantic retry identity until the ordinary authoritative
+recovery or reconciliation rule resolves them.
 
 `limit_exceeded` remains Grant-budget exhaustion or occupancy saturation;
 `safety_guard_triggered` remains a runtime fence; event `max_in_flight`,
@@ -10678,8 +10702,12 @@ required by that denial phase. A crash, timeout, malformed response,
 unavailable authoritative probe, or unknown state is an execution error, never
 a successful rejection. An HTTP status is an assertion only when a vector
 explicitly selects a binding for which this draft defines a normative mapping.
-The current Operational Limits cases validate the transport-neutral capacity
-envelope and do not infer an HTTP status from an ASP error code alone.
+The HTTP Capacity Error Binding vectors use a closed normalized fixture
+projection of the authenticated response path, status, parsed cache directive
+result, and parsed `Retry-After` form. That projection is test-harness input,
+not an ASP wire object. The transport-neutral Operational Limits vectors
+continue to validate the common capacity envelope without inferring an HTTP
+status from an ASP error code alone.
 
 The report binds the exact suite and specification sources, ordered applicable
 requirements and vectors, each vector digest, subject and counterpart artifacts,
@@ -10770,6 +10798,13 @@ Each participant MUST NOT read or mutate the other's authority store to satisfy
 an assertion. Cross-participant behavior uses only the typed mock exchange
 declared by the manifest, while the probe returns privacy-minimized observations
 derived from the owning participant's resulting state.
+
+For HTTP capacity tests, the Mock App derives the `429` or `503`, `no-store`,
+and optional `Retry-After` observations from the transport-neutral envelope.
+The Mock Runtime validates the normalized authenticated HTTP projection before
+it invokes the ordinary capacity recovery state machine. A failed binding
+preserves local admission and semantic retry state and produces a deterministic
+negative observation; it is not converted into an adapter execution error.
 
 All mock inputs, identifiers, payloads, keys, credentials, evidence, and state
 are deterministic synthetic test values. The bundle MUST NOT accept or retain

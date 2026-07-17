@@ -2,7 +2,7 @@
   "$schema": "./suite.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.2.0",
+  "suite_version": "1.3.0",
   "protocol_version": "agent-surface/0.1",
   "specification": {
     "path": "drafts/agent-surface.md",
@@ -41,7 +41,8 @@
         "ASP-AE-007",
         "ASP-AE-008",
         "ASP-AE-009",
-        "ASP-AE-010"
+        "ASP-AE-010",
+        "ASP-AE-011"
       ]
     },
     {
@@ -68,7 +69,8 @@
         "ASP-RM-006",
         "ASP-RM-007",
         "ASP-RM-008",
-        "ASP-RM-009"
+        "ASP-RM-009",
+        "ASP-RM-010"
       ]
     },
     {
@@ -155,7 +157,9 @@
         "ASP-SP-003",
         "ASP-AE-009",
         "ASP-AE-010",
-        "ASP-RM-009"
+        "ASP-RM-009",
+        "ASP-AE-011",
+        "ASP-RM-010"
       ]
     }
   ],
@@ -677,6 +681,43 @@
         "ASP-V-RM-017",
         "ASP-V-RM-018",
         "ASP-V-RM-019"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-011",
+      "title": "Bind operational-capacity errors to authenticated HTTP responses",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "http-capacity-error-binding",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AE-024",
+        "ASP-V-AE-025",
+        "ASP-V-AE-026"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-010",
+      "title": "Validate the authenticated HTTP capacity binding before recovery",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "http-capacity-error-binding",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-020",
+        "ASP-V-RM-021",
+        "ASP-V-RM-022",
+        "ASP-V-RM-023",
+        "ASP-V-RM-024",
+        "ASP-V-RM-025",
+        "ASP-V-RM-026",
+        "ASP-V-RM-027"
       ]
     }
   ]

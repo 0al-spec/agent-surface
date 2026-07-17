@@ -188,7 +188,15 @@
         "authoritative_capacity_recovery_confirmed",
         "capacity_decision_required",
         "capacity_response_rejected",
-        "outcome_reconciliation_required"
+        "outcome_reconciliation_required",
+        "http_capacity_response_bound",
+        "http_capacity_binding_validated",
+        "http_capacity_binding_rejected",
+        "http_status_mapped",
+        "http_no_store_applied",
+        "http_no_store_validated",
+        "http_retry_after_bound",
+        "http_retry_after_validated"
       ]
     },
     "stateName": {

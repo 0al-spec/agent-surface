@@ -106,7 +106,7 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 "state_deltas",
             }
         )
-        self.assertEqual(len(self.catalog.vectors), 68)
+        self.assertEqual(len(self.catalog.vectors), 79)
         for vector_id in self.catalog.vectors:
             with self.subTest(vector_id=vector_id):
                 self.assert_matches_catalog_oracle(vector_id)
@@ -345,6 +345,42 @@ class MockBehaviorSecurityTests(unittest.TestCase):
             ambiguous.state_after["runtime.runaway_guard_epoch"],
             ambiguous.state_before["runtime.runaway_guard_epoch"],
         )
+
+    def test_http_capacity_binding_maps_and_rejects_before_slot_release(self) -> None:
+        producers = {
+            "ASP-V-AE-024": "rate_limited",
+            "ASP-V-AE-025": "capacity_state_unavailable",
+            "ASP-V-AE-026": "service_unavailable",
+        }
+        for vector_id, error in producers.items():
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertEqual(result.asp_error, error)
+                self.assertIn("http_capacity_response_bound", result.tokens)
+                self.assertIn("http_status_mapped", result.tokens)
+                self.assertIn("http_no_store_applied", result.tokens)
+                self.assertEqual(result.state_after, result.state_before)
+
+        for vector_id in ("ASP-V-RM-020", "ASP-V-RM-024", "ASP-V-RM-026"):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertIn("http_capacity_binding_validated", result.tokens)
+                self.assertIn("http_status_mapped", result.tokens)
+                self.assertIn("http_no_store_validated", result.tokens)
+
+        for vector_id in (
+            "ASP-V-RM-021",
+            "ASP-V-RM-022",
+            "ASP-V-RM-023",
+            "ASP-V-RM-025",
+            "ASP-V-RM-027",
+        ):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertIn("http_capacity_binding_rejected", result.tokens)
+                self.assertIn("retry_suppressed", result.tokens)
+                self.assertNotIn("capacity_response_validated", result.tokens)
+                self.assertEqual(result.state_after, result.state_before)
 
     def test_non_rate_capacity_envelopes_with_limit_fail_closed(self) -> None:
         for vector_id in ("ASP-V-RM-014", "ASP-V-RM-017"):

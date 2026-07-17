@@ -26,7 +26,12 @@ first-delivery versus retransmission accounting, and runtime `rate_limited`
 retry policy. It also keeps `capacity_state_unavailable` retries deferred until
 authoritative limiter recovery, requires a new capacity decision for retryable
 `service_unavailable`, and routes ambiguous outcomes to reconciliation instead
-of treating them as definite overload rejections.
+of treating them as definite overload rejections. The HTTP capacity paths bind
+application responses to `429` or `503` plus `no-store`, validate
+`Retry-After` against the body hint where required, and reject inconsistent
+runtime inputs before local admission state is released. The fixture's
+normalized `transport` section is harness data, not a simulated HTTP wire
+format.
 
 The internal `asp-mock-participant/1` protocol is test control plumbing, not an
 ASP wire binding. `mock_app.py` and `mock_runtime.py` accept one closed envelope

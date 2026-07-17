@@ -17,6 +17,13 @@ strict-I-JSON cases for the Operational Limits declaration and capacity-error
 envelope. The adjacent JSON Schemas define those protocol objects and the
 catalog, fixtures, subject, observation, and report wire shapes.
 
+HTTP capacity vectors keep the common capacity envelope in
+`operational.capacity_response` and represent only the parsed transport facts
+in an optional closed `transport` fixture section. That normalized projection
+selects the authenticated HTTP path, status, parsed `no-store` result, and
+parsed `Retry-After` form. It is test input for adapters and probes, not a JSON
+encoding of an HTTP response or a new ASP wire object.
+
 Each run evaluates one exact profile for one named deployment boundary. A
 product that implements several profiles runs and reports each profile
 independently. A Receipt Producer run additionally names exactly one
@@ -150,6 +157,13 @@ forbidden effects, dispatch, budget reservations or charges, idempotency
 mutation, credential release, fabricated evidence, and blind retries did not
 occur. Denial receipts are expected only where the vector explicitly requires
 them.
+
+The HTTP Capacity Error Binding rows use new stable vector identifiers rather
+than adding assertions to the transport-neutral recovery vectors. Producer
+cases derive `429` or `503`, `no-store`, and optional `Retry-After` observations
+from the ASP envelope. Consumer cases reject a wrong status, missing
+`no-store`, mismatched `delay-seconds`, or the HTTP-date form on `429` before
+releasing local slots or entering the retry state machine.
 
 ## Verdict computation
 

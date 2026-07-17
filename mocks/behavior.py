@@ -21,6 +21,7 @@ AA = "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
 OPERATIONAL_LIMITS = (
     "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
 )
+SAFE_INTEGER = 2**53 - 1
 
 APP_PROFILES = frozenset({SP, GI, AE})
 RUNTIME_PROFILES = frozenset({RM, AA})
@@ -155,6 +156,123 @@ class _Transition:
         )
 
 
+def _capacity_response_parts(
+    document: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], Mapping[str, Any], str, bool]:
+    operational = _section(document, "operational")
+    response = operational.get("capacity_response")
+    if not isinstance(response, Mapping):
+        raise BehaviorError("capacity response must be an error envelope")
+    code = response.get("code")
+    if code not in {
+        "rate_limited",
+        "capacity_state_unavailable",
+        "service_unavailable",
+    }:
+        raise BehaviorError("capacity response has an unsupported error code")
+    retryable = response.get("retryable")
+    if not isinstance(retryable, bool):
+        raise BehaviorError("capacity response must be retryable or non_retryable")
+    if code in {"capacity_state_unavailable", "service_unavailable"} and "limit" in response:
+        raise BehaviorError(f"{code} capacity response must omit limit")
+    return operational, response, code, retryable
+
+
+def _retry_after_parts(value: Any) -> tuple[str, int | str] | None:
+    if value == "absent":
+        return None
+    if not isinstance(value, Mapping) or set(value) != {"form", "value"}:
+        raise BehaviorError("Retry-After projection is not the exact closed shape")
+    form = value.get("form")
+    projected = value.get("value")
+    if form == "delay_seconds":
+        if (
+            isinstance(projected, bool)
+            or not isinstance(projected, int)
+            or projected < 1
+            or projected > SAFE_INTEGER
+        ):
+            raise BehaviorError("Retry-After delay_seconds must be a positive safe integer")
+        return form, projected
+    if form == "http_date":
+        if not isinstance(projected, str) or not projected:
+            raise BehaviorError("Retry-After http_date must be a non-empty normalized value")
+        return form, projected
+    raise BehaviorError("Retry-After projection has an unsupported form")
+
+
+def _bind_http_capacity_response(
+    document: Mapping[str, Any], state: _Transition
+) -> BehaviorResult:
+    operational, response, code, retryable = _capacity_response_parts(document)
+    retry_after = _retry_after_parts(
+        operational.get("http_retry_after_hint", "absent")
+    )
+    if retry_after is not None and not retryable:
+        raise BehaviorError("non-retryable capacity response cannot carry Retry-After")
+    if code == "rate_limited" and retry_after is not None:
+        form, value = retry_after
+        limit = response.get("limit")
+        if (
+            form != "delay_seconds"
+            or not isinstance(limit, Mapping)
+            or limit.get("retry_after_seconds") != value
+        ):
+            raise BehaviorError(
+                "rate_limited Retry-After must be delay_seconds equal to the body hint"
+            )
+    tokens = [
+        "http_capacity_response_bound",
+        "http_status_mapped",
+        "http_no_store_applied",
+    ]
+    if retry_after is not None:
+        tokens.append("http_retry_after_bound")
+    return state.result("rejected", *tokens, asp_error=code)
+
+
+def _validate_http_capacity_binding(
+    document: Mapping[str, Any],
+) -> tuple[str, int | str] | None:
+    _, response, code, retryable = _capacity_response_parts(document)
+    transport = _section(document, "transport")
+    if set(transport) != {
+        "binding",
+        "authentication",
+        "status",
+        "cache_control_no_store",
+        "retry_after",
+    }:
+        raise BehaviorError("HTTP capacity projection is not the exact closed shape")
+    if (
+        transport.get("binding") != "http"
+        or transport.get("authentication") != "authenticated"
+    ):
+        raise BehaviorError("HTTP capacity response is outside the authenticated binding")
+    required_status = 429 if code == "rate_limited" else 503
+    if transport.get("status") != required_status:
+        raise BehaviorError("HTTP capacity status does not match the ASP error code")
+    if transport.get("cache_control_no_store") is not True:
+        raise BehaviorError("HTTP capacity response is missing Cache-Control no-store")
+    retry_after = _retry_after_parts(transport.get("retry_after"))
+    if retry_after is None:
+        return None
+    if not retryable:
+        raise BehaviorError("non-retryable capacity response cannot carry Retry-After")
+    form, value = retry_after
+    if code == "rate_limited":
+        limit = response.get("limit")
+        if (
+            form != "delay_seconds"
+            or not isinstance(limit, Mapping)
+            or limit.get("retry_after_seconds") != value
+        ):
+            raise BehaviorError(
+                "rate_limited Retry-After must be delay_seconds equal to the body hint"
+            )
+    return retry_after
+
+
 def _surface(operation: str, document: Mapping[str, Any], state: _Transition) -> BehaviorResult:
     if operation != "publish_manifest":
         raise BehaviorError(f"Surface Publisher does not support {operation!r}")
@@ -252,6 +370,8 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
     grant = _section(document, "grant")
     execution = _section(document, "execution")
     operational = document.get("operational")
+    if operation == "bind_http_capacity_response":
+        return _bind_http_capacity_response(document, state)
     if operation in {"deliver_event", "retransmit_event"}:
         operational = _section(document, "operational")
         if operation == "retransmit_event":
@@ -475,26 +595,36 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
     execution = _section(document, "execution")
     runtime = _section(document, "runtime")
     operational = document.get("operational")
+    if operation == "handle_http_capacity_response":
+        try:
+            retry_after = _validate_http_capacity_binding(document)
+        except BehaviorError:
+            return state.result(
+                "stopped",
+                "http_capacity_binding_rejected",
+                "capacity_response_rejected",
+                "operational_state_retained",
+                "retry_suppressed",
+            )
+        result = _runtime("handle_capacity_response", document, state)
+        binding_tokens = [
+            "http_capacity_binding_validated",
+            "http_status_mapped",
+            "http_no_store_validated",
+        ]
+        if retry_after is not None:
+            binding_tokens.append("http_retry_after_validated")
+        return BehaviorResult(
+            decision=result.decision,
+            tokens=tuple(binding_tokens) + result.tokens,
+            state_before=result.state_before,
+            state_after=result.state_after,
+            asp_error=result.asp_error,
+            policy_reason=result.policy_reason,
+            match_reason=result.match_reason,
+        )
     if operation == "handle_capacity_response":
-        operational = _section(document, "operational")
-        response = operational.get("capacity_response")
-        if not isinstance(response, Mapping):
-            raise BehaviorError("capacity response must be an error envelope")
-        code = response.get("code")
-        if code not in {
-            "rate_limited",
-            "capacity_state_unavailable",
-            "service_unavailable",
-        }:
-            raise BehaviorError("capacity response has an unsupported error code")
-        retryable = response.get("retryable")
-        if not isinstance(retryable, bool):
-            raise BehaviorError("capacity response must be retryable or non_retryable")
-        if (
-            code in {"capacity_state_unavailable", "service_unavailable"}
-            and "limit" in response
-        ):
-            raise BehaviorError(f"{code} capacity response must omit limit")
+        operational, response, code, retryable = _capacity_response_parts(document)
         if code == "service_unavailable" and execution.get("outcome_state") != "known":
             return state.result(
                 "stopped",
