@@ -68,7 +68,34 @@ HTTP_CAPACITY_IMPLEMENTATIONS = {
     Path("mocks/mock_app.py"),
     Path("mocks/mock_runtime.py"),
 }
+ASP_OVER_AHP_IMPLEMENTATIONS = {
+    Path("mocks/behavior.py"),
+    Path("mocks/mock_runtime.py"),
+}
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
+    27: {
+        "rfc_anchor": {
+            "asp-over-ahp-binding-profile",
+            "session-authority-and-lifecycle",
+            "interoperability-test-suite",
+            "reference-mock-participants",
+            "runtime-mediator-profile",
+            "agent-adapter-profile",
+        },
+        "schema": {
+            "conformance/v1/fixtures.schema.json",
+            "conformance/v1/observation.schema.json",
+            "conformance/v1/vectors.schema.json",
+        },
+        "registry": {
+            "conformance/v1/suite.json",
+            "conformance/v1/vectors.json",
+            "conformance/v1/fixtures.json",
+        },
+        "implementation": {
+            path.as_posix() for path in ASP_OVER_AHP_IMPLEMENTATIONS
+        },
+    },
     53: {
         "rfc_anchor": {
             "required-top-level-fields",
@@ -153,7 +180,7 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         },
     },
 }
-EXACT_MACHINE_VALIDATED_REVIEW_IDS = {53, 57, 58, 61, 62}
+EXACT_MACHINE_VALIDATED_REVIEW_IDS = {27, 53, 57, 58, 61, 62}
 MATURITY_ORDER = (
     "proposal",
     "specified",
@@ -547,6 +574,9 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         _validate_mock_bundle_evidence(review_id, "implementation", ref)
         return
     if review_id == 62 and relative_path in HTTP_CAPACITY_IMPLEMENTATIONS:
+        _validate_mock_bundle_evidence(review_id, "implementation", ref)
+        return
+    if review_id == 27 and relative_path in ASP_OVER_AHP_IMPLEMENTATIONS:
         _validate_mock_bundle_evidence(review_id, "implementation", ref)
         return
     raise ValueError(

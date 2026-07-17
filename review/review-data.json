@@ -1645,24 +1645,32 @@
       "side": "left",
       "anchors": [
         {
-          "heading": "Agent Client Protocol",
-          "anchorId": "agent-client-protocol"
+          "heading": "ASP-over-AHP Binding Profile",
+          "anchorId": "asp-over-ahp-binding-profile"
         },
         {
-          "heading": "3. Runtime Bridge Protocol",
-          "anchorId": "3-runtime-bridge-protocol"
+          "heading": "Session Authority and Lifecycle",
+          "anchorId": "session-authority-and-lifecycle"
         },
         {
-          "heading": "Sessions and Actions",
-          "anchorId": "sessions-and-actions"
+          "heading": "Interoperability Test Suite",
+          "anchorId": "interoperability-test-suite"
         },
         {
-          "heading": "Receipts",
-          "anchorId": "receipts"
+          "heading": "Reference Mock Participants",
+          "anchorId": "reference-mock-participants"
+        },
+        {
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
+        },
+        {
+          "heading": "Agent Adapter Profile",
+          "anchorId": "agent-adapter-profile"
         }
       ],
-      "status": "missing",
-      "rationale": "Разделение transport и ASP semantics уже намечено для ACP/runtime bridge, но AHP binding нигде не определён.",
+      "status": "present",
+      "rationale": "RFC определяет versioned ASP-over-AHP profile, negotiation, отдельные AHP/ASP namespaces, authority boundary, complete tuple binding, monotonic revision/replay rules и fail-closed state machine. Conformance suite 1.4.0 и reference mocks исполняют positive/negative Runtime Mediator и Agent Adapter paths без стандартизации базового AHP wire format.",
       "priority": "P2",
       "profile": "events-sessions",
       "depends_on": [
@@ -1671,8 +1679,65 @@
         30
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "machine_validated",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "asp-over-ahp-binding-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "session-authority-and-lifecycle"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "interoperability-test-suite"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-mock-participants"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-mediator-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-adapter-profile"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/fixtures.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/observation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/vectors.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/suite.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/vectors.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/fixtures.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/behavior.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_runtime.py"
+        }
+      ]
     },
     {
       "id": 28,
@@ -3885,7 +3950,7 @@
           "anchorId": "reference-mock-participants"
         }
       ],
-      "rationale": "Conformance Suite 1.3.0 проверяет defer до authoritative limiter recovery, retry без сброса durable windows/slots, suppression для non-retryable responses, новую capacity decision после definite service rejection и обязательную reconciliation вместо ложного service_unavailable при ambiguous outcome.",
+      "rationale": "Conformance Suite 1.4.0 проверяет defer до authoritative limiter recovery, retry без сброса durable windows/slots, suppression для non-retryable responses, новую capacity decision после definite service rejection и обязательную reconciliation вместо ложного service_unavailable при ambiguous outcome.",
       "priority": "P2",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -3975,7 +4040,7 @@
           "anchorId": "reference-mock-participants"
         }
       ],
-      "rationale": "Conformance Suite 1.3.0 проверяет authenticated HTTP projection для transport-neutral capacity responses: rate_limited связывается с 429, capacity_state_unavailable и service_unavailable — с 503, no-store обязателен, а Retry-After допускается только в согласованных случаях. Mock App формирует binding, Mock Runtime fail-closed отклоняет status/header mismatch до освобождения accounting state или retry.",
+      "rationale": "Conformance Suite 1.4.0 проверяет authenticated HTTP projection для transport-neutral capacity responses: rate_limited связывается с 429, capacity_state_unavailable и service_unavailable — с 503, no-store обязателен, а Retry-After допускается только в согласованных случаях. Mock App формирует binding, Mock Runtime fail-closed отклоняет status/header mismatch до освобождения accounting state или retry.",
       "priority": "P2",
       "profile": "conformance-tooling",
       "depends_on": [

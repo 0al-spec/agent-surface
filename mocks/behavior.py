@@ -23,6 +23,9 @@ AA = "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
 OPERATIONAL_LIMITS = (
     "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
 )
+ASP_OVER_AHP = (
+    "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+)
 SAFE_INTEGER = 2**53 - 1
 HTTP_MONTHS = {
     name: number
@@ -80,10 +83,11 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
     RM: (
         "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
         "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
+        ASP_OVER_AHP,
         OPERATIONAL_LIMITS,
         "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
     ),
-    AA: (),
+    AA: (ASP_OVER_AHP,),
 }
 
 
@@ -332,6 +336,84 @@ def _validate_http_capacity_binding(
                 "rate_limited Retry-After must be delay_seconds equal to the body hint"
             )
     return retry_after
+
+
+def _validate_ahp_binding(
+    document: Mapping[str, Any], *, control_kind: str, message_type: str
+) -> Mapping[str, Any]:
+    ahp = _section(document, "ahp")
+    if set(ahp) != {
+        "profile",
+        "negotiated_profile",
+        "authentication",
+        "ahp_session_id",
+        "representation_id",
+        "representation_revision",
+        "recorded_representation_revision",
+        "binding_fingerprint",
+        "recorded_binding_fingerprint",
+        "control_id",
+        "control_kind",
+        "asp_message_type",
+        "asp_session_id",
+        "bound_asp_session_id",
+        "asp_session_generation",
+        "bound_asp_session_generation",
+        "asp_grant_id",
+        "bound_asp_grant_id",
+        "asp_grant_hash",
+        "bound_asp_grant_hash",
+        "asp_surface_hash",
+        "bound_asp_surface_hash",
+        "asp_action_id",
+        "bound_asp_action_id",
+        "receipt_use",
+    }:
+        raise BehaviorError("ASP-over-AHP projection is not the exact closed shape")
+    if (
+        ahp.get("profile") != ASP_OVER_AHP
+        or ahp.get("negotiated_profile") != ASP_OVER_AHP
+    ):
+        raise BehaviorError("ASP-over-AHP profile was not explicitly negotiated")
+    if ahp.get("authentication") != "authenticated":
+        raise BehaviorError("AHP carrier is not authenticated")
+    for current, bound in (
+        ("asp_session_id", "bound_asp_session_id"),
+        ("asp_session_generation", "bound_asp_session_generation"),
+        ("asp_grant_id", "bound_asp_grant_id"),
+        ("asp_grant_hash", "bound_asp_grant_hash"),
+        ("asp_surface_hash", "bound_asp_surface_hash"),
+        ("asp_action_id", "bound_asp_action_id"),
+    ):
+        if ahp.get(current) != ahp.get(bound):
+            raise BehaviorError("AHP carrier changed the bound ASP authority tuple")
+    revision = ahp.get("representation_revision")
+    recorded_revision = ahp.get("recorded_representation_revision")
+    if (
+        isinstance(revision, bool)
+        or not isinstance(revision, int)
+        or isinstance(recorded_revision, bool)
+        or not isinstance(recorded_revision, int)
+        or revision < recorded_revision
+        or (
+            revision == recorded_revision
+            and ahp.get("binding_fingerprint")
+            != ahp.get("recorded_binding_fingerprint")
+        )
+    ):
+        raise BehaviorError("AHP representation revision is stale or conflicting")
+    if (
+        ahp.get("control_kind") != control_kind
+        or ahp.get("asp_message_type") != message_type
+    ):
+        raise BehaviorError("AHP control does not match its bound ASP message")
+    if control_kind == "present" and ahp.get("asp_action_id") != "none":
+        raise BehaviorError("AHP presentation unexpectedly carries action authority")
+    if control_kind == "invoke" and ahp.get("asp_action_id") == "none":
+        raise BehaviorError("AHP invocation lacks an exact ASP action")
+    if ahp.get("receipt_use") != "informational":
+        raise BehaviorError("AHP receipt projection claims ASP authority")
+    return ahp
 
 
 def _surface(operation: str, document: Mapping[str, Any], state: _Transition) -> BehaviorResult:
@@ -656,6 +738,34 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
     execution = _section(document, "execution")
     runtime = _section(document, "runtime")
     operational = document.get("operational")
+    if operation == "present_ahp_session":
+        try:
+            ahp = _validate_ahp_binding(
+                document,
+                control_kind="present",
+                message_type="session.state",
+            )
+        except BehaviorError:
+            return state.result(
+                "rejected",
+                "ahp_binding_rejected",
+                "ahp_ui_update_suppressed",
+                "asp_authority_retained",
+                "action_dispatch_suppressed",
+                policy_reason="binding_invalid",
+            )
+        state.set(
+            "runtime.ahp_representation_revision",
+            ahp["representation_revision"],
+        )
+        state.increment("runtime.ahp_presentation_count")
+        return state.result(
+            "accepted",
+            "ahp_binding_validated",
+            "asp_tuple_validated",
+            "ahp_ui_state_presented",
+            "asp_authority_unchanged",
+        )
     if operation == "handle_http_capacity_response":
         try:
             retry_after = _validate_http_capacity_binding(document)
@@ -864,6 +974,31 @@ def _adapter(operation: str, document: Mapping[str, Any], state: _Transition) ->
     execution = _section(document, "execution")
     adapter = _section(document, "adapter")
     receipt = _section(document, "receipt")
+    if operation == "translate_ahp_action":
+        try:
+            _validate_ahp_binding(
+                document,
+                control_kind="invoke",
+                message_type="action.request",
+            )
+        except BehaviorError:
+            return state.result(
+                "rejected",
+                "ahp_binding_rejected",
+                "adapter_request_rejected",
+                "asp_authority_retained",
+                "credential_withheld",
+                policy_reason="binding_invalid",
+            )
+        state.increment("adapter.forwarded_count")
+        return state.result(
+            "accepted",
+            "ahp_binding_validated",
+            "asp_tuple_validated",
+            "ahp_control_translated",
+            "typed_request_forwarded",
+            "asp_authority_unchanged",
+        )
     if operation == "retry_outcome":
         if (
             execution.get("outcome_state") == "unknown"

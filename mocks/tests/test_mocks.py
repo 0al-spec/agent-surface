@@ -106,7 +106,7 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 "state_deltas",
             }
         )
-        self.assertEqual(len(self.catalog.vectors), 79)
+        self.assertEqual(len(self.catalog.vectors), 87)
         for vector_id in self.catalog.vectors:
             with self.subTest(vector_id=vector_id):
                 self.assert_matches_catalog_oracle(vector_id)
@@ -403,6 +403,42 @@ class MockBehaviorSecurityTests(unittest.TestCase):
         self.assertIn("http_capacity_binding_rejected", malformed_date.tokens)
         self.assertIn("retry_suppressed", malformed_date.tokens)
         self.assertEqual(malformed_date.state_after, malformed_date.state_before)
+
+    def test_asp_over_ahp_binding_preserves_asp_authority(self) -> None:
+        positive_runtime = self.assert_matches_catalog_oracle("ASP-V-RM-028")
+        self.assertIn("ahp_ui_state_presented", positive_runtime.tokens)
+        self.assertEqual(
+            positive_runtime.state_after["action.dispatch_count"],
+            positive_runtime.state_before["action.dispatch_count"],
+        )
+        self.assertEqual(
+            positive_runtime.state_after["credential.agent_visible_count"], 0
+        )
+        self.assertEqual(positive_runtime.state_after["receipt.runtime_count"], 0)
+
+        positive_adapter = self.assert_matches_catalog_oracle("ASP-V-AA-006")
+        self.assertIn("ahp_control_translated", positive_adapter.tokens)
+        self.assertEqual(
+            positive_adapter.state_after["adapter.forwarded_count"],
+            positive_adapter.state_before["adapter.forwarded_count"] + 1,
+        )
+        self.assertEqual(
+            positive_adapter.state_after["credential.adapter_retained_count"], 0
+        )
+
+        for vector_id in (
+            "ASP-V-RM-029",
+            "ASP-V-RM-030",
+            "ASP-V-RM-031",
+            "ASP-V-RM-032",
+            "ASP-V-AA-007",
+            "ASP-V-AA-008",
+        ):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertIn("ahp_binding_rejected", result.tokens)
+                self.assertEqual(result.policy_reason, "binding_invalid")
+                self.assertEqual(result.state_after, result.state_before)
 
     def test_non_rate_capacity_envelopes_with_limit_fail_closed(self) -> None:
         for vector_id in ("ASP-V-RM-014", "ASP-V-RM-017"):

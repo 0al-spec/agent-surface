@@ -2,7 +2,7 @@
   "$schema": "./fixtures.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.3.0",
+  "suite_version": "1.4.0",
   "fixture_catalog_id": "agent-surface/conformance/fixtures/v1",
   "fixtures": [
     {
@@ -854,6 +854,206 @@
           "retry_after": "absent"
         }
       }
+    },
+    {
+      "fixture_id": "ASP-F-RM-028",
+      "baseline_vector_id": "ASP-V-RM-028",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "runtime",
+          "claimed_observation": "runtime_observation",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "ahp": {
+          "profile": "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
+          "negotiated_profile": "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
+          "authentication": "authenticated",
+          "ahp_session_id": "ahp_session_a",
+          "representation_id": "representation_a",
+          "representation_revision": 7,
+          "recorded_representation_revision": 6,
+          "binding_fingerprint": "binding_fingerprint_b",
+          "recorded_binding_fingerprint": "binding_fingerprint_a",
+          "control_id": "control_a",
+          "control_kind": "present",
+          "asp_message_type": "session.state",
+          "asp_session_id": "session_a",
+          "bound_asp_session_id": "session_a",
+          "asp_session_generation": 1,
+          "bound_asp_session_generation": 1,
+          "asp_grant_id": "grant_a",
+          "bound_asp_grant_id": "grant_a",
+          "asp_grant_hash": "grant_hash_a",
+          "bound_asp_grant_hash": "grant_hash_a",
+          "asp_surface_hash": "surface_hash_a",
+          "bound_asp_surface_hash": "surface_hash_a",
+          "asp_action_id": "none",
+          "bound_asp_action_id": "none",
+          "receipt_use": "informational"
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AA-006",
+      "baseline_vector_id": "ASP-V-AA-006",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "runtime",
+          "claimed_observation": "runtime_observation",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "ahp": {
+          "profile": "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
+          "negotiated_profile": "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
+          "authentication": "authenticated",
+          "ahp_session_id": "ahp_session_a",
+          "representation_id": "representation_a",
+          "representation_revision": 12,
+          "recorded_representation_revision": 11,
+          "binding_fingerprint": "binding_fingerprint_b",
+          "recorded_binding_fingerprint": "binding_fingerprint_a",
+          "control_id": "control_a",
+          "control_kind": "invoke",
+          "asp_message_type": "action.request",
+          "asp_session_id": "session_a",
+          "bound_asp_session_id": "session_a",
+          "asp_session_generation": 1,
+          "bound_asp_session_generation": 1,
+          "asp_grant_id": "grant_a",
+          "bound_asp_grant_id": "grant_a",
+          "asp_grant_hash": "grant_hash_a",
+          "bound_asp_grant_hash": "grant_hash_a",
+          "asp_surface_hash": "surface_hash_a",
+          "bound_asp_surface_hash": "surface_hash_a",
+          "asp_action_id": "action.read",
+          "bound_asp_action_id": "action.read",
+          "receipt_use": "informational"
+        }
+      }
     }
   ],
   "mutations": [
@@ -1249,6 +1449,72 @@
             "form": "http_date",
             "value": "Wed, 21 Oct 2015 07:28:00 GMT"
           }
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-AHP-SESSION-GENERATION-MISMATCH",
+      "input_variant": "ahp_session_generation_mismatch",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/ahp/asp_session_generation",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-AHP-CONFLICTING-REVISION-REPLAY",
+      "input_variant": "ahp_conflicting_revision_replay",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/ahp/representation_revision",
+          "value": 6
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-AHP-PROFILE-DOWNGRADE",
+      "input_variant": "ahp_profile_downgrade",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/ahp/negotiated_profile",
+          "value": "unbound"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-UNAUTHENTICATED-AHP-CARRIER",
+      "input_variant": "unauthenticated_ahp_carrier",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/ahp/authentication",
+          "value": "unauthenticated"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-AHP-ACTION-SUBSTITUTION",
+      "input_variant": "ahp_action_substitution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/ahp/asp_action_id",
+          "value": "action.write"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-AHP-RECEIPT-CLAIMS-AUTHORITY",
+      "input_variant": "ahp_receipt_claims_authority",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/ahp/receipt_use",
+          "value": "authority"
         }
       ]
     }

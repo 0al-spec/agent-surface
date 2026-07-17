@@ -132,6 +132,9 @@ CAPACITY_ERROR_SCHEMA_ID = SCHEMA_IDS["capacity-error"]
 OPERATIONAL_LIMITS_FEATURE_ID = (
     "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
 )
+ASP_OVER_AHP_FEATURE_ID = (
+    "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+)
 CORE_CONTROL_EVENT_IDS = frozenset(
     {"budget.warning", "budget.exceeded", "session.paused_budget", "grant.revoked"}
 )
@@ -610,6 +613,89 @@ def validate_http_capacity_projection(
             )
 
 
+def validate_ahp_binding_projection(ahp: Any) -> None:
+    """Validate one normalized ASP-over-AHP binding projection."""
+
+    exact_fields = {
+        "profile",
+        "negotiated_profile",
+        "authentication",
+        "ahp_session_id",
+        "representation_id",
+        "representation_revision",
+        "recorded_representation_revision",
+        "binding_fingerprint",
+        "recorded_binding_fingerprint",
+        "control_id",
+        "control_kind",
+        "asp_message_type",
+        "asp_session_id",
+        "bound_asp_session_id",
+        "asp_session_generation",
+        "bound_asp_session_generation",
+        "asp_grant_id",
+        "bound_asp_grant_id",
+        "asp_grant_hash",
+        "bound_asp_grant_hash",
+        "asp_surface_hash",
+        "bound_asp_surface_hash",
+        "asp_action_id",
+        "bound_asp_action_id",
+        "receipt_use",
+    }
+    if not isinstance(ahp, dict) or set(ahp) != exact_fields:
+        raise ConformanceError(
+            "ASP-over-AHP projection must contain the exact normalized fields"
+        )
+    if (
+        ahp["profile"] != ASP_OVER_AHP_FEATURE_ID
+        or ahp["negotiated_profile"] != ASP_OVER_AHP_FEATURE_ID
+    ):
+        raise ConformanceError(
+            "ASP-over-AHP projection must retain the explicitly negotiated profile"
+        )
+    if ahp["authentication"] != "authenticated":
+        raise ConformanceError(
+            "ASP-over-AHP projection must use an authenticated AHP carrier"
+        )
+    tuple_pairs = (
+        ("asp_session_id", "bound_asp_session_id"),
+        ("asp_session_generation", "bound_asp_session_generation"),
+        ("asp_grant_id", "bound_asp_grant_id"),
+        ("asp_grant_hash", "bound_asp_grant_hash"),
+        ("asp_surface_hash", "bound_asp_surface_hash"),
+        ("asp_action_id", "bound_asp_action_id"),
+    )
+    if any(ahp[current] != ahp[bound] for current, bound in tuple_pairs):
+        raise ConformanceError(
+            "ASP-over-AHP projection does not match its bound ASP authority tuple"
+        )
+    revision = ahp["representation_revision"]
+    recorded_revision = ahp["recorded_representation_revision"]
+    if revision < recorded_revision or (
+        revision == recorded_revision
+        and ahp["binding_fingerprint"] != ahp["recorded_binding_fingerprint"]
+    ):
+        raise ConformanceError(
+            "ASP-over-AHP projection is stale or conflicts with a recorded revision"
+        )
+    if ahp["control_kind"] == "present":
+        if ahp["asp_message_type"] != "session.state" or ahp["asp_action_id"] != "none":
+            raise ConformanceError(
+                "AHP presentation control must bind session.state without an action"
+            )
+    elif (
+        ahp["control_kind"] != "invoke"
+        or ahp["asp_message_type"] != "action.request"
+        or ahp["asp_action_id"] == "none"
+    ):
+        raise ConformanceError(
+            "AHP invocation control must bind one exact ASP action.request"
+        )
+    if ahp["receipt_use"] != "informational":
+        raise ConformanceError("AHP receipt projection cannot carry ASP authority")
+
+
 def _validate_schema_cases(
     root: Path,
     catalog: dict[str, Any],
@@ -980,6 +1066,34 @@ def _semantic_validate_catalog(
         elif has_operational_feature and "http_retry_after_hint" in operational_state:
             raise ConformanceError(
                 f"non-producer vector {vector_id} carries an HTTP retry hint"
+            )
+        selects_ahp = "asp_over_ahp_selected" in vector["setup"]
+        is_ahp_operation = operation in {
+            "present_ahp_session",
+            "translate_ahp_action",
+        }
+        if selects_ahp != is_ahp_operation:
+            raise ConformanceError(
+                f"vector {vector_id} ASP-over-AHP setup and operation differ"
+            )
+        has_ahp_feature = ASP_OVER_AHP_FEATURE_ID in vector["features"]
+        if has_ahp_feature != is_ahp_operation:
+            raise ConformanceError(
+                f"vector {vector_id} ASP-over-AHP feature and operation differ"
+            )
+        has_ahp_projection = "ahp" in fixture["document"]
+        if is_ahp_operation:
+            if (
+                not has_ahp_projection
+                or "authenticated_ahp_channel" not in vector["setup"]
+            ):
+                raise ConformanceError(
+                    f"ASP-over-AHP vector {vector_id} lacks its authenticated projection"
+                )
+            validate_ahp_binding_projection(fixture["document"]["ahp"])
+        elif has_ahp_projection:
+            raise ConformanceError(
+                f"non-AHP vector {vector_id} carries an ASP-over-AHP projection"
             )
         if vector["polarity"] == "negative":
             baseline_id = vector["baseline_vector_id"]
@@ -1600,7 +1714,7 @@ def run_suite(
     started_at = _utc_now()
     runner = {
         "runner_id": "asp-reference-conformance-runner",
-        "runner_version": "1.3.0",
+        "runner_version": "1.4.0",
         "runner_artifact_sha256": file_digest(
             "ASP-CONFORMANCE-RUNNER-V1", root / "conformance" / "check.py"
         ),

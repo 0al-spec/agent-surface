@@ -24,6 +24,14 @@ selects the authenticated HTTP path, status, parsed `no-store` result, and
 parsed `Retry-After` form. It is test input for adapters and probes, not a JSON
 encoding of an HTTP response or a new ASP wire object.
 
+ASP-over-AHP vectors similarly use an optional closed `ahp` fixture section as
+a normalized harness projection, not as an AHP wire format. It binds the
+negotiated profile and authenticated carrier, monotonic AHP representation
+revision, presentation control, and the complete ASP session/grant/surface/action
+tuple. The vectors reject tuple substitution, conflicting revision replay,
+profile downgrade, unauthenticated carriage, action substitution, and any
+attempt to treat AHP receipt presentation as ASP authority.
+
 Each run evaluates one exact profile for one named deployment boundary. A
 product that implements several profiles runs and reports each profile
 independently. A Receipt Producer run additionally names exactly one
@@ -164,6 +172,12 @@ cases derive `429` or `503`, `no-store`, and optional `Retry-After` observations
 from the ASP envelope. Consumer cases reject a wrong status, missing
 `no-store`, mismatched `delay-seconds`, or the HTTP-date form on `429` before
 releasing local slots or entering the retry state machine.
+
+The ASP-over-AHP rows keep AHP presentation state separate from ASP authority.
+Runtime Mediator cases validate and present UI state without dispatching an
+action. Agent Adapter cases translate exactly one bound AHP control into the
+already-authorized ASP action. Every invalid binding is fenced before UI update
+or request forwarding and leaves the ASP state unchanged.
 
 ## Verdict computation
 
