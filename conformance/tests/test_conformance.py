@@ -134,6 +134,23 @@ class ConformanceSuiteTests(unittest.TestCase):
         self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 36)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
 
+    def test_feature_vocabularies_match_the_catalog(self) -> None:
+        expected = set(self.catalog.features)
+        for schema_name in ("report", "subject", "suite", "vectors"):
+            with self.subTest(schema_name=schema_name):
+                schema = json.loads(
+                    (
+                        ROOT
+                        / "conformance"
+                        / "v1"
+                        / f"{schema_name}.schema.json"
+                    ).read_text(encoding="utf-8")
+                )
+                self.assertEqual(
+                    set(schema["$defs"]["featureId"]["enum"]),
+                    expected,
+                )
+
     def test_schema_case_polarities_are_executable_and_fail_closed(self) -> None:
         cases = self.catalog.schema_case_catalog["cases"]
         for schema_id in {
