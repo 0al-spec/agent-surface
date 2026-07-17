@@ -8,7 +8,9 @@ authoritative state.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Mapping, Sequence
 
 
@@ -22,6 +24,42 @@ OPERATIONAL_LIMITS = (
     "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
 )
 SAFE_INTEGER = 2**53 - 1
+HTTP_MONTHS = {
+    name: number
+    for number, name in enumerate(
+        ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+        start=1,
+    )
+}
+HTTP_DATE_PATTERNS = (
+    (
+        re.compile(
+            r"^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), "
+            r"(?P<day>[0-9]{2}) (?P<month>Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) "
+            r"(?P<year>[0-9]{4}) (?P<hour>[0-9]{2}):(?P<minute>[0-9]{2}):"
+            r"(?P<second>[0-9]{2}) GMT$"
+        ),
+        False,
+    ),
+    (
+        re.compile(
+            r"^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), "
+            r"(?P<day>[0-9]{2})-(?P<month>Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-"
+            r"(?P<year>[0-9]{2}) (?P<hour>[0-9]{2}):(?P<minute>[0-9]{2}):"
+            r"(?P<second>[0-9]{2}) GMT$"
+        ),
+        True,
+    ),
+    (
+        re.compile(
+            r"^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) "
+            r"(?P<month>Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) "
+            r"(?P<day> [1-9]|[0-9]{2}) (?P<hour>[0-9]{2}):(?P<minute>[0-9]{2}):"
+            r"(?P<second>[0-9]{2}) (?P<year>[0-9]{4})$"
+        ),
+        False,
+    ),
+)
 
 APP_PROFILES = frozenset({SP, GI, AE})
 RUNTIME_PROFILES = frozenset({RM, AA})
@@ -195,10 +233,33 @@ def _retry_after_parts(value: Any) -> tuple[str, int | str] | None:
             raise BehaviorError("Retry-After delay_seconds must be a positive safe integer")
         return form, projected
     if form == "http_date":
-        if not isinstance(projected, str) or not projected:
-            raise BehaviorError("Retry-After http_date must be a non-empty normalized value")
+        if not isinstance(projected, str) or not _is_rfc9110_http_date(projected):
+            raise BehaviorError("Retry-After http_date is not RFC 9110 HTTP-date syntax")
         return form, projected
     raise BehaviorError("Retry-After projection has an unsupported form")
+
+
+def _is_rfc9110_http_date(value: str) -> bool:
+    for pattern, uses_two_digit_year in HTTP_DATE_PATTERNS:
+        match = pattern.fullmatch(value)
+        if match is None:
+            continue
+        year = int(match["year"])
+        if uses_two_digit_year:
+            year += 2000 if year <= 68 else 1900
+        try:
+            datetime(
+                year,
+                HTTP_MONTHS[match["month"]],
+                int(match["day"]),
+                int(match["hour"]),
+                int(match["minute"]),
+                int(match["second"]),
+            )
+        except ValueError:
+            return False
+        return True
+    return False
 
 
 def _bind_http_capacity_response(

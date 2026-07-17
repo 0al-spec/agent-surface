@@ -382,6 +382,28 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 self.assertNotIn("capacity_response_validated", result.tokens)
                 self.assertEqual(result.state_after, result.state_before)
 
+        vector = self.catalog.vectors["ASP-V-RM-024"]
+        fixture = _resolved_fixture(self.catalog, vector)
+        document = copy.deepcopy(fixture["document"])
+        document["transport"]["retry_after"] = {
+            "form": "http_date",
+            "value": "soon",
+        }
+        initial_state = [
+            {"state": delta["state"], "value": delta["before"]}
+            for delta in vector["state_deltas"]
+        ]
+        malformed_date = evaluate(
+            profile_id=vector["profile_id"],
+            producer_role=vector.get("producer_role"),
+            operation=vector["stimulus"]["operation"],
+            document=document,
+            initial_state=initial_state,
+        )
+        self.assertIn("http_capacity_binding_rejected", malformed_date.tokens)
+        self.assertIn("retry_suppressed", malformed_date.tokens)
+        self.assertEqual(malformed_date.state_after, malformed_date.state_before)
+
     def test_non_rate_capacity_envelopes_with_limit_fail_closed(self) -> None:
         for vector_id in ("ASP-V-RM-014", "ASP-V-RM-017"):
             with self.subTest(vector_id=vector_id):

@@ -199,6 +199,24 @@ class ConformanceSuiteTests(unittest.TestCase):
         ):
             validate_catalog(root)
 
+        root = self.catalog_copy()
+        path = root / "conformance" / "v1" / "fixtures.json"
+        fixtures = json.loads(path.read_text(encoding="utf-8"))
+        baseline = next(
+            item
+            for item in fixtures["fixtures"]
+            if item["fixture_id"] == "ASP-F-RM-024"
+        )
+        baseline["document"]["transport"]["retry_after"] = {
+            "form": "http_date",
+            "value": "soon",
+        }
+        path.write_text(json.dumps(fixtures), encoding="utf-8")
+        with self.assertRaisesRegex(
+            ConformanceError, "http_date is not RFC 9110 HTTP-date syntax"
+        ):
+            validate_catalog(root)
+
     def test_every_role_has_positive_and_negative_vectors(self) -> None:
         for profile_id in PROFILE_ROLES:
             polarities = {

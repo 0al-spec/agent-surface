@@ -752,8 +752,8 @@
           "status": 503,
           "cache_control_no_store": true,
           "retry_after": {
-            "form": "delay_seconds",
-            "value": 30
+            "form": "http_date",
+            "value": "Fri, 17 Jul 2026 12:00:00 GMT"
           }
         }
       }
