@@ -82,8 +82,8 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
     RP: (),
     RM: (
         "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
-        "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
         ASP_OVER_AHP,
+        "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
         OPERATIONAL_LIMITS,
         "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
     ),

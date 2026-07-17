@@ -719,6 +719,11 @@ class MockParticipantSecurityTests(unittest.TestCase):
         with self.assertRaisesRegex(ParticipantError, "outside"):
             inventory("app", self.inventory_request(RM))
 
+    def test_feature_inventory_is_lexicographically_canonical(self) -> None:
+        for profile_id, feature_ids in FEATURE_INVENTORY.items():
+            with self.subTest(profile_id=profile_id):
+                self.assertEqual(list(feature_ids), sorted(feature_ids))
+
     def test_canonical_bundle_binds_the_security_test_artifact(self) -> None:
         manifest = json.loads(
             (MOCK_ROOT / "v1" / "manifest.json").read_text(encoding="utf-8")
