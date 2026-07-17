@@ -2,7 +2,7 @@
   "$schema": "./vectors.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.1.0",
+  "suite_version": "1.2.0",
   "vectors": [
     {
       "vector_id": "ASP-V-SP-001",
@@ -3528,6 +3528,284 @@
         }
       ],
       "baseline_vector_id": "ASP-V-RM-011"
+    },
+    {
+      "vector_id": "ASP-V-RM-014",
+      "title": "Defer capacity-state retry until authoritative limiter recovery",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_capacity_response",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "capacity_response_validated",
+        "authoritative_capacity_recovery_required",
+        "operational_state_retained",
+        "retry_deferred"
+      ],
+      "forbidden_observations": [
+        "retry_scheduled",
+        "per_attempt_authentication_applied",
+        "capacity_decision_required"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 0 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 0 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 0 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": false },
+        { "state": "runtime.capacity_recovery_pending", "before": false, "after": true },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 },
+        { "state": "operational.action.window_count", "before": 4, "after": 4 },
+        { "state": "operational.action.in_flight_count", "before": 2, "after": 2 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-015",
+      "title": "Retry only after authoritative limiter recovery without resetting durable state",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "authoritative_limiter_state_recovered"
+      ],
+      "stimulus": {
+        "operation": "handle_capacity_response",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "capacity_response_validated",
+        "authoritative_capacity_recovery_confirmed",
+        "operational_state_retained",
+        "local_backoff_selected",
+        "semantic_identity_reused",
+        "per_attempt_authentication_applied",
+        "retry_scheduled"
+      ],
+      "forbidden_observations": [
+        "retry_deferred",
+        "capacity_decision_required"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 0 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 0 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 1 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": true },
+        { "state": "runtime.capacity_recovery_pending", "before": true, "after": false },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 },
+        { "state": "operational.action.window_count", "before": 4, "after": 4 },
+        { "state": "operational.action.in_flight_count", "before": 2, "after": 2 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-016",
+      "title": "Suppress retry when limiter-state recovery is not expected",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-014",
+      "requirement_ids": [
+        "ASP-RM-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected"
+      ],
+      "stimulus": {
+        "operation": "handle_capacity_response",
+        "input_variant": "non_retryable_capacity_state_unavailable"
+      },
+      "required_observations": [
+        "capacity_response_validated",
+        "operational_state_retained",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "retry_scheduled",
+        "retry_deferred",
+        "authoritative_capacity_recovery_required"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 0 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 0 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 0 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": false },
+        { "state": "runtime.capacity_recovery_pending", "before": false, "after": false },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 },
+        { "state": "operational.action.window_count", "before": 4, "after": 4 },
+        { "state": "operational.action.in_flight_count", "before": 2, "after": 2 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-017",
+      "title": "Schedule a new capacity decision after retryable definite service unavailability",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "definite_pre_admission_rejection",
+        "shared_service_capacity_unavailable"
+      ],
+      "stimulus": {
+        "operation": "handle_capacity_response",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "capacity_response_validated",
+        "capacity_decision_required",
+        "local_backoff_selected",
+        "semantic_identity_reused",
+        "per_attempt_authentication_applied",
+        "retry_scheduled"
+      ],
+      "forbidden_observations": [
+        "retry_suppressed",
+        "authoritative_capacity_recovery_required"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 0 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 0 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 1 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": true },
+        { "state": "runtime.capacity_decision_pending", "before": false, "after": true },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-018",
+      "title": "Suppress retry for non-retryable shared service unavailability",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-017",
+      "requirement_ids": [
+        "ASP-RM-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "definite_pre_admission_rejection",
+        "shared_service_capacity_unavailable"
+      ],
+      "stimulus": {
+        "operation": "handle_capacity_response",
+        "input_variant": "non_retryable_service_unavailable"
+      },
+      "required_observations": [
+        "capacity_response_validated",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "retry_scheduled",
+        "capacity_decision_required"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 0 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 0 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 0 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": false },
+        { "state": "runtime.capacity_decision_pending", "before": false, "after": false },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-019",
+      "title": "Reconcile an ambiguous outcome instead of disguising it as service unavailability",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-017",
+      "requirement_ids": [
+        "ASP-RM-009"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "capacity_response_received",
+        "operational_limits_selected",
+        "shared_service_capacity_unavailable"
+      ],
+      "stimulus": {
+        "operation": "handle_capacity_response",
+        "input_variant": "ambiguous_service_outcome"
+      },
+      "required_observations": [
+        "capacity_response_rejected",
+        "outcome_reconciliation_required",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "capacity_response_validated",
+        "retry_scheduled",
+        "capacity_decision_required"
+      ],
+      "state_deltas": [
+        { "state": "runtime.local_window_count", "before": 1, "after": 1 },
+        { "state": "runtime.local_in_flight_count", "before": 1, "after": 1 },
+        { "state": "runtime.semantic_idempotency_binding_count", "before": 1, "after": 1 },
+        { "state": "runtime.retry_count", "before": 0, "after": 0 },
+        { "state": "runtime.retry_delay_floor_seconds", "before": 0, "after": 0 },
+        { "state": "runtime.retry_wait_pending", "before": false, "after": false },
+        { "state": "runtime.capacity_decision_pending", "before": false, "after": false },
+        { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 }
+      ],
+      "expected_error": "outcome_unknown"
     }
   ]
 }

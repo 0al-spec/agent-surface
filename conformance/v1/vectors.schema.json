@@ -22,7 +22,7 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.1.0"
+      "const": "1.2.0"
     },
     "vectors": {
       "type": "array",
@@ -102,7 +102,10 @@
         "authoritative_limiter_state",
         "existing_operational_admission",
         "active_event_subscription",
-        "capacity_response_received"
+        "capacity_response_received",
+        "authoritative_limiter_state_recovered",
+        "definite_pre_admission_rejection",
+        "shared_service_capacity_unavailable"
       ]
     },
     "operation": {
@@ -169,7 +172,10 @@
         "operational_state_unavailable",
         "operational_conflicting_reuse_at_capacity",
         "event_first_delivery_exhausted",
-        "non_retryable_rate_limit"
+        "non_retryable_rate_limit",
+        "non_retryable_capacity_state_unavailable",
+        "non_retryable_service_unavailable",
+        "ambiguous_service_outcome"
       ]
     },
     "aspError": {
@@ -268,7 +274,13 @@
         "semantic_identity_reused",
         "per_attempt_authentication_applied",
         "retry_scheduled",
-        "retry_suppressed"
+        "retry_suppressed",
+        "retry_deferred",
+        "authoritative_capacity_recovery_required",
+        "authoritative_capacity_recovery_confirmed",
+        "capacity_decision_required",
+        "capacity_response_rejected",
+        "outcome_reconciliation_required"
       ]
     },
     "stateName": {
@@ -324,7 +336,9 @@
         "runtime.semantic_idempotency_binding_count",
         "runtime.runaway_guard_epoch",
         "runtime.retry_delay_floor_seconds",
-        "runtime.retry_wait_pending"
+        "runtime.retry_wait_pending",
+        "runtime.capacity_recovery_pending",
+        "runtime.capacity_decision_pending"
       ]
     },
     "stateValue": {

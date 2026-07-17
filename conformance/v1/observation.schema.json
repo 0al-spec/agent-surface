@@ -182,7 +182,13 @@
         "semantic_identity_reused",
         "per_attempt_authentication_applied",
         "retry_scheduled",
-        "retry_suppressed"
+        "retry_suppressed",
+        "retry_deferred",
+        "authoritative_capacity_recovery_required",
+        "authoritative_capacity_recovery_confirmed",
+        "capacity_decision_required",
+        "capacity_response_rejected",
+        "outcome_reconciliation_required"
       ]
     },
     "stateName": {
@@ -238,7 +244,9 @@
         "runtime.semantic_idempotency_binding_count",
         "runtime.runaway_guard_epoch",
         "runtime.retry_delay_floor_seconds",
-        "runtime.retry_wait_pending"
+        "runtime.retry_wait_pending",
+        "runtime.capacity_recovery_pending",
+        "runtime.capacity_decision_pending"
       ]
     },
     "stateValue": {

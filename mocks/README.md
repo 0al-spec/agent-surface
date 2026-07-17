@@ -23,7 +23,10 @@ errors, or expected observations. Decisions are derived from semantic fields.
 The Operational Limits feature paths cover manifest binding, atomic action
 admission, fail-closed limiter-state loss, idempotent replay precedence,
 first-delivery versus retransmission accounting, and runtime `rate_limited`
-retry policy.
+retry policy. It also keeps `capacity_state_unavailable` retries deferred until
+authoritative limiter recovery, requires a new capacity decision for retryable
+`service_unavailable`, and routes ambiguous outcomes to reconciliation instead
+of treating them as definite overload rejections.
 
 The internal `asp-mock-participant/1` protocol is test control plumbing, not an
 ASP wire binding. `mock_app.py` and `mock_runtime.py` accept one closed envelope

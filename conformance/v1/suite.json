@@ -2,7 +2,7 @@
   "$schema": "./suite.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.1.0",
+  "suite_version": "1.2.0",
   "protocol_version": "agent-surface/0.1",
   "specification": {
     "path": "drafts/agent-surface.md",
@@ -658,7 +658,7 @@
     },
     {
       "requirement_id": "ASP-RM-009",
-      "title": "Schedule conservatively and honor rate_limited retry policy",
+      "title": "Schedule conservatively and honor operational-capacity recovery policy",
       "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
       "rfc_anchor": "runtime-mediator-profile",
       "applicability": {
@@ -670,7 +670,13 @@
         "ASP-V-RM-010",
         "ASP-V-RM-011",
         "ASP-V-RM-013",
-        "ASP-V-RM-012"
+        "ASP-V-RM-012",
+        "ASP-V-RM-014",
+        "ASP-V-RM-015",
+        "ASP-V-RM-016",
+        "ASP-V-RM-017",
+        "ASP-V-RM-018",
+        "ASP-V-RM-019"
       ]
     }
   ]

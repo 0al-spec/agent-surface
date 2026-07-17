@@ -125,12 +125,12 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.1.0")
+        self.assertEqual(self.catalog.suite["suite_version"], "1.2.0")
         self.assertEqual(len(self.catalog.features), 9)
         self.assertEqual(len(self.catalog.requirements), 36)
-        self.assertEqual(len(self.catalog.vectors), 62)
-        self.assertEqual(len(self.catalog.fixtures), 18)
-        self.assertEqual(len(self.catalog.mutations), 45)
+        self.assertEqual(len(self.catalog.vectors), 68)
+        self.assertEqual(len(self.catalog.fixtures), 21)
+        self.assertEqual(len(self.catalog.mutations), 48)
         self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 36)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
 
