@@ -24,15 +24,15 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.4.0"
+      "const": "1.5.0"
     },
     "fixture_catalog_id": {
       "const": "agent-surface/conformance/fixtures/v1"
     },
     "fixtures": {
       "type": "array",
-      "minItems": 29,
-      "maxItems": 29,
+      "minItems": 36,
+      "maxItems": 36,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/fixture"
@@ -43,8 +43,8 @@
     },
     "mutations": {
       "type": "array",
-      "minItems": 59,
-      "maxItems": 59,
+      "minItems": 67,
+      "maxItems": 67,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/mutation"
@@ -85,7 +85,14 @@
         "ASP-F-RM-024",
         "ASP-F-RM-026",
         "ASP-F-RM-028",
-        "ASP-F-AA-006"
+        "ASP-F-AA-006",
+        "ASP-F-RM-033",
+        "ASP-F-RM-034",
+        "ASP-F-RM-035",
+        "ASP-F-RM-039",
+        "ASP-F-AA-009",
+        "ASP-F-AE-027",
+        "ASP-F-AE-028"
       ]
     },
     "baselineVectorId": {
@@ -118,7 +125,14 @@
         "ASP-V-RM-024",
         "ASP-V-RM-026",
         "ASP-V-RM-028",
-        "ASP-V-AA-006"
+        "ASP-V-AA-006",
+        "ASP-V-RM-033",
+        "ASP-V-RM-034",
+        "ASP-V-RM-035",
+        "ASP-V-RM-039",
+        "ASP-V-AA-009",
+        "ASP-V-AE-027",
+        "ASP-V-AE-028"
       ]
     },
     "mutationId": {
@@ -181,7 +195,15 @@
         "ASP-M-AHP-PROFILE-DOWNGRADE",
         "ASP-M-UNAUTHENTICATED-AHP-CARRIER",
         "ASP-M-AHP-ACTION-SUBSTITUTION",
-        "ASP-M-AHP-RECEIPT-CLAIMS-AUTHORITY"
+        "ASP-M-AHP-RECEIPT-CLAIMS-AUTHORITY",
+        "ASP-M-ELICITATION-SESSION-GENERATION-MISMATCH",
+        "ASP-M-ELICITATION-CONFLICTING-RESPONSE-REPLAY",
+        "ASP-M-ELICITATION-SELF-ASSERTED-STEP-UP",
+        "ASP-M-ELICITATION-EDIT-STALE-BINDING",
+        "ASP-M-ELICITATION-REDLINE-RESULT-MISMATCH",
+        "ASP-M-ELICITATION-AGENT-ORIGINATED-RESOLUTION",
+        "ASP-M-ELICITATION-AGENT-FULL-STEP-UP",
+        "ASP-M-ELICITATION-AUTHORITATIVE-VERIFIER-MISMATCH"
       ]
     },
     "inputVariant": {
@@ -244,7 +266,15 @@
         "ahp_profile_downgrade",
         "unauthenticated_ahp_carrier",
         "ahp_action_substitution",
-        "ahp_receipt_claims_authority"
+        "ahp_receipt_claims_authority",
+        "elicitation_session_generation_mismatch",
+        "elicitation_conflicting_response_replay",
+        "elicitation_self_asserted_step_up",
+        "elicitation_edit_stale_binding",
+        "elicitation_redline_result_mismatch",
+        "elicitation_agent_originated_resolution",
+        "elicitation_agent_full_step_up",
+        "elicitation_authoritative_verifier_mismatch"
       ]
     },
     "actionSet": {
@@ -537,6 +567,267 @@
         "receipt_use": { "enum": ["informational", "authority"] }
       }
     },
+    "elicitationPurposeBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id",
+        "session_generation",
+        "grant_id",
+        "grant_hash",
+        "surface_hash",
+        "context_hash",
+        "request_hash"
+      ],
+      "properties": {
+        "session_id": { "const": "session_a" },
+        "session_generation": { "const": 1 },
+        "grant_id": { "const": "grant_a" },
+        "grant_hash": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest"
+        },
+        "surface_hash": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest"
+        },
+        "context_hash": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest"
+        },
+        "request_hash": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest"
+        }
+      }
+    },
+    "agentElicitationProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "exposure",
+        "purpose_binding",
+        "value",
+        "secret_material"
+      ],
+      "properties": {
+        "origin": {
+          "enum": ["presenter", "agent"]
+        },
+        "exposure": {
+          "enum": ["minimized", "full_step_up_response"]
+        },
+        "purpose_binding": {
+          "$ref": "#/$defs/elicitationPurposeBinding"
+        },
+        "value": {},
+        "secret_material": {
+          "enum": ["absent", "present"]
+        }
+      }
+    },
+    "authoritativeStepUpResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "result_ref",
+        "verifier",
+        "audience",
+        "subject",
+        "elicitation_id",
+        "revision",
+        "context_hash",
+        "achieved_assurance",
+        "authenticated_at",
+        "expires_at"
+      ],
+      "properties": {
+        "status": {
+          "const": "verified"
+        },
+        "result_ref": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/nonEmptyString"
+        },
+        "verifier": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/verifier"
+        },
+        "audience": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/component"
+        },
+        "subject": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/nonEmptyString"
+        },
+        "elicitation_id": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/nonEmptyString"
+        },
+        "revision": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/positiveSafeInteger"
+        },
+        "context_hash": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest"
+        },
+        "achieved_assurance": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "authenticated_at": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/timestamp"
+        },
+        "expires_at": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/timestamp"
+        }
+      }
+    },
+    "elicitation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authentication",
+        "selected_profile",
+        "authenticated_requester",
+        "authenticated_presenter",
+        "authenticated_subject",
+        "current_session_id",
+        "current_session_generation",
+        "current_grant_id",
+        "current_grant_hash",
+        "current_surface_hash",
+        "recorded_revision",
+        "recorded_request_hash",
+        "recorded_response_hash",
+        "lifecycle",
+        "replay_retention_seconds",
+        "evaluation_time",
+        "replay_record_state",
+        "terminal_accepted_at",
+        "candidate_validation",
+        "step_up_verification",
+        "secret_material",
+        "authority_use",
+        "request",
+        "response"
+      ],
+      "properties": {
+        "authentication": {
+          "const": "authenticated"
+        },
+        "selected_profile": {
+          "const": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+        },
+        "authenticated_requester": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/component"
+        },
+        "authenticated_presenter": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/component"
+        },
+        "authenticated_subject": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/nonEmptyString"
+        },
+        "authenticated_verifier": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/verifier"
+        },
+        "current_session_id": {
+          "const": "session_a"
+        },
+        "current_session_generation": {
+          "const": 1
+        },
+        "current_grant_id": {
+          "const": "grant_a"
+        },
+        "current_grant_hash": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest"
+        },
+        "current_surface_hash": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest"
+        },
+        "recorded_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "recorded_request_hash": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest"
+        },
+        "recorded_response_hash": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest"
+        },
+        "lifecycle": {
+          "enum": [
+            "pending",
+            "resolved"
+          ]
+        },
+        "replay_retention_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "evaluation_time": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/timestamp"
+        },
+        "replay_record_state": {
+          "enum": [
+            "not_applicable",
+            "retained",
+            "evicted"
+          ]
+        },
+        "terminal_accepted_at": {
+          "oneOf": [
+            {
+              "const": "absent"
+            },
+            {
+              "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/timestamp"
+            }
+          ]
+        },
+        "candidate_validation": {
+          "enum": [
+            "not_applicable",
+            "passed",
+            "stale_binding",
+            "result_hash_mismatch"
+          ]
+        },
+        "step_up_verification": {
+          "enum": [
+            "not_applicable",
+            "verified",
+            "agent_asserted"
+          ]
+        },
+        "secret_material": {
+          "enum": [
+            "absent",
+            "present"
+          ]
+        },
+        "authority_use": {
+          "const": "informational"
+        },
+        "authoritative_base": {},
+        "authoritative_input_schema": {
+          "type": "object"
+        },
+        "agent_projection": {
+          "$ref": "#/$defs/agentElicitationProjection"
+        },
+        "authoritative_step_up_result": {
+          "$ref": "#/$defs/authoritativeStepUpResult"
+        },
+        "request": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/requiredMessage"
+        },
+        "response": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/resolvedMessage"
+        }
+      }
+    },
     "semanticDocument": {
       "type": "object",
       "additionalProperties": false,
@@ -557,7 +848,8 @@
         "adapter": { "$ref": "#/$defs/adapter" },
         "operational": { "$ref": "#/$defs/operational" },
         "transport": { "$ref": "#/$defs/transport" },
-        "ahp": { "$ref": "#/$defs/ahp" }
+        "ahp": { "$ref": "#/$defs/ahp" },
+        "elicitation": { "$ref": "#/$defs/elicitation" }
       }
     },
     "fixture": {
@@ -626,7 +918,21 @@
         "/ahp/negotiated_profile",
         "/ahp/authentication",
         "/ahp/asp_action_id",
-        "/ahp/receipt_use"
+        "/ahp/receipt_use",
+        "/elicitation/response/session_generation",
+        "/elicitation/response/response/verifier",
+        "/elicitation/response/response/candidate/metadata",
+        "/elicitation/response/response/candidate_hash",
+        "/elicitation/response/response_hash",
+        "/elicitation/recorded_revision",
+        "/elicitation/step_up_verification",
+        "/elicitation/secret_material",
+        "/elicitation/candidate_validation",
+        "/elicitation/agent_projection/origin",
+        "/elicitation/agent_projection/exposure",
+        "/elicitation/agent_projection/value",
+        "/elicitation/agent_projection/secret_material",
+        "/elicitation/authoritative_step_up_result/verifier"
       ]
     },
     "pathAndValue": {
@@ -684,7 +990,21 @@
         { "properties": { "path": { "const": "/ahp/negotiated_profile" }, "value": { "enum": ["https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1", "unbound"] } } },
         { "properties": { "path": { "const": "/ahp/authentication" }, "value": { "enum": ["authenticated", "unauthenticated"] } } },
         { "properties": { "path": { "const": "/ahp/asp_action_id" }, "value": { "enum": ["none", "action.read", "action.write"] } } },
-        { "properties": { "path": { "const": "/ahp/receipt_use" }, "value": { "enum": ["informational", "authority"] } } }
+        { "properties": { "path": { "const": "/ahp/receipt_use" }, "value": { "enum": ["informational", "authority"] } } },
+        { "properties": { "path": { "const": "/elicitation/response/session_generation" }, "value": { "enum": [1, 2] } } },
+        { "properties": { "path": { "const": "/elicitation/response/response/verifier" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/verifier" } } },
+        { "properties": { "path": { "const": "/elicitation/response/response/candidate/metadata" }, "value": { "enum": ["safe", "unsafe"] } } },
+        { "properties": { "path": { "const": "/elicitation/response/response/candidate_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/elicitation/response/response_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/elicitation/recorded_revision" }, "value": { "enum": [0, 1] } } },
+        { "properties": { "path": { "const": "/elicitation/step_up_verification" }, "value": { "enum": ["not_applicable", "verified", "agent_asserted"] } } },
+        { "properties": { "path": { "const": "/elicitation/secret_material" }, "value": { "enum": ["absent", "present"] } } },
+        { "properties": { "path": { "const": "/elicitation/candidate_validation" }, "value": { "enum": ["not_applicable", "passed", "stale_binding", "result_hash_mismatch"] } } },
+        { "properties": { "path": { "const": "/elicitation/agent_projection/origin" }, "value": { "enum": ["presenter", "agent"] } } },
+        { "properties": { "path": { "const": "/elicitation/agent_projection/exposure" }, "value": { "enum": ["minimized", "full_step_up_response"] } } },
+        { "properties": { "path": { "const": "/elicitation/agent_projection/value" } } },
+        { "properties": { "path": { "const": "/elicitation/agent_projection/secret_material" }, "value": { "enum": ["absent", "present"] } } },
+        { "properties": { "path": { "const": "/elicitation/authoritative_step_up_result/verifier" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/verifier" } } }
       ]
     },
     "patchOperation": {
@@ -748,7 +1068,14 @@
         { "properties": { "fixture_id": { "const": "ASP-F-RM-024" }, "baseline_vector_id": { "const": "ASP-V-RM-024" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-RM-026" }, "baseline_vector_id": { "const": "ASP-V-RM-026" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-RM-028" }, "baseline_vector_id": { "const": "ASP-V-RM-028" } }, "required": ["fixture_id", "baseline_vector_id"] },
-        { "properties": { "fixture_id": { "const": "ASP-F-AA-006" }, "baseline_vector_id": { "const": "ASP-V-AA-006" } }, "required": ["fixture_id", "baseline_vector_id"] }
+        { "properties": { "fixture_id": { "const": "ASP-F-AA-006" }, "baseline_vector_id": { "const": "ASP-V-AA-006" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-033" }, "baseline_vector_id": { "const": "ASP-V-RM-033" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-034" }, "baseline_vector_id": { "const": "ASP-V-RM-034" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-035" }, "baseline_vector_id": { "const": "ASP-V-RM-035" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-039" }, "baseline_vector_id": { "const": "ASP-V-RM-039" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AA-009" }, "baseline_vector_id": { "const": "ASP-V-AA-009" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-027" }, "baseline_vector_id": { "const": "ASP-V-AE-027" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-028" }, "baseline_vector_id": { "const": "ASP-V-AE-028" } }, "required": ["fixture_id", "baseline_vector_id"] }
       ]
     },
     "mutationBinding": {
@@ -811,7 +1138,15 @@
         { "properties": { "mutation_id": { "const": "ASP-M-AHP-PROFILE-DOWNGRADE" }, "input_variant": { "const": "ahp_profile_downgrade" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-UNAUTHENTICATED-AHP-CARRIER" }, "input_variant": { "const": "unauthenticated_ahp_carrier" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-AHP-ACTION-SUBSTITUTION" }, "input_variant": { "const": "ahp_action_substitution" } }, "required": ["mutation_id", "input_variant"] },
-        { "properties": { "mutation_id": { "const": "ASP-M-AHP-RECEIPT-CLAIMS-AUTHORITY" }, "input_variant": { "const": "ahp_receipt_claims_authority" } }, "required": ["mutation_id", "input_variant"] }
+        { "properties": { "mutation_id": { "const": "ASP-M-AHP-RECEIPT-CLAIMS-AUTHORITY" }, "input_variant": { "const": "ahp_receipt_claims_authority" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-SESSION-GENERATION-MISMATCH" }, "input_variant": { "const": "elicitation_session_generation_mismatch" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-CONFLICTING-RESPONSE-REPLAY" }, "input_variant": { "const": "elicitation_conflicting_response_replay" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-SELF-ASSERTED-STEP-UP" }, "input_variant": { "const": "elicitation_self_asserted_step_up" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-EDIT-STALE-BINDING" }, "input_variant": { "const": "elicitation_edit_stale_binding" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-REDLINE-RESULT-MISMATCH" }, "input_variant": { "const": "elicitation_redline_result_mismatch" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-AGENT-ORIGINATED-RESOLUTION" }, "input_variant": { "const": "elicitation_agent_originated_resolution" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-AGENT-FULL-STEP-UP" }, "input_variant": { "const": "elicitation_agent_full_step_up" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-AUTHORITATIVE-VERIFIER-MISMATCH" }, "input_variant": { "const": "elicitation_authoritative_verifier_mismatch" } }, "required": ["mutation_id", "input_variant"] }
       ]
     },
     "fixtureCoverage": {
@@ -844,7 +1179,14 @@
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-024" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-026" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-028" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AA-006" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AA-006" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-033" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-034" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-035" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-039" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AA-009" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-027" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-028" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "mutationCoverage": {
@@ -907,7 +1249,15 @@
         { "contains": { "properties": { "input_variant": { "const": "ahp_profile_downgrade" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "unauthenticated_ahp_carrier" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "ahp_action_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "input_variant": { "const": "ahp_receipt_claims_authority" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "input_variant": { "const": "ahp_receipt_claims_authority" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_session_generation_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_conflicting_response_replay" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_self_asserted_step_up" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_edit_stale_binding" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_redline_result_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_agent_originated_resolution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_agent_full_step_up" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_authoritative_verifier_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "limitIdSet": {

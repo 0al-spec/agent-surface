@@ -330,6 +330,26 @@ class ReviewDataValidationTests(unittest.TestCase):
                 ]
                 self.assert_invalid(payload, "exact authoritative evidence binding")
 
+    def test_human_elicitation_requires_the_exact_bound_evidence(self) -> None:
+        for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.machine_validated_payload()
+                review = next(item for item in payload["reviews"] if item["id"] == 29)
+                review["evidence"] = [
+                    item for item in review["evidence"] if item["kind"] != missing_kind
+                ]
+                self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    def test_interop_suite_requires_the_current_canonical_schema_set(self) -> None:
+        payload = self.machine_validated_payload()
+        review = next(item for item in payload["reviews"] if item["id"] == 60)
+        review["evidence"] = [
+            item
+            for item in review["evidence"]
+            if item["ref"] != "conformance/v1/human-elicitation.schema.json"
+        ]
+        self.assert_invalid(payload, "missing bound evidence")
+
     def test_missing_schema_evidence_is_rejected(self) -> None:
         payload = self.valid_payload()
         payload["reviews"][0]["evidence"].append(
@@ -417,14 +437,14 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 62)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 364)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 383)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 49, "proposal": 6, "machine_validated": 7}),
+            Counter({"specified": 49, "proposal": 5, "machine_validated": 8}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 56, "partial": 3, "missing": 3}),
+            Counter({"present": 57, "partial": 2, "missing": 3}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 137)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -491,6 +511,38 @@ class ReviewDataValidationTests(unittest.TestCase):
                 "session-authority-and-lifecycle",
                 "interoperability-test-suite",
                 "reference-mock-participants",
+                "runtime-mediator-profile",
+                "agent-adapter-profile",
+            ],
+        )
+        self.assertEqual(reviews_by_id[29]["status"], "present")
+        self.assertEqual(reviews_by_id[29]["maturity"], "machine_validated")
+        self.assertEqual(reviews_by_id[29]["depends_on"], [28, 35])
+        self.assertEqual(reviews_by_id[29]["readiness"], "ready")
+        self.assertEqual(len(reviews_by_id[29]["evidence"]), 22)
+        self.assertEqual(
+            Counter(item["kind"] for item in reviews_by_id[29]["evidence"]),
+            Counter(
+                {
+                    "rfc_anchor": 11,
+                    "schema": 4,
+                    "registry": 4,
+                    "implementation": 3,
+                }
+            ),
+        )
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[29]["anchors"]],
+            [
+                "human-elicitation-events-profile",
+                "3-runtime-bridge-protocol",
+                "canonical-object-hash-profile",
+                "example-manifest",
+                "approval-receipt-profile",
+                "error-model",
+                "interoperability-test-suite",
+                "reference-mock-participants",
+                "action-executor-profile",
                 "runtime-mediator-profile",
                 "agent-adapter-profile",
             ],
@@ -583,7 +635,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             ["reference-mock-participants"],
         )
         self.assertEqual(reviews_by_id[60]["readiness"], "ready")
-        self.assertEqual(len(reviews_by_id[60]["evidence"]), 18)
+        self.assertEqual(len(reviews_by_id[60]["evidence"]), 19)
         self.assertEqual(reviews_by_id[61]["status"], "present")
         self.assertEqual(reviews_by_id[61]["maturity"], "machine_validated")
         self.assertEqual(reviews_by_id[61]["depends_on"], [53, 58, 60])

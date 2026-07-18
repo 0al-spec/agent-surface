@@ -8,10 +8,19 @@ authoritative state.
 
 from __future__ import annotations
 
+import base64
+import copy
+import hashlib
+import json
+import math
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Sequence
+
+import rfc8785
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
 
 
 SP = "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1"
@@ -25,6 +34,9 @@ OPERATIONAL_LIMITS = (
 )
 ASP_OVER_AHP = (
     "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+)
+HUMAN_ELICITATION = (
+    "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
 )
 SAFE_INTEGER = 2**53 - 1
 HTTP_MONTHS = {
@@ -75,6 +87,7 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
     ),
     AE: (
         "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+        HUMAN_ELICITATION,
         OPERATIONAL_LIMITS,
         "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
         "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
@@ -84,10 +97,11 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
         "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
         ASP_OVER_AHP,
         "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
+        HUMAN_ELICITATION,
         OPERATIONAL_LIMITS,
         "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
     ),
-    AA: (ASP_OVER_AHP,),
+    AA: (ASP_OVER_AHP, HUMAN_ELICITATION),
 }
 
 
@@ -119,6 +133,13 @@ class BehaviorResult:
             if value is not None:
                 fields[name] = value
         return fields
+
+
+@dataclass(frozen=True)
+class _HumanElicitationResult:
+    kind: str
+    disposition: str
+    terminal_replay: bool
 
 
 def family_for(profile_id: str, producer_role: str | None = None) -> str:
@@ -416,6 +437,815 @@ def _validate_ahp_binding(
     return ahp
 
 
+def _validate_jcs_value(value: Any) -> None:
+    if isinstance(value, float):
+        if not math.isfinite(value) or (
+            value == 0.0 and math.copysign(1.0, value) < 0
+        ):
+            raise BehaviorError(
+                "canonical JSON floats must be finite and must not be negative zero"
+            )
+        return
+    if isinstance(value, int) and not isinstance(value, bool):
+        if abs(value) > SAFE_INTEGER:
+            raise BehaviorError("canonical JSON integers must be safe integers")
+        return
+    if isinstance(value, str):
+        try:
+            value.encode("utf-8", errors="strict")
+        except UnicodeEncodeError as error:
+            raise BehaviorError(
+                "canonical JSON strings must not contain lone surrogates"
+            ) from error
+        return
+    if isinstance(value, list):
+        for item in value:
+            _validate_jcs_value(item)
+        return
+    if isinstance(value, Mapping):
+        if any(not isinstance(key, str) for key in value):
+            raise BehaviorError("canonical JSON object member names must be strings")
+        for key, item in value.items():
+            _validate_jcs_value(key)
+            _validate_jcs_value(item)
+        return
+    if value is None or isinstance(value, bool):
+        return
+    raise BehaviorError("value is outside the canonical I-JSON data model")
+
+
+def _object_hash(domain: str, value: Any) -> str:
+    wrapper = {"domain": domain, "object": value}
+    _validate_jcs_value(wrapper)
+    try:
+        content = rfc8785.dumps(wrapper)
+    except rfc8785.CanonicalizationError as error:
+        raise BehaviorError("value cannot be canonicalized as RFC 8785 JSON") from error
+    digest = hashlib.sha256(content).digest()
+    return "sha-256:" + base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+
+def _hash_without(domain: str, value: Mapping[str, Any], member: str) -> str:
+    hashing_view = copy.deepcopy(dict(value))
+    hashing_view.pop(member, None)
+    return _object_hash(domain, hashing_view)
+
+
+def _external_schema_refs(value: Any) -> list[str]:
+    refs: list[str] = []
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if (
+                key in {"$ref", "$dynamicRef"}
+                and isinstance(item, str)
+                and not item.startswith("#")
+            ):
+                refs.append(item)
+            refs.extend(_external_schema_refs(item))
+    elif isinstance(value, list):
+        for item in value:
+            refs.extend(_external_schema_refs(item))
+    return refs
+
+
+def _validate_embedded_schema(
+    schema: Any,
+    instance: Any,
+    *,
+    schema_hash: Any | None,
+    label: str,
+) -> None:
+    if not isinstance(schema, Mapping):
+        raise BehaviorError(f"{label} must be a JSON Schema object")
+    normalized = dict(schema)
+    if _external_schema_refs(normalized):
+        raise BehaviorError(f"{label} must be self-contained")
+    try:
+        Draft202012Validator.check_schema(normalized)
+    except SchemaError as error:
+        raise BehaviorError(f"{label} is not a valid JSON Schema") from error
+    if schema_hash is not None:
+        canonical_schema_hash = _object_hash(
+            "https://github.com/0al-spec/agent-surface/hash/action-input-schema/v1",
+            normalized,
+        )
+        if schema_hash != canonical_schema_hash:
+            raise BehaviorError(f"{label} hash is invalid")
+    validator = Draft202012Validator(
+        normalized,
+        format_checker=Draft202012Validator.FORMAT_CHECKER,
+    )
+    try:
+        error = next(validator.iter_errors(instance), None)
+    except Exception as validation_error:
+        raise BehaviorError(f"{label} cannot be evaluated safely") from validation_error
+    if error is not None:
+        raise BehaviorError(f"value does not validate against {label}")
+
+
+_JSON_POINTER = re.compile(r"^(?:/(?:[^~/]|~[01])*)*$")
+
+
+def _editable_paths(value: Any) -> tuple[str, ...]:
+    if (
+        not isinstance(value, list)
+        or not value
+        or any(
+            not isinstance(item, str) or not _JSON_POINTER.fullmatch(item)
+            for item in value
+        )
+        or len(value) != len(set(value))
+    ):
+        raise BehaviorError("editable_paths must be unique RFC 6901 JSON Pointers")
+    return tuple(value)
+
+
+def _decode_json_pointer(pointer: Any) -> list[str]:
+    if not isinstance(pointer, str) or not _JSON_POINTER.fullmatch(pointer):
+        raise BehaviorError("redline path is not an RFC 6901 JSON Pointer")
+    if pointer == "":
+        return []
+    return [
+        item.replace("~1", "/").replace("~0", "~")
+        for item in pointer[1:].split("/")
+    ]
+
+
+def _path_is_editable(path: str, editable_paths: Sequence[str]) -> bool:
+    return any(
+        path == allowed or allowed == "" or path.startswith(allowed + "/")
+        for allowed in editable_paths
+    )
+
+
+def _changed_json_pointers(before: Any, after: Any, pointer: str = "") -> set[str]:
+    if type(before) is not type(after):
+        return {pointer}
+    if isinstance(before, Mapping):
+        changed: set[str] = set()
+        for key in set(before) | set(after):
+            escaped = key.replace("~", "~0").replace("/", "~1")
+            child = f"{pointer}/{escaped}"
+            if key not in before or key not in after:
+                changed.add(child)
+            else:
+                changed.update(_changed_json_pointers(before[key], after[key], child))
+        return changed
+    if isinstance(before, list):
+        changed = set()
+        for index in range(max(len(before), len(after))):
+            child = f"{pointer}/{index}"
+            if index >= len(before) or index >= len(after):
+                changed.add(child)
+            else:
+                changed.update(
+                    _changed_json_pointers(before[index], after[index], child)
+                )
+        return changed
+    return set() if before == after else {pointer}
+
+
+def _apply_redline(base: Any, patch: Any) -> Any:
+    if not isinstance(patch, list) or not patch:
+        raise BehaviorError("redline patch is not a non-empty operation list")
+    candidate = copy.deepcopy(base)
+    for operation in patch:
+        if (
+            not isinstance(operation, Mapping)
+            or operation.get("op") not in {"add", "remove", "replace"}
+            or set(operation)
+            != (
+                {"op", "path"}
+                if operation.get("op") == "remove"
+                else {"op", "path", "value"}
+            )
+        ):
+            raise BehaviorError("redline operation is outside the closed patch subset")
+        tokens = _decode_json_pointer(operation.get("path"))
+        if not tokens:
+            if operation["op"] == "remove":
+                raise BehaviorError("redline cannot remove the document root")
+            candidate = copy.deepcopy(operation["value"])
+            continue
+        target = candidate
+        try:
+            for token in tokens[:-1]:
+                if isinstance(target, list):
+                    index = int(token)
+                    if index < 0:
+                        raise IndexError(index)
+                    target = target[index]
+                else:
+                    target = target[token]
+            last = tokens[-1]
+            if isinstance(target, list):
+                if operation["op"] == "add":
+                    if last == "-":
+                        target.append(copy.deepcopy(operation["value"]))
+                    else:
+                        index = int(last)
+                        if index < 0 or index > len(target):
+                            raise IndexError(index)
+                        target.insert(index, copy.deepcopy(operation["value"]))
+                elif operation["op"] == "remove":
+                    index = int(last)
+                    if index < 0:
+                        raise IndexError(index)
+                    del target[index]
+                else:
+                    index = int(last)
+                    if index < 0:
+                        raise IndexError(index)
+                    target[index] = copy.deepcopy(operation["value"])
+            elif isinstance(target, dict):
+                if operation["op"] == "remove":
+                    del target[last]
+                elif operation["op"] == "replace":
+                    if last not in target:
+                        raise KeyError(last)
+                    target[last] = copy.deepcopy(operation["value"])
+                else:
+                    target[last] = copy.deepcopy(operation["value"])
+            else:
+                raise TypeError("patch parent is not a container")
+        except (KeyError, IndexError, TypeError, ValueError) as error:
+            raise BehaviorError("redline path is not present in its exact base") from error
+    return candidate
+
+
+def _utc_timestamp(value: Any, label: str) -> datetime:
+    if not isinstance(value, str) or not value.endswith("Z"):
+        raise BehaviorError(f"{label} is not an RFC 3339 UTC timestamp")
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00")
+    except ValueError as error:
+        raise BehaviorError(f"{label} is not an RFC 3339 UTC timestamp") from error
+    if parsed.tzinfo != timezone.utc:
+        raise BehaviorError(f"{label} is not an RFC 3339 UTC timestamp")
+    return parsed
+
+
+def _validate_human_elicitation(
+    document: Mapping[str, Any],
+) -> _HumanElicitationResult:
+    elicitation = _section(document, "elicitation")
+    required_fields = {
+        "authentication",
+        "authenticated_requester",
+        "authenticated_presenter",
+        "authenticated_subject",
+        "selected_profile",
+        "current_session_id",
+        "current_session_generation",
+        "current_grant_id",
+        "current_grant_hash",
+        "current_surface_hash",
+        "recorded_revision",
+        "recorded_request_hash",
+        "recorded_response_hash",
+        "lifecycle",
+        "replay_retention_seconds",
+        "evaluation_time",
+        "terminal_accepted_at",
+        "replay_record_state",
+        "candidate_validation",
+        "step_up_verification",
+        "secret_material",
+        "authority_use",
+        "request",
+        "response",
+    }
+    allowed_fields = required_fields | {
+        "authenticated_verifier",
+        "authoritative_step_up_result",
+        "authoritative_base",
+        "authoritative_input_schema",
+        "agent_projection",
+    }
+    if not required_fields.issubset(elicitation) or not set(elicitation).issubset(
+        allowed_fields
+    ):
+        raise BehaviorError("Human Elicitation projection is not the closed shape")
+    request = elicitation["request"]
+    response = elicitation["response"]
+    if not isinstance(request, Mapping) or not isinstance(response, Mapping):
+        raise BehaviorError("Human Elicitation messages must be objects")
+    request_fields = {
+        "type",
+        "profile",
+        "elicitation_id",
+        "revision",
+        "requester",
+        "presenter",
+        "kind",
+        "session_id",
+        "session_generation",
+        "grant_id",
+        "grant_hash",
+        "surface_hash",
+        "context",
+        "context_hash",
+        "prompt",
+        "request",
+        "expires_at",
+        "request_hash",
+    }
+    response_fields = {
+        "type",
+        "profile",
+        "elicitation_id",
+        "revision",
+        "kind",
+        "disposition",
+        "responder",
+        "session_id",
+        "session_generation",
+        "grant_id",
+        "grant_hash",
+        "surface_hash",
+        "context_hash",
+        "request_hash",
+        "resolved_at",
+        "response_hash",
+    }
+    if response.get("disposition") == "answered":
+        response_fields.add("response")
+    if set(request) != request_fields or set(response) != response_fields:
+        raise BehaviorError("Human Elicitation wire message is not the closed shape")
+    requester = request.get("requester")
+    presenter = request.get("presenter")
+    requester_type = (
+        requester.get("type") if isinstance(requester, Mapping) else None
+    )
+    presenter_type = (
+        presenter.get("type") if isinstance(presenter, Mapping) else None
+    )
+    if (
+        elicitation["authentication"] != "authenticated"
+        or not isinstance(elicitation["authenticated_subject"], str)
+        or not elicitation["authenticated_subject"]
+        or elicitation["selected_profile"] != HUMAN_ELICITATION
+        or request.get("profile") != HUMAN_ELICITATION
+        or response.get("profile") != HUMAN_ELICITATION
+        or request.get("type") != "elicitation.required"
+        or response.get("type") != "elicitation.resolved"
+        or request.get("requester") != elicitation["authenticated_requester"]
+        or request.get("presenter") != elicitation["authenticated_presenter"]
+        or response.get("responder") != elicitation["authenticated_presenter"]
+        or requester_type not in {"application", "runtime"}
+        or presenter_type not in {"application", "runtime"}
+        or requester_type == presenter_type
+        or not isinstance(requester.get("id"), str)
+        or not requester["id"]
+        or not isinstance(presenter.get("id"), str)
+        or not presenter["id"]
+        or set(requester) != {"type", "id"}
+        or set(presenter) != {"type", "id"}
+    ):
+        raise BehaviorError(
+            "Human Elicitation profile or participants are not authenticated"
+        )
+    repeated = (
+        "elicitation_id",
+        "revision",
+        "kind",
+        "session_id",
+        "session_generation",
+        "grant_id",
+        "grant_hash",
+        "surface_hash",
+        "context_hash",
+        "request_hash",
+    )
+    if any(request.get(field) != response.get(field) for field in repeated):
+        raise BehaviorError("Human Elicitation response changed its request binding")
+    for message_field, state_field in (
+        ("session_id", "current_session_id"),
+        ("session_generation", "current_session_generation"),
+        ("grant_id", "current_grant_id"),
+        ("grant_hash", "current_grant_hash"),
+        ("surface_hash", "current_surface_hash"),
+    ):
+        if request.get(message_field) != elicitation.get(state_field):
+            raise BehaviorError("Human Elicitation authority tuple is stale")
+    if request.get("context_hash") != _object_hash(
+        "https://github.com/0al-spec/agent-surface/hash/"
+        "human-elicitation-context/v1",
+        request.get("context"),
+    ):
+        raise BehaviorError("Human Elicitation context hash is invalid")
+    if request.get("request_hash") != _hash_without(
+        "https://github.com/0al-spec/agent-surface/hash/"
+        "human-elicitation-request/v1",
+        request,
+        "request_hash",
+    ):
+        raise BehaviorError("Human Elicitation request hash is invalid")
+    if response.get("response_hash") != _hash_without(
+        "https://github.com/0al-spec/agent-surface/hash/"
+        "human-elicitation-response/v1",
+        response,
+        "response_hash",
+    ):
+        raise BehaviorError("Human Elicitation response hash is invalid")
+    context = request.get("context")
+    prompt = request.get("prompt")
+    context_fields = {
+        "action_id",
+        "mode",
+        "input_hash",
+        "proposal_id",
+        "preview_id",
+        "expected" + "_effects_hash",
+        "reservation_id",
+        "execution_hash",
+        "policy_decision_hash",
+        "approval_id",
+    }
+    action_binding = {"action_id", "mode", "input_hash"}
+    if (
+        not isinstance(context, Mapping)
+        or not set(context).issubset(context_fields)
+        or (set(context) & action_binding and not action_binding.issubset(context))
+        or not isinstance(prompt, Mapping)
+        or set(prompt) != {"title", "detail"}
+        or any(
+            not isinstance(prompt.get(field), str) or not prompt[field]
+            for field in prompt
+        )
+    ):
+        raise BehaviorError("Human Elicitation context or prompt is invalid")
+
+    resolved_at = _utc_timestamp(response.get("resolved_at"), "resolved_at")
+    request_expires_at = _utc_timestamp(request.get("expires_at"), "expires_at")
+    evaluation_time = _utc_timestamp(
+        elicitation.get("evaluation_time"), "evaluation_time"
+    )
+    if resolved_at > request_expires_at:
+        raise BehaviorError("Human Elicitation response was resolved after expiry")
+    if evaluation_time < resolved_at:
+        raise BehaviorError("Human Elicitation response is from the future")
+    replay_retention_seconds = elicitation.get("replay_retention_seconds")
+    if (
+        isinstance(replay_retention_seconds, bool)
+        or not isinstance(replay_retention_seconds, int)
+        or not 1 <= replay_retention_seconds <= SAFE_INTEGER
+    ):
+        raise BehaviorError("Human Elicitation replay retention is invalid")
+
+    revision = request.get("revision")
+    recorded_revision = elicitation.get("recorded_revision")
+    if (
+        isinstance(revision, bool)
+        or not isinstance(revision, int)
+        or isinstance(recorded_revision, bool)
+        or not isinstance(recorded_revision, int)
+        or revision < 1
+        or recorded_revision < 0
+        or revision < recorded_revision
+        or revision > recorded_revision + 1
+    ):
+        raise BehaviorError("Human Elicitation revision is stale or conflicting")
+    exact_replay = revision == recorded_revision
+    if exact_replay and (
+        request.get("request_hash") != elicitation["recorded_request_hash"]
+        or response.get("response_hash") != elicitation["recorded_response_hash"]
+    ):
+        raise BehaviorError("Human Elicitation revision is stale or conflicting")
+
+    disposition = response.get("disposition")
+    if disposition not in {"answered", "declined", "cancelled", "expired"}:
+        raise BehaviorError("Human Elicitation response disposition is invalid")
+    terminal_state = "resolved" if disposition == "answered" else disposition
+    replay_record_state = elicitation.get("replay_record_state")
+    terminal_accepted_value = elicitation.get("terminal_accepted_at")
+    if exact_replay:
+        terminal_accepted_at = _utc_timestamp(
+            terminal_accepted_value, "terminal_accepted_at"
+        )
+        if not resolved_at <= terminal_accepted_at <= evaluation_time:
+            raise BehaviorError(
+                "Human Elicitation terminal acceptance time is invalid"
+            )
+        try:
+            retained_until = terminal_accepted_at + timedelta(
+                seconds=replay_retention_seconds
+            )
+        except OverflowError as error:
+            raise BehaviorError(
+                "Human Elicitation replay retention cannot be evaluated"
+            ) from error
+        if (
+            elicitation.get("lifecycle") != terminal_state
+            or replay_record_state != "retained"
+            or evaluation_time > retained_until
+        ):
+            raise BehaviorError(
+                "Human Elicitation terminal replay record is unavailable"
+            )
+    elif (
+        elicitation.get("lifecycle") != "pending"
+        or replay_record_state != "not_applicable"
+        or terminal_accepted_value != "absent"
+    ):
+        raise BehaviorError("Human Elicitation lifecycle is inconsistent")
+
+    if elicitation.get("authority_use") != "informational":
+        raise BehaviorError("Human Elicitation cannot create authority")
+    if disposition != "answered":
+        if "response" in response:
+            raise BehaviorError(
+                "non-answered Human Elicitation response carries an answer"
+            )
+        return _HumanElicitationResult(
+            kind=str(request.get("kind")),
+            disposition=disposition,
+            terminal_replay=exact_replay,
+        )
+
+    kind = request.get("kind")
+    request_body = request.get("request")
+    response_body = response.get("response")
+    if not isinstance(request_body, Mapping) or not isinstance(response_body, Mapping):
+        raise BehaviorError("Human Elicitation kind payload is not an object")
+    if kind == "clarify":
+        if set(request_body) != {
+            "question_id",
+            "response_schema",
+            "response_schema_hash",
+            "max_bytes",
+        } or set(response_body) != {"answer"}:
+            raise BehaviorError("clarification payload is not the closed shape")
+        answer = response_body.get("answer")
+        max_bytes = request_body.get("max_bytes")
+        if (
+            isinstance(max_bytes, bool)
+            or not isinstance(max_bytes, int)
+            or not 1 <= max_bytes <= SAFE_INTEGER
+        ):
+            raise BehaviorError("clarification byte bound is invalid")
+        _validate_jcs_value(answer)
+        try:
+            encoded = rfc8785.dumps(answer)
+        except rfc8785.CanonicalizationError as error:
+            raise BehaviorError(
+                "clarification answer cannot be canonicalized"
+            ) from error
+        if len(encoded) > max_bytes:
+            raise BehaviorError("clarification answer exceeds its bound")
+        _validate_embedded_schema(
+            request_body.get("response_schema"),
+            answer,
+            schema_hash=request_body.get("response_schema_hash"),
+            label="clarification response_schema",
+        )
+    elif kind == "choose":
+        if set(request_body) != {
+            "question_id",
+            "options",
+            "min_selected",
+            "max_selected",
+        } or set(response_body) != {"option_ids"}:
+            raise BehaviorError("choice payload is not the closed shape")
+        options = request_body.get("options")
+        if (
+            not isinstance(options, list)
+            or not options
+            or any(
+                not isinstance(item, Mapping)
+                or set(item) != {"option_id", "label", "detail"}
+                for item in options
+            )
+        ):
+            raise BehaviorError("choice options are not the closed shape")
+        option_ids = [item.get("option_id") for item in options]
+        min_selected = request_body.get("min_selected")
+        max_selected = request_body.get("max_selected")
+        selected = response_body.get("option_ids")
+        if (
+            any(not isinstance(item, str) or not item for item in option_ids)
+            or len(option_ids) != len(set(option_ids))
+            or isinstance(min_selected, bool)
+            or not isinstance(min_selected, int)
+            or isinstance(max_selected, bool)
+            or not isinstance(max_selected, int)
+            or not 0 <= min_selected <= max_selected <= len(option_ids)
+            or not isinstance(selected, list)
+            or any(not isinstance(item, str) or not item for item in selected)
+            or len(selected) != len(set(selected))
+            or not set(selected).issubset(option_ids)
+            or not min_selected <= len(selected) <= max_selected
+        ):
+            raise BehaviorError("choice response is outside the offered option set")
+    elif kind == "step_up":
+        if set(request_body) != {
+            "transaction_text",
+            "required_assurance",
+            "max_age_seconds",
+        } or set(response_body) != {
+            "result_ref",
+            "verifier",
+            "achieved_assurance",
+            "authenticated_at",
+            "expires_at",
+        }:
+            raise BehaviorError("step-up payload is not the closed shape")
+        authenticated_at = _utc_timestamp(
+            response_body.get("authenticated_at"), "authenticated_at"
+        )
+        step_up_expires_at = _utc_timestamp(
+            response_body.get("expires_at"), "step-up expires_at"
+        )
+        max_age_seconds = request_body.get("max_age_seconds")
+        achieved_assurance = response_body.get("achieved_assurance")
+        required_assurance = request_body.get("required_assurance")
+        verifier = response_body.get("verifier")
+        authoritative_result = elicitation.get("authoritative_step_up_result")
+        authoritative_fields = {
+            "status",
+            "result_ref",
+            "verifier",
+            "audience",
+            "subject",
+            "elicitation_id",
+            "revision",
+            "context_hash",
+            "achieved_assurance",
+            "authenticated_at",
+            "expires_at",
+        }
+        if (
+            elicitation.get("step_up_verification") != "verified"
+            or elicitation.get("secret_material") != "absent"
+            or not isinstance(authoritative_result, Mapping)
+            or set(authoritative_result) != authoritative_fields
+            or authoritative_result.get("status") != "verified"
+            or authoritative_result.get("result_ref")
+            != response_body.get("result_ref")
+            or authoritative_result.get("verifier") != verifier
+            or authoritative_result.get("audience")
+            != elicitation.get("authenticated_requester")
+            or authoritative_result.get("subject")
+            != elicitation.get("authenticated_subject")
+            or authoritative_result.get("elicitation_id")
+            != request.get("elicitation_id")
+            or authoritative_result.get("revision") != request.get("revision")
+            or authoritative_result.get("context_hash")
+            != request.get("context_hash")
+            or authoritative_result.get("achieved_assurance")
+            != achieved_assurance
+            or authoritative_result.get("authenticated_at")
+            != response_body.get("authenticated_at")
+            or authoritative_result.get("expires_at")
+            != response_body.get("expires_at")
+            or not isinstance(response_body.get("result_ref"), str)
+            or not response_body["result_ref"]
+            or not isinstance(verifier, Mapping)
+            or set(verifier) != {"type", "id"}
+            or verifier.get("type") not in {"application", "runtime", "external"}
+            or not isinstance(verifier.get("id"), str)
+            or not verifier["id"]
+            or verifier != elicitation.get("authenticated_verifier")
+            or not isinstance(required_assurance, list)
+            or not required_assurance
+            or any(
+                not isinstance(item, str) or not item
+                for item in required_assurance
+            )
+            or len(required_assurance) != len(set(required_assurance))
+            or not isinstance(achieved_assurance, list)
+            or not achieved_assurance
+            or any(
+                not isinstance(item, str) or not item
+                for item in achieved_assurance
+            )
+            or len(achieved_assurance) != len(set(achieved_assurance))
+            or not set(required_assurance).issubset(achieved_assurance)
+            or isinstance(max_age_seconds, bool)
+            or not isinstance(max_age_seconds, int)
+            or not 1 <= max_age_seconds <= SAFE_INTEGER
+            or not authenticated_at
+            <= resolved_at
+            <= evaluation_time
+            <= step_up_expires_at
+            or (evaluation_time - authenticated_at).total_seconds()
+            > max_age_seconds
+        ):
+            raise BehaviorError("step-up result is unverified or contains a secret")
+    elif kind == "edit":
+        if set(request_body) != {
+            "base",
+            "base_hash",
+            "input_schema_hash",
+            "editable_paths",
+        } or set(response_body) != {"candidate", "candidate_hash"}:
+            raise BehaviorError("edit payload is not the closed shape")
+        base = request_body.get("base")
+        candidate = response_body.get("candidate")
+        editable_paths = _editable_paths(request_body.get("editable_paths"))
+        if (
+            elicitation.get("candidate_validation") != "passed"
+            or base != elicitation.get("authoritative_base")
+            or request_body.get("base_hash")
+            != _object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/action-input/v1",
+                base,
+            )
+            or request.get("context", {}).get("input_hash")
+            != request_body.get("base_hash")
+            or response_body.get("candidate_hash")
+            != _object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/action-input/v1",
+                candidate,
+            )
+        ):
+            raise BehaviorError("edited candidate is stale or not rebound")
+        if any(
+            not _path_is_editable(path, editable_paths)
+            for path in _changed_json_pointers(base, candidate)
+        ):
+            raise BehaviorError("edited candidate changed a forbidden path")
+        _validate_embedded_schema(
+            elicitation.get("authoritative_input_schema"),
+            candidate,
+            schema_hash=request_body.get("input_schema_hash"),
+            label="authoritative action input schema",
+        )
+    elif kind == "redline":
+        allowed_request_fields = {
+            "base_hash",
+            "media_type",
+            "patch_schema",
+            "patch_schema_hash",
+        }
+        if "editable_paths" in request_body:
+            allowed_request_fields.add("editable_paths")
+        if set(request_body) != allowed_request_fields or set(response_body) != {
+            "base_hash",
+            "patch",
+            "candidate_hash",
+        }:
+            raise BehaviorError("redline payload is not the closed shape")
+        if request_body.get("media_type") != "application/json-patch+json":
+            raise BehaviorError("redline media type is unsupported")
+        _validate_embedded_schema(
+            request_body.get("patch_schema"),
+            response_body.get("patch"),
+            schema_hash=request_body.get("patch_schema_hash"),
+            label="redline patch_schema",
+        )
+        editable_paths = (
+            _editable_paths(request_body.get("editable_paths"))
+            if "editable_paths" in request_body
+            else ()
+        )
+        if editable_paths and any(
+            not _path_is_editable(str(operation.get("path")), editable_paths)
+            for operation in response_body.get("patch", [])
+            if isinstance(operation, Mapping)
+        ):
+            raise BehaviorError("redline patch targets a forbidden path")
+        base = elicitation.get("authoritative_base")
+        candidate = _apply_redline(base, response_body.get("patch"))
+        if (
+            elicitation.get("candidate_validation") != "passed"
+            or request_body.get("base_hash")
+            != _object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/action-input/v1",
+                base,
+            )
+            or request.get("context", {}).get("input_hash")
+            != request_body.get("base_hash")
+            or response_body.get("base_hash") != request_body.get("base_hash")
+            or response_body.get("candidate_hash")
+            != _object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/action-input/v1",
+                candidate,
+            )
+        ):
+            raise BehaviorError("redline base or candidate result is invalid")
+        _validate_embedded_schema(
+            elicitation.get("authoritative_input_schema"),
+            candidate,
+            schema_hash=None,
+            label="authoritative action input schema",
+        )
+    else:
+        raise BehaviorError("unsupported Human Elicitation kind")
+    if kind != "step_up" and (
+        elicitation.get("step_up_verification") != "not_applicable"
+        or elicitation.get("secret_material") != "absent"
+        or "authenticated_verifier" in elicitation
+        or "authoritative_step_up_result" in elicitation
+    ):
+        raise BehaviorError("non-step-up response carries authentication state")
+    return _HumanElicitationResult(
+        kind=kind,
+        disposition=disposition,
+        terminal_replay=exact_replay,
+    )
+
+
 def _surface(operation: str, document: Mapping[str, Any], state: _Transition) -> BehaviorResult:
     if operation != "publish_manifest":
         raise BehaviorError(f"Surface Publisher does not support {operation!r}")
@@ -513,6 +1343,47 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
     grant = _section(document, "grant")
     execution = _section(document, "execution")
     operational = document.get("operational")
+    if operation == "apply_human_elicitation_candidate":
+        try:
+            elicitation_result = _validate_human_elicitation(document)
+            if elicitation_result.kind not in {"edit", "redline"}:
+                raise BehaviorError(
+                    "Action Executor accepts only edited or redlined candidates"
+                )
+            if elicitation_result.disposition != "answered":
+                raise BehaviorError(
+                    "Action Executor requires an answered candidate response"
+                )
+        except BehaviorError:
+            return state.result(
+                "rejected",
+                "elicitation_binding_rejected",
+                "elicitation_candidate_rejected",
+                "elicitation_authority_retained",
+                "action_dispatch_suppressed",
+                asp_error="elicitation_invalid",
+            )
+        if elicitation_result.terminal_replay:
+            return state.result(
+                "accepted",
+                "elicitation_binding_validated",
+                "elicitation_response_accepted",
+                "elicitation_authority_unchanged",
+            )
+        state.increment("application.proposal_revision")
+        state.increment("application.proposal_update_count")
+        kind_token = (
+            "elicitation_candidate_revalidated"
+            if elicitation_result.kind == "edit"
+            else "elicitation_redline_applied"
+        )
+        return state.result(
+            "accepted",
+            "elicitation_binding_validated",
+            kind_token,
+            "elicitation_prior_authority_invalidated",
+            "elicitation_authority_unchanged",
+        )
     if operation == "bind_http_capacity_response":
         return _bind_http_capacity_response(document, state)
     if operation in {"deliver_event", "retransmit_event"}:
@@ -738,6 +1609,83 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
     execution = _section(document, "execution")
     runtime = _section(document, "runtime")
     operational = document.get("operational")
+    if operation == "mediate_human_elicitation":
+        raw_elicitation = document.get("elicitation")
+        raw_request = (
+            raw_elicitation.get("request")
+            if isinstance(raw_elicitation, Mapping)
+            else None
+        )
+        kind = raw_request.get("kind") if isinstance(raw_request, Mapping) else None
+        try:
+            elicitation_result = _validate_human_elicitation(document)
+        except BehaviorError:
+            if kind == "step_up":
+                return state.result(
+                    "rejected",
+                    "elicitation_binding_rejected",
+                    "step_up_result_rejected",
+                    "human_secret_withheld",
+                    "elicitation_authority_retained",
+                    asp_error="elicitation_invalid",
+                )
+            return state.result(
+                "rejected",
+                "elicitation_binding_rejected",
+                "elicitation_response_suppressed",
+                "elicitation_authority_retained",
+                "action_dispatch_suppressed",
+                asp_error="elicitation_invalid",
+            )
+        elicitation = _section(document, "elicitation")
+        request = _section(elicitation, "request")
+        if elicitation_result.terminal_replay:
+            return state.result(
+                "accepted",
+                "elicitation_binding_validated",
+                "elicitation_response_accepted",
+                "elicitation_authority_unchanged",
+            )
+        state.set("runtime.elicitation_revision", request["revision"])
+        state.increment("runtime.elicitation_response_count")
+        if elicitation_result.disposition != "answered":
+            return state.result(
+                "accepted",
+                "elicitation_binding_validated",
+                "elicitation_response_accepted",
+                "elicitation_authority_unchanged",
+            )
+        if elicitation_result.kind == "clarify":
+            return state.result(
+                "accepted",
+                "elicitation_binding_validated",
+                "elicitation_request_presented",
+                "elicitation_response_accepted",
+                "elicitation_authority_unchanged",
+            )
+        if elicitation_result.kind == "choose":
+            return state.result(
+                "accepted",
+                "elicitation_binding_validated",
+                "elicitation_choice_validated",
+                "elicitation_response_accepted",
+                "elicitation_authority_unchanged",
+            )
+        if elicitation_result.kind in {"edit", "redline"}:
+            return state.result(
+                "accepted",
+                "elicitation_binding_validated",
+                "elicitation_response_accepted",
+                "elicitation_authority_unchanged",
+            )
+        state.increment("runtime.step_up_verified_count")
+        return state.result(
+            "accepted",
+            "elicitation_binding_validated",
+            "step_up_result_verified",
+            "human_secret_withheld",
+            "elicitation_authority_unchanged",
+        )
     if operation == "present_ahp_session":
         try:
             ahp = _validate_ahp_binding(
@@ -970,10 +1918,122 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
     )
 
 
+def _validate_agent_elicitation_projection(
+    document: Mapping[str, Any],
+) -> _HumanElicitationResult:
+    result = _validate_human_elicitation(document)
+    if result.disposition != "answered":
+        raise BehaviorError("Agent Adapter cannot project an unanswered elicitation")
+    elicitation = _section(document, "elicitation")
+    request = _section(elicitation, "request")
+    response = _section(elicitation, "response")
+    projection = elicitation.get("agent_projection")
+    if not isinstance(projection, Mapping) or set(projection) != {
+        "origin",
+        "exposure",
+        "purpose_binding",
+        "value",
+        "secret_material",
+    }:
+        raise BehaviorError("agent elicitation projection is not the closed shape")
+    if (
+        projection.get("origin") != "presenter"
+        or projection.get("exposure") != "minimized"
+        or projection.get("secret_material") != "absent"
+    ):
+        raise BehaviorError("agent elicitation projection is not presenter-authored")
+    purpose_binding = projection.get("purpose_binding")
+    purpose_fields = (
+        "session_id",
+        "session_generation",
+        "grant_id",
+        "grant_hash",
+        "surface_hash",
+        "context_hash",
+        "request_hash",
+    )
+    if (
+        not isinstance(purpose_binding, Mapping)
+        or set(purpose_binding) != set(purpose_fields)
+        or any(
+            purpose_binding.get(field) != request.get(field)
+            for field in purpose_fields
+        )
+    ):
+        raise BehaviorError("agent elicitation projection is not purpose-bound")
+    value = projection.get("value")
+    response_body = response.get("response")
+    if not isinstance(value, Mapping) or not isinstance(response_body, Mapping):
+        raise BehaviorError("agent elicitation projection value is invalid")
+    minimized_values: dict[str, Mapping[str, Any]] = {
+        "clarify": {
+            "kind": "clarify",
+            "answer": response_body.get("answer"),
+        },
+        "choose": {
+            "kind": "choose",
+            "option_ids": response_body.get("option_ids"),
+        },
+        "edit": {
+            "kind": "edit",
+            "candidate": response_body.get("candidate"),
+            "candidate_hash": response_body.get("candidate_hash"),
+        },
+        "redline": {
+            "kind": "redline",
+            "base_hash": response_body.get("base_hash"),
+            "patch": response_body.get("patch"),
+            "candidate_hash": response_body.get("candidate_hash"),
+        },
+    }
+    if result.kind == "step_up" or value != minimized_values.get(result.kind):
+        raise BehaviorError(
+            "agent elicitation projection is not the minimized kind-specific answer"
+        )
+    return result
+
+
 def _adapter(operation: str, document: Mapping[str, Any], state: _Transition) -> BehaviorResult:
     execution = _section(document, "execution")
     adapter = _section(document, "adapter")
     receipt = _section(document, "receipt")
+    if operation == "project_human_elicitation_answer":
+        raw_elicitation = document.get("elicitation")
+        raw_projection = (
+            raw_elicitation.get("agent_projection")
+            if isinstance(raw_elicitation, Mapping)
+            else None
+        )
+        secret_failure = isinstance(raw_projection, Mapping) and (
+            raw_projection.get("secret_material") != "absent"
+            or raw_projection.get("exposure") == "full_step_up_response"
+        )
+        try:
+            elicitation_result = _validate_agent_elicitation_projection(document)
+        except BehaviorError:
+            tokens = [
+                "elicitation_binding_rejected",
+                "elicitation_response_suppressed",
+            ]
+            if secret_failure:
+                tokens.append("human_secret_withheld")
+            tokens.append("elicitation_authority_retained")
+            if not secret_failure:
+                tokens.append("action_dispatch_suppressed")
+            return state.result(
+                "rejected",
+                *tokens,
+                asp_error="elicitation_invalid",
+            )
+        if not elicitation_result.terminal_replay:
+            state.increment("adapter.forwarded_count")
+        return state.result(
+            "accepted",
+            "elicitation_binding_validated",
+            "elicitation_response_accepted",
+            "human_secret_withheld",
+            "elicitation_authority_unchanged",
+        )
     if operation == "translate_ahp_action":
         try:
             _validate_ahp_binding(

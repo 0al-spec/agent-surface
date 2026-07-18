@@ -13,12 +13,19 @@ from conformance.check import (
     ConformanceError,
     PROFILE_ROLES,
     RECEIPT_PROFILE,
+    _canonical_object_hash,
+    _hash_without_member,
+    _resolved_fixture,
     applicable_vectors,
     catalog_digest,
+    loads_human_json,
     loads_strict_json,
     main,
     run_suite,
+    validate_agent_human_elicitation_projection,
     validate_catalog,
+    validate_human_elicitation,
+    validate_human_elicitation_projection,
     validate_subject,
     verify_report,
 )
@@ -35,6 +42,37 @@ def digest(label: str) -> str:
 DIGEST_A = digest("target-artifact")
 DIGEST_B = digest("target-configuration")
 DIGEST_C = digest("replacement-artifact")
+HUMAN_CONTEXT_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/human-elicitation-context/v1"
+)
+HUMAN_REQUEST_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/human-elicitation-request/v1"
+)
+HUMAN_RESPONSE_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/human-elicitation-response/v1"
+)
+ACTION_INPUT_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/action-input/v1"
+)
+ACTION_INPUT_SCHEMA_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/action-input-schema/v1"
+)
+
+
+def refresh_human_hashes(elicitation: dict) -> None:
+    request = elicitation["request"]
+    response = elicitation["response"]
+    request["context_hash"] = _canonical_object_hash(
+        HUMAN_CONTEXT_DOMAIN, request["context"]
+    )
+    request["request_hash"] = _hash_without_member(
+        HUMAN_REQUEST_DOMAIN, request, "request_hash"
+    )
+    response["context_hash"] = request["context_hash"]
+    response["request_hash"] = request["request_hash"]
+    response["response_hash"] = _hash_without_member(
+        HUMAN_RESPONSE_DOMAIN, response, "response_hash"
+    )
 
 
 class ConformanceSuiteTests(unittest.TestCase):
@@ -125,13 +163,13 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.4.0")
-        self.assertEqual(len(self.catalog.features), 10)
-        self.assertEqual(len(self.catalog.requirements), 40)
-        self.assertEqual(len(self.catalog.vectors), 87)
-        self.assertEqual(len(self.catalog.fixtures), 29)
-        self.assertEqual(len(self.catalog.mutations), 59)
-        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 36)
+        self.assertEqual(self.catalog.suite["suite_version"], "1.5.0")
+        self.assertEqual(len(self.catalog.features), 11)
+        self.assertEqual(len(self.catalog.requirements), 43)
+        self.assertEqual(len(self.catalog.vectors), 102)
+        self.assertEqual(len(self.catalog.fixtures), 36)
+        self.assertEqual(len(self.catalog.mutations), 67)
+        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 40)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
 
     def test_feature_vocabularies_match_the_catalog(self) -> None:
@@ -156,6 +194,7 @@ class ConformanceSuiteTests(unittest.TestCase):
         for schema_id in {
             "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
         }:
             self.assertEqual(
                 {case["polarity"] for case in cases if case["schema_id"] == schema_id},
@@ -268,6 +307,276 @@ class ConformanceSuiteTests(unittest.TestCase):
             ConformanceError, "does not match its bound ASP authority tuple"
         ):
             validate_catalog(root)
+
+    def test_human_elicitation_baselines_are_semantically_bound(self) -> None:
+        elicitation_vectors = {
+            "ASP-V-RM-033",
+            "ASP-V-RM-034",
+            "ASP-V-RM-035",
+            "ASP-V-RM-036",
+            "ASP-V-RM-037",
+            "ASP-V-RM-038",
+            "ASP-V-RM-039",
+            "ASP-V-RM-040",
+            "ASP-V-AE-027",
+            "ASP-V-AE-028",
+            "ASP-V-AE-029",
+            "ASP-V-AE-030",
+            "ASP-V-AA-009",
+            "ASP-V-AA-010",
+            "ASP-V-AA-011",
+        }
+        self.assertEqual(
+            {
+                vector_id
+                for vector_id, vector in self.catalog.vectors.items()
+                if "human_elicitation_selected" in vector["setup"]
+            },
+            elicitation_vectors,
+        )
+
+        root = self.catalog_copy()
+        path = root / "conformance" / "v1" / "fixtures.json"
+        fixtures = json.loads(path.read_text(encoding="utf-8"))
+        baseline = next(
+            item
+            for item in fixtures["fixtures"]
+            if item["fixture_id"] == "ASP-F-RM-034"
+        )
+        baseline["document"]["elicitation"]["response"]["session_generation"] = 2
+        path.write_text(json.dumps(fixtures), encoding="utf-8")
+        with self.assertRaisesRegex(
+            ConformanceError,
+            "response_hash is invalid",
+        ):
+            validate_catalog(root)
+
+    def test_human_hashing_uses_rfc8785_numbers_and_utf16_order(self) -> None:
+        domain = "urn:example:human-jcs"
+        value = {"\ue000": 2, "\U00010000": 1.5}
+        canonical = (
+            '{"domain":"urn:example:human-jcs",'
+            '"object":{"\U00010000":1.5,"\ue000":2}}'
+        ).encode("utf-8")
+        expected = "sha-256:" + base64.urlsafe_b64encode(
+            hashlib.sha256(canonical).digest()
+        ).rstrip(b"=").decode("ascii")
+        self.assertEqual(_canonical_object_hash(domain, value), expected)
+        self.assertEqual(loads_human_json('{"value":1.5}')["value"], 1.5)
+        for document in ('{"value":-0}', '{"value":-0.0}'):
+            with self.subTest(document=document):
+                with self.assertRaisesRegex(ConformanceError, "negative zero"):
+                    loads_human_json(document)
+        with self.assertRaisesRegex(ConformanceError, "negative zero"):
+            _canonical_object_hash(domain, {"value": -0.0})
+
+    def test_human_schema_case_parser_accepts_binary64_edit_base(self) -> None:
+        positive = next(
+            item
+            for item in self.catalog.schema_case_catalog["cases"]
+            if item["case_id"] == "ASP-SC-HE-002"
+        )
+        request = loads_human_json(positive["instance_json"])
+        base = request["request"]["base"]
+        self.assertEqual(base["\U00010000"], 1.5)
+        self.assertEqual(
+            request["request"]["base_hash"],
+            _canonical_object_hash(ACTION_INPUT_DOMAIN, base),
+        )
+        self.assertEqual(
+            request["request_hash"],
+            _hash_without_member(HUMAN_REQUEST_DOMAIN, request, "request_hash"),
+        )
+        negative = next(
+            item
+            for item in self.catalog.schema_case_catalog["cases"]
+            if item["case_id"] == "ASP-SC-HE-102"
+        )
+        with self.assertRaisesRegex(ConformanceError, "negative zero"):
+            loads_human_json(negative["instance_json"])
+
+    def test_human_participant_types_must_differ(self) -> None:
+        case = next(
+            item
+            for item in self.catalog.schema_case_catalog["cases"]
+            if item["case_id"] == "ASP-SC-HE-001"
+        )
+        request = loads_human_json(case["instance_json"])
+        request["presenter"] = {"type": "application", "id": "app_b"}
+        request["request_hash"] = _hash_without_member(
+            HUMAN_REQUEST_DOMAIN, request, "request_hash"
+        )
+        with self.assertRaisesRegex(
+            ConformanceError, "requester.type and presenter.type must differ"
+        ):
+            validate_human_elicitation(request, {})
+
+    def test_clarification_max_bytes_uses_rfc8785_utf8(self) -> None:
+        clarify = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-033"]["document"]["elicitation"]
+        )
+        response_schema = {"type": "number"}
+        clarify["request"]["request"]["response_schema"] = response_schema
+        clarify["request"]["request"]["response_schema_hash"] = (
+            _canonical_object_hash(ACTION_INPUT_SCHEMA_DOMAIN, response_schema)
+        )
+        clarify["request"]["request"]["max_bytes"] = 4
+        clarify["response"]["response"]["answer"] = 1e-7
+        refresh_human_hashes(clarify)
+        validate_human_elicitation_projection(clarify)
+
+        clarify["request"]["request"]["max_bytes"] = 3
+        refresh_human_hashes(clarify)
+        with self.assertRaisesRegex(ConformanceError, "exceeds max_bytes"):
+            validate_human_elicitation_projection(clarify)
+
+    def test_human_kind_specific_constraints_fail_after_valid_hashes(self) -> None:
+        clarify = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-033"]["document"]["elicitation"]
+        )
+        clarify["response"]["response"]["answer"] = 7
+        refresh_human_hashes(clarify)
+        with self.assertRaisesRegex(ConformanceError, "clarification answer"):
+            validate_human_elicitation_projection(clarify)
+
+        step_up = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-035"]["document"]["elicitation"]
+        )
+        step_up["authenticated_verifier"] = {
+            "type": "external",
+            "id": "verifier_b",
+        }
+        with self.assertRaisesRegex(ConformanceError, "verifier binding"):
+            validate_human_elicitation_projection(step_up)
+        step_up = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-035"]["document"]["elicitation"]
+        )
+        step_up["response"]["response"]["authenticated_at"] = (
+            "2026-07-18T12:55:00Z"
+        )
+        step_up["authoritative_step_up_result"]["authenticated_at"] = (
+            "2026-07-18T12:55:00Z"
+        )
+        refresh_human_hashes(step_up)
+        with self.assertRaisesRegex(ConformanceError, "max_age_seconds"):
+            validate_human_elicitation_projection(step_up)
+
+        authoritative_fields = {
+            "status": "unverified",
+            "result_ref": "auth_result_other",
+            "verifier": {"type": "external", "id": "verifier_b"},
+            "audience": {"type": "runtime", "id": "runtime_a"},
+            "subject": "user_other",
+            "elicitation_id": "elicit_other",
+            "revision": 2,
+            "context_hash": digest("other-context"),
+            "achieved_assurance": ["https://example.com/assurance/a3"],
+            "authenticated_at": "2026-07-18T13:03:00Z",
+            "expires_at": "2026-07-18T13:08:00Z",
+        }
+        for field, value in authoritative_fields.items():
+            with self.subTest(authoritative_field=field):
+                step_up = copy.deepcopy(
+                    self.catalog.fixtures["ASP-F-RM-035"]["document"][
+                        "elicitation"
+                    ]
+                )
+                step_up["authoritative_step_up_result"][field] = value
+                with self.assertRaisesRegex(ConformanceError, "verifier binding"):
+                    validate_human_elicitation_projection(step_up)
+
+        edit = _resolved_fixture(
+            self.catalog,
+            self.catalog.vectors["ASP-V-AE-029"],
+        )["document"]["elicitation"]
+        with self.assertRaisesRegex(ConformanceError, "forbidden path"):
+            validate_human_elicitation_projection(edit)
+
+        redline = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-AE-028"]["document"]["elicitation"]
+        )
+        redline["response"]["response"]["patch"][0]["path"] = "/metadata"
+        redline["response"]["response"]["patch"][0]["value"] = "unsafe"
+        redline["response"]["response"]["candidate_hash"] = _canonical_object_hash(
+            ACTION_INPUT_DOMAIN,
+            {"message": "Old text", "metadata": "unsafe"},
+        )
+        refresh_human_hashes(redline)
+        with self.assertRaisesRegex(ConformanceError, "forbidden path"):
+            validate_human_elicitation_projection(redline)
+
+        redline = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-AE-028"]["document"]["elicitation"]
+        )
+        redline["response"]["response"]["patch"][0]["value"] = 7
+        redline["response"]["response"]["candidate_hash"] = _canonical_object_hash(
+            ACTION_INPUT_DOMAIN,
+            {"message": 7, "metadata": "safe"},
+        )
+        refresh_human_hashes(redline)
+        with self.assertRaisesRegex(ConformanceError, "redline patch"):
+            validate_human_elicitation_projection(redline)
+
+    def test_human_negative_vectors_reach_bound_semantic_failures(self) -> None:
+        expected = {
+            "ASP-V-RM-036": "exact request binding",
+            "ASP-V-RM-038": "verifier binding",
+            "ASP-V-RM-040": "verifier binding",
+            "ASP-V-AE-029": "forbidden path",
+            "ASP-V-AE-030": "base or result binding",
+        }
+        for vector_id, message in expected.items():
+            with self.subTest(vector_id=vector_id):
+                elicitation = _resolved_fixture(
+                    self.catalog,
+                    self.catalog.vectors[vector_id],
+                )["document"]["elicitation"]
+                with self.assertRaisesRegex(ConformanceError, message):
+                    validate_human_elicitation_projection(elicitation)
+
+    def test_human_terminal_replay_requires_current_retained_record(self) -> None:
+        replay = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-039"]["document"]["elicitation"]
+        )
+        validate_human_elicitation_projection(replay)
+        replay["replay_record_state"] = "evicted"
+        with self.assertRaisesRegex(ConformanceError, "unavailable or expired"):
+            validate_human_elicitation_projection(replay)
+        replay = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-039"]["document"]["elicitation"]
+        )
+        replay["evaluation_time"] = "2026-07-18T14:06:00Z"
+        with self.assertRaisesRegex(ConformanceError, "unavailable or expired"):
+            validate_human_elicitation_projection(replay)
+        replay = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-039"]["document"]["elicitation"]
+        )
+        replay["terminal_accepted_at"] = "absent"
+        with self.assertRaisesRegex(ConformanceError, "lacks terminal_accepted_at"):
+            validate_human_elicitation_projection(replay)
+        replay = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-039"]["document"]["elicitation"]
+        )
+        replay["terminal_accepted_at"] = "2026-07-18T13:04:59Z"
+        with self.assertRaisesRegex(ConformanceError, "not current"):
+            validate_human_elicitation_projection(replay)
+
+    def test_agent_adapter_human_projection_is_minimized_and_bound(self) -> None:
+        positive = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-AA-009"]["document"]["elicitation"]
+        )
+        validate_agent_human_elicitation_projection(positive)
+        for vector_id in ("ASP-V-AA-010", "ASP-V-AA-011"):
+            with self.subTest(vector_id=vector_id):
+                elicitation = _resolved_fixture(
+                    self.catalog,
+                    self.catalog.vectors[vector_id],
+                )["document"]["elicitation"]
+                with self.assertRaisesRegex(
+                    ConformanceError,
+                    "originated, unbound, overbroad, or secret-bearing",
+                ):
+                    validate_agent_human_elicitation_projection(elicitation)
 
     def test_every_role_has_positive_and_negative_vectors(self) -> None:
         for profile_id in PROFILE_ROLES:

@@ -25,6 +25,8 @@ from mocks.behavior import (
     BehaviorError,
     BehaviorResult,
     FEATURE_INVENTORY,
+    _hash_without,
+    _object_hash,
     evaluate,
     family_for,
 )
@@ -51,18 +53,49 @@ class MockBehaviorSecurityTests(unittest.TestCase):
     def evaluate_vector(self, vector_id: str) -> tuple[dict[str, Any], BehaviorResult]:
         vector = self.catalog.vectors[vector_id]
         fixture = _resolved_fixture(self.catalog, vector)
+        return vector, self.evaluate_document(vector, fixture["document"])
+
+    def evaluate_document(
+        self,
+        vector: dict[str, Any],
+        document: dict[str, Any],
+    ) -> BehaviorResult:
         initial_state = [
             {"state": delta["state"], "value": delta["before"]}
             for delta in vector["state_deltas"]
         ]
-        result = evaluate(
+        return evaluate(
             profile_id=vector["profile_id"],
             producer_role=vector.get("producer_role"),
             operation=vector["stimulus"]["operation"],
-            document=fixture["document"],
+            document=document,
             initial_state=initial_state,
         )
-        return vector, result
+
+    @staticmethod
+    def rehash_elicitation(document: dict[str, Any]) -> None:
+        elicitation = document["elicitation"]
+        request = elicitation["request"]
+        response = elicitation["response"]
+        request["context_hash"] = _object_hash(
+            "https://github.com/0al-spec/agent-surface/hash/"
+            "human-elicitation-context/v1",
+            request["context"],
+        )
+        request["request_hash"] = _hash_without(
+            "https://github.com/0al-spec/agent-surface/hash/"
+            "human-elicitation-request/v1",
+            request,
+            "request_hash",
+        )
+        response["context_hash"] = request["context_hash"]
+        response["request_hash"] = request["request_hash"]
+        response["response_hash"] = _hash_without(
+            "https://github.com/0al-spec/agent-surface/hash/"
+            "human-elicitation-response/v1",
+            response,
+            "response_hash",
+        )
 
     def assert_matches_catalog_oracle(self, vector_id: str) -> BehaviorResult:
         vector, result = self.evaluate_vector(vector_id)
@@ -106,7 +139,7 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 "state_deltas",
             }
         )
-        self.assertEqual(len(self.catalog.vectors), 87)
+        self.assertEqual(len(self.catalog.vectors), 102)
         for vector_id in self.catalog.vectors:
             with self.subTest(vector_id=vector_id):
                 self.assert_matches_catalog_oracle(vector_id)
@@ -440,6 +473,219 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 self.assertEqual(result.policy_reason, "binding_invalid")
                 self.assertEqual(result.state_after, result.state_before)
 
+    def test_human_elicitation_is_typed_input_without_approval_authority(self) -> None:
+        for vector_id, required_token in (
+            ("ASP-V-RM-033", "elicitation_request_presented"),
+            ("ASP-V-RM-034", "elicitation_choice_validated"),
+            ("ASP-V-RM-035", "step_up_result_verified"),
+            ("ASP-V-AE-027", "elicitation_candidate_revalidated"),
+            ("ASP-V-AE-028", "elicitation_redline_applied"),
+            ("ASP-V-RM-039", "elicitation_response_accepted"),
+            ("ASP-V-AA-009", "elicitation_response_accepted"),
+        ):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertIn(required_token, result.tokens)
+                self.assertNotIn("action_accepted", result.tokens)
+                self.assertEqual(
+                    result.state_after["action.dispatch_count"],
+                    result.state_before["action.dispatch_count"],
+                )
+                self.assertEqual(
+                    result.state_after["action.effect_count"],
+                    result.state_before["action.effect_count"],
+                )
+
+        replay = self.assert_matches_catalog_oracle("ASP-V-RM-039")
+        self.assertNotIn("elicitation_request_presented", replay.tokens)
+        self.assertEqual(replay.state_after, replay.state_before)
+
+        for vector_id in (
+            "ASP-V-RM-036",
+            "ASP-V-RM-037",
+            "ASP-V-RM-038",
+            "ASP-V-RM-040",
+            "ASP-V-AE-029",
+            "ASP-V-AE-030",
+            "ASP-V-AA-010",
+            "ASP-V-AA-011",
+        ):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertEqual(result.asp_error, "elicitation_invalid")
+                self.assertIn("elicitation_binding_rejected", result.tokens)
+                self.assertEqual(result.state_after, result.state_before)
+
+    def test_human_elicitation_semantics_are_executed_not_trusted(self) -> None:
+        def fixture_document(vector_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+            vector = self.catalog.vectors[vector_id]
+            fixture = _resolved_fixture(self.catalog, vector)
+            return vector, copy.deepcopy(fixture["document"])
+
+        vector, same_role = fixture_document("ASP-V-RM-033")
+        same_role["elicitation"]["authenticated_requester"]["type"] = "runtime"
+        same_role["elicitation"]["request"]["requester"]["type"] = "runtime"
+        self.rehash_elicitation(same_role)
+        result = self.evaluate_document(vector, same_role)
+        self.assertEqual(result.decision, "rejected")
+        self.assertEqual(result.state_after, result.state_before)
+
+        vector, unselected = fixture_document("ASP-V-RM-033")
+        unselected["elicitation"]["selected_profile"] = "none"
+        result = self.evaluate_document(vector, unselected)
+        self.assertEqual(result.decision, "rejected")
+        self.assertEqual(result.state_after, result.state_before)
+
+        vector, premature_terminal_record = fixture_document("ASP-V-RM-033")
+        premature_terminal_record["elicitation"][
+            "terminal_accepted_at"
+        ] = "2026-07-18T13:05:00Z"
+        result = self.evaluate_document(vector, premature_terminal_record)
+        self.assertEqual(result.decision, "rejected")
+        self.assertEqual(result.state_after, result.state_before)
+
+        replay_vector, tombstone = fixture_document("ASP-V-RM-039")
+        tombstone["elicitation"]["replay_record_state"] = "tombstone"
+        result = self.evaluate_document(replay_vector, tombstone)
+        self.assertEqual(result.decision, "rejected")
+        self.assertEqual(result.state_after, result.state_before)
+
+        replay_vector, delayed_acceptance = fixture_document("ASP-V-RM-039")
+        delayed_acceptance["elicitation"][
+            "terminal_accepted_at"
+        ] = "2026-07-18T13:05:30Z"
+        delayed_acceptance["elicitation"][
+            "evaluation_time"
+        ] = "2026-07-18T14:05:15Z"
+        result = self.evaluate_document(replay_vector, delayed_acceptance)
+        self.assertEqual(result.decision, "accepted")
+        self.assertEqual(result.state_after, result.state_before)
+
+        replay_vector, expired_replay = fixture_document("ASP-V-RM-039")
+        expired_replay["elicitation"]["evaluation_time"] = "2026-07-18T14:06:01Z"
+        result = self.evaluate_document(replay_vector, expired_replay)
+        self.assertEqual(result.decision, "rejected")
+        self.assertEqual(result.state_after, result.state_before)
+
+        vector, invalid_answer = fixture_document("ASP-V-RM-033")
+        invalid_answer["elicitation"]["response"]["response"]["answer"] = 42
+        self.rehash_elicitation(invalid_answer)
+        result = self.evaluate_document(vector, invalid_answer)
+        self.assertEqual(result.decision, "rejected")
+        self.assertEqual(result.asp_error, "elicitation_invalid")
+
+        vector, external_schema = fixture_document("ASP-V-RM-033")
+        request_body = external_schema["elicitation"]["request"]["request"]
+        request_body["response_schema"] = {
+            "$ref": "https://example.com/external.schema.json"
+        }
+        request_body["response_schema_hash"] = _object_hash(
+            "https://github.com/0al-spec/agent-surface/hash/"
+            "action-input-schema/v1",
+            request_body["response_schema"],
+        )
+        self.rehash_elicitation(external_schema)
+        result = self.evaluate_document(vector, external_schema)
+        self.assertEqual(result.decision, "rejected")
+
+        vector, forbidden_edit = fixture_document("ASP-V-AE-027")
+        response_body = forbidden_edit["elicitation"]["response"]["response"]
+        response_body["candidate"]["metadata"] = "changed"
+        response_body["candidate_hash"] = _object_hash(
+            "https://github.com/0al-spec/agent-surface/hash/action-input/v1",
+            response_body["candidate"],
+        )
+        self.rehash_elicitation(forbidden_edit)
+        result = self.evaluate_document(vector, forbidden_edit)
+        self.assertEqual(result.decision, "rejected")
+        self.assertEqual(result.state_after, result.state_before)
+
+        vector, forbidden_redline = fixture_document("ASP-V-AE-028")
+        response_body = forbidden_redline["elicitation"]["response"]["response"]
+        response_body["patch"] = [
+            {"op": "replace", "path": "/metadata", "value": "changed"}
+        ]
+        candidate = copy.deepcopy(
+            forbidden_redline["elicitation"]["authoritative_base"]
+        )
+        candidate["metadata"] = "changed"
+        response_body["candidate_hash"] = _object_hash(
+            "https://github.com/0al-spec/agent-surface/hash/action-input/v1",
+            candidate,
+        )
+        self.rehash_elicitation(forbidden_redline)
+        result = self.evaluate_document(vector, forbidden_redline)
+        self.assertEqual(result.decision, "rejected")
+        self.assertEqual(result.state_after, result.state_before)
+
+        for vector_id in ("ASP-V-AE-027", "ASP-V-AE-028"):
+            with self.subTest(runtime_revalidation=vector_id):
+                _, candidate_document = fixture_document(vector_id)
+                result = evaluate(
+                    profile_id=RM,
+                    producer_role=None,
+                    operation="mediate_human_elicitation",
+                    document=candidate_document,
+                    initial_state=[
+                        {"state": "runtime.elicitation_revision", "value": 0},
+                        {"state": "runtime.elicitation_response_count", "value": 0},
+                        {"state": "action.dispatch_count", "value": 0},
+                        {"state": "action.effect_count", "value": 0},
+                    ],
+                )
+                self.assertEqual(result.decision, "accepted")
+                self.assertEqual(result.state_after["runtime.elicitation_revision"], 1)
+                self.assertEqual(
+                    result.state_after["runtime.elicitation_response_count"], 1
+                )
+                self.assertEqual(result.state_after["action.dispatch_count"], 0)
+                self.assertEqual(result.state_after["action.effect_count"], 0)
+
+        vector, stale_step_up = fixture_document("ASP-V-RM-035")
+        stale_step_up["elicitation"]["response"]["response"][
+            "authenticated_at"
+        ] = "2026-07-18T12:00:00Z"
+        self.rehash_elicitation(stale_step_up)
+        result = self.evaluate_document(vector, stale_step_up)
+        self.assertEqual(result.decision, "rejected")
+        self.assertIn("human_secret_withheld", result.tokens)
+
+        _, external_step_up = fixture_document("ASP-V-RM-035")
+        self.assertEqual(
+            external_step_up["elicitation"]["authenticated_verifier"]["type"],
+            "external",
+        )
+        self.assertEqual(
+            external_step_up["elicitation"]["authoritative_step_up_result"][
+                "verifier"
+            ],
+            external_step_up["elicitation"]["response"]["response"]["verifier"],
+        )
+        self.assertEqual(
+            external_step_up["elicitation"]["authoritative_step_up_result"][
+                "audience"
+            ],
+            external_step_up["elicitation"]["authenticated_requester"],
+        )
+
+    def test_canonical_hash_uses_rfc8785_utf16_order_and_rejects_unsafe_values(
+        self,
+    ) -> None:
+        canonical = (
+            '{"domain":"test","object":{"𐀀":1,"\ue000":2}}'.encode("utf-8")
+        )
+        digest_bytes = hashlib.sha256(canonical).digest()
+        expected = (
+            "sha-256:"
+            + base64.urlsafe_b64encode(digest_bytes).rstrip(b"=").decode("ascii")
+        )
+        self.assertEqual(_object_hash("test", {"\ue000": 2, "𐀀": 1}), expected)
+        self.assertIsInstance(_object_hash("test", {"value": 1.5}), str)
+        for value in (-0.0, float("inf"), float("nan"), "\ud800"):
+            with self.subTest(value=repr(value)):
+                with self.assertRaises(BehaviorError):
+                    _object_hash("test", {"value": value})
+
     def test_non_rate_capacity_envelopes_with_limit_fail_closed(self) -> None:
         for vector_id in ("ASP-V-RM-014", "ASP-V-RM-017"):
             with self.subTest(vector_id=vector_id):
@@ -605,11 +851,23 @@ class MockStateSecurityTests(unittest.TestCase):
             with self.assertRaises(StateError):
                 store.read(scope)
 
-    def test_participant_input_rejects_duplicate_members_and_floats(self) -> None:
+    def test_participant_input_accepts_finite_binary64_and_rejects_unsafe_json(
+        self,
+    ) -> None:
         with self.assertRaisesRegex(ParticipantError, "duplicate JSON"):
             load_request(io.StringIO('{"operation":"a","operation":"b"}'))
-        with self.assertRaisesRegex(ParticipantError, "floating-point"):
-            load_request(io.StringIO('{"operation":1.5}'))
+        parsed = load_request(io.StringIO('{"payload":{"answer":1.5}}'))
+        self.assertEqual(parsed["payload"]["answer"], 1.5)
+        for payload in (
+            '{"payload":{"answer":-0}}',
+            '{"payload":{"answer":-0.0}}',
+            '{"payload":{"answer":1e400}}',
+            '{"payload":{"answer":NaN}}',
+            '{"payload":{"answer":Infinity}}',
+        ):
+            with self.subTest(payload=payload):
+                with self.assertRaises(ParticipantError):
+                    load_request(io.StringIO(payload))
         with self.assertRaisesRegex(ParticipantError, "safe range"):
             load_request(io.StringIO('{"operation":9007199254740992}'))
         with self.assertRaisesRegex(ParticipantError, "invalid Unicode"):

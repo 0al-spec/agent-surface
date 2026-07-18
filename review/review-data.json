@@ -1807,24 +1807,52 @@
       "side": "left",
       "anchors": [
         {
+          "heading": "Human Elicitation Events Profile",
+          "anchorId": "human-elicitation-events-profile"
+        },
+        {
           "heading": "3. Runtime Bridge Protocol",
           "anchorId": "3-runtime-bridge-protocol"
         },
         {
-          "heading": "Approval Semantics",
-          "anchorId": "approval-semantics"
+          "heading": "Canonical Object Hash Profile",
+          "anchorId": "canonical-object-hash-profile"
         },
         {
-          "heading": "Proposal Flow",
-          "anchorId": "proposal-flow"
+          "heading": "Example Manifest",
+          "anchorId": "example-manifest"
+        },
+        {
+          "heading": "Approval Receipt Profile",
+          "anchorId": "approval-receipt-profile"
         },
         {
           "heading": "Error Model",
           "anchorId": "error-model"
+        },
+        {
+          "heading": "Interoperability Test Suite",
+          "anchorId": "interoperability-test-suite"
+        },
+        {
+          "heading": "Reference Mock Participants",
+          "anchorId": "reference-mock-participants"
+        },
+        {
+          "heading": "Action Executor Profile",
+          "anchorId": "action-executor-profile"
+        },
+        {
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
+        },
+        {
+          "heading": "Agent Adapter Profile",
+          "anchorId": "agent-adapter-profile"
         }
       ],
-      "status": "partial",
-      "rationale": "Есть approval required/resolved, но clarify, options, edit/redline и step-up auth message types отсутствуют.",
+      "status": "present",
+      "rationale": "RFC определяет discoverable и явно выбираемый Human Elicitation Events Profile с closed clarify, choose, edit, redline и step_up contracts, раздельными authenticated requester/presenter roles, complete authority tuple, RFC 8785 hashes, bounded terminal replay retention и fail-closed invalidation. Conformance Suite 1.5.0, standalone schema, positive/negative Action Executor, Runtime Mediator и Agent Adapter vectors и reference Mock App/Runtime исполняют contract без превращения human input в approval, Grant или effect authority.",
       "priority": "P2",
       "profile": "events-sessions",
       "depends_on": [
@@ -1832,23 +1860,95 @@
         35
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "machine_validated",
       "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "human-elicitation-events-profile"
+        },
         {
           "kind": "rfc_anchor",
           "ref": "3-runtime-bridge-protocol"
         },
         {
           "kind": "rfc_anchor",
-          "ref": "approval-semantics"
+          "ref": "canonical-object-hash-profile"
         },
         {
           "kind": "rfc_anchor",
-          "ref": "proposal-flow"
+          "ref": "example-manifest"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "approval-receipt-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "error-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "interoperability-test-suite"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-mock-participants"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-executor-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-mediator-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-adapter-profile"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/fixtures.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/human-elicitation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/observation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/vectors.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/fixtures.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/schema-cases.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/suite.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/vectors.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/behavior.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_app.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_runtime.py"
         }
       ]
     },
@@ -3878,6 +3978,10 @@
         {
           "kind": "schema",
           "ref": "conformance/v1/fixtures.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/human-elicitation.schema.json"
         },
         {
           "kind": "schema",

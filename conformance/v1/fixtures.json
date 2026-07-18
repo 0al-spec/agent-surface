@@ -2,7 +2,7 @@
   "$schema": "./fixtures.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.4.0",
+  "suite_version": "1.5.0",
   "fixture_catalog_id": "agent-surface/conformance/fixtures/v1",
   "fixtures": [
     {
@@ -1054,6 +1054,684 @@
           "receipt_use": "informational"
         }
       }
+    },
+    {
+      "fixture_id": "ASP-F-RM-033",
+      "baseline_vector_id": "ASP-V-RM-033",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "elicitation": {
+          "authentication": "authenticated",
+          "selected_profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+          "authenticated_requester": { "type": "application", "id": "app_a" },
+          "authenticated_presenter": { "type": "runtime", "id": "runtime_a" },
+          "authenticated_subject": "user_123",
+          "current_session_id": "session_a",
+          "current_session_generation": 1,
+          "current_grant_id": "grant_a",
+          "current_grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "current_surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "recorded_revision": 0,
+          "recorded_request_hash": "sha-256:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+          "recorded_response_hash": "sha-256:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+          "lifecycle": "pending",
+          "replay_retention_seconds": 3600,
+          "evaluation_time": "2026-07-18T13:06:00Z",
+          "replay_record_state": "not_applicable",
+          "terminal_accepted_at": "absent",
+          "candidate_validation": "not_applicable",
+          "step_up_verification": "not_applicable",
+          "secret_material": "absent",
+          "authority_use": "informational",
+          "request": {
+            "type": "elicitation.required",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_clarify",
+            "revision": 1,
+            "requester": { "type": "application", "id": "app_a" },
+            "presenter": { "type": "runtime", "id": "runtime_a" },
+            "kind": "clarify",
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context": {
+              "action_id": "action.read",
+              "mode": "read",
+              "input_hash": "sha-256:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+            },
+            "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+            "prompt": { "title": "Clarify the request", "detail": "Provide the missing bounded value." },
+            "request": {
+              "question_id": "clarify_value",
+              "response_schema": { "type": "string", "maxLength": 64 },
+              "response_schema_hash": "sha-256:k_xf9htJREtR3LcYO9uXA9jB4AIEZceVBnOUwNpAiDc",
+              "max_bytes": 128
+            },
+            "expires_at": "2026-07-18T13:30:00Z",
+            "request_hash": "sha-256:ZsY0ajaoJ3HhdWukPR_p2NdyNnZntuUICRm_HOg5AFg"
+          },
+          "response": {
+            "type": "elicitation.resolved",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_clarify",
+            "revision": 1,
+            "kind": "clarify",
+            "disposition": "answered",
+            "responder": { "type": "runtime", "id": "runtime_a" },
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+            "request_hash": "sha-256:ZsY0ajaoJ3HhdWukPR_p2NdyNnZntuUICRm_HOg5AFg",
+            "response": { "answer": "Use the concise review summary." },
+            "resolved_at": "2026-07-18T13:05:00Z",
+            "response_hash": "sha-256:cp_7btxRUznoN_GF7M1wGjYz7oU_oCW0cyJIoXIefKo"
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RM-034",
+      "baseline_vector_id": "ASP-V-RM-034",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "elicitation": {
+          "authentication": "authenticated",
+          "selected_profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+          "authenticated_requester": { "type": "application", "id": "app_a" },
+          "authenticated_presenter": { "type": "runtime", "id": "runtime_a" },
+          "authenticated_subject": "user_123",
+          "current_session_id": "session_a",
+          "current_session_generation": 1,
+          "current_grant_id": "grant_a",
+          "current_grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "current_surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "recorded_revision": 0,
+          "recorded_request_hash": "sha-256:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+          "recorded_response_hash": "sha-256:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+          "lifecycle": "pending",
+          "replay_retention_seconds": 3600,
+          "evaluation_time": "2026-07-18T13:06:00Z",
+          "replay_record_state": "not_applicable",
+          "terminal_accepted_at": "absent",
+          "candidate_validation": "not_applicable",
+          "step_up_verification": "not_applicable",
+          "secret_material": "absent",
+          "authority_use": "informational",
+          "request": {
+            "type": "elicitation.required",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_choose",
+            "revision": 1,
+            "requester": { "type": "application", "id": "app_a" },
+            "presenter": { "type": "runtime", "id": "runtime_a" },
+            "kind": "choose",
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context": {
+              "action_id": "action.read",
+              "mode": "read",
+              "input_hash": "sha-256:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+            },
+            "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+            "prompt": { "title": "Choose an outcome", "detail": "Select one bounded review outcome." },
+            "request": {
+              "question_id": "review_outcome",
+              "options": [
+                { "option_id": "comment", "label": "Comment", "detail": "Leave non-blocking feedback." },
+                { "option_id": "request_changes", "label": "Request changes", "detail": "Leave blocking feedback." }
+              ],
+              "min_selected": 1,
+              "max_selected": 1
+            },
+            "expires_at": "2026-07-18T13:30:00Z",
+            "request_hash": "sha-256:A0nE_DxxiCKOx7Y-yFGOOojm1aVIWCExVJTxZbxozQ4"
+          },
+          "response": {
+            "type": "elicitation.resolved",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_choose",
+            "revision": 1,
+            "kind": "choose",
+            "disposition": "answered",
+            "responder": { "type": "runtime", "id": "runtime_a" },
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+            "request_hash": "sha-256:A0nE_DxxiCKOx7Y-yFGOOojm1aVIWCExVJTxZbxozQ4",
+            "response": { "option_ids": ["comment"] },
+            "resolved_at": "2026-07-18T13:05:00Z",
+            "response_hash": "sha-256:K9KHgVpASfgx_sx_5cG8EincgcvvzcxbsIHMkFr8r0w"
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RM-035",
+      "baseline_vector_id": "ASP-V-RM-035",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "elicitation": {
+          "authentication": "authenticated",
+          "selected_profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+          "authenticated_requester": { "type": "application", "id": "app_a" },
+          "authenticated_presenter": { "type": "runtime", "id": "runtime_a" },
+          "authenticated_subject": "user_123",
+          "authenticated_verifier": { "type": "external", "id": "verifier_a" },
+          "current_session_id": "session_a",
+          "current_session_generation": 1,
+          "current_grant_id": "grant_a",
+          "current_grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "current_surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "recorded_revision": 0,
+          "recorded_request_hash": "sha-256:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+          "recorded_response_hash": "sha-256:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+          "lifecycle": "pending",
+          "replay_retention_seconds": 3600,
+          "evaluation_time": "2026-07-18T13:06:00Z",
+          "replay_record_state": "not_applicable",
+          "terminal_accepted_at": "absent",
+          "candidate_validation": "not_applicable",
+          "step_up_verification": "verified",
+          "secret_material": "absent",
+          "authority_use": "informational",
+          "authoritative_step_up_result": {
+            "status": "verified",
+            "result_ref": "auth_result_123",
+            "verifier": { "type": "external", "id": "verifier_a" },
+            "audience": { "type": "application", "id": "app_a" },
+            "subject": "user_123",
+            "elicitation_id": "elicit_step_up",
+            "revision": 1,
+            "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+            "achieved_assurance": ["https://example.com/assurance/a2"],
+            "authenticated_at": "2026-07-18T13:04:00Z",
+            "expires_at": "2026-07-18T13:09:00Z"
+          },
+          "request": {
+            "type": "elicitation.required",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_step_up",
+            "revision": 1,
+            "requester": { "type": "application", "id": "app_a" },
+            "presenter": { "type": "runtime", "id": "runtime_a" },
+            "kind": "step_up",
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context": {
+              "action_id": "action.read",
+              "mode": "read",
+              "input_hash": "sha-256:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+            },
+            "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+            "prompt": { "title": "Verify your identity", "detail": "Complete the runtime-owned authentication step." },
+            "request": {
+              "transaction_text": "Confirm access to the selected review context.",
+              "required_assurance": ["https://example.com/assurance/a2"],
+              "max_age_seconds": 300
+            },
+            "expires_at": "2026-07-18T13:30:00Z",
+            "request_hash": "sha-256:Vl-Mx0EI5tbwOcYucRb3ZrNRO-551zJob-Ldqja7_EY"
+          },
+          "response": {
+            "type": "elicitation.resolved",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_step_up",
+            "revision": 1,
+            "kind": "step_up",
+            "disposition": "answered",
+            "responder": { "type": "runtime", "id": "runtime_a" },
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+            "request_hash": "sha-256:Vl-Mx0EI5tbwOcYucRb3ZrNRO-551zJob-Ldqja7_EY",
+            "response": {
+              "result_ref": "auth_result_123",
+              "verifier": { "type": "external", "id": "verifier_a" },
+              "achieved_assurance": ["https://example.com/assurance/a2"],
+              "authenticated_at": "2026-07-18T13:04:00Z",
+              "expires_at": "2026-07-18T13:09:00Z"
+            },
+            "resolved_at": "2026-07-18T13:05:00Z",
+            "response_hash": "sha-256:Kj5tktC2vU_HmMaGcM4fDnqAWEb3Gf_UMs9XxaHaqEg"
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RM-039",
+      "baseline_vector_id": "ASP-V-RM-039",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "elicitation": {
+          "authentication": "authenticated",
+          "selected_profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+          "authenticated_requester": { "type": "application", "id": "app_a" },
+          "authenticated_presenter": { "type": "runtime", "id": "runtime_a" },
+          "authenticated_subject": "user_123",
+          "current_session_id": "session_a",
+          "current_session_generation": 1,
+          "current_grant_id": "grant_a",
+          "current_grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "current_surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "recorded_revision": 1,
+          "recorded_request_hash": "sha-256:ZsY0ajaoJ3HhdWukPR_p2NdyNnZntuUICRm_HOg5AFg",
+          "recorded_response_hash": "sha-256:cp_7btxRUznoN_GF7M1wGjYz7oU_oCW0cyJIoXIefKo",
+          "lifecycle": "resolved",
+          "replay_retention_seconds": 3600,
+          "evaluation_time": "2026-07-18T13:06:00Z",
+          "replay_record_state": "retained",
+          "terminal_accepted_at": "2026-07-18T13:05:00Z",
+          "candidate_validation": "not_applicable",
+          "step_up_verification": "not_applicable",
+          "secret_material": "absent",
+          "authority_use": "informational",
+          "request": {
+            "type": "elicitation.required",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_clarify",
+            "revision": 1,
+            "requester": { "type": "application", "id": "app_a" },
+            "presenter": { "type": "runtime", "id": "runtime_a" },
+            "kind": "clarify",
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context": {
+              "action_id": "action.read",
+              "mode": "read",
+              "input_hash": "sha-256:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+            },
+            "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+            "prompt": { "title": "Clarify the request", "detail": "Provide the missing bounded value." },
+            "request": {
+              "question_id": "clarify_value",
+              "response_schema": { "type": "string", "maxLength": 64 },
+              "response_schema_hash": "sha-256:k_xf9htJREtR3LcYO9uXA9jB4AIEZceVBnOUwNpAiDc",
+              "max_bytes": 128
+            },
+            "expires_at": "2026-07-18T13:30:00Z",
+            "request_hash": "sha-256:ZsY0ajaoJ3HhdWukPR_p2NdyNnZntuUICRm_HOg5AFg"
+          },
+          "response": {
+            "type": "elicitation.resolved",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_clarify",
+            "revision": 1,
+            "kind": "clarify",
+            "disposition": "answered",
+            "responder": { "type": "runtime", "id": "runtime_a" },
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+            "request_hash": "sha-256:ZsY0ajaoJ3HhdWukPR_p2NdyNnZntuUICRm_HOg5AFg",
+            "response": { "answer": "Use the concise review summary." },
+            "resolved_at": "2026-07-18T13:05:00Z",
+            "response_hash": "sha-256:cp_7btxRUznoN_GF7M1wGjYz7oU_oCW0cyJIoXIefKo"
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AA-009",
+      "baseline_vector_id": "ASP-V-AA-009",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "elicitation": {
+          "authentication": "authenticated",
+          "selected_profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+          "authenticated_requester": { "type": "application", "id": "app_a" },
+          "authenticated_presenter": { "type": "runtime", "id": "runtime_a" },
+          "authenticated_subject": "user_123",
+          "current_session_id": "session_a",
+          "current_session_generation": 1,
+          "current_grant_id": "grant_a",
+          "current_grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "current_surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "recorded_revision": 0,
+          "recorded_request_hash": "sha-256:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+          "recorded_response_hash": "sha-256:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+          "lifecycle": "pending",
+          "replay_retention_seconds": 3600,
+          "evaluation_time": "2026-07-18T13:06:00Z",
+          "replay_record_state": "not_applicable",
+          "terminal_accepted_at": "absent",
+          "candidate_validation": "not_applicable",
+          "step_up_verification": "not_applicable",
+          "secret_material": "absent",
+          "authority_use": "informational",
+          "agent_projection": {
+            "origin": "presenter",
+            "exposure": "minimized",
+            "purpose_binding": {
+              "session_id": "session_a",
+              "session_generation": 1,
+              "grant_id": "grant_a",
+              "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+              "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+              "request_hash": "sha-256:ZsY0ajaoJ3HhdWukPR_p2NdyNnZntuUICRm_HOg5AFg"
+            },
+            "value": {
+              "kind": "clarify",
+              "answer": "Use the concise review summary."
+            },
+            "secret_material": "absent"
+          },
+          "request": {
+            "type": "elicitation.required",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_clarify",
+            "revision": 1,
+            "requester": { "type": "application", "id": "app_a" },
+            "presenter": { "type": "runtime", "id": "runtime_a" },
+            "kind": "clarify",
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context": {
+              "action_id": "action.read",
+              "mode": "read",
+              "input_hash": "sha-256:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+            },
+            "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+            "prompt": { "title": "Clarify the request", "detail": "Provide the missing bounded value." },
+            "request": {
+              "question_id": "clarify_value",
+              "response_schema": { "type": "string", "maxLength": 64 },
+              "response_schema_hash": "sha-256:k_xf9htJREtR3LcYO9uXA9jB4AIEZceVBnOUwNpAiDc",
+              "max_bytes": 128
+            },
+            "expires_at": "2026-07-18T13:30:00Z",
+            "request_hash": "sha-256:ZsY0ajaoJ3HhdWukPR_p2NdyNnZntuUICRm_HOg5AFg"
+          },
+          "response": {
+            "type": "elicitation.resolved",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_clarify",
+            "revision": 1,
+            "kind": "clarify",
+            "disposition": "answered",
+            "responder": { "type": "runtime", "id": "runtime_a" },
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context_hash": "sha-256:mdIrPcJ-GdiBkumi9j2yoCbAGqRyG4NEWa8QBpa7kqk",
+            "request_hash": "sha-256:ZsY0ajaoJ3HhdWukPR_p2NdyNnZntuUICRm_HOg5AFg",
+            "response": { "answer": "Use the concise review summary." },
+            "resolved_at": "2026-07-18T13:05:00Z",
+            "response_hash": "sha-256:cp_7btxRUznoN_GF7M1wGjYz7oU_oCW0cyJIoXIefKo"
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-027",
+      "baseline_vector_id": "ASP-V-AE-027",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "elicitation": {
+          "authentication": "authenticated",
+          "selected_profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+          "authenticated_requester": { "type": "application", "id": "app_a" },
+          "authenticated_presenter": { "type": "runtime", "id": "runtime_a" },
+          "authenticated_subject": "user_123",
+          "current_session_id": "session_a",
+          "current_session_generation": 1,
+          "current_grant_id": "grant_a",
+          "current_grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "current_surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "recorded_revision": 0,
+          "recorded_request_hash": "sha-256:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+          "recorded_response_hash": "sha-256:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+          "lifecycle": "pending",
+          "replay_retention_seconds": 3600,
+          "evaluation_time": "2026-07-18T13:06:00Z",
+          "replay_record_state": "not_applicable",
+          "terminal_accepted_at": "absent",
+          "candidate_validation": "passed",
+          "step_up_verification": "not_applicable",
+          "secret_material": "absent",
+          "authority_use": "informational",
+          "authoritative_base": { "message": "Old text", "metadata": "safe" },
+          "authoritative_input_schema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["message", "metadata"],
+            "properties": {
+              "message": { "type": "string", "maxLength": 64 },
+              "metadata": { "type": "string", "maxLength": 64 }
+            }
+          },
+          "request": {
+            "type": "elicitation.required",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_edit",
+            "revision": 1,
+            "requester": { "type": "application", "id": "app_a" },
+            "presenter": { "type": "runtime", "id": "runtime_a" },
+            "kind": "edit",
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context": {
+              "action_id": "action.read",
+              "mode": "read",
+              "input_hash": "sha-256:kykzJUfvYB_aqeQi41-nDg29imnV43U1xTjNm7CX070",
+              "proposal_id": "proposal_42",
+              "approval_id": "approval_old"
+            },
+            "context_hash": "sha-256:GzTbKB7uczEsfyywOsaViRxajkDDdygzYO9GDFwTeIQ",
+            "prompt": { "title": "Edit the proposal", "detail": "Edit only the bounded message field." },
+            "request": {
+              "base": { "message": "Old text", "metadata": "safe" },
+              "base_hash": "sha-256:kykzJUfvYB_aqeQi41-nDg29imnV43U1xTjNm7CX070",
+              "input_schema_hash": "sha-256:NYH_7oEbqEUjf1f8RPnsK3LOtsVXG4aqcu5uBclUyv4",
+              "editable_paths": ["/message"]
+            },
+            "expires_at": "2026-07-18T13:30:00Z",
+            "request_hash": "sha-256:gM6wicS828s75ZP3FKhkd4z5yIwnPL9_6mwxgSb9sts"
+          },
+          "response": {
+            "type": "elicitation.resolved",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_edit",
+            "revision": 1,
+            "kind": "edit",
+            "disposition": "answered",
+            "responder": { "type": "runtime", "id": "runtime_a" },
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context_hash": "sha-256:GzTbKB7uczEsfyywOsaViRxajkDDdygzYO9GDFwTeIQ",
+            "request_hash": "sha-256:gM6wicS828s75ZP3FKhkd4z5yIwnPL9_6mwxgSb9sts",
+            "response": {
+              "candidate": { "message": "Edited text", "metadata": "safe" },
+              "candidate_hash": "sha-256:JZxi0JZ_TzjnoY7LfTLVysQXljkoVQyXIgJB-3_Mdm0"
+            },
+            "resolved_at": "2026-07-18T13:05:00Z",
+            "response_hash": "sha-256:WUikFPAdajz1DVCZxAmmestmH5yTFix9Q1TSA93bD1o"
+          }
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-028",
+      "baseline_vector_id": "ASP-V-AE-028",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "surface_hash_a", "candidate_hash": "surface_hash_a", "references": "complete", "mode": "standard", "action_semantics": "closed_read_propose" },
+        "grant": { "status": "active", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read"], "issued_actions": ["action.read"], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "application", "claimed_observation": "application_effect", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "elicitation": {
+          "authentication": "authenticated",
+          "selected_profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+          "authenticated_requester": { "type": "application", "id": "app_a" },
+          "authenticated_presenter": { "type": "runtime", "id": "runtime_a" },
+          "authenticated_subject": "user_123",
+          "current_session_id": "session_a",
+          "current_session_generation": 1,
+          "current_grant_id": "grant_a",
+          "current_grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "current_surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "recorded_revision": 0,
+          "recorded_request_hash": "sha-256:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+          "recorded_response_hash": "sha-256:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+          "lifecycle": "pending",
+          "replay_retention_seconds": 3600,
+          "evaluation_time": "2026-07-18T13:06:00Z",
+          "replay_record_state": "not_applicable",
+          "terminal_accepted_at": "absent",
+          "candidate_validation": "passed",
+          "step_up_verification": "not_applicable",
+          "secret_material": "absent",
+          "authority_use": "informational",
+          "authoritative_base": { "message": "Old text", "metadata": "safe" },
+          "authoritative_input_schema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["message", "metadata"],
+            "properties": {
+              "message": { "type": "string", "maxLength": 64 },
+              "metadata": { "type": "string", "maxLength": 64 }
+            }
+          },
+          "request": {
+            "type": "elicitation.required",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_redline",
+            "revision": 1,
+            "requester": { "type": "application", "id": "app_a" },
+            "presenter": { "type": "runtime", "id": "runtime_a" },
+            "kind": "redline",
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context": {
+              "action_id": "action.read",
+              "mode": "read",
+              "input_hash": "sha-256:kykzJUfvYB_aqeQi41-nDg29imnV43U1xTjNm7CX070",
+              "proposal_id": "proposal_42",
+              "approval_id": "approval_old"
+            },
+            "context_hash": "sha-256:GzTbKB7uczEsfyywOsaViRxajkDDdygzYO9GDFwTeIQ",
+            "prompt": { "title": "Review the redline", "detail": "Apply the patch only to the exact base." },
+            "request": {
+              "base_hash": "sha-256:kykzJUfvYB_aqeQi41-nDg29imnV43U1xTjNm7CX070",
+              "media_type": "application/json-patch+json",
+              "patch_schema": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["op", "path", "value"],
+                  "properties": {
+                    "op": { "const": "replace" },
+                    "path": {
+                      "type": "string",
+                      "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+                    },
+                    "value": { "type": "string" }
+                  }
+                }
+              },
+              "patch_schema_hash": "sha-256:zp9qjbfAuOdRCyWIFXRdGSs9zP_71cbmvvm8782JN-M",
+              "editable_paths": ["/message"]
+            },
+            "expires_at": "2026-07-18T13:30:00Z",
+            "request_hash": "sha-256:f87WBJJzx1beilA3gArwhjrDjosDWcIWikAGf-Gxfhg"
+          },
+          "response": {
+            "type": "elicitation.resolved",
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+            "elicitation_id": "elicit_redline",
+            "revision": 1,
+            "kind": "redline",
+            "disposition": "answered",
+            "responder": { "type": "runtime", "id": "runtime_a" },
+            "session_id": "session_a",
+            "session_generation": 1,
+            "grant_id": "grant_a",
+            "grant_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "surface_hash": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "context_hash": "sha-256:GzTbKB7uczEsfyywOsaViRxajkDDdygzYO9GDFwTeIQ",
+            "request_hash": "sha-256:f87WBJJzx1beilA3gArwhjrDjosDWcIWikAGf-Gxfhg",
+            "response": {
+              "base_hash": "sha-256:kykzJUfvYB_aqeQi41-nDg29imnV43U1xTjNm7CX070",
+              "patch": [
+                { "op": "replace", "path": "/message", "value": "Edited text" }
+              ],
+              "candidate_hash": "sha-256:JZxi0JZ_TzjnoY7LfTLVysQXljkoVQyXIgJB-3_Mdm0"
+            },
+            "resolved_at": "2026-07-18T13:05:00Z",
+            "response_hash": "sha-256:3rNlI9NzCmqq8iQtqcBt9szEfKChpNx3H_2jbmd5coc"
+          }
+        }
+      }
     }
   ],
   "mutations": [
@@ -1515,6 +2193,147 @@
           "op": "replace",
           "path": "/ahp/receipt_use",
           "value": "authority"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-ELICITATION-SESSION-GENERATION-MISMATCH",
+      "input_variant": "elicitation_session_generation_mismatch",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/elicitation/response/session_generation",
+          "value": 2
+        },
+        {
+          "op": "replace",
+          "path": "/elicitation/response/response_hash",
+          "value": "sha-256:T-6SD_t0qJrrGpkmegTVKTqK_nPOB71BAhCaqxDqBGc"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-ELICITATION-CONFLICTING-RESPONSE-REPLAY",
+      "input_variant": "elicitation_conflicting_response_replay",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/elicitation/recorded_revision",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-ELICITATION-SELF-ASSERTED-STEP-UP",
+      "input_variant": "elicitation_self_asserted_step_up",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/elicitation/step_up_verification",
+          "value": "agent_asserted"
+        },
+        {
+          "op": "replace",
+          "path": "/elicitation/secret_material",
+          "value": "present"
+        },
+        {
+          "op": "replace",
+          "path": "/elicitation/response/response/verifier",
+          "value": { "type": "external", "id": "agent_asserted" }
+        },
+        {
+          "op": "replace",
+          "path": "/elicitation/response/response_hash",
+          "value": "sha-256:jLRINlgb-_wMPCpqFGBSQ0hj-ptbTFZnvcqTO6eaR80"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-ELICITATION-EDIT-STALE-BINDING",
+      "input_variant": "elicitation_edit_stale_binding",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/elicitation/response/response/candidate/metadata",
+          "value": "unsafe"
+        },
+        {
+          "op": "replace",
+          "path": "/elicitation/response/response/candidate_hash",
+          "value": "sha-256:jsKu1XCzHzaGZuui5Y_JVfenAN3DgPCp5EeoVCtTEWc"
+        },
+        {
+          "op": "replace",
+          "path": "/elicitation/response/response_hash",
+          "value": "sha-256:Ij-UPIJAAn6wLLtNuzm19l6bkC2LmhE3ljUT1I68gFs"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-ELICITATION-REDLINE-RESULT-MISMATCH",
+      "input_variant": "elicitation_redline_result_mismatch",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/elicitation/response/response/candidate_hash",
+          "value": "sha-256:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        },
+        {
+          "op": "replace",
+          "path": "/elicitation/response/response_hash",
+          "value": "sha-256:Hp2FPpV4dL684M-65dRmuMEhHvF7WoAN23sgrCAvVjw"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-ELICITATION-AGENT-ORIGINATED-RESOLUTION",
+      "input_variant": "elicitation_agent_originated_resolution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/elicitation/agent_projection/origin",
+          "value": "agent"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-ELICITATION-AGENT-FULL-STEP-UP",
+      "input_variant": "elicitation_agent_full_step_up",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/elicitation/agent_projection/exposure",
+          "value": "full_step_up_response"
+        },
+        {
+          "op": "replace",
+          "path": "/elicitation/agent_projection/value",
+          "value": {
+            "kind": "step_up",
+            "result_ref": "auth_result_123",
+            "verifier": { "type": "runtime", "id": "runtime_a" },
+            "achieved_assurance": ["https://example.com/assurance/a2"],
+            "authenticated_at": "2026-07-18T13:04:00Z",
+            "expires_at": "2026-07-18T13:09:00Z",
+            "authentication_secret": "do-not-forward"
+          }
+        },
+        {
+          "op": "replace",
+          "path": "/elicitation/agent_projection/secret_material",
+          "value": "present"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-ELICITATION-AUTHORITATIVE-VERIFIER-MISMATCH",
+      "input_variant": "elicitation_authoritative_verifier_mismatch",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/elicitation/authoritative_step_up_result/verifier",
+          "value": { "type": "external", "id": "verifier_b" }
         }
       ]
     }

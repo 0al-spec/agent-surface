@@ -2,7 +2,7 @@
   "$schema": "./suite.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.4.0",
+  "suite_version": "1.5.0",
   "protocol_version": "agent-surface/0.1",
   "specification": {
     "path": "drafts/agent-surface.md",
@@ -42,7 +42,8 @@
         "ASP-AE-008",
         "ASP-AE-009",
         "ASP-AE-010",
-        "ASP-AE-011"
+        "ASP-AE-011",
+        "ASP-AE-012"
       ]
     },
     {
@@ -71,7 +72,8 @@
         "ASP-RM-008",
         "ASP-RM-009",
         "ASP-RM-010",
-        "ASP-RM-011"
+        "ASP-RM-011",
+        "ASP-RM-012"
       ]
     },
     {
@@ -82,7 +84,8 @@
         "ASP-AA-002",
         "ASP-AA-003",
         "ASP-AA-004",
-        "ASP-AA-005"
+        "ASP-AA-005",
+        "ASP-AA-006"
       ]
     }
   ],
@@ -171,6 +174,16 @@
       "requirement_ids": [
         "ASP-RM-011",
         "ASP-AA-005"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+      "title": "Human Elicitation Events Profile",
+      "rfc_anchor": "human-elicitation-events-profile",
+      "requirement_ids": [
+        "ASP-AA-006",
+        "ASP-AE-012",
+        "ASP-RM-012"
       ]
     }
   ],
@@ -763,6 +776,60 @@
         "ASP-V-AA-006",
         "ASP-V-AA-007",
         "ASP-V-AA-008"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AA-006",
+      "title": "Expose only presenter-originated, purpose-bound, minimized Human answers to the agent",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "rfc_anchor": "human-elicitation-events-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AA-009",
+        "ASP-V-AA-010",
+        "ASP-V-AA-011"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-012",
+      "title": "Revalidate edited and redlined candidates without inheriting elicitation authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "human-elicitation-events-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AE-027",
+        "ASP-V-AE-028",
+        "ASP-V-AE-029",
+        "ASP-V-AE-030"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-012",
+      "title": "Mediate bound clarification, choice, and step-up responses without creating approval authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "human-elicitation-events-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-033",
+        "ASP-V-RM-034",
+        "ASP-V-RM-035",
+        "ASP-V-RM-036",
+        "ASP-V-RM-037",
+        "ASP-V-RM-038",
+        "ASP-V-RM-039",
+        "ASP-V-RM-040"
       ]
     }
   ]

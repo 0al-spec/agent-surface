@@ -864,9 +864,332 @@ kind of channel using typed session and approval messages such as:
 - `session.state`
 - `approval.required`
 - `approval.resolved`
+- `elicitation.required`
+- `elicitation.resolved`
 
 This layer is transport and session orchestration. It is not intended to absorb
 all Agent Surface semantics.
+
+### Human Elicitation Events Profile
+
+The optional Human Elicitation Events Profile identifier is:
+
+```text
+https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1
+```
+
+It defines a transport-neutral interaction contract for asking an authenticated
+user to clarify a value, choose from a closed option set, edit a candidate,
+review a redline, or complete step-up authentication. A conforming deployment
+MAY carry the two typed messages below over the Runtime Bridge Protocol, an
+authenticated AHP channel that independently selects this profile, or another
+authenticated channel, but the carrier does not change their semantics. The
+ASP-over-AHP Binding Profile does not implicitly select this profile.
+
+The application advertises support in
+`compatibility.human_elicitation_profiles` and publishes
+`compatibility.human_elicitation_replay_retention_seconds`. Before either
+message is accepted, the authenticated application and runtime channel MUST
+select the exact profile identifier or select no Human Elicitation profile.
+The selection is bound to the authenticated application and runtime
+identifiers, `surface_hash`, and channel or session context. A participant MUST
+NOT infer selection from a rendered prompt, AHP negotiation, schema
+availability, prior session, or peer implementation claim. The `profile` in
+both messages MUST equal the selected identifier. A surface change invalidates
+the selection and every pending interaction; selection on a non-Runtime-Bridge
+carrier MUST provide the same authenticated binding and fail-closed behavior.
+
+#### Authority Boundary and Participants
+
+An elicitation records bounded human input. It is not an Agent Grant, consent,
+approval, Policy Decision, Approval Receipt, Action Request, execution token,
+reservation, effect, action receipt, or proof that an effect occurred. A
+successful answer can become input to a later policy or action decision only
+after the component responsible for that decision independently validates its
+current authority and bindings.
+
+The `requester` is the application or runtime asking for input. The `presenter`
+is the application or runtime that owns the authenticated user interaction.
+The receiver derives both protocol roles and their identifiers from the
+authenticated channel and local configuration. A role field inside a message
+cannot authenticate its sender, presenter, or user.
+
+An agent MAY propose a question or candidate through its typed adapter API. It
+MUST NOT originate `elicitation.resolved`, claim that a person answered, handle
+an authentication secret, select its own answer as a user answer, or turn an
+elicitation result into authority. The Runtime Mediator exposes to the agent
+only the minimized, type-specific answer that is needed for the current task.
+
+The application remains authoritative for its ASP session record, Grant,
+surface, app-side policy, action admission, and effects. The runtime remains
+authoritative for its local user interaction, local policy, and agent-facing
+projection. An AHP representation or another UI carrier can present the
+interaction, but a rendered control, page revision, navigation state, or
+connection identity cannot substitute for any elicitation or ASP binding.
+
+#### Common Request Object
+
+An elicitation starts with `elicitation.required`. Its normalized JSON shape is
+closed:
+
+```json
+{
+  "type": "elicitation.required",
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+  "elicitation_id": "elicit_01J2ABCDEF",
+  "revision": 1,
+  "requester": {
+    "type": "application",
+    "id": "code.example.com"
+  },
+  "presenter": {
+    "type": "runtime",
+    "id": "application-runtime-456"
+  },
+  "kind": "choose",
+  "session_id": "sess_456",
+  "session_generation": 1,
+  "grant_id": "grant_123",
+  "grant_hash": "sha-256:<grant-digest>",
+  "surface_hash": "sha-256:<surface-digest>",
+  "context": {
+    "action_id": "comment.propose",
+    "mode": "propose",
+    "input_hash": "sha-256:<input-digest>",
+    "proposal_id": "proposal_42"
+  },
+  "context_hash": "sha-256:<context-digest>",
+  "prompt": {
+    "title": "Choose a review outcome",
+    "detail": "Select the outcome to place in the draft."
+  },
+  "request": {
+    "question_id": "review-outcome",
+    "options": [
+      {
+        "option_id": "comment",
+        "label": "Comment",
+        "detail": "Submit non-blocking feedback."
+      },
+      {
+        "option_id": "request_changes",
+        "label": "Request changes",
+        "detail": "Mark the draft as blocking."
+      }
+    ],
+    "min_selected": 1,
+    "max_selected": 1
+  },
+  "expires_at": "2026-06-25T16:35:00Z",
+  "request_hash": "sha-256:<request-digest>"
+}
+```
+
+`type`, `profile`, `elicitation_id`, `revision`, `requester`, `presenter`,
+`kind`, the complete session and Grant binding, `surface_hash`, `context`,
+`context_hash`, `prompt`, `request`, `expires_at`, and `request_hash` are
+REQUIRED. Unknown members are forbidden at every profile-defined level.
+
+`elicitation_id` is a collision-resistant identifier that the requester MUST
+NOT reuse within the authenticated requester and presenter pair. `revision` is
+a positive integer. The requester increments it by exactly one when replacing
+an unanswered request. `requester.type` and
+`presenter.type` are `application` or `runtime`, MUST differ, and each `id` is a
+non-empty authenticated component identifier. `session_generation` is the
+current positive generation of the named active ASP session. The Grant,
+surface, and session tuple MUST equal the presenter's current verified state.
+
+`context` is a closed binding object containing the fields that apply to the
+interaction. It MUST contain `action_id`, `mode`, and `input_hash` when an
+answer can affect an action input. It additionally contains every available
+`proposal_id`, `preview_id`, `expected_effects_hash`, `reservation_id`,
+`execution_hash`, `policy_decision_hash`, and `approval_id` that the
+presentation depends on. Omission means that value is not part of the
+interaction; it never means that a receiver can infer or add it. `context_hash`
+uses the Canonical Object Hash Profile over the complete `context` object.
+
+`prompt` contains exactly `title` and `detail`, both non-empty user-displayable
+strings. They MUST be safe for the presenter to disclose under the effective
+Data Exposure Contract and MUST NOT contain a credential, authentication
+secret, hidden policy rule, raw execution token, or data not needed for the
+decision. `expires_at` is an RFC 3339 UTC timestamp with the `Z` suffix.
+`request_hash` uses the Canonical Object Hash Profile over the complete request
+object excluding `request_hash`.
+
+#### Elicitation Kinds
+
+`kind` is exactly one of `clarify`, `choose`, `edit`, `redline`, or `step_up`.
+The request and answered response use the same kind:
+
+| Kind | Closed request semantics | Answer semantics |
+| --- | --- | --- |
+| `clarify` | `question_id`, a self-contained `response_schema`, its `response_schema_hash`, and `max_bytes` | One JSON value that validates against the exact schema and byte ceiling. |
+| `choose` | `question_id`, ordered `options`, `min_selected`, and `max_selected` | An ordered array of unique `option_id` values from that exact revision. Labels and list positions are not identifiers. |
+| `edit` | `base`, `base_hash`, `input_schema_hash`, and ordered unique `editable_paths` using RFC 6901 JSON Pointers | A complete candidate value; the receiver validates allowed paths, schema, normalization, and the recomputed candidate hash. |
+| `redline` | `base_hash`, `media_type`, `patch_schema`, `patch_schema_hash`, and optional ordered unique `editable_paths` | A patch in the declared media type plus the repeated base hash and recomputed candidate hash. The receiver applies it to the exact base before validation. |
+| `step_up` | `transaction_text`, ordered unique `required_assurance` URI values, and `max_age_seconds` | An opaque verifier result reference, achieved assurance set, authentication time, expiry, and verifier identity; never an authentication factor or secret. |
+
+For `clarify`, `max_bytes` is the length in octets of the RFC 8785
+serialization of the `answer` value encoded as UTF-8. It does not count a
+transport envelope, whitespace from a non-canonical serialization, or the
+surrounding Human Elicitation response.
+
+Each option contains exactly `option_id`, `label`, and `detail`. Option ids are
+unique non-empty strings. `min_selected` and `max_selected` are safe
+non-negative integers satisfying
+`min_selected <= max_selected <= number of options`. An unanswered request
+does not imply a default choice.
+
+For `edit`, the presenter treats the request's `base` as display data, not as
+current application state. The receiver rechecks `base_hash` and every editable
+path against its authoritative candidate. For `redline`, v1 does not assign
+semantics to a visual diff. The declared media type and patch schema define the
+machine input; any rendered redline is explanatory only. A base mismatch is
+not resolved by applying the patch to a newer document. `response_schema` and
+`patch_schema` use the manifest-selected Draft 2020-12 dialect, MUST be
+self-contained, MUST NOT use an external `$ref`, and are hashed exactly as
+carried before they are evaluated.
+
+For `step_up`, the presenter invokes an independently authenticated verifier.
+Passwords, one-time codes, passkeys, private keys, biometric samples, recovery
+codes, and equivalent factors MUST NOT appear in either profile message or in
+agent-visible data. The verifier result MUST bind the application or runtime
+audience, authenticated subject, `elicitation_id`, revision, `context_hash`,
+achieved assurance, authentication time, and expiry. A result is usable only
+when the receiving component independently obtains that exact verifier record,
+its audience equals the authenticated requester, every other binding equals the
+current interaction, the result status is verified,
+the current policy-evaluation time is no later than its expiry, and the elapsed
+time since `authenticated_at` is no greater than `max_age_seconds`. Resolution
+time does not substitute for current evaluation time. Step-up proves an
+authentication event to that verifier; it does not by itself approve an action
+or widen a Grant.
+
+#### Resolution Object
+
+The presenter returns `elicitation.resolved` on the authenticated channel. Its
+normalized JSON shape is also closed:
+
+```json
+{
+  "type": "elicitation.resolved",
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+  "elicitation_id": "elicit_01J2ABCDEF",
+  "revision": 1,
+  "kind": "choose",
+  "disposition": "answered",
+  "responder": {
+    "type": "runtime",
+    "id": "application-runtime-456"
+  },
+  "session_id": "sess_456",
+  "session_generation": 1,
+  "grant_id": "grant_123",
+  "grant_hash": "sha-256:<grant-digest>",
+  "surface_hash": "sha-256:<surface-digest>",
+  "context_hash": "sha-256:<context-digest>",
+  "request_hash": "sha-256:<request-digest>",
+  "response": {
+    "option_ids": ["comment"]
+  },
+  "resolved_at": "2026-06-25T16:31:00Z",
+  "response_hash": "sha-256:<response-digest>"
+}
+```
+
+`type`, `profile`, `elicitation_id`, `revision`, `kind`, `disposition`,
+`responder`, the complete session and Grant binding, `surface_hash`,
+`context_hash`, `request_hash`, `resolved_at`, and `response_hash` are REQUIRED.
+`request_hash` MUST equal the accepted request revision's hash.
+`disposition` is `answered`, `declined`, `cancelled`, or `expired`. `response`
+is REQUIRED exactly for `answered` and forbidden otherwise. `responder` MUST
+equal the authenticated presenter from the request.
+
+An answered response contains exactly:
+
+- `answer` for `clarify`;
+- `option_ids` for `choose`;
+- `candidate` and `candidate_hash` for `edit`;
+- `base_hash`, `patch`, and `candidate_hash` for `redline`;
+- `result_ref`, `verifier`, `achieved_assurance`, `authenticated_at`, and
+  `expires_at` for `step_up`.
+
+`resolved_at`, `authenticated_at`, and the step-up `expires_at` are RFC 3339
+UTC timestamps with the `Z` suffix. `response_hash` uses the Canonical Object
+Hash Profile over the complete response object excluding `response_hash`.
+
+#### Lifecycle, Replay, and Rebinding
+
+The requester and presenter retain the following state per authenticated
+participant pair and `elicitation_id`:
+
+| Current state | Input | Next state | Required behavior |
+| --- | --- | --- | --- |
+| absent | valid revision `1` request | `pending` | Verify the complete tuple, context hash, kind contract, exposure, and expiry before presentation. |
+| `pending` | exact request replay | `pending` | Return or retain the same presentation state without another user prompt or side effect. |
+| `pending` | valid next revision | `pending` | Mark the prior revision `superseded`, replace the presentation, and accept no response to the prior revision. |
+| `pending` | valid matching `answered` response | `resolved` | Persist the immutable response before acknowledging it; perform the kind-specific validation below. |
+| `pending` | matching `declined`, `cancelled`, or `expired` response | same named terminal state | Persist the terminal disposition; create no candidate authority or action effect. |
+| any non-terminal state | Grant, surface, session, context, authentication, or policy binding becomes invalid | `invalidated` | Suppress the prompt or response and require a new elicitation after authoritative state is re-established. |
+
+`resolved`, `declined`, `cancelled`, `expired`, `superseded`, and `invalidated`
+are terminal for that revision. An exact replay of a terminal response returns
+the original immutable result while its terminal replay record is retained.
+Both participants retain the request hash, response hash, terminal disposition,
+and result reference for at least
+`compatibility.human_elicitation_replay_retention_seconds` after terminal
+acceptance. Terminal acceptance is the instant at which that participant
+durably persists the validated terminal response; it is not the response's
+self-asserted `resolved_at` or its transport delivery time. They MAY delete
+response payload fields earlier when a stricter
+privacy rule requires it, but MUST retain a non-sensitive tombstone sufficient
+to reject reuse and MUST NOT report the original result after deleting the
+fields needed to reproduce it. After the retention interval, a replay or
+unknown reused id fails closed as stale `elicitation_invalid`; it never creates
+a new prompt or result. Conflicting reuse of an accepted request or response
+revision, a skipped revision, response-kind mismatch, stale or future session
+generation, expired request, unlisted option, invalid schema answer, changed
+redline base, unverified step-up result, or tuple mismatch fails as
+`elicitation_invalid`. It MUST NOT advance session state, satisfy approval,
+dispatch an action, release a credential, or create effect or receipt evidence.
+Waiting for an answer pauses only the bound operation. It does not transition
+the authoritative ASP session from `active` to `interrupted`; ordinary session
+fencing and cancellation continue to use the Session Authority and Lifecycle
+state machine.
+
+Clarify and choose answers are typed data only. Edit and redline answers are
+candidates only. Before any candidate can replace action input, the responsible
+runtime and application independently validate the schema and editable paths,
+apply the manifest-pinned normalization, recompute `input_hash` and
+`execution_hash`, and re-evaluate policy. If the normalized input or another
+bound context member changes, all prior preview evidence, reservations,
+expected-effects evidence, policy decisions, and approvals that bind the old
+value become unusable. A new preview, reservation, policy decision, or approval
+is obtained when the ordinary action contract requires it.
+
+A verified step-up result is an authentication input to the receiving
+component's current policy evaluation. It cannot satisfy an approval mode
+unless the component subsequently obtains the separately defined exact
+approval. No Human Elicitation response is included in
+`approval_receipt_hashes`; an Approval Receipt can refer only to the later
+approval interaction it actually records.
+
+#### Privacy and Failure Rules
+
+The requester minimizes the prompt, base candidate, options, schema, and
+context to the data needed for this interaction. The presenter applies the
+effective redaction, recipient, processing-path, retention, and training-use
+constraints before showing or storing that data. A response inherits the
+strictest applicable retention bound from its request, Grant, and local policy.
+Authentication factors and verifier-private evidence are never retained as
+elicitation data.
+
+Transport loss, UI dismissal, ordinary application-login expiry, or an AHP
+navigation change does not imply `answered`, `declined`, `cancelled`, or
+`expired`. After an ambiguous delivery the participants reconcile by
+`elicitation_id`, revision, and complete hashes. They MUST NOT create a new
+answer, approval, action idempotency key, or effect merely to discover whether
+the prior resolution was accepted.
 
 ### ASP-over-AHP Binding Profile
 
@@ -1062,6 +1385,9 @@ To compute an ASP object hash, an implementation MUST:
 | Action Preconditions | `https://github.com/0al-spec/agent-surface/hash/action-preconditions/v1` | none; the hashing view is exactly the validated `preconditions` object |
 | Expected Effects | `https://github.com/0al-spec/agent-surface/hash/expected-effects/v1` | none; the hashing view is exactly the validated `expected_effects` array |
 | Actual Effects | `https://github.com/0al-spec/agent-surface/hash/actual-effects/v1` | none; the hashing view is exactly the validated `actual_effects` array |
+| Human Elicitation context | `https://github.com/0al-spec/agent-surface/hash/human-elicitation-context/v1` | none; the hashing view is the complete closed `context` object |
+| Human Elicitation request | `https://github.com/0al-spec/agent-surface/hash/human-elicitation-request/v1` | top-level `request_hash` |
+| Human Elicitation response | `https://github.com/0al-spec/agent-surface/hash/human-elicitation-response/v1` | top-level `response_hash` |
 | Policy Decision Object | `https://github.com/0al-spec/agent-surface/hash/policy-decision/v1` | top-level `policy_decision_hash` |
 | receipt | `https://github.com/0al-spec/agent-surface/hash/receipt/v1` | top-level `receipt_hash` and `receipt_signatures` |
 
@@ -1380,6 +1706,10 @@ surface discoverable.
     "approval_receipt_profiles": [
       "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1"
     ],
+    "human_elicitation_profiles": [
+      "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+    ],
+    "human_elicitation_replay_retention_seconds": 86400,
     "agent_passport_profiles": [
       {
         "profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
@@ -1752,6 +2082,17 @@ Receipts, bind their hashes into action evidence, and enforce replay and expiry
 rules completely. Advertising a receipt schema or signing algorithm alone is
 not support. Absence means the application implements only the base opaque
 approval-reference behavior and MUST reject a Grant selecting this profile.
+
+`compatibility.human_elicitation_profiles`, when present, MUST be a non-empty
+array of unique collision-resistant profile identifiers and MUST be accompanied
+by `compatibility.human_elicitation_replay_retention_seconds`, a positive safe
+integer. The two members advertise only profiles the application can negotiate
+on an authenticated participant channel, validate under the current surface
+and Grant tuple, and retain with the terminal replay guarantees defined by the
+Human Elicitation Events Profile. The retention value starts at terminal
+acceptance and changes the manifest hashing view. Absence of either member
+means that the application does not support Human Elicitation; a runtime MUST
+NOT infer support from UI capabilities, an AHP carrier, or receipt behavior.
 
 `compatibility.agent_passport_profiles`, when present, MUST be a non-empty array
 of closed objects. Each object MUST contain `profile`, `hash_profile`,
@@ -9091,10 +9432,13 @@ or reservation, changed preconditions or expected effects, and current policy
 denial always take precedence over an unused approval. Expiry after an external
 effect dispatch begins does not rewrite its actual outcome.
 
-This profile does not standardize approval UI, step-up authentication,
+This profile does not itself standardize approval UI, step-up authentication,
 clarification, redlines, option selection, legal consent, electronic
 signatures, non-repudiation, trusted timestamps, cancellation, rollback,
-compensation, or proof that a person saw or understood a presentation.
+compensation, or proof that a person saw or understood a presentation. The
+separate Human Elicitation Events Profile can carry typed clarification,
+selection, edit, redline, and step-up results, but none is Approval Receipt
+evidence or proof that a person understood an approval presentation.
 
 ### Receipt Hash Chain
 
@@ -9859,6 +10203,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `approval_required` | Required approval is absent. |
 | `approval_denied` | A required runtime-side or application-side approval path reached a terminal denial for this exact invocation. |
 | `approval_expired` | Required approval evidence expired before first effect admission. |
+| `elicitation_invalid` | A Human Elicitation request or response is malformed, stale, expired, conflicting, mismatched to its authenticated tuple or kind contract, or otherwise cannot be accepted safely. |
 | `schema_invalid` | Input, output, preconditions, expected effects, actual effects, or mode-specific context does not match its declared or core schema. |
 | `input_not_normalized` | Input is schema-valid but is not the fixed point required by the action's manifest-pinned idempotency normalization profile. |
 | `idempotency_conflict` | Idempotency key was reused with different input, execution context, or admitted approval-evidence set. |
@@ -10857,6 +11202,19 @@ cases cover profile downgrade, unauthenticated transport, session-generation
 substitution, conflicting representation replay, action substitution, and an
 AHP receipt summary presented as authority.
 
+The Human Elicitation vectors use the standalone closed profile schema and a
+closed normalized projection of authenticated requester and presenter state,
+the current session, Grant, surface, context, immutable replay record, and any
+candidate validation state. Positive cases cover clarification, closed choice,
+step-up verification, normalized edit, base-bound redline results, and exact
+retained terminal replay. Negative cases cover stale session generations,
+conflicting terminal replay, agent-asserted or secret-bearing step-up results,
+stale edit bindings, and redline result substitution. Agent Adapter cases
+separately prove minimized, purpose-bound answer projection and rejection of
+agent-originated resolutions or secret-bearing envelopes. No passing Human
+Elicitation vector establishes approval, consent, Grant, dispatch, effect,
+receipt, or authentication-factor authority.
+
 The report binds the exact suite and specification sources, ordered applicable
 requirements and vectors, each vector digest, subject and counterpart artifacts,
 runner, adapter and probe entry-point digests, configuration digests and
@@ -10878,7 +11236,8 @@ The catalog digest is SHA-256 over the ASCII domain
 catalog path in lexicographic order as UTF-8, a zero octet, its raw file bytes,
 and a final zero octet. The canonical set is exactly
 `capacity-error.schema.json`, `fixtures.json`, `fixtures.schema.json`,
-`observation.schema.json`, `operational-limits.schema.json`,
+`human-elicitation.schema.json`, `observation.schema.json`,
+`operational-limits.schema.json`,
 `report.schema.json`, `schema-cases.json`, `schema-cases.schema.json`,
 `subject.schema.json`, `suite.json`, `suite.schema.json`, `vectors.json`, and
 `vectors.schema.json`, each under `conformance/v1/`. The specification
@@ -10960,6 +11319,16 @@ before changing presentation state. The Mock Agent Adapter forwards only an
 exact action binding. Profile downgrade, unauthenticated carrier state, tuple or
 action substitution, conflicting replay, and receipt-authority claims preserve
 the prior ASP and AHP state and produce deterministic negative observations.
+
+For Human Elicitation tests, the Mock Runtime mediates the authenticated
+presenter boundary and immutable request/response replay record. The Mock App
+owns application-requested edit and redline candidate validation. Both
+participants preserve the prior proposal, approval, dispatch, effect,
+credential, and receipt state when a binding, hash, option, assurance, base, or
+result check fails. The Mock Agent Adapter projects only the minimized,
+purpose-bound synthetic answer and rejects agent-originated resolutions,
+unbound envelopes, and secret-bearing data. Synthetic step-up fixtures contain
+only opaque verifier results and MUST NOT carry authentication factors.
 
 All mock inputs, identifiers, payloads, keys, credentials, evidence, and state
 are deterministic synthetic test values. The bundle MUST NOT accept or retain
@@ -11138,6 +11507,12 @@ A protected-resource component conforms to the Action Executor Profile when it:
   verifies the complete required role map and maximum age before first effect
   admission; producing an application Approval Receipt additionally requires an
   application-role Receipt Producer claim
+- when selecting the Human Elicitation Events Profile, authenticates the
+  requester and presenter, retains the exact request and terminal-response
+  revision state, validates every session, Grant, surface, context, kind, and
+  response binding, and treats any clarification, choice, edit, redline, or
+  step-up result only as input to a fresh application policy and action
+  decision
 - when the Grant selects Runtime Attestation, performs the action-time duties
   of the Action Executor in Runtime Attestation Role Requirements below rather
   than inferring accepted state from hardware, EAT parsing, or a co-located
@@ -11425,6 +11800,13 @@ An application runtime conforms to the Runtime Mediator Profile when it:
   namespaces separate, validates monotonic representation bindings and every
   embedded ASP tuple before presentation or dispatch, and fences conflicting
   replay or ambiguous outcomes without deriving authority from UI state
+- when selecting the Human Elicitation Events Profile, presents only a
+  minimized request on an authenticated user channel, persists exact request
+  and terminal-response revision state, validates every session, Grant,
+  surface, context, kind, expiry, and verifier binding, withholds
+  authentication factors from profile and agent-visible data, and never treats
+  a clarification, choice, edit, redline, or step-up result as approval or
+  action authority
 - denies credential release unless an explicit `credential.release` capability
   and its constraints are satisfied
 - preserves parent-runtime mediation for subagents, tools, adapters, remote
@@ -11522,6 +11904,12 @@ An adapter conforms to the Agent Adapter Profile when it:
 - when selecting the ASP-over-AHP Binding Profile, translates only the exact
   validated embedded ASP message and control binding, rejects action or tuple
   substitution, and never treats AHP state or a receipt summary as authority
+- never originates or resolves a Human Elicitation interaction, claims that a
+  person answered, or forwards an authentication factor; after the Runtime
+  Mediator accepts an exact response, exposes only the minimized,
+  type-specific answer required by an independently verified task-purpose and
+  Data Exposure Contract, never the profile envelope, verifier-private data,
+  or unrelated candidate fields
 - never fabricates consent, approval, grant, policy decision, app effect, or
   receipt evidence and never treats a conformance claim as authority
 - fails closed instead of blindly retrying when authority, session generation,

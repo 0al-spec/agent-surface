@@ -1,0 +1,713 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
+  "title": "ASP Human Elicitation Events Profile v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/requiredMessage"
+    },
+    {
+      "$ref": "#/$defs/resolvedMessage"
+    }
+  ],
+  "$defs": {
+    "profile": {
+      "const": "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "positiveSafeInteger": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "nonNegativeSafeInteger": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha-256:[A-Za-z0-9_-]{43}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "application",
+            "runtime"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "verifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "application",
+            "runtime",
+            "external"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "mode": {
+          "enum": [
+            "read",
+            "dry_run",
+            "propose",
+            "reserve",
+            "commit",
+            "compensate",
+            "revert"
+          ]
+        },
+        "input_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "preview_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "expected_effects_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "reservation_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "execution_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "policy_decision_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "approval_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      },
+      "dependentRequired": {
+        "action_id": [
+          "mode",
+          "input_hash"
+        ],
+        "mode": [
+          "action_id",
+          "input_hash"
+        ],
+        "input_hash": [
+          "action_id",
+          "mode"
+        ]
+      }
+    },
+    "prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "detail"
+      ],
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "detail": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "option_id",
+        "label",
+        "detail"
+      ],
+      "properties": {
+        "option_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "label": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "detail": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "clarifyRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question_id",
+        "response_schema",
+        "response_schema_hash",
+        "max_bytes"
+      ],
+      "properties": {
+        "question_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "response_schema": {
+          "type": "object"
+        },
+        "response_schema_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_bytes": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        }
+      }
+    },
+    "chooseRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question_id",
+        "options",
+        "min_selected",
+        "max_selected"
+      ],
+      "properties": {
+        "question_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/option"
+          }
+        },
+        "min_selected": {
+          "$ref": "#/$defs/nonNegativeSafeInteger"
+        },
+        "max_selected": {
+          "$ref": "#/$defs/nonNegativeSafeInteger"
+        }
+      }
+    },
+    "editRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base",
+        "base_hash",
+        "input_schema_hash",
+        "editable_paths"
+      ],
+      "properties": {
+        "base": {},
+        "base_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "input_schema_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "editable_paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+          }
+        }
+      }
+    },
+    "redlineRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_hash",
+        "media_type",
+        "patch_schema",
+        "patch_schema_hash"
+      ],
+      "properties": {
+        "base_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "media_type": {
+          "const": "application/json-patch+json"
+        },
+        "patch_schema": {
+          "type": "object"
+        },
+        "patch_schema_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "editable_paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+          }
+        }
+      }
+    },
+    "stepUpRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transaction_text",
+        "required_assurance",
+        "max_age_seconds"
+      ],
+      "properties": {
+        "transaction_text": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "required_assurance": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "max_age_seconds": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        }
+      }
+    },
+    "requiredMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "profile",
+        "elicitation_id",
+        "revision",
+        "requester",
+        "presenter",
+        "kind",
+        "session_id",
+        "session_generation",
+        "grant_id",
+        "grant_hash",
+        "surface_hash",
+        "context",
+        "context_hash",
+        "prompt",
+        "request",
+        "expires_at",
+        "request_hash"
+      ],
+      "properties": {
+        "type": {
+          "const": "elicitation.required"
+        },
+        "profile": {
+          "$ref": "#/$defs/profile"
+        },
+        "elicitation_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "revision": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        },
+        "requester": {
+          "$ref": "#/$defs/component"
+        },
+        "presenter": {
+          "$ref": "#/$defs/component"
+        },
+        "kind": {
+          "enum": [
+            "clarify",
+            "choose",
+            "edit",
+            "redline",
+            "step_up"
+          ]
+        },
+        "session_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "session_generation": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        },
+        "grant_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "grant_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "surface_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "context": {
+          "$ref": "#/$defs/context"
+        },
+        "context_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "prompt": {
+          "$ref": "#/$defs/prompt"
+        },
+        "request": {},
+        "expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "request_hash": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "kind": {
+                  "const": "clarify"
+                },
+                "request": {
+                  "$ref": "#/$defs/clarifyRequest"
+                }
+              }
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "choose"
+                },
+                "request": {
+                  "$ref": "#/$defs/chooseRequest"
+                }
+              }
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "edit"
+                },
+                "request": {
+                  "$ref": "#/$defs/editRequest"
+                }
+              }
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "redline"
+                },
+                "request": {
+                  "$ref": "#/$defs/redlineRequest"
+                }
+              }
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "step_up"
+                },
+                "request": {
+                  "$ref": "#/$defs/stepUpRequest"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "clarifyResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "answer"
+      ],
+      "properties": {
+        "answer": {}
+      }
+    },
+    "chooseResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "option_ids"
+      ],
+      "properties": {
+        "option_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        }
+      }
+    },
+    "editResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate",
+        "candidate_hash"
+      ],
+      "properties": {
+        "candidate": {},
+        "candidate_hash": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "redlineResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_hash",
+        "patch",
+        "candidate_hash"
+      ],
+      "properties": {
+        "base_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "patch": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object"
+          }
+        },
+        "candidate_hash": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "stepUpResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result_ref",
+        "verifier",
+        "achieved_assurance",
+        "authenticated_at",
+        "expires_at"
+      ],
+      "properties": {
+        "result_ref": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "verifier": {
+          "$ref": "#/$defs/verifier"
+        },
+        "achieved_assurance": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "authenticated_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/timestamp"
+        }
+      }
+    },
+    "resolvedMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "profile",
+        "elicitation_id",
+        "revision",
+        "kind",
+        "disposition",
+        "responder",
+        "session_id",
+        "session_generation",
+        "grant_id",
+        "grant_hash",
+        "surface_hash",
+        "context_hash",
+        "request_hash",
+        "resolved_at",
+        "response_hash"
+      ],
+      "properties": {
+        "type": {
+          "const": "elicitation.resolved"
+        },
+        "profile": {
+          "$ref": "#/$defs/profile"
+        },
+        "elicitation_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "revision": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        },
+        "kind": {
+          "enum": [
+            "clarify",
+            "choose",
+            "edit",
+            "redline",
+            "step_up"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "answered",
+            "declined",
+            "cancelled",
+            "expired"
+          ]
+        },
+        "responder": {
+          "$ref": "#/$defs/component"
+        },
+        "session_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "session_generation": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        },
+        "grant_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "grant_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "surface_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "context_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "request_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "response": {},
+        "resolved_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "response_hash": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "const": "answered"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          },
+          "then": {
+            "required": [
+              "response"
+            ],
+            "oneOf": [
+              {
+                "properties": {
+                  "kind": {
+                    "const": "clarify"
+                  },
+                  "response": {
+                    "$ref": "#/$defs/clarifyResponse"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "choose"
+                  },
+                  "response": {
+                    "$ref": "#/$defs/chooseResponse"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "edit"
+                  },
+                  "response": {
+                    "$ref": "#/$defs/editResponse"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "redline"
+                  },
+                  "response": {
+                    "$ref": "#/$defs/redlineResponse"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "step_up"
+                  },
+                  "response": {
+                    "$ref": "#/$defs/stepUpResponse"
+                  }
+                }
+              }
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "response"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

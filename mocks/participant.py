@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,12 +34,23 @@ def _reject_duplicate_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _reject_number(_: str) -> None:
-    raise ParticipantError("floating-point and non-finite JSON numbers are forbidden")
+def _reject_constant(_: str) -> None:
+    raise ParticipantError("non-finite JSON numbers are forbidden")
+
+
+def _parse_binary64(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ParticipantError("JSON number is outside the finite binary64 range")
+    if number == 0.0 and value.startswith("-"):
+        raise ParticipantError("JSON negative zero is forbidden")
+    return number
 
 
 def _parse_safe_integer(value: str) -> int:
     number = int(value)
+    if number == 0 and value.startswith("-"):
+        raise ParticipantError("JSON negative zero is forbidden")
     if not -SAFE_INTEGER <= number <= SAFE_INTEGER:
         raise ParticipantError("JSON integer is outside the I-JSON safe range")
     return number
@@ -50,6 +62,12 @@ def _validate_ijson(value: Any, path: str = "$") -> None:
     if isinstance(value, int):
         if not -SAFE_INTEGER <= value <= SAFE_INTEGER:
             raise ParticipantError(f"unsafe JSON integer at {path}")
+        return
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ParticipantError(f"non-finite JSON number at {path}")
+        if value == 0.0 and math.copysign(1.0, value) < 0:
+            raise ParticipantError(f"JSON negative zero at {path}")
         return
     if isinstance(value, str):
         try:
@@ -78,9 +96,9 @@ def load_request(stream: Any = sys.stdin) -> Mapping[str, Any]:
         value = json.load(
             stream,
             object_pairs_hook=_reject_duplicate_pairs,
-            parse_float=_reject_number,
+            parse_float=_parse_binary64,
             parse_int=_parse_safe_integer,
-            parse_constant=_reject_number,
+            parse_constant=_reject_constant,
         )
     except (json.JSONDecodeError, UnicodeError) as error:
         raise ParticipantError("participant input is not strict JSON") from error
