@@ -320,6 +320,16 @@ class ReviewDataValidationTests(unittest.TestCase):
                 ]
                 self.assert_invalid(payload, "exact authoritative evidence binding")
 
+    def test_asp_over_ahp_binding_requires_the_exact_bound_evidence(self) -> None:
+        for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.machine_validated_payload()
+                review = next(item for item in payload["reviews"] if item["id"] == 27)
+                review["evidence"] = [
+                    item for item in review["evidence"] if item["kind"] != missing_kind
+                ]
+                self.assert_invalid(payload, "exact authoritative evidence binding")
+
     def test_missing_schema_evidence_is_rejected(self) -> None:
         payload = self.valid_payload()
         payload["reviews"][0]["evidence"].append(
@@ -407,14 +417,14 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 62)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 350)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 364)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 49, "proposal": 7, "machine_validated": 6}),
+            Counter({"specified": 49, "proposal": 6, "machine_validated": 7}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 55, "partial": 3, "missing": 4}),
+            Counter({"present": 56, "partial": 3, "missing": 3}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 137)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -469,6 +479,22 @@ class ReviewDataValidationTests(unittest.TestCase):
         )
         self.assertEqual(len(ready_ids), 61)
         self.assertEqual(reviews_by_id[26]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[27]["status"], "present")
+        self.assertEqual(reviews_by_id[27]["maturity"], "machine_validated")
+        self.assertEqual(reviews_by_id[27]["depends_on"], [26, 28, 30])
+        self.assertEqual(reviews_by_id[27]["readiness"], "ready")
+        self.assertEqual(len(reviews_by_id[27]["evidence"]), 14)
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[27]["anchors"]],
+            [
+                "asp-over-ahp-binding-profile",
+                "session-authority-and-lifecycle",
+                "interoperability-test-suite",
+                "reference-mock-participants",
+                "runtime-mediator-profile",
+                "agent-adapter-profile",
+            ],
+        )
         self.assertEqual(reviews_by_id[36]["readiness"], "ready")
         self.assertEqual(reviews_by_id[18]["status"], "present")
         self.assertEqual(reviews_by_id[18]["maturity"], "specified")

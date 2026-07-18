@@ -2,7 +2,7 @@
   "$schema": "./vectors.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.3.0",
+  "suite_version": "1.4.0",
   "vectors": [
     {
       "vector_id": "ASP-V-SP-001",
@@ -4320,6 +4320,365 @@
         { "state": "runtime.retry_wait_pending", "before": false, "after": false },
         { "state": "runtime.runaway_guard_epoch", "before": 7, "after": 7 }
       ]
+    },
+    {
+      "vector_id": "ASP-V-RM-028",
+      "title": "Present fresh AHP UI state only after validating the complete ASP binding",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-011"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_ahp_selected",
+        "authenticated_ahp_channel"
+      ],
+      "stimulus": {
+        "operation": "present_ahp_session",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "ahp_binding_validated",
+        "asp_tuple_validated",
+        "ahp_ui_state_presented",
+        "asp_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "ahp_binding_rejected",
+        "action_accepted",
+        "typed_request_forwarded",
+        "receipt_verified"
+      ],
+      "state_deltas": [
+        { "state": "runtime.ahp_representation_revision", "before": 6, "after": 7 },
+        { "state": "runtime.ahp_presentation_count", "before": 1, "after": 2 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-029",
+      "title": "Reject an AHP projection bound to another ASP session generation",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-028",
+      "requirement_ids": [
+        "ASP-RM-011"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_ahp_selected",
+        "authenticated_ahp_channel"
+      ],
+      "stimulus": {
+        "operation": "present_ahp_session",
+        "input_variant": "ahp_session_generation_mismatch"
+      },
+      "required_observations": [
+        "ahp_binding_rejected",
+        "ahp_ui_update_suppressed",
+        "asp_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "ahp_binding_validated",
+        "ahp_ui_state_presented",
+        "typed_request_forwarded"
+      ],
+      "state_deltas": [
+        { "state": "runtime.ahp_representation_revision", "before": 6, "after": 6 },
+        { "state": "runtime.ahp_presentation_count", "before": 1, "after": 1 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-030",
+      "title": "Reject conflicting reuse of an accepted AHP representation revision",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-028",
+      "requirement_ids": [
+        "ASP-RM-011"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_ahp_selected",
+        "authenticated_ahp_channel"
+      ],
+      "stimulus": {
+        "operation": "present_ahp_session",
+        "input_variant": "ahp_conflicting_revision_replay"
+      },
+      "required_observations": [
+        "ahp_binding_rejected",
+        "ahp_ui_update_suppressed",
+        "asp_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "ahp_binding_validated",
+        "ahp_ui_state_presented",
+        "typed_request_forwarded"
+      ],
+      "state_deltas": [
+        { "state": "runtime.ahp_representation_revision", "before": 6, "after": 6 },
+        { "state": "runtime.ahp_presentation_count", "before": 1, "after": 1 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-031",
+      "title": "Reject AHP content after binding-profile downgrade",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-028",
+      "requirement_ids": [
+        "ASP-RM-011"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_ahp_selected",
+        "authenticated_ahp_channel"
+      ],
+      "stimulus": {
+        "operation": "present_ahp_session",
+        "input_variant": "ahp_profile_downgrade"
+      },
+      "required_observations": [
+        "ahp_binding_rejected",
+        "ahp_ui_update_suppressed",
+        "asp_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "ahp_binding_validated",
+        "ahp_ui_state_presented",
+        "typed_request_forwarded"
+      ],
+      "state_deltas": [
+        { "state": "runtime.ahp_representation_revision", "before": 6, "after": 6 },
+        { "state": "runtime.ahp_presentation_count", "before": 1, "after": 1 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-032",
+      "title": "Reject an ASP projection received on an unauthenticated AHP carrier",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-028",
+      "requirement_ids": [
+        "ASP-RM-011"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_ahp_selected",
+        "authenticated_ahp_channel"
+      ],
+      "stimulus": {
+        "operation": "present_ahp_session",
+        "input_variant": "unauthenticated_ahp_carrier"
+      },
+      "required_observations": [
+        "ahp_binding_rejected",
+        "ahp_ui_update_suppressed",
+        "asp_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "ahp_binding_validated",
+        "ahp_ui_state_presented",
+        "typed_request_forwarded"
+      ],
+      "state_deltas": [
+        { "state": "runtime.ahp_representation_revision", "before": 6, "after": 6 },
+        { "state": "runtime.ahp_presentation_count", "before": 1, "after": 1 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AA-006",
+      "title": "Translate an exact ASP action control without inheriting AHP authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AA-005"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_ahp_selected",
+        "authenticated_ahp_channel",
+        "typed_runtime_api"
+      ],
+      "stimulus": {
+        "operation": "translate_ahp_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "ahp_binding_validated",
+        "asp_tuple_validated",
+        "ahp_control_translated",
+        "typed_request_forwarded",
+        "asp_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "ahp_binding_rejected",
+        "action_accepted",
+        "receipt_verified"
+      ],
+      "state_deltas": [
+        { "state": "adapter.forwarded_count", "before": 0, "after": 1 },
+        { "state": "credential.adapter_retained_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AA-007",
+      "title": "Reject AHP action substitution outside the exact ASP binding",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AA-006",
+      "requirement_ids": [
+        "ASP-AA-005"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_ahp_selected",
+        "authenticated_ahp_channel",
+        "typed_runtime_api"
+      ],
+      "stimulus": {
+        "operation": "translate_ahp_action",
+        "input_variant": "ahp_action_substitution"
+      },
+      "required_observations": [
+        "ahp_binding_rejected",
+        "adapter_request_rejected",
+        "asp_authority_retained",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "ahp_binding_validated",
+        "ahp_control_translated",
+        "typed_request_forwarded"
+      ],
+      "state_deltas": [
+        { "state": "adapter.forwarded_count", "before": 0, "after": 0 },
+        { "state": "credential.adapter_retained_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AA-008",
+      "title": "Reject an AHP receipt summary presented as ASP receipt authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AA-006",
+      "requirement_ids": [
+        "ASP-AA-005"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_ahp_selected",
+        "authenticated_ahp_channel",
+        "typed_runtime_api"
+      ],
+      "stimulus": {
+        "operation": "translate_ahp_action",
+        "input_variant": "ahp_receipt_claims_authority"
+      },
+      "required_observations": [
+        "ahp_binding_rejected",
+        "adapter_request_rejected",
+        "asp_authority_retained",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "ahp_binding_validated",
+        "ahp_control_translated",
+        "typed_request_forwarded",
+        "receipt_verified"
+      ],
+      "state_deltas": [
+        { "state": "adapter.forwarded_count", "before": 0, "after": 0 },
+        { "state": "credential.adapter_retained_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_policy_reason": "binding_invalid"
     }
   ]
 }

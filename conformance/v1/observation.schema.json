@@ -196,7 +196,17 @@
         "http_no_store_applied",
         "http_no_store_validated",
         "http_retry_after_bound",
-        "http_retry_after_validated"
+        "http_retry_after_validated",
+        "ahp_binding_validated",
+        "ahp_binding_rejected",
+        "asp_tuple_validated",
+        "ahp_ui_state_presented",
+        "ahp_ui_update_suppressed",
+        "ahp_control_translated",
+        "asp_authority_unchanged",
+        "asp_authority_retained",
+        "action_dispatch_suppressed",
+        "credential_withheld"
       ]
     },
     "stateName": {
@@ -254,7 +264,9 @@
         "runtime.retry_delay_floor_seconds",
         "runtime.retry_wait_pending",
         "runtime.capacity_recovery_pending",
-        "runtime.capacity_decision_pending"
+        "runtime.capacity_decision_pending",
+        "runtime.ahp_representation_revision",
+        "runtime.ahp_presentation_count"
       ]
     },
     "stateValue": {

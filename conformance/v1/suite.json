@@ -2,7 +2,7 @@
   "$schema": "./suite.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.3.0",
+  "suite_version": "1.4.0",
   "protocol_version": "agent-surface/0.1",
   "specification": {
     "path": "drafts/agent-surface.md",
@@ -70,7 +70,8 @@
         "ASP-RM-007",
         "ASP-RM-008",
         "ASP-RM-009",
-        "ASP-RM-010"
+        "ASP-RM-010",
+        "ASP-RM-011"
       ]
     },
     {
@@ -80,7 +81,8 @@
         "ASP-AA-001",
         "ASP-AA-002",
         "ASP-AA-003",
-        "ASP-AA-004"
+        "ASP-AA-004",
+        "ASP-AA-005"
       ]
     }
   ],
@@ -160,6 +162,15 @@
         "ASP-RM-009",
         "ASP-AE-011",
         "ASP-RM-010"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
+      "title": "ASP-over-AHP Binding Profile",
+      "rfc_anchor": "asp-over-ahp-binding-profile",
+      "requirement_ids": [
+        "ASP-RM-011",
+        "ASP-AA-005"
       ]
     }
   ],
@@ -718,6 +729,40 @@
         "ASP-V-RM-025",
         "ASP-V-RM-026",
         "ASP-V-RM-027"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-011",
+      "title": "Validate AHP negotiation, replay state, and the complete ASP tuple before presentation or dispatch",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "asp-over-ahp-binding-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-028",
+        "ASP-V-RM-029",
+        "ASP-V-RM-030",
+        "ASP-V-RM-031",
+        "ASP-V-RM-032"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AA-005",
+      "title": "Translate only an exact ASP action binding and reject AHP-claimed authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "rfc_anchor": "asp-over-ahp-binding-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AA-006",
+        "ASP-V-AA-007",
+        "ASP-V-AA-008"
       ]
     }
   ]

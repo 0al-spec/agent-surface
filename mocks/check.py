@@ -152,6 +152,11 @@ def validate_bundle(root: Path | None = None) -> dict[str, Any]:
         profile_id: list(feature_ids)
         for profile_id, feature_ids in FEATURE_INVENTORY.items()
     }
+    if any(
+        feature_ids != sorted(feature_ids)
+        for feature_ids in expected_features.values()
+    ):
+        raise BundleError("mock behavior feature inventory is not canonical")
     if feature_inventory != expected_features or len(feature_inventory) != len(
         manifest["feature_inventory"]
     ):

@@ -31,7 +31,12 @@ application responses to `429` or `503` plus `no-store`, validate
 `Retry-After` against the body hint where required, and reject inconsistent
 runtime inputs before local admission state is released. The fixture's
 normalized `transport` section is harness data, not a simulated HTTP wire
-format.
+format. The ASP-over-AHP paths validate the explicitly negotiated profile,
+authenticated carrier, monotonic representation revision, complete bound ASP
+tuple, exact action, and informational-only receipt use. They never derive ASP
+authority from AHP UI state; invalid bindings are rejected before presentation
+or forwarding. The normalized `ahp` section is likewise harness data rather
+than a base AHP wire specification.
 
 The internal `asp-mock-participant/1` protocol is test control plumbing, not an
 ASP wire binding. `mock_app.py` and `mock_runtime.py` accept one closed envelope

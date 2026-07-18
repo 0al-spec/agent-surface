@@ -22,7 +22,7 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.3.0"
+      "const": "1.4.0"
     },
     "vectors": {
       "type": "array",
@@ -53,7 +53,8 @@
         "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
         "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
         "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
-        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+        "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
       ]
     },
     "requirementId": {
@@ -106,7 +107,9 @@
         "authoritative_limiter_state_recovered",
         "definite_pre_admission_rejection",
         "shared_service_capacity_unavailable",
-        "http_capacity_binding_selected"
+        "http_capacity_binding_selected",
+        "asp_over_ahp_selected",
+        "authenticated_ahp_channel"
       ]
     },
     "operation": {
@@ -126,7 +129,9 @@
         "retransmit_event",
         "handle_capacity_response",
         "bind_http_capacity_response",
-        "handle_http_capacity_response"
+        "handle_http_capacity_response",
+        "present_ahp_session",
+        "translate_ahp_action"
       ]
     },
     "inputVariant": {
@@ -183,7 +188,13 @@
         "missing_http_no_store",
         "http_retry_after_mismatch",
         "capacity_http_status_429",
-        "rate_limit_http_date_retry_after"
+        "rate_limit_http_date_retry_after",
+        "ahp_session_generation_mismatch",
+        "ahp_conflicting_revision_replay",
+        "ahp_profile_downgrade",
+        "unauthenticated_ahp_carrier",
+        "ahp_action_substitution",
+        "ahp_receipt_claims_authority"
       ]
     },
     "aspError": {
@@ -296,7 +307,17 @@
         "http_no_store_applied",
         "http_no_store_validated",
         "http_retry_after_bound",
-        "http_retry_after_validated"
+        "http_retry_after_validated",
+        "ahp_binding_validated",
+        "ahp_binding_rejected",
+        "asp_tuple_validated",
+        "ahp_ui_state_presented",
+        "ahp_ui_update_suppressed",
+        "ahp_control_translated",
+        "asp_authority_unchanged",
+        "asp_authority_retained",
+        "action_dispatch_suppressed",
+        "credential_withheld"
       ]
     },
     "stateName": {
@@ -354,7 +375,9 @@
         "runtime.retry_delay_floor_seconds",
         "runtime.retry_wait_pending",
         "runtime.capacity_recovery_pending",
-        "runtime.capacity_decision_pending"
+        "runtime.capacity_decision_pending",
+        "runtime.ahp_representation_revision",
+        "runtime.ahp_presentation_count"
       ]
     },
     "stateValue": {

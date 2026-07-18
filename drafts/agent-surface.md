@@ -868,6 +868,145 @@ kind of channel using typed session and approval messages such as:
 This layer is transport and session orchestration. It is not intended to absorb
 all Agent Surface semantics.
 
+### ASP-over-AHP Binding Profile
+
+The ASP-over-AHP Binding Profile identifier is
+`https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1`. It defines
+how a deployment can carry ASP participation through an AHP session while
+keeping ASP authority and evidence semantics
+unchanged. This draft does not define the base AHP protocol, media type, or
+representation syntax. A deployment claiming this profile MUST identify the
+base AHP version and serialization independently and MUST implement the closed
+binding contract below without inferring omitted AHP semantics.
+
+#### Scope and Authority Boundary
+
+AHP owns its representation navigation, presentation revision, control
+discovery, and user-interface state. Those values can tell a runtime what a
+user can see or which transition can be requested next. They are not an Agent
+Grant, Grant Credential, ASP session record, approval, Action Request, action
+result, effect, receipt, revocation state, or proof that any of those objects
+exists or remains current.
+
+ASP continues to own:
+
+- manifest and `surface_hash` semantics;
+- Grant, credential, delegate, and lifecycle authority;
+- the authoritative application session record and `session_generation`;
+- action identifiers, modes, input and execution hashes, idempotency, approval,
+  admission, effects, and recovery;
+- receipt production, role attribution, integrity, and hash-chain semantics;
+- event subscription, delivery, acknowledgement, replay, and exposure rules.
+
+An `ahp_session_id`, representation URI, revision, control id, link relation,
+form value, rendered approval state, or connection identity is correlation and
+presentation state only. None can substitute for an ASP tuple member. The AHP
+session id and ASP `session_id` remain separate namespaces and MUST be mapped
+explicitly rather than copied or compared as interchangeable credentials.
+
+The binding MUST NOT carry a Grant Credential, proof key, raw execution token,
+private receipt material, or application credential in an AHP representation or
+agent-visible control. A runtime can retain those values inside its ordinary ASP
+security boundary and use them only when constructing the corresponding ASP
+request on the authenticated ASP path.
+
+#### Binding Negotiation and Record
+
+Before interpreting an AHP representation as ASP-related, both peers MUST
+explicitly select the exact profile identifier above on an authenticated AHP
+channel. Profile selection is scoped to that authenticated channel and base AHP
+session. Missing, unknown, downgraded, or conflicting selection is unbound AHP
+content and MUST NOT be interpreted as ASP state. Reconnect performs a new
+selection and revalidates current ASP state; it does not restore authority from
+the earlier connection.
+
+Each ASP-related representation or control carries one binding record. The base
+AHP serialization MAY embed this JSON object or provide an exactly equivalent
+typed projection, but the normalized members and meanings are closed:
+
+```json
+{
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
+  "ahp_session_id": "ahp_session_7",
+  "representation_id": "review/42",
+  "representation_revision": 7,
+  "control_id": "submit-comment",
+  "control_kind": "invoke",
+  "asp": {
+    "message_type": "action.request",
+    "session_id": "sess_456",
+    "session_generation": 1,
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:<grant-digest>",
+    "surface_hash": "sha-256:<surface-digest>",
+    "action_id": "comment.create"
+  }
+}
+```
+
+`representation_revision` is a positive, monotonically increasing AHP
+presentation revision within one `ahp_session_id` and `representation_id`.
+`control_id` is stable only within that representation lineage. `control_kind`
+is `present` when the binding projects ASP state for display and `invoke` when a
+control proposes an ordinary ASP operation. The nested `asp` object MUST be the
+complete type-specific ASP message or an exact typed reference to one available
+through the authenticated ASP path. Extracted tuple members shown above are not
+a second authority record: a receiver MUST require them to equal the validated
+ASP object and current local binding.
+
+An AHP control can propose only the exact ASP message type, action id, mode,
+input, hashes, and session generation named by its validated binding. Activating
+the control causes the Runtime Mediator to construct or retrieve the ordinary
+ASP request, revalidate current Grant, surface, session, approval, policy,
+budget, and idempotency state, and submit it through the normal ASP endpoint.
+Changing an AHP form value requires the same ASP schema validation,
+normalization, hashing, preview, and approval processing as any other input
+change. The control itself never authorizes dispatch.
+
+#### Binding State Machine
+
+For each authenticated AHP session and representation lineage, a conforming
+Runtime Mediator implements these states:
+
+| State | Input | Next state | Required behavior |
+| --- | --- | --- | --- |
+| `unbound` | exact profile selection on an authenticated channel | `bound` | Record the selected profile and base AHP session; disclose no ASP state yet. |
+| `bound` | fresh representation with a valid ASP tuple | `presented` | Revalidate exposure and current ASP state, retain the exact revision binding, then present only the authorized projection. |
+| `presented` | exact control activation | `pending` | Revalidate the current ASP object and authority, then send at most one ordinary ASP request under its own idempotency rules. |
+| `pending` | authenticated, validated ASP response | `presented` or `terminal` | Update AHP presentation only from the accepted ASP result; verify any receipt independently. |
+| `pending` | timeout, disconnect, or ambiguous outcome | `reconciling` | Preserve the ASP idempotency identity and authority tuple; do not infer failure or retry from AHP navigation. |
+| any non-terminal state | profile loss, authentication loss, tuple mismatch, stale/conflicting revision, revocation, or invalid ASP state | `fenced` | Suppress presentation updates and new dispatch until a fresh binding and authoritative ASP reconciliation succeed. |
+
+The AHP presentation lifecycle does not change the ASP Session Authority and
+Lifecycle state machine. An AHP `terminal` page does not complete or cancel an
+ASP session, and an AHP reconnect does not resume one. Only a validated ASP
+transition can do so.
+
+#### Replay, Failure, and Security Rules
+
+A receiver retains the highest accepted representation revision and a digest of
+the complete normalized binding for each representation lineage. A lower
+revision is stale. Reuse of the current revision is an exact replay only when
+the complete binding is identical; conflicting reuse is rejected and MUST NOT
+update UI state, release credentials, advance an ASP session, dispatch an
+action, or create receipt evidence. A higher revision can replace presentation
+state, but every embedded ASP tuple and object is revalidated independently.
+
+An AHP representation claiming `active`, `approved`, `success`, `cancelled`,
+`revoked`, or another ASP-significant label is descriptive UI content until the
+corresponding authenticated ASP object verifies. A receipt summary, receipt
+link, hash-shaped string, or rendered signature badge is not a receipt. A
+runtime or adapter MUST retrieve or receive the complete receipt through the
+ordinary authenticated receipt path and apply all role, integrity, tuple, and
+hash-chain checks before using it as evidence.
+
+Invalid binding data produces a deterministic local `binding_invalid` policy
+decision. It is not converted into an ASP denial allegedly issued by the
+application. The runtime retains current ASP authority, session, idempotency,
+and outcome-reconciliation state, suppresses the AHP UI update or dispatch, and
+MAY show a non-authoritative local error. Unknown AHP extensions remain
+presentation metadata and MUST NOT add ASP meaning.
+
 ### 4. Agent Adapter Protocol
 
 The runtime-to-agent integration layer:
@@ -10709,6 +10848,15 @@ not an ASP wire object. The transport-neutral Operational Limits vectors
 continue to validate the common capacity envelope without inferring an HTTP
 status from an ASP error code alone.
 
+The ASP-over-AHP vectors likewise use a closed normalized projection of profile
+selection, authenticated carrier state, AHP representation identity and
+revision, and the embedded ASP tuple. The projection exercises the binding
+contract without defining the base AHP wire format. Positive cases prove that
+presentation and exact action translation preserve ASP authority; negative
+cases cover profile downgrade, unauthenticated transport, session-generation
+substitution, conflicting representation replay, action substitution, and an
+AHP receipt summary presented as authority.
+
 The report binds the exact suite and specification sources, ordered applicable
 requirements and vectors, each vector digest, subject and counterpart artifacts,
 runner, adapter and probe entry-point digests, configuration digests and
@@ -10805,6 +10953,13 @@ The Mock Runtime validates the normalized authenticated HTTP projection before
 it invokes the ordinary capacity recovery state machine. A failed binding
 preserves local admission and semantic retry state and produces a deterministic
 negative observation; it is not converted into an adapter execution error.
+
+For ASP-over-AHP tests, the Mock Runtime validates negotiated profile,
+authenticated carrier, representation replay state, and the complete ASP tuple
+before changing presentation state. The Mock Agent Adapter forwards only an
+exact action binding. Profile downgrade, unauthenticated carrier state, tuple or
+action substitution, conflicting replay, and receipt-authority claims preserve
+the prior ASP and AHP state and produce deterministic negative observations.
 
 All mock inputs, identifiers, payloads, keys, credentials, evidence, and state
 are deterministic synthetic test values. The bundle MUST NOT accept or retain
@@ -11265,6 +11420,11 @@ An application runtime conforms to the Runtime Mediator Profile when it:
 - enforces the Session Authority and Lifecycle state machine, including
   complete tuple binding, generation changes on resume, and terminal-state
   rejection
+- when selecting the ASP-over-AHP Binding Profile, explicitly negotiates the
+  exact profile on an authenticated AHP channel, keeps AHP and ASP session
+  namespaces separate, validates monotonic representation bindings and every
+  embedded ASP tuple before presentation or dispatch, and fences conflicting
+  replay or ambiguous outcomes without deriving authority from UI state
 - denies credential release unless an explicit `credential.release` capability
   and its constraints are satisfied
 - preserves parent-runtime mediation for subagents, tools, adapters, remote
@@ -11359,6 +11519,9 @@ An adapter conforms to the Agent Adapter Profile when it:
   authority
 - preserves session and grant identifiers in audit context
 - preserves valid trace ids and creates a new span id for each adapter operation
+- when selecting the ASP-over-AHP Binding Profile, translates only the exact
+  validated embedded ASP message and control binding, rejects action or tuple
+  substitution, and never treats AHP state or a receipt summary as authority
 - never fabricates consent, approval, grant, policy decision, app effect, or
   receipt evidence and never treats a conformance claim as authority
 - fails closed instead of blindly retrying when authority, session generation,

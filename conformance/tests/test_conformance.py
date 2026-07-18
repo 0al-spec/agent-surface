@@ -125,14 +125,31 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.3.0")
-        self.assertEqual(len(self.catalog.features), 9)
-        self.assertEqual(len(self.catalog.requirements), 38)
-        self.assertEqual(len(self.catalog.vectors), 79)
-        self.assertEqual(len(self.catalog.fixtures), 27)
-        self.assertEqual(len(self.catalog.mutations), 53)
+        self.assertEqual(self.catalog.suite["suite_version"], "1.4.0")
+        self.assertEqual(len(self.catalog.features), 10)
+        self.assertEqual(len(self.catalog.requirements), 40)
+        self.assertEqual(len(self.catalog.vectors), 87)
+        self.assertEqual(len(self.catalog.fixtures), 29)
+        self.assertEqual(len(self.catalog.mutations), 59)
         self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 36)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
+
+    def test_feature_vocabularies_match_the_catalog(self) -> None:
+        expected = set(self.catalog.features)
+        for schema_name in ("report", "subject", "suite", "vectors"):
+            with self.subTest(schema_name=schema_name):
+                schema = json.loads(
+                    (
+                        ROOT
+                        / "conformance"
+                        / "v1"
+                        / f"{schema_name}.schema.json"
+                    ).read_text(encoding="utf-8")
+                )
+                self.assertEqual(
+                    set(schema["$defs"]["featureId"]["enum"]),
+                    expected,
+                )
 
     def test_schema_case_polarities_are_executable_and_fail_closed(self) -> None:
         cases = self.catalog.schema_case_catalog["cases"]
@@ -214,6 +231,41 @@ class ConformanceSuiteTests(unittest.TestCase):
         path.write_text(json.dumps(fixtures), encoding="utf-8")
         with self.assertRaisesRegex(
             ConformanceError, "http_date is not RFC 9110 HTTP-date syntax"
+        ):
+            validate_catalog(root)
+
+    def test_asp_over_ahp_baselines_are_semantically_bound(self) -> None:
+        ahp_vectors = {
+            "ASP-V-RM-028",
+            "ASP-V-RM-029",
+            "ASP-V-RM-030",
+            "ASP-V-RM-031",
+            "ASP-V-RM-032",
+            "ASP-V-AA-006",
+            "ASP-V-AA-007",
+            "ASP-V-AA-008",
+        }
+        self.assertEqual(
+            {
+                vector_id
+                for vector_id, vector in self.catalog.vectors.items()
+                if "asp_over_ahp_selected" in vector["setup"]
+            },
+            ahp_vectors,
+        )
+
+        root = self.catalog_copy()
+        path = root / "conformance" / "v1" / "fixtures.json"
+        fixtures = json.loads(path.read_text(encoding="utf-8"))
+        baseline = next(
+            item
+            for item in fixtures["fixtures"]
+            if item["fixture_id"] == "ASP-F-RM-028"
+        )
+        baseline["document"]["ahp"]["asp_session_generation"] = 2
+        path.write_text(json.dumps(fixtures), encoding="utf-8")
+        with self.assertRaisesRegex(
+            ConformanceError, "does not match its bound ASP authority tuple"
         ):
             validate_catalog(root)
 
