@@ -209,7 +209,10 @@
         "elicitation_redline_result_mismatch",
         "elicitation_agent_originated_resolution",
         "elicitation_agent_full_step_up",
-        "elicitation_authoritative_verifier_mismatch"
+        "elicitation_authoritative_verifier_mismatch",
+        "elicitation_external_dynamic_schema_ref",
+        "elicitation_redline_invalid_array_index",
+        "elicitation_future_resolution"
       ]
     },
     "aspError": {

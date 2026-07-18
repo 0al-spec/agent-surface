@@ -544,6 +544,7 @@ def _validate_embedded_schema(
 
 
 _JSON_POINTER = re.compile(r"^(?:/(?:[^~/]|~[01])*)*$")
+_JSON_PATCH_ARRAY_INDEX = re.compile(r"^(?:0|[1-9][0-9]*)$")
 
 
 def _editable_paths(value: Any) -> tuple[str, ...]:
@@ -576,6 +577,20 @@ def _path_is_editable(path: str, editable_paths: Sequence[str]) -> bool:
         path == allowed or allowed == "" or path.startswith(allowed + "/")
         for allowed in editable_paths
     )
+
+
+def _json_patch_array_index(
+    token: str,
+    length: int,
+    *,
+    allow_end: bool,
+) -> int:
+    if not _JSON_PATCH_ARRAY_INDEX.fullmatch(token):
+        raise IndexError(token)
+    index = int(token)
+    if index > length or (index == length and not allow_end):
+        raise IndexError(index)
+    return index
 
 
 def _changed_json_pointers(before: Any, after: Any, pointer: str = "") -> set[str]:
@@ -631,9 +646,11 @@ def _apply_redline(base: Any, patch: Any) -> Any:
         try:
             for token in tokens[:-1]:
                 if isinstance(target, list):
-                    index = int(token)
-                    if index < 0:
-                        raise IndexError(index)
+                    index = _json_patch_array_index(
+                        token,
+                        len(target),
+                        allow_end=False,
+                    )
                     target = target[index]
                 else:
                     target = target[token]
@@ -643,19 +660,25 @@ def _apply_redline(base: Any, patch: Any) -> Any:
                     if last == "-":
                         target.append(copy.deepcopy(operation["value"]))
                     else:
-                        index = int(last)
-                        if index < 0 or index > len(target):
-                            raise IndexError(index)
+                        index = _json_patch_array_index(
+                            last,
+                            len(target),
+                            allow_end=True,
+                        )
                         target.insert(index, copy.deepcopy(operation["value"]))
                 elif operation["op"] == "remove":
-                    index = int(last)
-                    if index < 0:
-                        raise IndexError(index)
+                    index = _json_patch_array_index(
+                        last,
+                        len(target),
+                        allow_end=False,
+                    )
                     del target[index]
                 else:
-                    index = int(last)
-                    if index < 0:
-                        raise IndexError(index)
+                    index = _json_patch_array_index(
+                        last,
+                        len(target),
+                        allow_end=False,
+                    )
                     target[index] = copy.deepcopy(operation["value"])
             elif isinstance(target, dict):
                 if operation["op"] == "remove":

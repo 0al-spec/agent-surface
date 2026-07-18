@@ -8,17 +8,18 @@ object.
 
 ## Version 1 artifacts
 
-`conformance/v1/suite.json` is the authoritative role, feature, requirement,
-and vector matrix. `conformance/v1/vectors.json` contains the closed
-declarative scenarios. `conformance/v1/fixtures.json` binds every scenario to
-one exact semantic baseline and one closed mutation patch.
-`conformance/v1/schema-cases.json` carries 40 executable positive and negative
+`conformance/v1/suite.json` is the authoritative Suite 1.5.0 role, feature,
+requirement, and vector matrix: six profiles, 43 requirements, and 105 closed
+declarative scenarios. `conformance/v1/fixtures.json` resolves them through 36
+exact semantic baselines and 70 closed mutation patches.
+`conformance/v1/schema-cases.json` carries 41 executable positive and negative
 cases for the Operational Limits declaration, capacity-error envelope, and
 Human Elicitation messages. Human cases use their RFC 8785-compatible parser;
 `ASP-SC-HE-002` exercises binary64 and UTF-16 member-order hash boundaries,
-while `ASP-SC-HE-102` rejects negative zero. The adjacent JSON Schemas define
-those protocol objects and the catalog, fixtures, subject, observation, and
-report wire shapes.
+`ASP-SC-HE-102` rejects negative zero, and `ASP-SC-HE-103` rejects a
+hash-consistent embedded schema that uses an external `$dynamicRef`. The
+adjacent JSON Schemas define those protocol objects and the catalog, fixtures,
+subject, observation, and report wire shapes.
 
 HTTP capacity vectors keep the common capacity envelope in
 `operational.capacity_response` and represent only the parsed transport facts
@@ -44,7 +45,10 @@ step-up result, authenticated subject, and secret-material state. It is harness
 evidence, not a UI format. Runtime Mediator rows cover clarification, closed
 option selection, externally verified step-up, and exact retained terminal
 replay; Action Executor rows cover edit and JSON-redline rebinding. No row lets
-an elicitation implicitly approve or dispatch an action.
+an elicitation implicitly approve or dispatch an action. Hash-preserving
+negative rows additionally reject non-local dynamic schema references,
+non-canonical or out-of-range JSON Patch array indexes, and a `resolved_at`
+later than the authoritative evaluation time.
 
 Each run evaluates one exact profile for one named deployment boundary. A
 product that implements several profiles runs and reports each profile
@@ -201,10 +205,12 @@ session/Grant/surface bindings, selected-profile and retained terminal replay
 state, closed options, bounded clarification, verifier-bound step-up freshness,
 authoritative edit schemas and editable paths, and redline patch/base/result
 bindings. Clarification `max_bytes` is measured over the RFC 8785 UTF-8 answer,
-and step-up freshness is evaluated against the authoritative evaluation time
-and exact verified result projection. Replay retention starts at the persisted
-`terminal_accepted_at`, not at response construction. Agent Adapter rows
-additionally prove that only a
+non-local `$ref` and `$dynamicRef` values are rejected before schema
+evaluation, and redline arrays use RFC 6902 index grammar and bounds. Both
+ordinary response chronology and step-up freshness are evaluated against the
+authoritative evaluation time and exact verified result projection. Replay
+retention starts at the persisted `terminal_accepted_at`, not at response
+construction. Agent Adapter rows additionally prove that only a
 presenter-originated, purpose-bound minimized answer reaches the agent; an
 agent-originated resolution, full step-up response, or authentication secret is
 suppressed. Invalid responses leave proposal, approval, dispatch, effect,

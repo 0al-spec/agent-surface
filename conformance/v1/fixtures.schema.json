@@ -43,8 +43,8 @@
     },
     "mutations": {
       "type": "array",
-      "minItems": 67,
-      "maxItems": 67,
+      "minItems": 70,
+      "maxItems": 70,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/mutation"
@@ -203,7 +203,10 @@
         "ASP-M-ELICITATION-REDLINE-RESULT-MISMATCH",
         "ASP-M-ELICITATION-AGENT-ORIGINATED-RESOLUTION",
         "ASP-M-ELICITATION-AGENT-FULL-STEP-UP",
-        "ASP-M-ELICITATION-AUTHORITATIVE-VERIFIER-MISMATCH"
+        "ASP-M-ELICITATION-AUTHORITATIVE-VERIFIER-MISMATCH",
+        "ASP-M-ELICITATION-EXTERNAL-DYNAMIC-SCHEMA-REF",
+        "ASP-M-ELICITATION-REDLINE-INVALID-ARRAY-INDEX",
+        "ASP-M-ELICITATION-FUTURE-RESOLUTION"
       ]
     },
     "inputVariant": {
@@ -274,7 +277,10 @@
         "elicitation_redline_result_mismatch",
         "elicitation_agent_originated_resolution",
         "elicitation_agent_full_step_up",
-        "elicitation_authoritative_verifier_mismatch"
+        "elicitation_authoritative_verifier_mismatch",
+        "elicitation_external_dynamic_schema_ref",
+        "elicitation_redline_invalid_array_index",
+        "elicitation_future_resolution"
       ]
     },
     "actionSet": {
@@ -919,10 +925,24 @@
         "/ahp/authentication",
         "/ahp/asp_action_id",
         "/ahp/receipt_use",
+        "/elicitation/authoritative_base",
+        "/elicitation/authoritative_input_schema",
+        "/elicitation/request/context/input_hash",
+        "/elicitation/request/context_hash",
+        "/elicitation/request/request/response_schema",
+        "/elicitation/request/request/response_schema_hash",
+        "/elicitation/request/request/base_hash",
+        "/elicitation/request/request/editable_paths",
+        "/elicitation/request/request_hash",
         "/elicitation/response/session_generation",
+        "/elicitation/response/context_hash",
+        "/elicitation/response/request_hash",
         "/elicitation/response/response/verifier",
+        "/elicitation/response/response/base_hash",
+        "/elicitation/response/response/patch",
         "/elicitation/response/response/candidate/metadata",
         "/elicitation/response/response/candidate_hash",
+        "/elicitation/response/resolved_at",
         "/elicitation/response/response_hash",
         "/elicitation/recorded_revision",
         "/elicitation/step_up_verification",
@@ -991,10 +1011,24 @@
         { "properties": { "path": { "const": "/ahp/authentication" }, "value": { "enum": ["authenticated", "unauthenticated"] } } },
         { "properties": { "path": { "const": "/ahp/asp_action_id" }, "value": { "enum": ["none", "action.read", "action.write"] } } },
         { "properties": { "path": { "const": "/ahp/receipt_use" }, "value": { "enum": ["informational", "authority"] } } },
+        { "properties": { "path": { "const": "/elicitation/authoritative_base" }, "value": { "type": "object" } } },
+        { "properties": { "path": { "const": "/elicitation/authoritative_input_schema" }, "value": { "type": "object" } } },
+        { "properties": { "path": { "const": "/elicitation/request/context/input_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/elicitation/request/context_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/elicitation/request/request/response_schema" }, "value": { "type": "object" } } },
+        { "properties": { "path": { "const": "/elicitation/request/request/response_schema_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/elicitation/request/request/base_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/elicitation/request/request/editable_paths" }, "value": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^(?:/(?:[^~/]|~[01])*)*$" } } } },
+        { "properties": { "path": { "const": "/elicitation/request/request_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
         { "properties": { "path": { "const": "/elicitation/response/session_generation" }, "value": { "enum": [1, 2] } } },
+        { "properties": { "path": { "const": "/elicitation/response/context_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/elicitation/response/request_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
         { "properties": { "path": { "const": "/elicitation/response/response/verifier" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/verifier" } } },
+        { "properties": { "path": { "const": "/elicitation/response/response/base_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/elicitation/response/response/patch" }, "value": { "type": "array", "minItems": 1 } } },
         { "properties": { "path": { "const": "/elicitation/response/response/candidate/metadata" }, "value": { "enum": ["safe", "unsafe"] } } },
         { "properties": { "path": { "const": "/elicitation/response/response/candidate_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/elicitation/response/resolved_at" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/timestamp" } } },
         { "properties": { "path": { "const": "/elicitation/response/response_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/digest" } } },
         { "properties": { "path": { "const": "/elicitation/recorded_revision" }, "value": { "enum": [0, 1] } } },
         { "properties": { "path": { "const": "/elicitation/step_up_verification" }, "value": { "enum": ["not_applicable", "verified", "agent_asserted"] } } },
@@ -1029,7 +1063,7 @@
         "input_variant": { "$ref": "#/$defs/inputVariant" },
         "patch": {
           "type": "array",
-          "maxItems": 4,
+          "maxItems": 13,
           "uniqueItems": true,
           "items": { "$ref": "#/$defs/patchOperation" }
         }
@@ -1146,7 +1180,10 @@
         { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-REDLINE-RESULT-MISMATCH" }, "input_variant": { "const": "elicitation_redline_result_mismatch" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-AGENT-ORIGINATED-RESOLUTION" }, "input_variant": { "const": "elicitation_agent_originated_resolution" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-AGENT-FULL-STEP-UP" }, "input_variant": { "const": "elicitation_agent_full_step_up" } }, "required": ["mutation_id", "input_variant"] },
-        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-AUTHORITATIVE-VERIFIER-MISMATCH" }, "input_variant": { "const": "elicitation_authoritative_verifier_mismatch" } }, "required": ["mutation_id", "input_variant"] }
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-AUTHORITATIVE-VERIFIER-MISMATCH" }, "input_variant": { "const": "elicitation_authoritative_verifier_mismatch" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-EXTERNAL-DYNAMIC-SCHEMA-REF" }, "input_variant": { "const": "elicitation_external_dynamic_schema_ref" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-REDLINE-INVALID-ARRAY-INDEX" }, "input_variant": { "const": "elicitation_redline_invalid_array_index" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-FUTURE-RESOLUTION" }, "input_variant": { "const": "elicitation_future_resolution" } }, "required": ["mutation_id", "input_variant"] }
       ]
     },
     "fixtureCoverage": {
@@ -1257,7 +1294,10 @@
         { "contains": { "properties": { "input_variant": { "const": "elicitation_redline_result_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "elicitation_agent_originated_resolution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "elicitation_agent_full_step_up" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "input_variant": { "const": "elicitation_authoritative_verifier_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_authoritative_verifier_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_external_dynamic_schema_ref" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_redline_invalid_array_index" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_future_resolution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "limitIdSet": {

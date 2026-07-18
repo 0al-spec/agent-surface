@@ -417,7 +417,11 @@ def _external_schema_refs(value: Any) -> list[str]:
             refs.extend(_external_schema_refs(item))
     elif isinstance(value, dict):
         for key, item in value.items():
-            if key == "$ref" and isinstance(item, str) and not item.startswith("#"):
+            if (
+                key in {"$ref", "$dynamicRef"}
+                and isinstance(item, str)
+                and not item.startswith("#")
+            ):
                 refs.append(item)
             else:
                 refs.extend(_external_schema_refs(item))
@@ -753,6 +757,21 @@ def _decode_json_pointer(pointer: str) -> list[str]:
     ]
 
 
+def _json_patch_array_index(
+    token: str, *, length: int, allow_end: bool = False
+) -> int:
+    if re.fullmatch(r"0|[1-9][0-9]*", token) is None:
+        raise ConformanceError("JSON Patch array index is invalid")
+    try:
+        index = int(token)
+    except ValueError as error:
+        raise ConformanceError("JSON Patch array index is invalid") from error
+    maximum = length if allow_end else length - 1
+    if index > maximum:
+        raise ConformanceError("JSON Patch array index is invalid")
+    return index
+
+
 def _apply_json_patch(document: Any, operations: list[dict[str, Any]]) -> Any:
     candidate = copy.deepcopy(document)
     for operation in operations:
@@ -775,7 +794,15 @@ def _apply_json_patch(document: Any, operations: list[dict[str, Any]]) -> Any:
         parent = candidate
         for token in tokens[:-1]:
             try:
-                parent = parent[int(token)] if isinstance(parent, list) else parent[token]
+                parent = (
+                    parent[
+                        _json_patch_array_index(token, length=len(parent))
+                    ]
+                    if isinstance(parent, list)
+                    else parent[token]
+                )
+            except ConformanceError:
+                raise
             except (KeyError, IndexError, TypeError, ValueError) as error:
                 raise ConformanceError(
                     "Human Elicitation redline path does not exist in its base"
@@ -787,11 +814,18 @@ def _apply_json_patch(document: Any, operations: list[dict[str, Any]]) -> Any:
                     if token == "-":
                         parent.append(copy.deepcopy(operation["value"]))
                     else:
-                        parent.insert(int(token), copy.deepcopy(operation["value"]))
+                        index = _json_patch_array_index(
+                            token, length=len(parent), allow_end=True
+                        )
+                        parent.insert(index, copy.deepcopy(operation["value"]))
                 elif operation["op"] == "remove":
-                    del parent[int(token)]
+                    del parent[
+                        _json_patch_array_index(token, length=len(parent))
+                    ]
                 else:
-                    parent[int(token)] = copy.deepcopy(operation["value"])
+                    parent[
+                        _json_patch_array_index(token, length=len(parent))
+                    ] = copy.deepcopy(operation["value"])
             elif isinstance(parent, dict):
                 if operation["op"] == "remove":
                     del parent[token]
@@ -801,6 +835,8 @@ def _apply_json_patch(document: Any, operations: list[dict[str, Any]]) -> Any:
                     parent[token] = copy.deepcopy(operation["value"])
             else:
                 raise TypeError("patch parent is not a container")
+        except ConformanceError:
+            raise
         except (KeyError, IndexError, TypeError, ValueError) as error:
             raise ConformanceError(
                 "Human Elicitation redline operation is invalid for its base"
@@ -973,6 +1009,10 @@ def validate_human_elicitation_projection(
         )
     resolved_at = datetime.fromisoformat(response["resolved_at"].replace("Z", "+00:00"))
     expires_at = datetime.fromisoformat(request["expires_at"].replace("Z", "+00:00"))
+    if resolved_at > evaluation_time:
+        raise ConformanceError(
+            "Human Elicitation response was resolved after evaluation_time"
+        )
     if resolved_at > expires_at:
         raise ConformanceError("Human Elicitation response was resolved after expiry")
 

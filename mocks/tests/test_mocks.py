@@ -25,6 +25,7 @@ from mocks.behavior import (
     BehaviorError,
     BehaviorResult,
     FEATURE_INVENTORY,
+    _apply_redline,
     _hash_without,
     _object_hash,
     evaluate,
@@ -139,7 +140,7 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 "state_deltas",
             }
         )
-        self.assertEqual(len(self.catalog.vectors), 102)
+        self.assertEqual(len(self.catalog.vectors), 105)
         for vector_id in self.catalog.vectors:
             with self.subTest(vector_id=vector_id):
                 self.assert_matches_catalog_oracle(vector_id)
@@ -667,6 +668,74 @@ class MockBehaviorSecurityTests(unittest.TestCase):
             ],
             external_step_up["elicitation"]["authenticated_requester"],
         )
+
+    def test_external_dynamic_schema_references_fail_closed(self) -> None:
+        vector = self.catalog.vectors["ASP-V-RM-033"]
+        fixture = _resolved_fixture(self.catalog, vector)
+        document = copy.deepcopy(fixture["document"])
+        request_body = document["elicitation"]["request"]["request"]
+        request_body["response_schema"] = {
+            "$dynamicRef": "https://example.com/external.schema.json#answer"
+        }
+        request_body["response_schema_hash"] = _object_hash(
+            "https://github.com/0al-spec/agent-surface/hash/"
+            "action-input-schema/v1",
+            request_body["response_schema"],
+        )
+        self.rehash_elicitation(document)
+
+        result = self.evaluate_document(vector, document)
+
+        self.assertEqual(result.decision, "rejected")
+        self.assertEqual(result.asp_error, "elicitation_invalid")
+        self.assertEqual(result.state_after, result.state_before)
+
+    def test_json_patch_array_indexes_follow_rfc6902(self) -> None:
+        base = {"items": ["zero", "one"]}
+        invalid_patches = (
+            [{"op": "add", "path": "/items/-1", "value": "bad"}],
+            [{"op": "add", "path": "/items/999", "value": "bad"}],
+            [{"op": "remove", "path": "/items/-1"}],
+            [{"op": "replace", "path": "/items/2", "value": "bad"}],
+            [{"op": "replace", "path": "/items/01", "value": "bad"}],
+        )
+        for patch in invalid_patches:
+            with self.subTest(patch=patch):
+                with self.assertRaisesRegex(
+                    BehaviorError,
+                    "redline path is not present in its exact base",
+                ):
+                    _apply_redline(base, patch)
+
+        self.assertEqual(
+            _apply_redline(
+                base,
+                [{"op": "add", "path": "/items/2", "value": "two"}],
+            ),
+            {"items": ["zero", "one", "two"]},
+        )
+        self.assertEqual(
+            _apply_redline(
+                base,
+                [{"op": "add", "path": "/items/-", "value": "two"}],
+            ),
+            {"items": ["zero", "one", "two"]},
+        )
+
+    def test_future_human_elicitation_resolution_fails_closed(self) -> None:
+        vector = self.catalog.vectors["ASP-V-RM-033"]
+        fixture = _resolved_fixture(self.catalog, vector)
+        document = copy.deepcopy(fixture["document"])
+        document["elicitation"]["response"][
+            "resolved_at"
+        ] = "2026-07-18T13:07:00Z"
+        self.rehash_elicitation(document)
+
+        result = self.evaluate_document(vector, document)
+
+        self.assertEqual(result.decision, "rejected")
+        self.assertEqual(result.asp_error, "elicitation_invalid")
+        self.assertEqual(result.state_after, result.state_before)
 
     def test_canonical_hash_uses_rfc8785_utf16_order_and_rejects_unsafe_values(
         self,

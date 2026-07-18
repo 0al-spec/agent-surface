@@ -1852,7 +1852,7 @@
         }
       ],
       "status": "present",
-      "rationale": "RFC определяет discoverable и явно выбираемый Human Elicitation Events Profile с closed clarify, choose, edit, redline и step_up contracts, раздельными authenticated requester/presenter roles, complete authority tuple, RFC 8785 hashes, bounded terminal replay retention и fail-closed invalidation. Conformance Suite 1.5.0, standalone schema, positive/negative Action Executor, Runtime Mediator и Agent Adapter vectors и reference Mock App/Runtime исполняют contract без превращения human input в approval, Grant или effect authority.",
+      "rationale": "RFC определяет discoverable и явно выбираемый Human Elicitation Events Profile с closed clarify, choose, edit, redline и step_up contracts, раздельными authenticated requester/presenter roles, complete authority tuple, RFC 8785 hashes, self-contained embedded schemas, RFC 6902 array-index semantics, authoritative response chronology, bounded terminal replay retention и fail-closed invalidation. Conformance Suite 1.5.0, standalone schema, hash-preserving positive/negative Action Executor, Runtime Mediator и Agent Adapter vectors и reference Mock App/Runtime исполняют contract без превращения human input в approval, Grant или effect authority.",
       "priority": "P2",
       "profile": "events-sessions",
       "depends_on": [

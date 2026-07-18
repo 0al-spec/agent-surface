@@ -1045,10 +1045,24 @@ current application state. The receiver rechecks `base_hash` and every editable
 path against its authoritative candidate. For `redline`, v1 does not assign
 semantics to a visual diff. The declared media type and patch schema define the
 machine input; any rendered redline is explanatory only. A base mismatch is
-not resolved by applying the patch to a newer document. `response_schema` and
-`patch_schema` use the manifest-selected Draft 2020-12 dialect, MUST be
-self-contained, MUST NOT use an external `$ref`, and are hashed exactly as
-carried before they are evaluated.
+not resolved by applying the patch to a newer document. The v1 redline media
+type is `application/json-patch+json`; the receiver applies its ordered
+`add`, `remove`, and `replace` operations to the exact base according to
+RFC 6902. Other JSON Patch operations are unsupported in v1 and fail as
+`elicitation_invalid`. An array token is either `0` or a non-zero ASCII decimal
+integer without a leading zero. `remove` and `replace` require an existing
+index strictly below the current array length. `add` permits an index no
+greater than the current length or the special final token `-`; a signed,
+negative, leading-zero, non-decimal, or out-of-range index is invalid. Each
+operation is evaluated against the candidate produced by the preceding
+operation.
+
+`response_schema` and `patch_schema` use the manifest-selected Draft 2020-12
+dialect, MUST be self-contained, and are hashed exactly as carried before they
+are evaluated. Neither schema may contain a `$ref` or `$dynamicRef` whose
+URI-reference is anything other than a fragment-only reference into that exact
+schema object. A relative path, absolute URI, network location, or another
+schema resource is non-local and MUST be rejected without dereferencing it.
 
 For `step_up`, the presenter invokes an independently authenticated verifier.
 Passwords, one-time codes, passkeys, private keys, biometric samples, recovery
@@ -1115,8 +1129,15 @@ An answered response contains exactly:
   `expires_at` for `step_up`.
 
 `resolved_at`, `authenticated_at`, and the step-up `expires_at` are RFC 3339
-UTC timestamps with the `Z` suffix. `response_hash` uses the Canonical Object
-Hash Profile over the complete response object excluding `response_hash`.
+UTC timestamps with the `Z` suffix. Before accepting a fresh response, the
+receiver compares `resolved_at` with its own authoritative policy-evaluation
+time: `resolved_at` MUST be no later than both that evaluation time and the
+accepted request's `expires_at`. A future resolution is invalid even when its
+timestamp precedes request expiry. The evaluation time is local authoritative
+state and is never taken from either profile message. Exact retained terminal
+replay returns the previously accepted immutable result; it does not create a
+new resolution time. `response_hash` uses the Canonical Object Hash Profile
+over the complete response object excluding `response_hash`.
 
 #### Lifecycle, Replay, and Rebinding
 
@@ -12110,6 +12131,8 @@ To support Agent Surface Protocol, the next slices are:
   <https://www.rfc-editor.org/rfc/rfc8785>
 - JavaScript Object Notation (JSON) Pointer:
   <https://www.rfc-editor.org/rfc/rfc6901>
+- JavaScript Object Notation (JSON) Patch:
+  <https://www.rfc-editor.org/rfc/rfc6902>
 - Verified erratum 7920 for JSON Canonicalization Scheme:
   <https://www.rfc-editor.org/errata/eid7920>
 - JSON Web Token Best Current Practices:

@@ -166,10 +166,10 @@ class ConformanceSuiteTests(unittest.TestCase):
         self.assertEqual(self.catalog.suite["suite_version"], "1.5.0")
         self.assertEqual(len(self.catalog.features), 11)
         self.assertEqual(len(self.catalog.requirements), 43)
-        self.assertEqual(len(self.catalog.vectors), 102)
+        self.assertEqual(len(self.catalog.vectors), 105)
         self.assertEqual(len(self.catalog.fixtures), 36)
-        self.assertEqual(len(self.catalog.mutations), 67)
-        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 40)
+        self.assertEqual(len(self.catalog.mutations), 70)
+        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 41)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
 
     def test_feature_vocabularies_match_the_catalog(self) -> None:
@@ -318,10 +318,13 @@ class ConformanceSuiteTests(unittest.TestCase):
             "ASP-V-RM-038",
             "ASP-V-RM-039",
             "ASP-V-RM-040",
+            "ASP-V-RM-041",
+            "ASP-V-RM-042",
             "ASP-V-AE-027",
             "ASP-V-AE-028",
             "ASP-V-AE-029",
             "ASP-V-AE-030",
+            "ASP-V-AE-031",
             "ASP-V-AA-009",
             "ASP-V-AA-010",
             "ASP-V-AA-011",
@@ -430,6 +433,58 @@ class ConformanceSuiteTests(unittest.TestCase):
         with self.assertRaisesRegex(ConformanceError, "exceeds max_bytes"):
             validate_human_elicitation_projection(clarify)
 
+    def test_human_embedded_schemas_reject_external_dynamic_refs(self) -> None:
+        clarify = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-033"]["document"]["elicitation"]
+        )
+        response_schema = {
+            "$dynamicRef": "https://example.invalid/external-schema"
+        }
+        clarify["request"]["request"]["response_schema"] = response_schema
+        clarify["request"]["request"]["response_schema_hash"] = (
+            _canonical_object_hash(ACTION_INPUT_SCHEMA_DOMAIN, response_schema)
+        )
+        refresh_human_hashes(clarify)
+        with self.assertRaisesRegex(ConformanceError, "must be self-contained"):
+            validate_human_elicitation_projection(clarify)
+
+    def test_redline_rejects_invalid_json_patch_array_indexes(self) -> None:
+        operations = (
+            {"op": "add", "path": "/items/-1", "value": "new"},
+            {"op": "add", "path": "/items/999", "value": "new"},
+            {"op": "replace", "path": "/items/-1", "value": "new"},
+            {"op": "replace", "path": "/items/01", "value": "new"},
+            {"op": "remove", "path": "/items/-1"},
+        )
+        for operation in operations:
+            with self.subTest(operation=operation):
+                redline = copy.deepcopy(
+                    self.catalog.fixtures["ASP-F-AE-028"]["document"][
+                        "elicitation"
+                    ]
+                )
+                base = {"items": ["first", "second"]}
+                base_hash = _canonical_object_hash(ACTION_INPUT_DOMAIN, base)
+                redline["authoritative_base"] = base
+                redline["request"]["context"]["input_hash"] = base_hash
+                redline["request"]["request"]["base_hash"] = base_hash
+                redline["response"]["response"]["base_hash"] = base_hash
+                redline["response"]["response"]["patch"] = [operation]
+                refresh_human_hashes(redline)
+                with self.assertRaisesRegex(
+                    ConformanceError, "JSON Patch array index is invalid"
+                ):
+                    validate_human_elicitation_projection(redline)
+
+    def test_human_resolution_cannot_follow_evaluation_time(self) -> None:
+        clarify = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-033"]["document"]["elicitation"]
+        )
+        clarify["response"]["resolved_at"] = "2026-07-18T13:07:00Z"
+        refresh_human_hashes(clarify)
+        with self.assertRaisesRegex(ConformanceError, "after evaluation_time"):
+            validate_human_elicitation_projection(clarify)
+
     def test_human_kind_specific_constraints_fail_after_valid_hashes(self) -> None:
         clarify = copy.deepcopy(
             self.catalog.fixtures["ASP-F-RM-033"]["document"]["elicitation"]
@@ -522,8 +577,11 @@ class ConformanceSuiteTests(unittest.TestCase):
             "ASP-V-RM-036": "exact request binding",
             "ASP-V-RM-038": "verifier binding",
             "ASP-V-RM-040": "verifier binding",
+            "ASP-V-RM-041": "self-contained",
+            "ASP-V-RM-042": "after evaluation_time",
             "ASP-V-AE-029": "forbidden path",
             "ASP-V-AE-030": "base or result binding",
+            "ASP-V-AE-031": "array index",
         }
         for vector_id, message in expected.items():
             with self.subTest(vector_id=vector_id):
