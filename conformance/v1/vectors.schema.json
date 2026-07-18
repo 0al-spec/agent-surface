@@ -22,7 +22,7 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.4.0"
+      "const": "1.5.0"
     },
     "vectors": {
       "type": "array",
@@ -54,7 +54,8 @@
         "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
         "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
         "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1",
-        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
       ]
     },
     "requirementId": {
@@ -109,7 +110,10 @@
         "shared_service_capacity_unavailable",
         "http_capacity_binding_selected",
         "asp_over_ahp_selected",
-        "authenticated_ahp_channel"
+        "authenticated_ahp_channel",
+        "human_elicitation_selected",
+        "authenticated_human_channel",
+        "terminal_elicitation_replay_retained"
       ]
     },
     "operation": {
@@ -131,7 +135,10 @@
         "bind_http_capacity_response",
         "handle_http_capacity_response",
         "present_ahp_session",
-        "translate_ahp_action"
+        "translate_ahp_action",
+        "mediate_human_elicitation",
+        "apply_human_elicitation_candidate",
+        "project_human_elicitation_answer"
       ]
     },
     "inputVariant": {
@@ -194,7 +201,18 @@
         "ahp_profile_downgrade",
         "unauthenticated_ahp_carrier",
         "ahp_action_substitution",
-        "ahp_receipt_claims_authority"
+        "ahp_receipt_claims_authority",
+        "elicitation_session_generation_mismatch",
+        "elicitation_conflicting_response_replay",
+        "elicitation_self_asserted_step_up",
+        "elicitation_edit_stale_binding",
+        "elicitation_redline_result_mismatch",
+        "elicitation_agent_originated_resolution",
+        "elicitation_agent_full_step_up",
+        "elicitation_authoritative_verifier_mismatch",
+        "elicitation_external_dynamic_schema_ref",
+        "elicitation_redline_invalid_array_index",
+        "elicitation_future_resolution"
       ]
     },
     "aspError": {
@@ -217,7 +235,8 @@
         "runtime_untrusted",
         "rate_limited",
         "capacity_state_unavailable",
-        "service_unavailable"
+        "service_unavailable",
+        "elicitation_invalid"
       ]
     },
     "policyReason": {
@@ -317,7 +336,22 @@
         "asp_authority_unchanged",
         "asp_authority_retained",
         "action_dispatch_suppressed",
-        "credential_withheld"
+        "credential_withheld",
+        "elicitation_binding_validated",
+        "elicitation_binding_rejected",
+        "elicitation_request_presented",
+        "elicitation_response_accepted",
+        "elicitation_response_suppressed",
+        "elicitation_choice_validated",
+        "elicitation_candidate_revalidated",
+        "elicitation_candidate_rejected",
+        "elicitation_redline_applied",
+        "elicitation_prior_authority_invalidated",
+        "step_up_result_verified",
+        "step_up_result_rejected",
+        "human_secret_withheld",
+        "elicitation_authority_unchanged",
+        "elicitation_authority_retained"
       ]
     },
     "stateName": {
@@ -377,7 +411,12 @@
         "runtime.capacity_recovery_pending",
         "runtime.capacity_decision_pending",
         "runtime.ahp_representation_revision",
-        "runtime.ahp_presentation_count"
+        "runtime.ahp_presentation_count",
+        "runtime.elicitation_revision",
+        "runtime.elicitation_response_count",
+        "runtime.step_up_verified_count",
+        "application.proposal_revision",
+        "application.proposal_update_count"
       ]
     },
     "stateValue": {

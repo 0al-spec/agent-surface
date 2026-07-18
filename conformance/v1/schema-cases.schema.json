@@ -22,11 +22,12 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.4.0"
+      "const": "1.5.0"
     },
     "cases": {
       "type": "array",
-      "minItems": 2,
+      "minItems": 41,
+      "maxItems": 41,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/case"
@@ -104,6 +105,11 @@
         }
       }
     },
+    "emptyContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 0
+    },
     "case": {
       "type": "object",
       "additionalProperties": false,
@@ -117,12 +123,13 @@
       "properties": {
         "case_id": {
           "type": "string",
-          "pattern": "^ASP-SC-(OL|CE)-[0-9]{3}$"
+          "pattern": "^ASP-SC-(OL|CE|HE)-[0-9]{3}$"
         },
         "schema_id": {
           "enum": [
             "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
-            "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1"
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1"
           ]
         },
         "polarity": {
@@ -157,9 +164,28 @@
             }
           },
           "else": {
-            "properties": {
-              "context": {
-                "$ref": "#/$defs/capacityContext"
+            "if": {
+              "properties": {
+                "schema_id": {
+                  "const": "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1"
+                }
+              },
+              "required": [
+                "schema_id"
+              ]
+            },
+            "then": {
+              "properties": {
+                "context": {
+                  "$ref": "#/$defs/capacityContext"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "context": {
+                  "$ref": "#/$defs/emptyContext"
+                }
               }
             }
           }

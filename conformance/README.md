@@ -8,14 +8,18 @@ object.
 
 ## Version 1 artifacts
 
-`conformance/v1/suite.json` is the authoritative role, feature, requirement,
-and vector matrix. `conformance/v1/vectors.json` contains the closed
-declarative scenarios. `conformance/v1/fixtures.json` binds every scenario to
-one exact semantic baseline and one closed mutation patch.
-`conformance/v1/schema-cases.json` carries executable positive and negative
-strict-I-JSON cases for the Operational Limits declaration and capacity-error
-envelope. The adjacent JSON Schemas define those protocol objects and the
-catalog, fixtures, subject, observation, and report wire shapes.
+`conformance/v1/suite.json` is the authoritative Suite 1.5.0 role, feature,
+requirement, and vector matrix: six profiles, 43 requirements, and 105 closed
+declarative scenarios. `conformance/v1/fixtures.json` resolves them through 36
+exact semantic baselines and 70 closed mutation patches.
+`conformance/v1/schema-cases.json` carries 41 executable positive and negative
+cases for the Operational Limits declaration, capacity-error envelope, and
+Human Elicitation messages. Human cases use their RFC 8785-compatible parser;
+`ASP-SC-HE-002` exercises binary64 and UTF-16 member-order hash boundaries,
+`ASP-SC-HE-102` rejects negative zero, and `ASP-SC-HE-103` rejects a
+hash-consistent embedded schema that uses an external `$dynamicRef`. The
+adjacent JSON Schemas define those protocol objects and the catalog, fixtures,
+subject, observation, and report wire shapes.
 
 HTTP capacity vectors keep the common capacity envelope in
 `operational.capacity_response` and represent only the parsed transport facts
@@ -32,6 +36,20 @@ tuple. The vectors reject tuple substitution, conflicting revision replay,
 profile downgrade, unauthenticated carriage, action substitution, and any
 attempt to treat AHP receipt presentation as ASP authority.
 
+Human Elicitation vectors use the standalone closed
+`human-elicitation.schema.json` wire schema plus an optional closed
+`elicitation` fixture section. The fixture pairs the exact request and response
+with authenticated participant identities, current authority tuple, immutable
+replay state and terminal acceptance time, candidate validation, authoritative
+step-up result, authenticated subject, and secret-material state. It is harness
+evidence, not a UI format. Runtime Mediator rows cover clarification, closed
+option selection, externally verified step-up, and exact retained terminal
+replay; Action Executor rows cover edit and JSON-redline rebinding. No row lets
+an elicitation implicitly approve or dispatch an action. Hash-preserving
+negative rows additionally reject non-local dynamic schema references,
+non-canonical or out-of-range JSON Patch array indexes, and a `resolved_at`
+later than the authoritative evaluation time.
+
 Each run evaluates one exact profile for one named deployment boundary. A
 product that implements several profiles runs and reports each profile
 independently. A Receipt Producer run additionally names exactly one
@@ -44,22 +62,23 @@ does not give them, or the target, another role claim.
 All digests use SHA-256 and the text representation
 `sha-256:<base64url-without-padding>`. The single `catalog_sha256` digest uses
 the exact RFC-defined `ASP-CONFORMANCE-CATALOG-V1` domain. Hash the ASCII domain
-string, one zero octet, and then each of these thirteen canonical repo-relative
+string, one zero octet, and then each of these fourteen canonical repo-relative
 paths in lexicographic order:
 
 1. `conformance/v1/capacity-error.schema.json`
 2. `conformance/v1/fixtures.json`
 3. `conformance/v1/fixtures.schema.json`
-4. `conformance/v1/observation.schema.json`
-5. `conformance/v1/operational-limits.schema.json`
-6. `conformance/v1/report.schema.json`
-7. `conformance/v1/schema-cases.json`
-8. `conformance/v1/schema-cases.schema.json`
-9. `conformance/v1/subject.schema.json`
-10. `conformance/v1/suite.json`
-11. `conformance/v1/suite.schema.json`
-12. `conformance/v1/vectors.json`
-13. `conformance/v1/vectors.schema.json`
+4. `conformance/v1/human-elicitation.schema.json`
+5. `conformance/v1/observation.schema.json`
+6. `conformance/v1/operational-limits.schema.json`
+7. `conformance/v1/report.schema.json`
+8. `conformance/v1/schema-cases.json`
+9. `conformance/v1/schema-cases.schema.json`
+10. `conformance/v1/subject.schema.json`
+11. `conformance/v1/suite.json`
+12. `conformance/v1/suite.schema.json`
+13. `conformance/v1/vectors.json`
+14. `conformance/v1/vectors.schema.json`
 
 For each file, hash its path as UTF-8, a zero octet, its exact raw bytes, and a
 final zero octet. No newline, whitespace, Unicode, or JSON member-order
@@ -178,6 +197,24 @@ Runtime Mediator cases validate and present UI state without dispatching an
 action. Agent Adapter cases translate exactly one bound AHP control into the
 already-authorized ASP action. Every invalid binding is fenced before UI update
 or request forwarding and leaves the ASP state unchanged.
+
+The Human Elicitation rows keep human input separate from approval and effect
+authority. They validate RFC 8785 message hashes (including binary64 values and
+UTF-16 member ordering), distinct requester/presenter roles, exact
+session/Grant/surface bindings, selected-profile and retained terminal replay
+state, closed options, bounded clarification, verifier-bound step-up freshness,
+authoritative edit schemas and editable paths, and redline patch/base/result
+bindings. Clarification `max_bytes` is measured over the RFC 8785 UTF-8 answer,
+non-local `$ref` and `$dynamicRef` values are rejected before schema
+evaluation, and redline arrays use RFC 6902 index grammar and bounds. Both
+ordinary response chronology and step-up freshness are evaluated against the
+authoritative evaluation time and exact verified result projection. Replay
+retention starts at the persisted `terminal_accepted_at`, not at response
+construction. Agent Adapter rows additionally prove that only a
+presenter-originated, purpose-bound minimized answer reaches the agent; an
+agent-originated resolution, full step-up response, or authentication secret is
+suppressed. Invalid responses leave proposal, approval, dispatch, effect,
+credential, and receipt state unchanged.
 
 ## Verdict computation
 

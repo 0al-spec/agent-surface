@@ -2,7 +2,7 @@
   "$schema": "./vectors.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.4.0",
+  "suite_version": "1.5.0",
   "vectors": [
     {
       "vector_id": "ASP-V-SP-001",
@@ -4679,6 +4679,816 @@
         { "state": "receipt.runtime_count", "before": 0, "after": 0 }
       ],
       "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-033",
+      "title": "Present and accept a schema-bounded clarification without creating authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_human_elicitation",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "elicitation_binding_validated",
+        "elicitation_request_presented",
+        "elicitation_response_accepted",
+        "elicitation_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "elicitation_binding_rejected",
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        { "state": "runtime.elicitation_revision", "before": 0, "after": 1 },
+        { "state": "runtime.elicitation_response_count", "before": 0, "after": 1 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-034",
+      "title": "Accept only stable option identifiers from the exact elicitation revision",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_human_elicitation",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "elicitation_binding_validated",
+        "elicitation_choice_validated",
+        "elicitation_response_accepted",
+        "elicitation_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "elicitation_binding_rejected",
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        { "state": "runtime.elicitation_revision", "before": 0, "after": 1 },
+        { "state": "runtime.elicitation_response_count", "before": 0, "after": 1 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-035",
+      "title": "Verify a runtime-owned opaque step-up result without exposing a factor",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_human_elicitation",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "elicitation_binding_validated",
+        "step_up_result_verified",
+        "human_secret_withheld",
+        "elicitation_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "elicitation_binding_rejected",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        { "state": "runtime.elicitation_revision", "before": 0, "after": 1 },
+        { "state": "runtime.elicitation_response_count", "before": 0, "after": 1 },
+        { "state": "runtime.step_up_verified_count", "before": 0, "after": 1 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-036",
+      "title": "Reject an elicitation response from another session generation",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-033",
+      "requirement_ids": [
+        "ASP-RM-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_human_elicitation",
+        "input_variant": "elicitation_session_generation_mismatch"
+      },
+      "required_observations": [
+        "elicitation_binding_rejected",
+        "elicitation_response_suppressed",
+        "elicitation_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "elicitation_binding_validated",
+        "elicitation_response_accepted"
+      ],
+      "state_deltas": [
+        { "state": "runtime.elicitation_revision", "before": 0, "after": 0 },
+        { "state": "runtime.elicitation_response_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "elicitation_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-037",
+      "title": "Reject conflicting reuse of an accepted elicitation revision",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-033",
+      "requirement_ids": [
+        "ASP-RM-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_human_elicitation",
+        "input_variant": "elicitation_conflicting_response_replay"
+      },
+      "required_observations": [
+        "elicitation_binding_rejected",
+        "elicitation_response_suppressed",
+        "elicitation_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "elicitation_binding_validated",
+        "elicitation_response_accepted"
+      ],
+      "state_deltas": [
+        { "state": "runtime.elicitation_revision", "before": 0, "after": 0 },
+        { "state": "runtime.elicitation_response_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "elicitation_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-038",
+      "title": "Reject an agent-asserted step-up result or raw authentication material",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-035",
+      "requirement_ids": [
+        "ASP-RM-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_human_elicitation",
+        "input_variant": "elicitation_self_asserted_step_up"
+      },
+      "required_observations": [
+        "elicitation_binding_rejected",
+        "step_up_result_rejected",
+        "human_secret_withheld",
+        "elicitation_authority_retained"
+      ],
+      "forbidden_observations": [
+        "step_up_result_verified",
+        "elicitation_response_accepted",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        { "state": "runtime.elicitation_revision", "before": 0, "after": 0 },
+        { "state": "runtime.elicitation_response_count", "before": 0, "after": 0 },
+        { "state": "runtime.step_up_verified_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "elicitation_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AE-027",
+      "title": "Store an edited candidate only after schema, normalization, and hash rebinding",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "apply_human_elicitation_candidate",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "elicitation_binding_validated",
+        "elicitation_candidate_revalidated",
+        "elicitation_prior_authority_invalidated",
+        "elicitation_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "elicitation_candidate_rejected",
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        { "state": "application.proposal_revision", "before": 4, "after": 5 },
+        { "state": "application.proposal_update_count", "before": 0, "after": 1 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "approval.interaction_count", "before": 1, "after": 1 },
+        { "state": "receipt.application_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-028",
+      "title": "Apply a JSON redline only to the exact base and store its recomputed candidate",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "apply_human_elicitation_candidate",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "elicitation_binding_validated",
+        "elicitation_redline_applied",
+        "elicitation_prior_authority_invalidated",
+        "elicitation_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "elicitation_candidate_rejected",
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        { "state": "application.proposal_revision", "before": 4, "after": 5 },
+        { "state": "application.proposal_update_count", "before": 0, "after": 1 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "approval.interaction_count", "before": 1, "after": 1 },
+        { "state": "receipt.application_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-029",
+      "title": "Reject an edited candidate that retains stale input and approval bindings",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-027",
+      "requirement_ids": [
+        "ASP-AE-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "apply_human_elicitation_candidate",
+        "input_variant": "elicitation_edit_stale_binding"
+      },
+      "required_observations": [
+        "elicitation_binding_rejected",
+        "elicitation_candidate_rejected",
+        "elicitation_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "elicitation_candidate_revalidated",
+        "elicitation_prior_authority_invalidated",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        { "state": "application.proposal_revision", "before": 4, "after": 4 },
+        { "state": "application.proposal_update_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "approval.interaction_count", "before": 1, "after": 1 },
+        { "state": "receipt.application_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "elicitation_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AE-030",
+      "title": "Reject a redline whose recomputed result differs from its claimed candidate hash",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-028",
+      "requirement_ids": [
+        "ASP-AE-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "apply_human_elicitation_candidate",
+        "input_variant": "elicitation_redline_result_mismatch"
+      },
+      "required_observations": [
+        "elicitation_binding_rejected",
+        "elicitation_candidate_rejected",
+        "elicitation_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "elicitation_redline_applied",
+        "elicitation_prior_authority_invalidated",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        { "state": "application.proposal_revision", "before": 4, "after": 4 },
+        { "state": "application.proposal_update_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "approval.interaction_count", "before": 1, "after": 1 },
+        { "state": "receipt.application_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "elicitation_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-039",
+      "title": "Return the retained immutable terminal response for an exact elicitation replay",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel",
+        "terminal_elicitation_replay_retained"
+      ],
+      "stimulus": {
+        "operation": "mediate_human_elicitation",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "elicitation_binding_validated",
+        "elicitation_response_accepted",
+        "elicitation_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "elicitation_request_presented",
+        "elicitation_binding_rejected",
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        { "state": "runtime.elicitation_revision", "before": 1, "after": 1 },
+        { "state": "runtime.elicitation_response_count", "before": 1, "after": 1 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AA-009",
+      "title": "Expose only the minimized presenter-originated answer with its exact purpose binding",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AA-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "project_human_elicitation_answer",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "elicitation_binding_validated",
+        "elicitation_response_accepted",
+        "human_secret_withheld",
+        "elicitation_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "elicitation_binding_rejected",
+        "elicitation_response_suppressed",
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        { "state": "adapter.forwarded_count", "before": 0, "after": 1 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AA-010",
+      "title": "Reject an agent-originated claim that a human resolved an elicitation",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AA-009",
+      "requirement_ids": [
+        "ASP-AA-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "project_human_elicitation_answer",
+        "input_variant": "elicitation_agent_originated_resolution"
+      },
+      "required_observations": [
+        "elicitation_binding_rejected",
+        "elicitation_response_suppressed",
+        "elicitation_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "elicitation_binding_validated",
+        "elicitation_response_accepted",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        { "state": "adapter.forwarded_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "elicitation_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AA-011",
+      "title": "Suppress a full step-up response and authentication secret at the agent boundary",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AA-009",
+      "requirement_ids": [
+        "ASP-AA-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "project_human_elicitation_answer",
+        "input_variant": "elicitation_agent_full_step_up"
+      },
+      "required_observations": [
+        "elicitation_binding_rejected",
+        "elicitation_response_suppressed",
+        "human_secret_withheld",
+        "elicitation_authority_retained"
+      ],
+      "forbidden_observations": [
+        "elicitation_binding_validated",
+        "elicitation_response_accepted",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        { "state": "adapter.forwarded_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "elicitation_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-040",
+      "title": "Reject a step-up response that differs from the authoritative verifier result",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-035",
+      "requirement_ids": [
+        "ASP-RM-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_human_elicitation",
+        "input_variant": "elicitation_authoritative_verifier_mismatch"
+      },
+      "required_observations": [
+        "elicitation_binding_rejected",
+        "step_up_result_rejected",
+        "human_secret_withheld",
+        "elicitation_authority_retained"
+      ],
+      "forbidden_observations": [
+        "step_up_result_verified",
+        "elicitation_response_accepted",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        { "state": "runtime.elicitation_revision", "before": 0, "after": 0 },
+        { "state": "runtime.elicitation_response_count", "before": 0, "after": 0 },
+        { "state": "runtime.step_up_verified_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "elicitation_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-041",
+      "title": "Reject a hash-bound clarification schema with an external dynamic reference",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-033",
+      "requirement_ids": [
+        "ASP-RM-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_human_elicitation",
+        "input_variant": "elicitation_external_dynamic_schema_ref"
+      },
+      "required_observations": [
+        "elicitation_binding_rejected",
+        "elicitation_response_suppressed",
+        "elicitation_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "elicitation_binding_validated",
+        "elicitation_request_presented",
+        "elicitation_response_accepted"
+      ],
+      "state_deltas": [
+        { "state": "runtime.elicitation_revision", "before": 0, "after": 0 },
+        { "state": "runtime.elicitation_response_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "elicitation_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AE-031",
+      "title": "Reject a JSON Patch redline with a non-canonical negative array index",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-028",
+      "requirement_ids": [
+        "ASP-AE-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "apply_human_elicitation_candidate",
+        "input_variant": "elicitation_redline_invalid_array_index"
+      },
+      "required_observations": [
+        "elicitation_binding_rejected",
+        "elicitation_candidate_rejected",
+        "elicitation_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "elicitation_redline_applied",
+        "elicitation_prior_authority_invalidated",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        { "state": "application.proposal_revision", "before": 4, "after": 4 },
+        { "state": "application.proposal_update_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "approval.interaction_count", "before": 1, "after": 1 },
+        { "state": "receipt.application_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "elicitation_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-042",
+      "title": "Reject a hash-bound elicitation response resolved after evaluation time",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-033",
+      "requirement_ids": [
+        "ASP-RM-012"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "human_elicitation_selected",
+        "authenticated_human_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_human_elicitation",
+        "input_variant": "elicitation_future_resolution"
+      },
+      "required_observations": [
+        "elicitation_binding_rejected",
+        "elicitation_response_suppressed",
+        "elicitation_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "elicitation_binding_validated",
+        "elicitation_request_presented",
+        "elicitation_response_accepted"
+      ],
+      "state_deltas": [
+        { "state": "runtime.elicitation_revision", "before": 0, "after": 0 },
+        { "state": "runtime.elicitation_response_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 },
+        { "state": "receipt.runtime_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "elicitation_invalid"
     }
   ]
 }

@@ -26,7 +26,7 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.4.0"
+      "const": "1.5.0"
     },
     "protocol_version": {
       "const": "agent-surface/0.1"
@@ -92,7 +92,8 @@
         "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
         "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
         "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1",
-        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
       ]
     },
     "requirementId": {

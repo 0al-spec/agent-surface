@@ -125,7 +125,8 @@
         "runtime_untrusted",
         "rate_limited",
         "capacity_state_unavailable",
-        "service_unavailable"
+        "service_unavailable",
+        "elicitation_invalid"
       ]
     },
     "observationToken": {
@@ -206,7 +207,22 @@
         "asp_authority_unchanged",
         "asp_authority_retained",
         "action_dispatch_suppressed",
-        "credential_withheld"
+        "credential_withheld",
+        "elicitation_binding_validated",
+        "elicitation_binding_rejected",
+        "elicitation_request_presented",
+        "elicitation_response_accepted",
+        "elicitation_response_suppressed",
+        "elicitation_choice_validated",
+        "elicitation_candidate_revalidated",
+        "elicitation_candidate_rejected",
+        "elicitation_redline_applied",
+        "elicitation_prior_authority_invalidated",
+        "step_up_result_verified",
+        "step_up_result_rejected",
+        "human_secret_withheld",
+        "elicitation_authority_unchanged",
+        "elicitation_authority_retained"
       ]
     },
     "stateName": {
@@ -266,7 +282,12 @@
         "runtime.capacity_recovery_pending",
         "runtime.capacity_decision_pending",
         "runtime.ahp_representation_revision",
-        "runtime.ahp_presentation_count"
+        "runtime.ahp_presentation_count",
+        "runtime.elicitation_revision",
+        "runtime.elicitation_response_count",
+        "runtime.step_up_verified_count",
+        "application.proposal_revision",
+        "application.proposal_update_count"
       ]
     },
     "stateValue": {

@@ -38,6 +38,26 @@ authority from AHP UI state; invalid bindings are rejected before presentation
 or forwarding. The normalized `ahp` section is likewise harness data rather
 than a base AHP wire specification.
 
+The Human Elicitation paths independently validate the closed wire messages,
+exact selected profile, authenticated requester and presenter, current session
+and Grant tuple, RFC 8785 canonical request and response hashes, immutable
+terminal replay retention measured from authoritative terminal acceptance,
+closed option membership, and opaque, fresh step-up assurance. Step-up
+validation compares the wire response with the closed authoritative verifier
+result, including external verifier identity, audience, authenticated subject,
+elicitation revision, context, assurance, timestamps, and status. Declared
+clarification and redline schemas are executed locally; edited and patched
+candidates are checked against the authoritative input schema and
+`editable_paths`. Mock Runtime validates every kind before forwarding, and Mock
+App independently revalidates edited and redlined candidates before applying
+them. The Agent Adapter exposes only a presenter-originated, minimized,
+purpose-bound answer and rejects agent-authored resolutions or full step-up
+results. No participant turns an elicitation into approval, action dispatch,
+effect evidence, or a credential, and raw authentication material is always
+rejected. RFC 8785 UTF-16 ordering and binary64 boundaries are covered by
+unit-level regressions; catalog vectors exercise the protocol bindings rather
+than claiming those helper boundaries as independent interoperability evidence.
+
 The internal `asp-mock-participant/1` protocol is test control plumbing, not an
 ASP wire binding. `mock_app.py` and `mock_runtime.py` accept one closed envelope
 on standard input:

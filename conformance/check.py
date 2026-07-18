@@ -9,6 +9,7 @@ import binascii
 import copy
 import hashlib
 import json
+import math
 import os
 import platform
 import re
@@ -20,7 +21,7 @@ import unicodedata
 import uuid
 from collections import Counter
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +32,7 @@ except ImportError:  # pragma: no cover - the reference runner targets POSIX.
 
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
+import rfc8785
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,6 +45,7 @@ SCHEMA_CASES_PATH = V1_DIR / "schema-cases.json"
 SCHEMA_NAMES = (
     "capacity-error",
     "fixtures",
+    "human-elicitation",
     "observation",
     "operational-limits",
     "report",
@@ -129,11 +132,15 @@ HTTP_DATE_PATTERNS = (
 )
 OPERATIONAL_LIMITS_SCHEMA_ID = SCHEMA_IDS["operational-limits"]
 CAPACITY_ERROR_SCHEMA_ID = SCHEMA_IDS["capacity-error"]
+HUMAN_ELICITATION_SCHEMA_ID = SCHEMA_IDS["human-elicitation"]
 OPERATIONAL_LIMITS_FEATURE_ID = (
     "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
 )
 ASP_OVER_AHP_FEATURE_ID = (
     "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+)
+HUMAN_ELICITATION_FEATURE_ID = (
+    "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
 )
 CORE_CONTROL_EVENT_IDS = frozenset(
     {"budget.warning", "budget.exceeded", "session.paused_budget", "grant.revoked"}
@@ -177,9 +184,22 @@ def _reject_constant(value: str) -> None:
 
 
 def _parse_safe_integer(value: str) -> int:
+    if value == "-0":
+        raise ConformanceError("I-JSON negative zero is not permitted")
     number = int(value)
     if not -SAFE_INTEGER <= number <= SAFE_INTEGER:
         raise ConformanceError(f"JSON integer is outside the I-JSON safe range: {value}")
+    return number
+
+
+def _parse_human_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ConformanceError(
+            f"non-finite Human Elicitation number is not permitted: {value}"
+        )
+    if number == 0 and value.startswith("-"):
+        raise ConformanceError("Human Elicitation negative zero is not permitted")
     return number
 
 
@@ -235,6 +255,46 @@ def _validate_ijson_value(value: Any, path: str = "$") -> None:
     raise ConformanceError(f"value at {path} is not representable as I-JSON")
 
 
+def _validate_human_json_value(value: Any, path: str = "$") -> None:
+    """Validate the RFC 8785 JSON data model used inside Human messages."""
+
+    if value is None or isinstance(value, bool):
+        return
+    if isinstance(value, int):
+        if not -SAFE_INTEGER <= value <= SAFE_INTEGER:
+            raise ConformanceError(
+                f"JSON integer is outside the I-JSON safe range at {path}"
+            )
+        return
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ConformanceError(
+                f"Human Elicitation number is not finite at {path}"
+            )
+        if value == 0 and math.copysign(1.0, value) < 0:
+            raise ConformanceError(
+                f"Human Elicitation negative zero is not permitted at {path}"
+            )
+        return
+    if isinstance(value, str):
+        _validate_unicode(value, path)
+        return
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            _validate_human_json_value(item, f"{path}[{index}]")
+        return
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise ConformanceError(f"JSON object key is not a string at {path}")
+            _validate_unicode(key, f"{path}.<key>")
+            _validate_human_json_value(item, f"{path}.{key}")
+        return
+    raise ConformanceError(
+        f"value at {path} is not representable as Human Elicitation JSON"
+    )
+
+
 def _validate_digest(value: str, path: str) -> None:
     if not DIGEST_PATTERN.fullmatch(value):
         raise ConformanceError(f"invalid SHA-256 digest at {path}")
@@ -286,6 +346,43 @@ def load_strict_json(path: Path) -> Any:
         raise ConformanceError(f"cannot read {path}: {error}") from error
 
 
+def load_schema_case_json(path: Path) -> Any:
+    """Load schema cases while permitting Human message binary64 instances."""
+
+    try:
+        document = path.read_text(encoding="utf-8")
+        value = json.loads(
+            document,
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_float=_parse_human_float,
+            parse_int=_parse_safe_integer,
+            parse_constant=_reject_constant,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError, ConformanceError) as error:
+        raise ConformanceError(f"{path} is not Human-compatible JSON: {error}") from error
+    _validate_unicode(value)
+    _validate_human_json_value(value)
+    return value
+
+
+def loads_human_json(document: str, *, source: str = "Human JSON input") -> Any:
+    """Parse RFC 8785-compatible Human message JSON without lossy numbers."""
+
+    try:
+        value = json.loads(
+            document,
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_float=_parse_human_float,
+            parse_int=_parse_safe_integer,
+            parse_constant=_reject_constant,
+        )
+    except (json.JSONDecodeError, ConformanceError) as error:
+        raise ConformanceError(f"{source} is not Human-compatible JSON: {error}") from error
+    _validate_unicode(value)
+    _validate_human_json_value(value)
+    return value
+
+
 def _format_schema_errors(validator: Draft202012Validator, value: Any) -> str:
     errors = sorted(
         validator.iter_errors(value),
@@ -320,7 +417,11 @@ def _external_schema_refs(value: Any) -> list[str]:
             refs.extend(_external_schema_refs(item))
     elif isinstance(value, dict):
         for key, item in value.items():
-            if key == "$ref" and isinstance(item, str) and not item.startswith("#"):
+            if (
+                key in {"$ref", "$dynamicRef"}
+                and isinstance(item, str)
+                and not item.startswith("#")
+            ):
                 refs.append(item)
             else:
                 refs.extend(_external_schema_refs(item))
@@ -509,6 +610,626 @@ def validate_capacity_error(
         raise ConformanceError(
             "capacity error discloses an undeclared or cross-partition limit_id: "
             + ", ".join(undisclosable)
+        )
+
+
+def _canonical_json_rfc8785(value: Any) -> bytes:
+    """Serialize Human profile JSON with the RFC 8785 reference implementation."""
+
+    _validate_human_json_value(value)
+    try:
+        return rfc8785.dumps(value)
+    except (rfc8785.CanonicalizationError, UnicodeError) as error:
+        raise ConformanceError("value is not RFC 8785 canonicalizable") from error
+
+
+def _canonical_object_hash(domain: str, value: Any) -> str:
+    wrapper = {"domain": domain, "object": value}
+    content = _canonical_json_rfc8785(wrapper)
+    digest = hashlib.sha256(content).digest()
+    return "sha-256:" + base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+
+def _hash_without_member(domain: str, value: dict[str, Any], member: str) -> str:
+    hashing_view = copy.deepcopy(value)
+    hashing_view.pop(member, None)
+    return _canonical_object_hash(domain, hashing_view)
+
+
+def _validate_embedded_schema(
+    schema: Any, *, label: str, registry: Registry | None = None
+) -> None:
+    if not isinstance(schema, dict):
+        raise ConformanceError(f"{label} must be a JSON Schema object")
+    external_refs = [
+        ref for ref in _external_schema_refs(schema) if not ref.startswith("#")
+    ]
+    if external_refs:
+        raise ConformanceError(f"{label} must be self-contained")
+    try:
+        Draft202012Validator.check_schema(schema)
+    except Exception as error:
+        raise ConformanceError(f"{label} is not a valid JSON Schema") from error
+
+
+def validate_human_elicitation(
+    value: Any,
+    context: dict[str, Any],
+    *,
+    root: Path = ROOT,
+    registry: Registry | None = None,
+    schema: dict[str, Any] | None = None,
+) -> None:
+    """Validate one standalone Human Elicitation profile message."""
+
+    _validate_human_json_value(value)
+    selected_registry = registry or _schema_registry(root)
+    _validate_with_schema(
+        value,
+        schema
+        or load_strict_json(
+            root / "conformance" / "v1" / "human-elicitation.schema.json"
+        ),
+        "Human Elicitation message",
+        registry=selected_registry,
+    )
+    if context != {}:
+        raise ConformanceError("Human Elicitation schema context must be empty")
+
+    if value["type"] == "elicitation.required":
+        if value["requester"]["type"] == value["presenter"]["type"]:
+            raise ConformanceError(
+                "Human Elicitation requester.type and presenter.type must differ"
+            )
+        expected_context_hash = _canonical_object_hash(
+            "https://github.com/0al-spec/agent-surface/hash/"
+            "human-elicitation-context/v1",
+            value["context"],
+        )
+        if value["context_hash"] != expected_context_hash:
+            raise ConformanceError("Human Elicitation context_hash is invalid")
+        expected_request_hash = _hash_without_member(
+            "https://github.com/0al-spec/agent-surface/hash/"
+            "human-elicitation-request/v1",
+            value,
+            "request_hash",
+        )
+        if value["request_hash"] != expected_request_hash:
+            raise ConformanceError("Human Elicitation request_hash is invalid")
+
+        kind = value["kind"]
+        request = value["request"]
+        if kind == "clarify":
+            embedded = request["response_schema"]
+            _validate_embedded_schema(
+                embedded, label="clarification response_schema"
+            )
+            expected_schema_hash = _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/"
+                "action-input-schema/v1",
+                embedded,
+            )
+            if request["response_schema_hash"] != expected_schema_hash:
+                raise ConformanceError(
+                    "clarification response_schema_hash is invalid"
+                )
+        elif kind == "choose":
+            option_ids = [item["option_id"] for item in request["options"]]
+            if len(option_ids) != len(set(option_ids)):
+                raise ConformanceError("Human Elicitation repeats an option_id")
+            if not (
+                request["min_selected"]
+                <= request["max_selected"]
+                <= len(option_ids)
+            ):
+                raise ConformanceError(
+                    "Human Elicitation selection bounds exceed the option set"
+                )
+        elif kind == "redline":
+            embedded = request["patch_schema"]
+            _validate_embedded_schema(embedded, label="redline patch_schema")
+            expected_schema_hash = _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/"
+                "action-input-schema/v1",
+                embedded,
+            )
+            if request["patch_schema_hash"] != expected_schema_hash:
+                raise ConformanceError("redline patch_schema_hash is invalid")
+    else:
+        expected_response_hash = _hash_without_member(
+            "https://github.com/0al-spec/agent-surface/hash/"
+            "human-elicitation-response/v1",
+            value,
+            "response_hash",
+        )
+        if value["response_hash"] != expected_response_hash:
+            raise ConformanceError("Human Elicitation response_hash is invalid")
+
+
+def _decode_json_pointer(pointer: str) -> list[str]:
+    if pointer == "":
+        return []
+    if not pointer.startswith("/"):
+        raise ConformanceError("JSON Pointer must be empty or begin with '/'")
+    return [
+        token.replace("~1", "/").replace("~0", "~")
+        for token in pointer[1:].split("/")
+    ]
+
+
+def _json_patch_array_index(
+    token: str, *, length: int, allow_end: bool = False
+) -> int:
+    if re.fullmatch(r"0|[1-9][0-9]*", token) is None:
+        raise ConformanceError("JSON Patch array index is invalid")
+    try:
+        index = int(token)
+    except ValueError as error:
+        raise ConformanceError("JSON Patch array index is invalid") from error
+    maximum = length if allow_end else length - 1
+    if index > maximum:
+        raise ConformanceError("JSON Patch array index is invalid")
+    return index
+
+
+def _apply_json_patch(document: Any, operations: list[dict[str, Any]]) -> Any:
+    candidate = copy.deepcopy(document)
+    for operation in operations:
+        if not isinstance(operation, dict) or operation.get("op") not in {
+            "add",
+            "remove",
+            "replace",
+        }:
+            raise ConformanceError(
+                "Human Elicitation redline uses an unsupported JSON Patch operation"
+            )
+        tokens = _decode_json_pointer(operation.get("path", ""))
+        if not tokens:
+            if operation["op"] == "remove":
+                raise ConformanceError("Human Elicitation redline cannot remove the root")
+            if "value" not in operation:
+                raise ConformanceError("JSON Patch replacement lacks value")
+            candidate = copy.deepcopy(operation["value"])
+            continue
+        parent = candidate
+        for token in tokens[:-1]:
+            try:
+                parent = (
+                    parent[
+                        _json_patch_array_index(token, length=len(parent))
+                    ]
+                    if isinstance(parent, list)
+                    else parent[token]
+                )
+            except ConformanceError:
+                raise
+            except (KeyError, IndexError, TypeError, ValueError) as error:
+                raise ConformanceError(
+                    "Human Elicitation redline path does not exist in its base"
+                ) from error
+        token = tokens[-1]
+        try:
+            if isinstance(parent, list):
+                if operation["op"] == "add":
+                    if token == "-":
+                        parent.append(copy.deepcopy(operation["value"]))
+                    else:
+                        index = _json_patch_array_index(
+                            token, length=len(parent), allow_end=True
+                        )
+                        parent.insert(index, copy.deepcopy(operation["value"]))
+                elif operation["op"] == "remove":
+                    del parent[
+                        _json_patch_array_index(token, length=len(parent))
+                    ]
+                else:
+                    parent[
+                        _json_patch_array_index(token, length=len(parent))
+                    ] = copy.deepcopy(operation["value"])
+            elif isinstance(parent, dict):
+                if operation["op"] == "remove":
+                    del parent[token]
+                else:
+                    if operation["op"] == "replace" and token not in parent:
+                        raise KeyError(token)
+                    parent[token] = copy.deepcopy(operation["value"])
+            else:
+                raise TypeError("patch parent is not a container")
+        except ConformanceError:
+            raise
+        except (KeyError, IndexError, TypeError, ValueError) as error:
+            raise ConformanceError(
+                "Human Elicitation redline operation is invalid for its base"
+            ) from error
+    return candidate
+
+
+def _changed_json_pointers(before: Any, after: Any, pointer: str = "") -> set[str]:
+    if type(before) is not type(after):
+        return {pointer}
+    if isinstance(before, dict):
+        changed: set[str] = set()
+        for key in set(before) | set(after):
+            escaped = key.replace("~", "~0").replace("/", "~1")
+            child = f"{pointer}/{escaped}"
+            if key not in before or key not in after:
+                changed.add(child)
+            else:
+                changed.update(_changed_json_pointers(before[key], after[key], child))
+        return changed
+    if isinstance(before, list):
+        if len(before) != len(after):
+            return {pointer}
+        changed = set()
+        for index, (left, right) in enumerate(zip(before, after, strict=True)):
+            changed.update(
+                _changed_json_pointers(left, right, f"{pointer}/{index}")
+            )
+        return changed
+    return set() if before == after else {pointer}
+
+
+def validate_human_elicitation_projection(
+    elicitation: Any,
+    *,
+    root: Path = ROOT,
+    registry: Registry | None = None,
+    schema: dict[str, Any] | None = None,
+) -> None:
+    """Validate one normalized request/response pair against authoritative state."""
+
+    if not isinstance(elicitation, dict):
+        raise ConformanceError("Human Elicitation projection must be an object")
+    selected_registry = registry or _schema_registry(root)
+    human_schema = schema or load_strict_json(
+        root / "conformance" / "v1" / "human-elicitation.schema.json"
+    )
+    request = elicitation["request"]
+    response = elicitation["response"]
+    validate_human_elicitation(
+        request,
+        {},
+        root=root,
+        registry=selected_registry,
+        schema=human_schema,
+    )
+    validate_human_elicitation(
+        response,
+        {},
+        root=root,
+        registry=selected_registry,
+        schema=human_schema,
+    )
+
+    if (
+        elicitation["authentication"] != "authenticated"
+        or elicitation["selected_profile"] != HUMAN_ELICITATION_FEATURE_ID
+        or request["requester"] != elicitation["authenticated_requester"]
+        or request["presenter"] != elicitation["authenticated_presenter"]
+        or response["responder"] != elicitation["authenticated_presenter"]
+    ):
+        raise ConformanceError(
+            "Human Elicitation participant roles do not match authenticated state"
+        )
+    repeated_fields = (
+        "elicitation_id",
+        "revision",
+        "kind",
+        "session_id",
+        "session_generation",
+        "grant_id",
+        "grant_hash",
+        "surface_hash",
+        "context_hash",
+        "request_hash",
+    )
+    if any(request[field] != response[field] for field in repeated_fields):
+        raise ConformanceError(
+            "Human Elicitation response does not repeat the exact request binding"
+        )
+    authoritative_pairs = (
+        ("session_id", "current_session_id"),
+        ("session_generation", "current_session_generation"),
+        ("grant_id", "current_grant_id"),
+        ("grant_hash", "current_grant_hash"),
+        ("surface_hash", "current_surface_hash"),
+    )
+    if any(
+        request[message_field] != elicitation[state_field]
+        for message_field, state_field in authoritative_pairs
+    ):
+        raise ConformanceError(
+            "Human Elicitation tuple differs from authoritative current state"
+        )
+
+    revision = request["revision"]
+    recorded_revision = elicitation["recorded_revision"]
+    if revision < recorded_revision or revision > recorded_revision + 1:
+        raise ConformanceError("Human Elicitation revision is stale or skipped")
+    exact_terminal_replay = (
+        elicitation["lifecycle"] == "resolved"
+        and revision == recorded_revision
+        and request["request_hash"] == elicitation["recorded_request_hash"]
+        and response["response_hash"] == elicitation["recorded_response_hash"]
+    )
+    evaluation_time = datetime.fromisoformat(
+        elicitation["evaluation_time"].replace("Z", "+00:00")
+    )
+    terminal_accepted_at = elicitation["terminal_accepted_at"]
+    if exact_terminal_replay:
+        if terminal_accepted_at == "absent":
+            raise ConformanceError(
+                "Human Elicitation terminal replay lacks terminal_accepted_at"
+            )
+        accepted_at = datetime.fromisoformat(
+            terminal_accepted_at.replace("Z", "+00:00")
+        )
+        resolved_at_for_replay = datetime.fromisoformat(
+            response["resolved_at"].replace("Z", "+00:00")
+        )
+        if not resolved_at_for_replay <= accepted_at <= evaluation_time:
+            raise ConformanceError(
+                "Human Elicitation terminal_accepted_at is not current"
+            )
+        replay_retained_until = accepted_at + timedelta(
+            seconds=elicitation["replay_retention_seconds"]
+        )
+    else:
+        replay_retained_until = evaluation_time
+    if exact_terminal_replay and (
+        elicitation["replay_record_state"] != "retained"
+        or evaluation_time > replay_retained_until
+    ):
+        raise ConformanceError(
+            "Human Elicitation terminal replay record is unavailable or expired"
+        )
+    if not exact_terminal_replay and (
+        elicitation["replay_record_state"] != "not_applicable"
+        or terminal_accepted_at != "absent"
+    ):
+        raise ConformanceError(
+            "Human Elicitation non-replay baseline carries terminal replay state"
+        )
+    if revision == recorded_revision and not exact_terminal_replay:
+        raise ConformanceError(
+            "Human Elicitation revision conflicts with an immutable replay record"
+        )
+    if (
+        elicitation["lifecycle"] not in {"pending", "resolved"}
+        or response["disposition"] != "answered"
+        or elicitation["authority_use"] != "informational"
+    ):
+        raise ConformanceError(
+            "Human Elicitation baseline must resolve or exactly replay "
+            "one informational request"
+        )
+    if elicitation["lifecycle"] == "resolved" and not exact_terminal_replay:
+        raise ConformanceError(
+            "Human Elicitation terminal state permits only an exact immutable replay"
+        )
+    resolved_at = datetime.fromisoformat(response["resolved_at"].replace("Z", "+00:00"))
+    expires_at = datetime.fromisoformat(request["expires_at"].replace("Z", "+00:00"))
+    if resolved_at > evaluation_time:
+        raise ConformanceError(
+            "Human Elicitation response was resolved after evaluation_time"
+        )
+    if resolved_at > expires_at:
+        raise ConformanceError("Human Elicitation response was resolved after expiry")
+
+    kind = request["kind"]
+    request_body = request["request"]
+    response_body = response["response"]
+    if kind == "clarify":
+        encoded = _canonical_json_rfc8785(response_body["answer"])
+        if len(encoded) > request_body["max_bytes"]:
+            raise ConformanceError("clarification answer exceeds max_bytes")
+        _validate_with_schema(
+            response_body["answer"],
+            request_body["response_schema"],
+            "clarification answer",
+        )
+    elif kind == "choose":
+        selected = response_body["option_ids"]
+        offered = {item["option_id"] for item in request_body["options"]}
+        if (
+            not set(selected).issubset(offered)
+            or not request_body["min_selected"]
+            <= len(selected)
+            <= request_body["max_selected"]
+        ):
+            raise ConformanceError(
+                "Human Elicitation response selects an unoffered or invalid option set"
+            )
+    elif kind == "step_up":
+        authoritative_result = elicitation.get("authoritative_step_up_result")
+        expected_authoritative_result = {
+            "status": "verified",
+            "result_ref": response_body["result_ref"],
+            "verifier": response_body["verifier"],
+            "audience": elicitation["authenticated_requester"],
+            "subject": elicitation["authenticated_subject"],
+            "elicitation_id": request["elicitation_id"],
+            "revision": request["revision"],
+            "context_hash": request["context_hash"],
+            "achieved_assurance": response_body["achieved_assurance"],
+            "authenticated_at": response_body["authenticated_at"],
+            "expires_at": response_body["expires_at"],
+        }
+        if (
+            elicitation["step_up_verification"] != "verified"
+            or elicitation["secret_material"] != "absent"
+            or response_body["verifier"]
+            != elicitation.get("authenticated_verifier")
+            or authoritative_result != expected_authoritative_result
+            or not set(request_body["required_assurance"]).issubset(
+                response_body["achieved_assurance"]
+            )
+        ):
+            raise ConformanceError(
+                "Human Elicitation step-up verifier binding is invalid, "
+                "unverified, or exposes secret material"
+            )
+        authenticated_at = datetime.fromisoformat(
+            response_body["authenticated_at"].replace("Z", "+00:00")
+        )
+        step_up_expires_at = datetime.fromisoformat(
+            response_body["expires_at"].replace("Z", "+00:00")
+        )
+        maximum_age = timedelta(seconds=request_body["max_age_seconds"])
+        if (
+            not authenticated_at
+            <= resolved_at
+            <= evaluation_time
+            <= step_up_expires_at
+            or evaluation_time - authenticated_at > maximum_age
+        ):
+            raise ConformanceError(
+                "Human Elicitation step-up timestamps exceed max_age_seconds "
+                "or are not current"
+            )
+    elif kind == "edit":
+        base = elicitation.get("authoritative_base")
+        input_schema = elicitation.get("authoritative_input_schema")
+        if (
+            elicitation["candidate_validation"] != "passed"
+            or request_body["base"] != base
+            or request_body["base_hash"]
+            != _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/action-input/v1",
+                base,
+            )
+            or request_body["input_schema_hash"]
+            != _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/"
+                "action-input-schema/v1",
+                input_schema,
+            )
+            or request["context"].get("input_hash") != request_body["base_hash"]
+            or response_body["candidate_hash"]
+            != _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/action-input/v1",
+                response_body["candidate"],
+            )
+        ):
+            raise ConformanceError(
+                "Human Elicitation edit candidate is stale or not rebound"
+            )
+        _validate_embedded_schema(
+            input_schema,
+            label="authoritative action input schema",
+        )
+        _validate_with_schema(
+            response_body["candidate"],
+            input_schema,
+            "Human Elicitation edit candidate",
+        )
+        changed = _changed_json_pointers(base, response_body["candidate"])
+        editable = request_body["editable_paths"]
+        if any(
+            not any(path == allowed or path.startswith(allowed + "/") for allowed in editable)
+            for path in changed
+        ):
+            raise ConformanceError("Human Elicitation edit changed a forbidden path")
+    elif kind == "redline":
+        base = elicitation.get("authoritative_base")
+        candidate = _apply_json_patch(base, response_body["patch"])
+        input_schema = elicitation.get("authoritative_input_schema")
+        _validate_with_schema(
+            response_body["patch"],
+            request_body["patch_schema"],
+            "Human Elicitation redline patch",
+        )
+        _validate_embedded_schema(
+            input_schema,
+            label="authoritative action input schema",
+        )
+        _validate_with_schema(
+            candidate,
+            input_schema,
+            "Human Elicitation redline candidate",
+        )
+        if (
+            elicitation["candidate_validation"] != "passed"
+            or request_body["base_hash"]
+            != _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/action-input/v1",
+                base,
+            )
+            or request["context"].get("input_hash") != request_body["base_hash"]
+            or response_body["base_hash"] != request_body["base_hash"]
+            or response_body["candidate_hash"]
+            != _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/action-input/v1",
+                candidate,
+            )
+        ):
+            raise ConformanceError(
+                "Human Elicitation redline base or result binding is invalid"
+            )
+        changed = _changed_json_pointers(base, candidate)
+        editable = request_body.get("editable_paths", [])
+        if editable and any(
+            not any(
+                path == allowed or path.startswith(allowed + "/")
+                for allowed in editable
+            )
+            for path in changed
+        ):
+            raise ConformanceError(
+                "Human Elicitation redline changed a forbidden path"
+            )
+    if kind != "step_up" and (
+        elicitation["step_up_verification"] != "not_applicable"
+        or elicitation["secret_material"] != "absent"
+        or "authenticated_verifier" in elicitation
+        or "authoritative_step_up_result" in elicitation
+    ):
+        raise ConformanceError(
+            "non-step-up Human Elicitation carries authentication state"
+        )
+
+
+def validate_agent_human_elicitation_projection(elicitation: Any) -> None:
+    """Validate the minimized, purpose-bound Human answer exposed to an agent."""
+
+    projection = elicitation.get("agent_projection")
+    if not isinstance(projection, dict):
+        raise ConformanceError(
+            "Agent Adapter Human Elicitation projection is absent"
+        )
+    request = elicitation["request"]
+    response = elicitation["response"]
+    expected_binding = {
+        "session_id": request["session_id"],
+        "session_generation": request["session_generation"],
+        "grant_id": request["grant_id"],
+        "grant_hash": request["grant_hash"],
+        "surface_hash": request["surface_hash"],
+        "context_hash": request["context_hash"],
+        "request_hash": request["request_hash"],
+    }
+    kind = request["kind"]
+    expected_values = {
+        "clarify": {
+            "kind": "clarify",
+            "answer": response.get("response", {}).get("answer"),
+        },
+        "choose": {
+            "kind": "choose",
+            "option_ids": response.get("response", {}).get("option_ids"),
+        },
+    }
+    if (
+        projection["origin"] != "presenter"
+        or projection["purpose_binding"] != expected_binding
+        or projection["exposure"] != "minimized"
+        or projection["secret_material"] != "absent"
+        or kind not in expected_values
+        or projection["value"] != expected_values[kind]
+    ):
+        raise ConformanceError(
+            "Agent Adapter Human answer is originated, unbound, "
+            "overbroad, or secret-bearing"
         )
 
 
@@ -709,14 +1430,15 @@ def _validate_schema_cases(
     polarities: dict[str, set[str]] = {
         OPERATIONAL_LIMITS_SCHEMA_ID: set(),
         CAPACITY_ERROR_SCHEMA_ID: set(),
+        HUMAN_ELICITATION_SCHEMA_ID: set(),
     }
     for case in catalog["cases"]:
         schema_id = case["schema_id"]
-        expected_prefix = (
-            "ASP-SC-OL-"
-            if schema_id == OPERATIONAL_LIMITS_SCHEMA_ID
-            else "ASP-SC-CE-"
-        )
+        expected_prefix = {
+            OPERATIONAL_LIMITS_SCHEMA_ID: "ASP-SC-OL-",
+            CAPACITY_ERROR_SCHEMA_ID: "ASP-SC-CE-",
+            HUMAN_ELICITATION_SCHEMA_ID: "ASP-SC-HE-",
+        }[schema_id]
         if not case["case_id"].startswith(expected_prefix):
             raise ConformanceError(
                 f"schema case {case['case_id']} has a mismatched schema prefix"
@@ -725,7 +1447,12 @@ def _validate_schema_cases(
 
         error: ConformanceError | None = None
         try:
-            instance = loads_strict_json(
+            parser = (
+                loads_human_json
+                if schema_id == HUMAN_ELICITATION_SCHEMA_ID
+                else loads_strict_json
+            )
+            instance = parser(
                 case["instance_json"], source=f"schema case {case['case_id']}"
             )
             if schema_id == OPERATIONAL_LIMITS_SCHEMA_ID:
@@ -736,13 +1463,21 @@ def _validate_schema_cases(
                     registry=registry,
                     schema=schemas["operational-limits"],
                 )
-            else:
+            elif schema_id == CAPACITY_ERROR_SCHEMA_ID:
                 validate_capacity_error(
                     instance,
                     case["context"],
                     root=root,
                     registry=registry,
                     schema=schemas["capacity-error"],
+                )
+            else:
+                validate_human_elicitation(
+                    instance,
+                    case["context"],
+                    root=root,
+                    registry=registry,
+                    schema=schemas["human-elicitation"],
                 )
         except ConformanceError as caught:
             error = caught
@@ -1095,6 +1830,51 @@ def _semantic_validate_catalog(
             raise ConformanceError(
                 f"non-AHP vector {vector_id} carries an ASP-over-AHP projection"
             )
+        selects_elicitation = "human_elicitation_selected" in vector["setup"]
+        is_elicitation_operation = operation in {
+            "mediate_human_elicitation",
+            "apply_human_elicitation_candidate",
+            "project_human_elicitation_answer",
+        }
+        if selects_elicitation != is_elicitation_operation:
+            raise ConformanceError(
+                f"vector {vector_id} Human Elicitation setup and operation differ"
+            )
+        has_elicitation_feature = (
+            HUMAN_ELICITATION_FEATURE_ID in vector["features"]
+        )
+        if has_elicitation_feature != is_elicitation_operation:
+            raise ConformanceError(
+                f"vector {vector_id} Human Elicitation feature and operation differ"
+            )
+        has_elicitation_projection = "elicitation" in fixture["document"]
+        if is_elicitation_operation:
+            if (
+                not has_elicitation_projection
+                or "authenticated_human_channel" not in vector["setup"]
+            ):
+                raise ConformanceError(
+                    f"Human Elicitation vector {vector_id} lacks its "
+                    "authenticated projection"
+                )
+            validate_human_elicitation_projection(
+                fixture["document"]["elicitation"],
+                root=root,
+            )
+            if operation == "project_human_elicitation_answer":
+                validate_agent_human_elicitation_projection(
+                    fixture["document"]["elicitation"]
+                )
+            elif "agent_projection" in fixture["document"]["elicitation"]:
+                raise ConformanceError(
+                    f"non-Agent Adapter vector {vector_id} carries an "
+                    "agent-facing Human Elicitation projection"
+                )
+        elif has_elicitation_projection:
+            raise ConformanceError(
+                f"non-elicitation vector {vector_id} carries a Human "
+                "Elicitation projection"
+            )
         if vector["polarity"] == "negative":
             baseline_id = vector["baseline_vector_id"]
             baseline = vectors.get(baseline_id)
@@ -1172,7 +1952,7 @@ def validate_catalog(root: Path = ROOT) -> Catalog:
     suite = load_strict_json(v1_dir / "suite.json")
     vector_catalog = load_strict_json(v1_dir / "vectors.json")
     fixture_catalog = load_strict_json(v1_dir / "fixtures.json")
-    schema_case_catalog = load_strict_json(v1_dir / "schema-cases.json")
+    schema_case_catalog = load_schema_case_json(v1_dir / "schema-cases.json")
     registry = _schema_registry(root)
     _validate_schema_ref_closure(schemas, registry)
     _validate_with_schema(suite, schemas["suite"], "suite.json", registry=registry)
@@ -1218,16 +1998,8 @@ def specification_digest(root: Path = ROOT) -> str:
 
 
 def _canonical_json_bytes(value: dict[str, Any]) -> bytes:
-    # The catalog and subject schemas permit only I-JSON integers and ASCII
-    # member names, making this compact, sorted serialization identical to
-    # RFC 8785 for these closed objects.
-    return json.dumps(
-        value,
-        ensure_ascii=False,
-        allow_nan=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
+    _validate_ijson_value(value)
+    return _canonical_json_rfc8785(value)
 
 
 def vector_digest(vector: dict[str, Any]) -> str:
@@ -1432,7 +2204,11 @@ def _execute_json_process(
 
     output_path = workdir / f"{label}.stdout"
     environment = {
-        "PATH": "/usr/bin:/bin",
+        # Keep lookup closed while allowing env-based Python entry points to
+        # use the exact dependency environment that runs this harness.
+        "PATH": os.pathsep.join(
+            (str(Path(sys.executable).parent), "/usr/bin", "/bin")
+        ),
         "HOME": str(workdir),
         "TMPDIR": str(workdir),
         "LANG": "C.UTF-8",
@@ -1519,10 +2295,24 @@ def _resolved_fixture(catalog: Catalog, vector: dict[str, Any]) -> dict[str, Any
     for operation in mutation["patch"]:
         if operation["op"] != "replace":
             raise ConformanceError("v1 fixture runner supports only closed replace patches")
-        parts = operation["path"].removeprefix("/").split("/")
-        if len(parts) != 2 or parts[0] not in document or parts[1] not in document[parts[0]]:
-            raise ConformanceError("fixture mutation path is not present in its baseline")
-        document[parts[0]][parts[1]] = operation["value"]
+        parts = _decode_json_pointer(operation["path"])
+        if not parts:
+            raise ConformanceError("fixture mutation cannot replace the document root")
+        target: Any = document
+        try:
+            for part in parts[:-1]:
+                target = target[int(part)] if isinstance(target, list) else target[part]
+            final = parts[-1]
+            if isinstance(target, list):
+                target[int(final)] = operation["value"]
+            else:
+                if final not in target:
+                    raise KeyError(final)
+                target[final] = operation["value"]
+        except (KeyError, IndexError, TypeError, ValueError) as error:
+            raise ConformanceError(
+                "fixture mutation path is not present in its baseline"
+            ) from error
     _validate_with_schema(
         document,
         {
@@ -1714,7 +2504,7 @@ def run_suite(
     started_at = _utc_now()
     runner = {
         "runner_id": "asp-reference-conformance-runner",
-        "runner_version": "1.4.0",
+        "runner_version": "1.5.0",
         "runner_artifact_sha256": file_digest(
             "ASP-CONFORMANCE-RUNNER-V1", root / "conformance" / "check.py"
         ),

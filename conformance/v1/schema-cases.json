@@ -2,7 +2,7 @@
   "$schema": "./schema-cases.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.4.0",
+  "suite_version": "1.5.0",
   "cases": [
     {
       "case_id": "ASP-SC-OL-001",
@@ -544,6 +544,41 @@
           "comment-per-minute"
         ]
       }
+    },
+    {
+      "case_id": "ASP-SC-HE-001",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
+      "polarity": "positive",
+      "instance_json": "{\"type\":\"elicitation.required\",\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1\",\"elicitation_id\":\"elicit_schema_choose\",\"revision\":1,\"requester\":{\"type\":\"application\",\"id\":\"app_a\"},\"presenter\":{\"type\":\"runtime\",\"id\":\"runtime_a\"},\"kind\":\"choose\",\"session_id\":\"session_a\",\"session_generation\":1,\"grant_id\":\"grant_a\",\"grant_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"surface_hash\":\"sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"context\":{},\"context_hash\":\"sha-256:PS8yv31QQYb_ucBhQ42kjS94jowGO8WiS3kY3sN-2ys\",\"prompt\":{\"title\":\"Choose an option\",\"detail\":\"Select one stable option identifier.\"},\"request\":{\"question_id\":\"schema_choice\",\"options\":[{\"option_id\":\"one\",\"label\":\"One\",\"detail\":\"Select the first option.\"},{\"option_id\":\"two\",\"label\":\"Two\",\"detail\":\"Select the second option.\"}],\"min_selected\":1,\"max_selected\":1},\"expires_at\":\"2026-07-18T13:30:00Z\",\"request_hash\":\"sha-256:9AQpb5r3DoMS4jeBr8Hd0MUSSjL-1HI2arMjSI6HpJQ\"}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-HE-002",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
+      "polarity": "positive",
+      "instance_json": "{\"type\":\"elicitation.required\",\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1\",\"elicitation_id\":\"elicit_schema_jcs\",\"revision\":1,\"requester\":{\"type\":\"application\",\"id\":\"app_a\"},\"presenter\":{\"type\":\"runtime\",\"id\":\"runtime_a\"},\"kind\":\"edit\",\"session_id\":\"session_a\",\"session_generation\":1,\"grant_id\":\"grant_a\",\"grant_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"surface_hash\":\"sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"context\":{\"action_id\":\"action.read\",\"mode\":\"read\",\"input_hash\":\"sha-256:_TxPpDQ5jRv-a9aEiWwo4ULlpDEWACbQCYW5hb3WEW4\"},\"context_hash\":\"sha-256:l9XxtmR9o7XEs0vA77xhRvmwEjokGGad_XQauWFNdII\",\"prompt\":{\"title\":\"Edit a numeric object\",\"detail\":\"Preserve the exact canonical numeric value and member names.\"},\"request\":{\"base\":{\"\\ue000\":2,\"\\ud800\\udc00\":1.5},\"base_hash\":\"sha-256:_TxPpDQ5jRv-a9aEiWwo4ULlpDEWACbQCYW5hb3WEW4\",\"input_schema_hash\":\"sha-256:IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII\",\"editable_paths\":[\"/amount\"]},\"expires_at\":\"2026-07-18T13:30:00Z\",\"request_hash\":\"sha-256:QgXmCBvKaVSljLThHpJqer4knpj_TWouT2BJr6ewKvI\"}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-HE-101",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"type\":\"elicitation.required\",\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1\",\"elicitation_id\":\"elicit_schema_choose\",\"revision\":1,\"requester\":{\"type\":\"runtime\",\"id\":\"runtime_a\"},\"presenter\":{\"type\":\"runtime\",\"id\":\"runtime_a\"},\"kind\":\"choose\",\"session_id\":\"session_a\",\"session_generation\":1,\"grant_id\":\"grant_a\",\"grant_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"surface_hash\":\"sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"context\":{},\"context_hash\":\"sha-256:RBNvo1WzZ4oRRq0W9-hknpT7T8If536DEMBg9hyq_4o\",\"prompt\":{\"title\":\"Choose an option\",\"detail\":\"Select one stable option identifier.\"},\"request\":{\"question_id\":\"schema_choice\",\"options\":[{\"option_id\":\"one\",\"label\":\"One\",\"detail\":\"Select the first option.\"}],\"min_selected\":1,\"max_selected\":1},\"expires_at\":\"2026-07-18T13:30:00Z\",\"request_hash\":\"sha-256:HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\"}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-HE-102",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"type\":\"elicitation.required\",\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1\",\"elicitation_id\":\"elicit_schema_jcs\",\"revision\":1,\"requester\":{\"type\":\"application\",\"id\":\"app_a\"},\"presenter\":{\"type\":\"runtime\",\"id\":\"runtime_a\"},\"kind\":\"edit\",\"session_id\":\"session_a\",\"session_generation\":1,\"grant_id\":\"grant_a\",\"grant_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"surface_hash\":\"sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"context\":{\"action_id\":\"action.read\",\"mode\":\"read\",\"input_hash\":\"sha-256:_TxPpDQ5jRv-a9aEiWwo4ULlpDEWACbQCYW5hb3WEW4\"},\"context_hash\":\"sha-256:l9XxtmR9o7XEs0vA77xhRvmwEjokGGad_XQauWFNdII\",\"prompt\":{\"title\":\"Edit a numeric object\",\"detail\":\"Preserve the exact canonical numeric value and member names.\"},\"request\":{\"base\":{\"\\ue000\":2,\"\\ud800\\udc00\":-0.0},\"base_hash\":\"sha-256:_TxPpDQ5jRv-a9aEiWwo4ULlpDEWACbQCYW5hb3WEW4\",\"input_schema_hash\":\"sha-256:IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII\",\"editable_paths\":[\"/amount\"]},\"expires_at\":\"2026-07-18T13:30:00Z\",\"request_hash\":\"sha-256:QgXmCBvKaVSljLThHpJqer4knpj_TWouT2BJr6ewKvI\"}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-HE-103",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"type\":\"elicitation.required\",\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1\",\"elicitation_id\":\"elicit_schema_dynamic_ref\",\"revision\":1,\"requester\":{\"type\":\"application\",\"id\":\"app_a\"},\"presenter\":{\"type\":\"runtime\",\"id\":\"runtime_a\"},\"kind\":\"clarify\",\"session_id\":\"session_a\",\"session_generation\":1,\"grant_id\":\"grant_a\",\"grant_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"surface_hash\":\"sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"context\":{},\"context_hash\":\"sha-256:PS8yv31QQYb_ucBhQ42kjS94jowGO8WiS3kY3sN-2ys\",\"prompt\":{\"title\":\"Clarify the request\",\"detail\":\"Provide the missing bounded value.\"},\"request\":{\"question_id\":\"schema_dynamic_ref\",\"response_schema\":{\"$dynamicRef\":\"https://example.invalid/external-schema\"},\"response_schema_hash\":\"sha-256:0qvWs9Ueul6k-BHEqN93tvM3jy4e6utT3iJlp3yv8vQ\",\"max_bytes\":128},\"expires_at\":\"2026-07-18T13:30:00Z\",\"request_hash\":\"sha-256:sv7Dds6gl_OI2Gxamg5WkpKcDXWLBt73taTA4Cvtjlk\"}",
+      "context": {}
     }
   ]
 }
