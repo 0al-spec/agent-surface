@@ -3094,8 +3094,12 @@
       "description": "manifest может включать human-readable risk summaries для actions.",
       "category": "UX / consent",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
+        {
+          "heading": "Risk Explanation UI Hints",
+          "anchorId": "risk-explanation-ui-hints"
+        },
         {
           "heading": "Actions",
           "anchorId": "actions"
@@ -3105,19 +3109,60 @@
           "anchorId": "risk-taxonomy"
         },
         {
+          "heading": "Effect Model",
+          "anchorId": "effect-model"
+        },
+        {
+          "heading": "Approval Semantics",
+          "anchorId": "approval-semantics"
+        },
+        {
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        },
+        {
           "heading": "Capability Matching",
           "anchorId": "capability-matching"
+        },
+        {
+          "heading": "Human Elicitation Events Profile",
+          "anchorId": "human-elicitation-events-profile"
+        },
+        {
+          "heading": "Versioning and Compatibility",
+          "anchorId": "versioning-and-compatibility"
+        },
+        {
+          "heading": "Interoperability Test Suite",
+          "anchorId": "interoperability-test-suite"
+        },
+        {
+          "heading": "Reference Mock Participants",
+          "anchorId": "reference-mock-participants"
+        },
+        {
+          "heading": "Surface Publisher Profile",
+          "anchorId": "surface-publisher-profile"
+        },
+        {
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         }
       ],
-      "rationale": "Machine-readable risk labels и matching summary есть, human-readable manifest hints отсутствуют.",
+      "rationale": "Определён bounded, localized и surface-hash-bound actions[].risk_explanation. Conformance schemas, vectors и reference mocks machine-validate полное effect coverage, RFC 4647 Lookup/default, literal untrusted rendering, stale-binding suppression и machine-derived fallback; это executable suite validation, а не production implementation или interop evidence.",
       "priority": "P2",
       "profile": "privacy-consent",
       "depends_on": [
-        20
+        20,
+        46
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "machine_validated",
       "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "risk-explanation-ui-hints"
+        },
         {
           "kind": "rfc_anchor",
           "ref": "actions"
@@ -3128,7 +3173,87 @@
         },
         {
           "kind": "rfc_anchor",
+          "ref": "effect-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "approval-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
           "ref": "capability-matching"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "human-elicitation-events-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "versioning-and-compatibility"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "interoperability-test-suite"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-mock-participants"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-publisher-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-mediator-profile"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/fixtures.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/observation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/risk-explanation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/vectors.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/fixtures.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/schema-cases.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/suite.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/vectors.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/behavior.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_app.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_runtime.py"
         }
       ]
     },
@@ -3780,7 +3905,7 @@
           "anchorId": "reference-manifest-linter"
         }
       ],
-      "rationale": "Определён machine-validated Rust linter: strict offline parser, четыре versioned rules, stable JSON Pointer diagnostics, machine-readable report schema, fixtures и CI quality gate.",
+      "rationale": "Определён machine-validated Rust linter: strict offline parser, пять versioned rules, stable JSON Pointer diagnostics, machine-readable report schema, fixtures и CI quality gate.",
       "priority": "P3",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -3994,6 +4119,10 @@
         {
           "kind": "schema",
           "ref": "conformance/v1/report.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/risk-explanation.schema.json"
         },
         {
           "kind": "schema",
