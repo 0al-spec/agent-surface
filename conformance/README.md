@@ -8,13 +8,14 @@ object.
 
 ## Version 1 artifacts
 
-`conformance/v1/suite.json` is the authoritative Suite 1.5.0 role, feature,
-requirement, and vector matrix: six profiles, 43 requirements, and 105 closed
-declarative scenarios. `conformance/v1/fixtures.json` resolves them through 36
-exact semantic baselines and 70 closed mutation patches.
-`conformance/v1/schema-cases.json` carries 41 executable positive and negative
-cases for the Operational Limits declaration, capacity-error envelope, and
-Human Elicitation messages. Human cases use their RFC 8785-compatible parser;
+`conformance/v1/suite.json` is the authoritative Suite 1.6.0 role, feature,
+requirement, and vector matrix: six profiles, 45 requirements, and 116 closed
+declarative scenarios. `conformance/v1/fixtures.json` resolves them through 38
+exact semantic baselines and 78 closed mutation patches.
+`conformance/v1/schema-cases.json` carries 51 executable positive and negative
+cases for the Operational Limits declaration, capacity-error envelope, Human
+Elicitation messages, and Risk Explanation hints. Human cases use their RFC
+8785-compatible parser;
 `ASP-SC-HE-002` exercises binary64 and UTF-16 member-order hash boundaries,
 `ASP-SC-HE-102` rejects negative zero, and `ASP-SC-HE-103` rejects a
 hash-consistent embedded schema that uses an external `$dynamicRef`. The
@@ -50,6 +51,21 @@ negative rows additionally reject non-local dynamic schema references,
 non-canonical or out-of-range JSON Patch array indexes, and a `resolved_at`
 later than the authoritative evaluation time.
 
+Risk Explanation vectors use the standalone closed and bounded
+`risk-explanation.schema.json` object plus an optional closed
+`risk_explanation` fixture projection. Surface Publisher rows reject missing
+defaults and incomplete effect coverage and bind publisher-owned hints to the
+candidate surface without evaluating Runtime presentation state. Runtime
+Mediator rows apply RFC 4647 Lookup to zero through sixteen ordered language
+preferences, bind the hint to the exact complete verified retained Grant
+surface and action, and require explicit output-context escaping plus a
+presenter-controlled bidirectional-isolation boundary. They render publisher
+prose literally alongside canonical risk and effect facts, suppress stale,
+incomplete, or invalid hints atomically, and never project hint prose as agent
+instruction or authority. The restricted lowercase RFC 5646 subset rejects
+repeated variants, extensions, and private-use forms; display prose also
+rejects C0/C1 and Bidi_Control characters.
+
 Each run evaluates one exact profile for one named deployment boundary. A
 product that implements several profiles runs and reports each profile
 independently. A Receipt Producer run additionally names exactly one
@@ -62,7 +78,7 @@ does not give them, or the target, another role claim.
 All digests use SHA-256 and the text representation
 `sha-256:<base64url-without-padding>`. The single `catalog_sha256` digest uses
 the exact RFC-defined `ASP-CONFORMANCE-CATALOG-V1` domain. Hash the ASCII domain
-string, one zero octet, and then each of these fourteen canonical repo-relative
+string, one zero octet, and then each of these fifteen canonical repo-relative
 paths in lexicographic order:
 
 1. `conformance/v1/capacity-error.schema.json`
@@ -72,13 +88,14 @@ paths in lexicographic order:
 5. `conformance/v1/observation.schema.json`
 6. `conformance/v1/operational-limits.schema.json`
 7. `conformance/v1/report.schema.json`
-8. `conformance/v1/schema-cases.json`
-9. `conformance/v1/schema-cases.schema.json`
-10. `conformance/v1/subject.schema.json`
-11. `conformance/v1/suite.json`
-12. `conformance/v1/suite.schema.json`
-13. `conformance/v1/vectors.json`
-14. `conformance/v1/vectors.schema.json`
+8. `conformance/v1/risk-explanation.schema.json`
+9. `conformance/v1/schema-cases.json`
+10. `conformance/v1/schema-cases.schema.json`
+11. `conformance/v1/subject.schema.json`
+12. `conformance/v1/suite.json`
+13. `conformance/v1/suite.schema.json`
+14. `conformance/v1/vectors.json`
+15. `conformance/v1/vectors.schema.json`
 
 For each file, hash its path as UTF-8, a zero octet, its exact raw bytes, and a
 final zero octet. No newline, whitespace, Unicode, or JSON member-order

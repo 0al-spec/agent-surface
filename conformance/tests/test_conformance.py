@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from jsonschema import Draft202012Validator
+
 from conformance.check import (
     ConformanceError,
     PROFILE_ROLES,
@@ -22,10 +24,14 @@ from conformance.check import (
     loads_strict_json,
     main,
     run_suite,
+    select_risk_explanation_localization,
     validate_agent_human_elicitation_projection,
     validate_catalog,
     validate_human_elicitation,
     validate_human_elicitation_projection,
+    validate_risk_explanation,
+    validate_risk_explanation_publisher_projection,
+    validate_risk_explanation_projection,
     validate_subject,
     verify_report,
 )
@@ -163,13 +169,13 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.5.0")
-        self.assertEqual(len(self.catalog.features), 11)
-        self.assertEqual(len(self.catalog.requirements), 43)
-        self.assertEqual(len(self.catalog.vectors), 105)
-        self.assertEqual(len(self.catalog.fixtures), 36)
-        self.assertEqual(len(self.catalog.mutations), 70)
-        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 41)
+        self.assertEqual(self.catalog.suite["suite_version"], "1.6.0")
+        self.assertEqual(len(self.catalog.features), 12)
+        self.assertEqual(len(self.catalog.requirements), 45)
+        self.assertEqual(len(self.catalog.vectors), 116)
+        self.assertEqual(len(self.catalog.fixtures), 38)
+        self.assertEqual(len(self.catalog.mutations), 78)
+        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 51)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
 
     def test_feature_vocabularies_match_the_catalog(self) -> None:
@@ -189,12 +195,52 @@ class ConformanceSuiteTests(unittest.TestCase):
                     expected,
                 )
 
+    def test_vector_and_observation_vocabularies_match(self) -> None:
+        schemas = {}
+        for schema_name in ("vectors", "observation"):
+            schemas[schema_name] = json.loads(
+                (
+                    ROOT
+                    / "conformance"
+                    / "v1"
+                    / f"{schema_name}.schema.json"
+                ).read_text(encoding="utf-8")
+            )
+
+        for definition in ("observationToken", "stateName"):
+            with self.subTest(definition=definition):
+                self.assertEqual(
+                    schemas["vectors"]["$defs"][definition]["enum"],
+                    schemas["observation"]["$defs"][definition]["enum"],
+                )
+
+        catalog_tokens = {
+            token
+            for vector in self.catalog.vectors.values()
+            for field in ("required_observations", "forbidden_observations")
+            for token in vector[field]
+        }
+        catalog_states = {
+            delta["state"]
+            for vector in self.catalog.vectors.values()
+            for delta in vector["state_deltas"]
+        }
+        self.assertLessEqual(
+            catalog_tokens,
+            set(schemas["observation"]["$defs"]["observationToken"]["enum"]),
+        )
+        self.assertLessEqual(
+            catalog_states,
+            set(schemas["observation"]["$defs"]["stateName"]["enum"]),
+        )
+
     def test_schema_case_polarities_are_executable_and_fail_closed(self) -> None:
         cases = self.catalog.schema_case_catalog["cases"]
         for schema_id in {
             "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
         }:
             self.assertEqual(
                 {case["polarity"] for case in cases if case["schema_id"] == schema_id},
@@ -216,6 +262,169 @@ class ConformanceSuiteTests(unittest.TestCase):
         path.write_text(json.dumps(corpus), encoding="utf-8")
         with self.assertRaisesRegex(ConformanceError, "negative schema case .* passed"):
             validate_catalog(root)
+
+    def test_risk_explanation_schema_rejects_terminal_lf_without_semantics(
+        self,
+    ) -> None:
+        schema = json.loads(
+            (
+                ROOT
+                / "conformance"
+                / "v1"
+                / "risk-explanation.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        validator = Draft202012Validator(schema)
+        cases = {
+            case["case_id"]: case
+            for case in self.catalog.schema_case_catalog["cases"]
+        }
+        case_ids = {
+            "ASP-SC-RE-105",
+            "ASP-SC-RE-106",
+            "ASP-SC-RE-107",
+            "ASP-SC-RE-108",
+        }
+        self.assertLessEqual(case_ids, set(cases))
+        for case_id in sorted(case_ids):
+            with self.subTest(case_id=case_id):
+                instance = loads_strict_json(
+                    cases[case_id]["instance_json"],
+                    source=case_id,
+                )
+                self.assertFalse(validator.is_valid(instance))
+
+    def test_risk_explanation_lookup_binding_and_machine_fallback_inputs(self) -> None:
+        fixture = self.catalog.fixtures["ASP-F-RM-043"]
+        projection = copy.deepcopy(fixture["document"]["risk_explanation"])
+        hint = projection["hint"]
+
+        selected = select_risk_explanation_localization(
+            hint,
+            ["fr-ca", "fr-ca", "en"],
+        )
+        self.assertEqual(selected["language"], "fr")
+        defaulted = select_risk_explanation_localization(hint, [])
+        self.assertEqual(defaulted["language"], "en")
+        with self.assertRaises(ConformanceError):
+            select_risk_explanation_localization(hint, ["en"] * 17)
+
+        validate_risk_explanation(
+            hint,
+            {"effect_ids": ["comment-publish"]},
+            root=ROOT,
+        )
+        validate_risk_explanation_projection(
+            projection,
+            fixture["document"]["surface"],
+            root=ROOT,
+        )
+
+        incomplete_surface = copy.deepcopy(fixture["document"]["surface"])
+        incomplete_surface["references"] = "incomplete"
+        with self.assertRaisesRegex(ConformanceError, "complete verified retained"):
+            validate_risk_explanation_projection(
+                projection,
+                incomplete_surface,
+                root=ROOT,
+            )
+
+        for presentation_field in ("escaped", "bidi_isolated"):
+            with self.subTest(presentation_field=presentation_field, state="missing"):
+                missing = copy.deepcopy(projection)
+                del missing[presentation_field]
+                with self.assertRaisesRegex(ConformanceError, "closed presentation"):
+                    validate_risk_explanation_projection(
+                        missing,
+                        fixture["document"]["surface"],
+                        root=ROOT,
+                    )
+            with self.subTest(presentation_field=presentation_field, state="false"):
+                disabled = copy.deepcopy(projection)
+                disabled[presentation_field] = False
+                with self.assertRaisesRegex(ConformanceError, "bidi-isolated"):
+                    validate_risk_explanation_projection(
+                        disabled,
+                        fixture["document"]["surface"],
+                        root=ROOT,
+                    )
+
+        publisher_owned_only = copy.deepcopy(projection)
+        publisher_owned_only["language_preferences"] = ["not-a-language-tag!"]
+        publisher_owned_only["selected_language"] = "de"
+        publisher_owned_only["rendered_summary"] = "Runtime-owned stale state"
+        publisher_owned_only["rendered_effect_summaries"] = []
+        publisher_owned_only["rendering"] = "not-a-rendering-mode"
+        publisher_owned_only["authority_use"] = "attempted"
+        publisher_owned_only["agent_projection"] = "present"
+        validate_risk_explanation_publisher_projection(
+            publisher_owned_only,
+            fixture["document"]["surface"],
+            root=ROOT,
+        )
+
+        next_surface = copy.deepcopy(fixture["document"]["surface"])
+        next_surface["candidate_hash"] = "surface_hash_b"
+        next_publisher = copy.deepcopy(projection)
+        next_publisher["hint_surface_hash"] = "surface_hash_b"
+        validate_risk_explanation_publisher_projection(
+            next_publisher,
+            next_surface,
+            root=ROOT,
+        )
+        validate_risk_explanation_projection(
+            projection,
+            next_surface,
+            root=ROOT,
+        )
+
+        substituted = copy.deepcopy(projection)
+        substituted["hint_action_id"] = "comment.delete"
+        with self.assertRaisesRegex(ConformanceError, "authoritative action"):
+            validate_risk_explanation_projection(
+                substituted,
+                fixture["document"]["surface"],
+                root=ROOT,
+            )
+
+        controlled = copy.deepcopy(hint)
+        controlled["localizations"][0]["summary"] = "unsafe\u0000summary"
+        with self.assertRaises(ConformanceError):
+            validate_risk_explanation(
+                controlled,
+                {"effect_ids": ["comment-publish"]},
+                root=ROOT,
+            )
+        for language in ("en-a", "en-12"):
+            with self.subTest(language=language):
+                invalid_language = copy.deepcopy(hint)
+                invalid_language["default_language"] = language
+                invalid_language["localizations"][0]["language"] = language
+                with self.assertRaises(ConformanceError):
+                    validate_risk_explanation(
+                        invalid_language,
+                        {"effect_ids": ["comment-publish"]},
+                        root=ROOT,
+                    )
+
+        repeated_variant = copy.deepcopy(hint)
+        repeated_variant["default_language"] = "de-1901-1901"
+        repeated_variant["localizations"][0]["language"] = "de-1901-1901"
+        with self.assertRaisesRegex(ConformanceError, "repeats a variant"):
+            validate_risk_explanation(
+                repeated_variant,
+                {"effect_ids": ["comment-publish"]},
+                root=ROOT,
+            )
+
+        bidi = copy.deepcopy(hint)
+        bidi["localizations"][0]["summary"] = "unsafe\u202esummary"
+        with self.assertRaises(ConformanceError):
+            validate_risk_explanation(
+                bidi,
+                {"effect_ids": ["comment-publish"]},
+                root=ROOT,
+            )
 
     def test_http_capacity_baselines_are_semantically_bound(self) -> None:
         http_vectors = {

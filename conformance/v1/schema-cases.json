@@ -2,7 +2,7 @@
   "$schema": "./schema-cases.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.5.0",
+  "suite_version": "1.6.0",
   "cases": [
     {
       "case_id": "ASP-SC-OL-001",
@@ -579,6 +579,114 @@
       "polarity": "negative",
       "instance_json": "{\"type\":\"elicitation.required\",\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1\",\"elicitation_id\":\"elicit_schema_dynamic_ref\",\"revision\":1,\"requester\":{\"type\":\"application\",\"id\":\"app_a\"},\"presenter\":{\"type\":\"runtime\",\"id\":\"runtime_a\"},\"kind\":\"clarify\",\"session_id\":\"session_a\",\"session_generation\":1,\"grant_id\":\"grant_a\",\"grant_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"surface_hash\":\"sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"context\":{},\"context_hash\":\"sha-256:PS8yv31QQYb_ucBhQ42kjS94jowGO8WiS3kY3sN-2ys\",\"prompt\":{\"title\":\"Clarify the request\",\"detail\":\"Provide the missing bounded value.\"},\"request\":{\"question_id\":\"schema_dynamic_ref\",\"response_schema\":{\"$dynamicRef\":\"https://example.invalid/external-schema\"},\"response_schema_hash\":\"sha-256:0qvWs9Ueul6k-BHEqN93tvM3jy4e6utT3iJlp3yv8vQ\",\"max_bytes\":128},\"expires_at\":\"2026-07-18T13:30:00Z\",\"request_hash\":\"sha-256:sv7Dds6gl_OI2Gxamg5WkpKcDXWLBt73taTA4Cvtjlk\"}",
       "context": {}
+    },
+    {
+      "case_id": "ASP-SC-RE-001",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+      "polarity": "positive",
+      "instance_json": "{\"default_language\":\"en\",\"localizations\":[{\"language\":\"en\",\"summary\":\"Publishes a comment.\",\"effect_summaries\":[{\"effect_id\":\"comment-publish\",\"summary\":\"Makes the comment visible.\"}]},{\"language\":\"fr\",\"summary\":\"Publie un commentaire.\",\"effect_summaries\":[{\"effect_id\":\"comment-publish\",\"summary\":\"Rend le commentaire visible.\"}]}]}",
+      "context": {
+        "effect_ids": [
+          "comment-publish"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-RE-002",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+      "polarity": "positive",
+      "instance_json": "{\"default_language\":\"en\",\"localizations\":[{\"language\":\"en\",\"summary\":\"Reads the selected issue.\",\"effect_summaries\":[]}]}",
+      "context": {
+        "effect_ids": []
+      }
+    },
+    {
+      "case_id": "ASP-SC-RE-101",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"default_language\":\"en\",\"localizations\":[{\"language\":\"fr\",\"summary\":\"Publie un commentaire.\",\"effect_summaries\":[{\"effect_id\":\"comment-publish\",\"summary\":\"Rend le commentaire visible.\"}]},{\"language\":\"en\",\"summary\":\"Publishes a comment.\",\"effect_summaries\":[{\"effect_id\":\"comment-publish\",\"summary\":\"Makes the comment visible.\"}]}]}",
+      "context": {
+        "effect_ids": [
+          "comment-publish"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-RE-102",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"default_language\":\"en\",\"localizations\":[{\"language\":\"en\",\"summary\":\"Publishes a comment.\",\"effect_summaries\":[]}]}",
+      "context": {
+        "effect_ids": [
+          "comment-publish"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-RE-103",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"default_language\":\"en-a\",\"localizations\":[{\"language\":\"en-a\",\"summary\":\"Publishes a comment.\",\"effect_summaries\":[{\"effect_id\":\"comment-publish\",\"summary\":\"Makes the comment visible.\"}]}]}",
+      "context": {
+        "effect_ids": [
+          "comment-publish"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-RE-104",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"default_language\":\"en\",\"localizations\":[{\"language\":\"en\",\"summary\":\"Publishes \\u202ea comment.\",\"effect_summaries\":[{\"effect_id\":\"comment-publish\",\"summary\":\"Makes the comment visible.\"}]}]}",
+      "context": {
+        "effect_ids": [
+          "comment-publish"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-RE-105",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"default_language\":\"en\\n\",\"localizations\":[{\"language\":\"en\",\"summary\":\"Publishes a comment.\",\"effect_summaries\":[{\"effect_id\":\"comment-publish\",\"summary\":\"Makes the comment visible.\"}]}]}",
+      "context": {
+        "effect_ids": [
+          "comment-publish"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-RE-106",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"default_language\":\"en\",\"localizations\":[{\"language\":\"en\\n\",\"summary\":\"Publishes a comment.\",\"effect_summaries\":[{\"effect_id\":\"comment-publish\",\"summary\":\"Makes the comment visible.\"}]}]}",
+      "context": {
+        "effect_ids": [
+          "comment-publish"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-RE-107",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"default_language\":\"en\",\"localizations\":[{\"language\":\"en\",\"summary\":\"Publishes a comment.\\n\",\"effect_summaries\":[{\"effect_id\":\"comment-publish\",\"summary\":\"Makes the comment visible.\"}]}]}",
+      "context": {
+        "effect_ids": [
+          "comment-publish"
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-RE-108",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"default_language\":\"en\",\"localizations\":[{\"language\":\"en\",\"summary\":\"Publishes a comment.\",\"effect_summaries\":[{\"effect_id\":\"comment-publish\",\"summary\":\"Makes the comment visible.\\n\"}]}]}",
+      "context": {
+        "effect_ids": [
+          "comment-publish"
+        ]
+      }
     }
   ]
 }

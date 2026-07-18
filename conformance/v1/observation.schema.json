@@ -222,7 +222,21 @@
         "step_up_result_rejected",
         "human_secret_withheld",
         "elicitation_authority_unchanged",
-        "elicitation_authority_retained"
+        "elicitation_authority_retained",
+        "risk_explanation_validated",
+        "risk_explanation_rejected",
+        "risk_explanation_selected",
+        "risk_explanation_rendered_literal",
+        "risk_explanation_binding_rejected",
+        "risk_explanation_suppressed",
+        "canonical_risk_presented",
+        "canonical_effects_presented",
+        "risk_explanation_authority_unchanged",
+        "risk_explanation_used_as_authority",
+        "canonical_risk_suppressed",
+        "canonical_effects_suppressed",
+        "agent_instruction_suppressed",
+        "agent_instruction_projected"
       ]
     },
     "stateName": {
@@ -286,6 +300,7 @@
         "runtime.elicitation_revision",
         "runtime.elicitation_response_count",
         "runtime.step_up_verified_count",
+        "runtime.risk_explanation_presentation_count",
         "application.proposal_revision",
         "application.proposal_update_count"
       ]

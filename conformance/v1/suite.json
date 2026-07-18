@@ -2,7 +2,7 @@
   "$schema": "./suite.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.5.0",
+  "suite_version": "1.6.0",
   "protocol_version": "agent-surface/0.1",
   "specification": {
     "path": "drafts/agent-surface.md",
@@ -15,7 +15,8 @@
       "requirement_ids": [
         "ASP-SP-001",
         "ASP-SP-002",
-        "ASP-SP-003"
+        "ASP-SP-003",
+        "ASP-SP-004"
       ]
     },
     {
@@ -73,7 +74,8 @@
         "ASP-RM-009",
         "ASP-RM-010",
         "ASP-RM-011",
-        "ASP-RM-012"
+        "ASP-RM-012",
+        "ASP-RM-013"
       ]
     },
     {
@@ -96,6 +98,15 @@
       "rfc_anchor": "proposal-only-surface-mode",
       "requirement_ids": [
         "ASP-SP-002"
+      ]
+    },
+    {
+      "feature_id": "agent-surface/feature/risk-explanation-ui-hints",
+      "title": "Risk Explanation UI Hints",
+      "rfc_anchor": "risk-explanation-ui-hints",
+      "requirement_ids": [
+        "ASP-SP-004",
+        "ASP-RM-013"
       ]
     },
     {
@@ -833,6 +844,43 @@
         "ASP-V-RM-040",
         "ASP-V-RM-041",
         "ASP-V-RM-042"
+      ]
+    },
+    {
+      "requirement_id": "ASP-SP-004",
+      "title": "Publish only closed, bounded, and fully effect-bound Risk Explanation hints",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "rfc_anchor": "risk-explanation-ui-hints",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "agent-surface/feature/risk-explanation-ui-hints"
+      },
+      "execution_class": "static",
+      "vector_ids": [
+        "ASP-V-SP-007",
+        "ASP-V-SP-008",
+        "ASP-V-SP-009"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-013",
+      "title": "Render surface-bound Risk Explanation prose literally without weakening canonical risk or authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "risk-explanation-ui-hints",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "agent-surface/feature/risk-explanation-ui-hints"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-043",
+        "ASP-V-RM-044",
+        "ASP-V-RM-045",
+        "ASP-V-RM-046",
+        "ASP-V-RM-047",
+        "ASP-V-RM-048",
+        "ASP-V-RM-049",
+        "ASP-V-RM-050"
       ]
     }
   ]

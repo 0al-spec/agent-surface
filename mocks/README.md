@@ -58,6 +58,20 @@ rejected. RFC 8785 UTF-16 ordering and binary64 boundaries are covered by
 unit-level regressions; catalog vectors exercise the protocol bindings rather
 than claiming those helper boundaries as independent interoperability evidence.
 
+The Risk Explanation paths independently validate the closed localization
+shape, bounded control-free prose, sorted unique language tags, exact
+per-localization effect coverage, and exact action binding. Mock App validates
+publisher-owned hint fields against the candidate surface without consulting
+Runtime preferences or presentation state. Mock Runtime applies RFC 4647
+Lookup to zero through sixteen ordered language preferences, validates the
+complete verified retained Grant surface, requires output-context escaping and
+a presenter-controlled bidirectional-isolation boundary, and labels the chosen
+prose as publisher-authored display text beside canonical machine risk and
+effects. Invalid, incomplete, or stale hints are suppressed atomically in favor
+of those canonical facts. Restricted language tags reject repeated variants,
+and prose rejects C0/C1 and Bidi_Control characters. Hint text is treated
+literally, never as policy, approval, matching input, or an agent instruction.
+
 The internal `asp-mock-participant/1` protocol is test control plumbing, not an
 ASP wire binding. `mock_app.py` and `mock_runtime.py` accept one closed envelope
 on standard input:

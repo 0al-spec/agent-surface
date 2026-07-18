@@ -1016,6 +1016,16 @@ decision. `expires_at` is an RFC 3339 UTC timestamp with the `Z` suffix.
 `request_hash` uses the Canonical Object Hash Profile over the complete request
 object excluding `request_hash`.
 
+When a requester copies Risk Explanation UI Hint text into `prompt`, that copy
+remains requester-authored prompt text. The presenter MUST NOT relabel the copy
+as manifest-derived publisher text. It MAY independently resolve and present a
+valid localization from the exact current manifest snapshot identified by the
+bound `action_id` in `context` and the retained `surface_hash`; that presentation
+uses the feature's ordinary publisher label and keeps canonical risk and effect
+semantics visible independently. The prompt copy is not a risk mapping,
+approval, or instruction. A changed hint changes the surface hash and
+invalidates the pending elicitation rather than updating its prompt in place.
+
 #### Elicitation Kinds
 
 `kind` is exactly one of `clarify`, `choose`, `edit`, `redline`, or `step_up`.
@@ -1881,7 +1891,22 @@ surface discoverable.
     {
       "id": "comment.create",
       "scope": "comments.write",
-      "risk": "write",
+      "risk": "public_side_effect",
+      "risk_explanation": {
+        "default_language": "en",
+        "localizations": [
+          {
+            "language": "en",
+            "summary": "Publishes a comment for other repository users.",
+            "effect_summaries": [
+              {
+                "effect_id": "comment-publish",
+                "summary": "Creates an irreversible shared communication record."
+              }
+            ]
+          }
+        ]
+      },
       "side_effect": true,
       "effects": [
         {
@@ -2179,6 +2204,7 @@ Each action SHOULD include the following fields as applicable.
 - `id`
 - `scope`
 - `risk`
+- optional `risk_explanation`
 - `approval`
 - `input_schema`
 - `input_schema_hash` for every idempotency-required action and linked dry run
@@ -2229,7 +2255,22 @@ Example:
 {
   "id": "pull_request.review.submit",
   "scope": "pull_request.review.write",
-  "risk": "write",
+  "risk": "public_side_effect",
+  "risk_explanation": {
+    "default_language": "en",
+    "localizations": [
+      {
+        "language": "en",
+        "summary": "Publishes a review for other repository users.",
+        "effect_summaries": [
+          {
+            "effect_id": "review-publish",
+            "summary": "Creates an irreversible shared communication record."
+          }
+        ]
+      }
+    ]
+  },
   "side_effect": true,
   "effects": [
     {
@@ -4399,8 +4440,126 @@ The `risk` label and the `side_effect` flag MUST be consistent: an action
 labeled `write` or a more severe label MUST declare `side_effect: true`, and
 an action labeled `read` MUST declare `side_effect: false`.
 
-Applications MAY define extension risk labels, but they SHOULD map them to the
-standard labels for runtime interoperability.
+Applications MAY define extension risk labels, but each extension label MUST be
+a collision-resistant URI whose specification defines a conservative mapping
+to one standard risk label as its minimum severity. A runtime that does not
+support that exact mapping MUST reject the surface or action as
+`surface_incompatible`; it MUST NOT infer severity from a human-readable
+description, identifier spelling, icon, or local similarity rule. A bare
+unrecognized label is invalid.
+
+### Risk Explanation UI Hints
+
+This draft assigns the following core feature identifier:
+
+```text
+agent-surface/feature/risk-explanation-ui-hints
+```
+
+The identifier names the optional manifest and conformance feature defined in
+this section. It is not a negotiated profile, Grant constraint, consent
+artifact, approval mode, or authority-bearing capability. Presence is declared
+only by a valid `risk_explanation` member on an action; absence means that the
+publisher supplies no standardized prose for that action and MUST NOT be
+rendered as no risk.
+
+An action MAY contain one `risk_explanation` object:
+
+```json
+{
+  "default_language": "en",
+  "localizations": [
+    {
+      "language": "en",
+      "summary": "Publishes a review for other repository users.",
+      "effect_summaries": [
+        {
+          "effect_id": "review-publish",
+          "summary": "Creates an irreversible shared communication record."
+        }
+      ]
+    }
+  ]
+}
+```
+
+The `risk_explanation` object, every localization, and every effect summary are
+closed objects. `default_language` and `localizations` are REQUIRED and no
+other member is allowed. A localization contains exactly `language`, `summary`,
+and `effect_summaries`; an effect summary contains exactly `effect_id` and
+`summary`. A Surface Publisher MUST NOT publish a present object that violates
+this section. A consumer that nevertheless receives one MUST atomically
+suppress the complete hint and use its machine-derived risk and effect
+presentation; it MUST NOT display or otherwise interpret only the fields it
+recognizes. Suppression does not turn malformed prose into authority and MUST
+NOT be rendered as no risk.
+
+`localizations` contains between one and sixteen entries. `default_language`
+and every `language` are canonical lowercase ASCII language tags no longer than
+63 characters and MUST match this complete regular expression:
+
+```text
+^[a-z]{2,8}(?:-[a-z]{4})?(?:-(?:[a-z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*$
+```
+
+This is the ASP-canonical lowercase wire form for a deliberately restricted,
+structurally well-formed subset of RFC 5646: a language subtag, optional
+script, optional region, and zero or more variants. It intentionally excludes
+extlang, extension, private-use, and grandfathered forms and does not claim
+registry-based canonicalization. Variant subtags within one value MUST be
+unique. Localization entries are unique by `language` and sorted by unsigned
+lexicographic order of their ASCII bytes. Exactly one entry MUST have a
+`language` equal to `default_language`.
+
+Every `summary` is plain text containing between one and 512 Unicode code
+points. It MUST NOT contain a C0 or C1 control character or any Unicode
+`Bidi_Control` character: U+061C, U+200E, U+200F, U+202A through U+202E, or
+U+2066 through U+2069. A presenter MUST treat it as inert text, escape it for
+the output context, and place each string inside a presentation-controlled
+bidirectional-isolation boundary. It MUST NOT interpret the string as HTML,
+Markdown, a URI, a template, executable content, a policy rule, or an
+instruction. The strings MUST be safe for every user allowed to discover that
+manifest and MUST NOT contain credentials, secrets, hidden policy content, or
+instance-specific resource data.
+
+For each localization, `effect_summaries` contains exactly one entry for every
+member of the parent action's `effects` array, with the same `effect_id` values
+in the same declaration order. An action that omits `effects` has an empty
+`effect_summaries` array in every localization. An unknown, missing, duplicate,
+reordered, or extra effect id is invalid. Complete per-language coverage
+prevents a publisher from omitting a less favorable effect only in one
+localization; the prose still does not replace the Effect Model declaration.
+
+A Runtime Mediator that claims this feature chooses one complete localization
+using RFC 4647 Lookup against zero to sixteen ordered local language
+preferences. Each preference uses the same ASP-canonical language form;
+duplicates have no additional effect. When the list is empty or Lookup finds no
+available tag, the runtime uses the exact `default_language` entry. It MUST NOT
+combine a summary from one localization with effect summaries from another. A
+locally generated translation is runtime-authored content and MUST be labeled
+separately; it MUST NOT be represented as publisher text.
+
+Risk explanation text is an untrusted publisher hint. The publisher MUST NOT
+describe a lower risk, narrower effect, stronger recovery guarantee, weaker
+approval requirement, or more certain outcome than the machine-readable action
+contract. Regardless of prose, a user-facing runtime MUST keep the canonical
+action id, standard risk label or supported extension mapping, execution mode,
+approval mode, and every material effect and recovery limitation visible and
+distinguishable as machine-derived semantics. It MUST NOT use the prose to
+change capability-match status or ranking, local or enterprise policy,
+approval, admission, scope, effect validation, or receipt production. It MUST
+NOT place publisher prose in an agent system prompt, tool instruction, or other
+privileged instruction channel.
+
+The complete object is part of the manifest hashing view and needs no separate
+hint hash. A runtime retrieves it only from the exact verified manifest
+snapshot and keys any extracted display cache by (`issuer`, `app_id`,
+`surface_version`, `surface_hash`, action id, selected language). It MUST NOT
+accept a detached caller- or agent-supplied copy as publisher text. Any change
+to a hint changes `surface_hash` and `surface_version` and makes an in-progress
+Consent Preview or Human Elicitation bound to the former snapshot stale.
+Existing Grants remain bound to their exact retained snapshot; a new hint MUST
+NOT be overlaid on an old Grant or used to reinterpret its action.
 
 ## Effect Model
 
@@ -4512,6 +4671,16 @@ Actions SHOULD declare an approval mode:
 | `app` | App MUST obtain or verify app-side approval before committing. |
 | `user_or_app` | Either a runtime approval or app-side approval MAY satisfy the requirement, depending on grant caveats. |
 | `runtime_and_app` | Both runtime-side and app-side approval are required. |
+
+An action's Risk Explanation UI Hint can accompany an approval presentation
+only as labeled application-authored prose from the exact pinned manifest. It
+MUST NOT satisfy an approval mode, alter the required producer roles, replace
+the canonical risk or effect presentation, or become part of the approval
+decision binding except through the already required `surface_hash`. A stale or
+detached hint is discarded. Approval evidence for an old Grant remains
+interpreted under that Grant's retained snapshot; a new snapshot follows the
+ordinary fresh preview, policy, and approval rules and does not rewrite the old
+evidence.
 
 Approval records SHOULD be linked into action receipts. The base profile permits
 an opaque approval reference. A Grant selecting the Approval Receipt Profile
@@ -6596,11 +6765,15 @@ independently recompute the request semantics, effects, approvals, and exposure
 projection from the primary verified sources above. Copied matching summaries
 MUST NOT replace that work.
 
-Application-authored labels, descriptions, risk summaries, redaction summaries,
-and recovery descriptions are untrusted display hints. A runtime MAY display
-them, but MUST preserve the corresponding machine identifier, classification,
-mode, or effect value and MUST NOT let prose replace or contradict verified
-semantics.
+Application-authored labels, descriptions, redaction summaries, recovery
+descriptions, and Risk Explanation UI Hints are untrusted display hints. A
+runtime MAY display only a valid hint selected from the exact pinned action
+using the language and cache-binding rules of that feature. It MUST label the
+text as application-authored, preserve the corresponding machine identifier,
+classification, risk, mode, approval, effect, and recovery value, and MUST NOT
+let prose replace, contradict, visually suppress, or rank verified semantics.
+A detached copy in the request, Capability Match Result, agent output, or local
+cache with another surface tuple is not an authoritative preview source.
 
 The preview MUST make the following material semantics visible before the user
 confirms:
@@ -6631,7 +6804,8 @@ confirms:
 - absolute expiration time, human-readable duration, budgets, and other
   constraints;
 - each selected action's risk, static execution mode, approval requirement,
-  and required companion stages;
+  and required companion stages; when a Risk Explanation UI Hint exists, its
+  selected localization MAY accompany but MUST NOT replace those values;
 - maximum effect envelopes, highlighting write, shared, external, and
   irreversible effects; actions with an external effect MUST also warn that
   their actual outcome can be partial or unknown;
@@ -6702,6 +6876,10 @@ or resolved exposure contracts makes the preview stale. A stale
 preview MUST be regenerated and confirmed again before a request is sent or a
 returned grant is stored or used. Decline terminates the local flow; the runtime
 MUST NOT continue authorization in the background.
+Changing a Risk Explanation UI Hint necessarily changes the surface hash and
+therefore stales the complete preview even though the prose is not authority.
+The runtime does not patch the displayed hint while preserving the prior
+confirmation.
 Changing a runtime-local operator, provider, recipient inventory, or
 enforcement-policy assertion within the same Grant-bound processing path, or a
 concrete proof-method or proof-key assertion that was shown to the user, also
@@ -6823,10 +7001,12 @@ values fail closed as `surface_incompatible`; omission MUST NOT be rendered as
 "no access", "no risk", or "no exposure".
 
 This contract standardizes the semantic inputs and staleness rules for a
-preview, not layout, localization, icons, ordering, accessibility mechanisms,
-biometric confirmation, or example simulations. It deliberately defines no
-`preview_id`, consent hash, signed approval object, or portable human-readable
-wire payload. Such evidence requires a separate approval profile.
+preview, not layout, icons, ordering, accessibility mechanisms, biometric
+confirmation, or example simulations. Localization remains runtime-local
+except for selection and fallback of the optional publisher-authored Risk
+Explanation UI Hint. The contract deliberately defines no `preview_id`,
+consent hash, signed approval object, or portable human-readable wire payload.
+Such evidence requires a separate approval profile.
 
 ### Grant Issuance Models
 
@@ -7804,6 +7984,12 @@ Matching inputs:
 - user preferences
 - enterprise policy
 
+Risk Explanation UI Hint prose is not a matching input. A matcher MUST NOT use
+its presence, wording, language coverage, or apparent sentiment to change
+candidate status, reasons, ranking, required approval, or the canonical risk
+summary. A local user interface can attach the selected publisher hint only
+after matching, from the still-current pinned manifest snapshot.
+
 This draft standardizes those outputs with the local-only Capability Match
 Result Profile:
 
@@ -7920,9 +8106,9 @@ A Capability Match Result is a closed I-JSON object with this wire shape:
         {"action_id": "comment.create", "mode": "user_or_app"}
       ],
       "risk_summary": {
-        "highest": "write",
+        "highest": "public_side_effect",
         "actions": [
-          {"action_id": "comment.create", "risk": "write"},
+          {"action_id": "comment.create", "risk": "public_side_effect"},
           {"action_id": "pull_request.get", "risk": "read"}
         ]
       },
@@ -8021,7 +8207,9 @@ by `action_id`, and repeat the exact effective approval mode.
 `risk_summary` contains exactly `highest` and `actions`; each action entry
 contains exactly `action_id` and `risk`, is sorted by action id, and `highest`
 is the maximum under the Risk Taxonomy. For a request with no actions, `highest`
-is `null` and `actions` is empty. Each `maximum_effects` entry contains
+is `null` and `actions` is empty. It contains no Risk Explanation UI Hint text;
+adding publisher prose would make the closed result invalid. Each
+`maximum_effects` entry contains
 exactly `action_id` and `effects` and preserves the manifest's complete effect
 declarations for every requested state-changing action. A
 `recovery_limitations` entry contains exactly `action_id` and `code`; its code
@@ -10552,6 +10740,13 @@ Compatibility rules:
   action.
 - Tightening a schema can be a breaking change.
 - Adding optional fields is non-breaking.
+- Adding, changing, or removing only a valid `risk_explanation` is
+  non-breaking for action authority, but still requires a new
+  `surface_version` and `surface_hash` and invalidates every pending Consent
+  Preview or Human Elicitation bound to the prior snapshot. An active Grant
+  continues to use its retained old snapshot and hint. This rule does not make
+  a simultaneous change to risk, effects, approval, execution, or recovery
+  semantics non-breaking.
 - Adding a new action is non-breaking only when the resulting manifest remains
   valid under its `surface_mode` and existing action semantics do not change. A
   state-changing action on a proposal-only surface is invalid, not an addition
@@ -10749,6 +10944,8 @@ Mitigations:
 
 - runtime derives grant and exposure details from the verified manifest rather
   than trusting application-authored labels alone
+- runtime presents canonical risk, effect, approval, and recovery semantics
+  independently of a labeled application-authored Risk Explanation UI Hint
 - runtime derives and confirms the complete local consent preview before
   sending the exact authorization request
 - runtime presents grant details clearly
@@ -10789,6 +10986,12 @@ app-authored input to the agent and can carry injected instructions. The
 runtime SHOULD present the session task to the user at session start or
 consent time, and MUST NOT allow app-delivered content to widen grant scope,
 weaken approval requirements, or alter local policy.
+
+Risk Explanation UI Hint text is also app-authored input. A runtime MUST render
+it as inert user-facing text and MUST NOT copy it into an agent system prompt,
+tool description, policy expression, approval rule, or privileged instruction
+channel. It cannot convert the prose into agent instructions or protocol
+authority.
 
 ### Replay and Duplicate Actions
 
@@ -10874,6 +11077,11 @@ schema for idempotency-required and linked dry-run actions. Other schema URLs
 remain references rather than commitments to their transitive content. A
 deployment that needs that property must separately pin those schema hashes or
 use a future canonical surface-bundle profile.
+
+A cached Risk Explanation UI Hint is subject to the same downgrade boundary.
+The runtime MUST bind it to the complete surface tuple, action id, and selected
+language and MUST NOT overlay a newer, older, or caller-supplied explanation on
+an action interpreted under another snapshot.
 
 ### Receipt Forgery
 
@@ -11129,7 +11337,9 @@ integrity and proposal-only bounds, exact Grant attenuation and revocation,
 Grant verification, idempotent replay and conflicts, denied actions, receipt
 role integrity, runtime mediation, adapter authority boundaries, and the
 Operational Limits declaration, action-admission, logical event-delivery, and
-retry contracts. It does not enumerate every normative requirement in every
+retry contracts. It also covers the core Risk Explanation UI Hints manifest
+shape and the boundary between inert publisher prose and runtime-derived
+machine semantics. It does not enumerate every normative requirement in every
 role profile. Consequently,
 a `pass` suite verdict means only that every applicable vector in the exact
 catalog revision passed. It MUST NOT be represented as complete role-profile
@@ -11165,7 +11375,8 @@ digest-bound semantic baseline and an exact closed `replace` patch. Vectors
 MUST NOT contain executable code, shell commands, or target URLs.
 
 The versioned `schema-cases.json` corpus executes positive and negative cases
-for the Operational Limits declaration and operational-capacity error envelope.
+for the Operational Limits declaration, operational-capacity error envelope,
+and Risk Explanation UI Hint object.
 Each candidate is carried as an inert JSON string so malformed I-JSON,
 duplicate-member, unsafe-integer, schema-invalid, and semantic binding failures
 can be represented without making the corpus itself invalid. The validator
@@ -11173,7 +11384,10 @@ parses each candidate with the suite's strict I-JSON rules, validates it against
 its versioned JSON Schema, and, for a declaration, checks action and event
 resolution, idempotency eligibility, globally unique `limit_id` values, and the
 core control event plus manifest-declared control-event exclusion against the
-case's closed manifest context. For a capacity envelope it additionally
+case's closed manifest context. For a risk explanation it additionally checks
+canonical sorted languages, exact default-language presence, bounded inert
+text, and complete declaration-order effect coverage against the case's closed
+parent-action context. For a capacity envelope it additionally
 requires every disclosed `limit_id` to be both manifest-declared and safe for
 the authenticated active partition. The common capacity envelope remains open
 to extension members as required by the Error Model, while its `limit` member
@@ -11236,6 +11450,20 @@ agent-originated resolutions or secret-bearing envelopes. No passing Human
 Elicitation vector establishes approval, consent, Grant, dispatch, effect,
 receipt, or authentication-factor authority.
 
+The Risk Explanation UI Hints cases use a closed parent-action context and
+publisher object plus a normalized Runtime Mediator presentation observation.
+Positive cases cover a sorted multilingual object, RFC 4647 Lookup and default
+fallback, exact effect-summary order, literal isolated presentation, and
+display alongside canonical risk and effects. Negative cases cover a missing
+default, duplicate or non-canonical languages, control characters, unknown,
+missing, duplicate, or reordered effect ids, a stale surface or action cache
+binding, an incomplete retained manifest projection, missing output-context
+escaping or presenter-controlled bidirectional isolation, use of prose in
+matching or approval, and projection into an agent instruction. A passing case
+establishes only structural and boundary behavior; it cannot prove that
+human-authored prose is truthful or complete beyond its machine-checkable
+effect-id coverage.
+
 The report binds the exact suite and specification sources, ordered applicable
 requirements and vectors, each vector digest, subject and counterpart artifacts,
 runner, adapter and probe entry-point digests, configuration digests and
@@ -11259,7 +11487,8 @@ and a final zero octet. The canonical set is exactly
 `capacity-error.schema.json`, `fixtures.json`, `fixtures.schema.json`,
 `human-elicitation.schema.json`, `observation.schema.json`,
 `operational-limits.schema.json`,
-`report.schema.json`, `schema-cases.json`, `schema-cases.schema.json`,
+`report.schema.json`, `risk-explanation.schema.json`, `schema-cases.json`,
+`schema-cases.schema.json`,
 `subject.schema.json`, `suite.json`, `suite.schema.json`, `vectors.json`, and
 `vectors.schema.json`, each under `conformance/v1/`. The specification
 digest uses the ASCII domain
@@ -11351,6 +11580,14 @@ purpose-bound synthetic answer and rejects agent-originated resolutions,
 unbound envelopes, and secret-bearing data. Synthetic step-up fixtures contain
 only opaque verifier results and MUST NOT carry authentication factors.
 
+For Risk Explanation UI Hint tests, the Mock App publishes only deterministic
+synthetic closed hint objects bound to its exact manifest actions. The Mock
+Runtime validates the complete object, resolves one language or the default,
+renders an inert normalized observation beside independently derived risk and
+effect values, and preserves its matching, approval, admission, and agent
+projection state when a hint is malformed, stale, detached, or hostile. The
+Mock Agent Adapter MUST NOT receive the hint as an instruction or authority.
+
 All mock inputs, identifiers, payloads, keys, credentials, evidence, and state
 are deterministic synthetic test values. The bundle MUST NOT accept or retain
 production secrets, user content, tenant data, private keys, live Grant
@@ -11373,7 +11610,8 @@ The v1 ruleset contains exactly these checks:
 | Rule | Static requirement |
 | --- | --- |
 | `ASP-LINT-SCHEMA-001` | Every resource and event declares a non-empty `schema`; every action declares non-empty `input_schema` and `output_schema`. |
-| `ASP-LINT-RISK-001` | Every action declares a non-empty `risk` label. |
+| `ASP-LINT-RISK-001` | Every action declares one standard `risk` label or an extension identifier in the reference linter's conservative RFC 3986 URI subset; runtime support for the URI's defining conservative mapping remains a separate compatibility check. |
+| `ASP-LINT-RISK-EXPLANATION-001` | Every present `risk_explanation` uses the closed bounded shape, canonical language order and default, inert text, and exact declaration-order coverage of the parent action effects. |
 | `ASP-LINT-IDEMPOTENCY-001` | A side-effecting, state-changing-mode, or persisted proposal action declares required idempotency, fixed-point normalization, the required input hash profile, and `input_schema_hash`. |
 | `ASP-LINT-SCOPE-001` | Scope identifiers are unique; resource, action, and non-control event references resolve exactly; control events omit `scope`. |
 
@@ -11414,6 +11652,10 @@ A component conforms to the Surface Publisher Profile when it:
 - declares every referenced data class and complete exposure contracts for
   resources, actions, and events
 - declares risk labels for actions
+- when publishing a Risk Explanation UI Hint, emits the exact closed,
+  size-bounded, sorted localization shape, covers every declared effect in
+  every language, changes the surface version and hash with the prose, and does
+  not represent that prose as narrower machine semantics
 - declares one static execution mode and operation id per action
 - declares valid fixed-point input-normalization rules for every
   idempotency-required action and publishes a valid hash of its self-contained
@@ -11809,6 +12051,11 @@ An application runtime conforms to the Runtime Mediator Profile when it:
   sending a grant issuance request, regenerates it after any material change,
   and rejects a returned grant that is not equal to or narrower than the exact
   confirmed request
+- when claiming the Risk Explanation UI Hints feature, validates the complete
+  closed object, selects one localization with the required fallback, retrieves
+  it only from the exact pinned action, renders it as inert labeled publisher
+  text alongside canonical machine semantics, and excludes it from matching,
+  policy, approval, admission, and agent instructions
 - recomputes the grant's effective data-exposure projection, refuses missing or
   inconsistent contracts, and selects only runtime-agent paths that can enforce
   redaction and retention obligations
@@ -12109,6 +12356,12 @@ To support Agent Surface Protocol, the next slices are:
   <https://spiffe.io/docs/latest/spiffe-specs/jwt-svid/>
 - The I-JSON Message Format:
   <https://www.rfc-editor.org/rfc/rfc7493>
+- Uniform Resource Identifier (URI): Generic Syntax:
+  <https://www.rfc-editor.org/rfc/rfc3986>
+- Tags for Identifying Languages:
+  <https://www.rfc-editor.org/rfc/rfc5646>
+- Matching of Language Tags:
+  <https://www.rfc-editor.org/rfc/rfc4647>
 - Base-N Encodings:
   <https://www.rfc-editor.org/rfc/rfc4648>
 - Date and Time on the Internet: Timestamps:

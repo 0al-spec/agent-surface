@@ -24,15 +24,15 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.5.0"
+      "const": "1.6.0"
     },
     "fixture_catalog_id": {
       "const": "agent-surface/conformance/fixtures/v1"
     },
     "fixtures": {
       "type": "array",
-      "minItems": 36,
-      "maxItems": 36,
+      "minItems": 38,
+      "maxItems": 38,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/fixture"
@@ -43,8 +43,8 @@
     },
     "mutations": {
       "type": "array",
-      "minItems": 70,
-      "maxItems": 70,
+      "minItems": 78,
+      "maxItems": 78,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/mutation"
@@ -92,7 +92,9 @@
         "ASP-F-RM-039",
         "ASP-F-AA-009",
         "ASP-F-AE-027",
-        "ASP-F-AE-028"
+        "ASP-F-AE-028",
+        "ASP-F-SP-007",
+        "ASP-F-RM-043"
       ]
     },
     "baselineVectorId": {
@@ -132,7 +134,9 @@
         "ASP-V-RM-039",
         "ASP-V-AA-009",
         "ASP-V-AE-027",
-        "ASP-V-AE-028"
+        "ASP-V-AE-028",
+        "ASP-V-SP-007",
+        "ASP-V-RM-043"
       ]
     },
     "mutationId": {
@@ -206,7 +210,15 @@
         "ASP-M-ELICITATION-AUTHORITATIVE-VERIFIER-MISMATCH",
         "ASP-M-ELICITATION-EXTERNAL-DYNAMIC-SCHEMA-REF",
         "ASP-M-ELICITATION-REDLINE-INVALID-ARRAY-INDEX",
-        "ASP-M-ELICITATION-FUTURE-RESOLUTION"
+        "ASP-M-ELICITATION-FUTURE-RESOLUTION",
+        "ASP-M-RISK-EXPLANATION-EFFECT-COVERAGE-MISMATCH",
+        "ASP-M-RISK-EXPLANATION-DEFAULT-LANGUAGE-MISSING",
+        "ASP-M-RISK-EXPLANATION-STALE-SURFACE",
+        "ASP-M-RISK-EXPLANATION-ADVERSARIAL-PROSE",
+        "ASP-M-RISK-EXPLANATION-MALFORMED-LANGUAGE",
+        "ASP-M-RISK-EXPLANATION-ACTION-SUBSTITUTION",
+        "ASP-M-RISK-EXPLANATION-UNESCAPED",
+        "ASP-M-RISK-EXPLANATION-BIDI-UNISOLATED"
       ]
     },
     "inputVariant": {
@@ -280,7 +292,15 @@
         "elicitation_authoritative_verifier_mismatch",
         "elicitation_external_dynamic_schema_ref",
         "elicitation_redline_invalid_array_index",
-        "elicitation_future_resolution"
+        "elicitation_future_resolution",
+        "risk_explanation_effect_coverage_mismatch",
+        "risk_explanation_default_language_missing",
+        "risk_explanation_stale_surface",
+        "risk_explanation_adversarial_prose",
+        "risk_explanation_malformed_language",
+        "risk_explanation_action_substitution",
+        "risk_explanation_unescaped",
+        "risk_explanation_bidi_unisolated"
       ]
     },
     "actionSet": {
@@ -834,6 +854,101 @@
         }
       }
     },
+    "riskExplanation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "hint_action_id",
+        "declared_risk",
+        "declared_effect_ids",
+        "hint_surface_hash",
+        "hint",
+        "language_preferences",
+        "selected_language",
+        "rendered_summary",
+        "rendered_effect_summaries",
+        "rendering",
+        "escaped",
+        "bidi_isolated",
+        "authority_use",
+        "agent_projection"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hint_action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "declared_risk": {
+          "enum": [
+            "read",
+            "propose",
+            "write",
+            "public_side_effect",
+            "external_side_effect",
+            "financial_side_effect",
+            "destructive",
+            "privileged"
+          ]
+        },
+        "declared_effect_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "hint_surface_hash": {
+          "enum": [
+            "surface_hash_a",
+            "surface_hash_b"
+          ]
+        },
+        "hint": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1"
+        },
+        "language_preferences": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 16,
+          "items": {
+            "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1#/$defs/language"
+          }
+        },
+        "selected_language": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1#/$defs/language"
+        },
+        "rendered_summary": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1#/$defs/summary"
+        },
+        "rendered_effect_summaries": {
+          "type": "array",
+          "items": {
+            "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1#/$defs/effectSummary"
+          }
+        },
+        "rendering": {
+          "const": "literal_with_canonical_facts"
+        },
+        "escaped": {
+          "type": "boolean"
+        },
+        "bidi_isolated": {
+          "type": "boolean"
+        },
+        "authority_use": {
+          "const": "advisory_only"
+        },
+        "agent_projection": {
+          "const": "absent"
+        }
+      }
+    },
     "semanticDocument": {
       "type": "object",
       "additionalProperties": false,
@@ -855,7 +970,8 @@
         "operational": { "$ref": "#/$defs/operational" },
         "transport": { "$ref": "#/$defs/transport" },
         "ahp": { "$ref": "#/$defs/ahp" },
-        "elicitation": { "$ref": "#/$defs/elicitation" }
+        "elicitation": { "$ref": "#/$defs/elicitation" },
+        "risk_explanation": { "$ref": "#/$defs/riskExplanation" }
       }
     },
     "fixture": {
@@ -952,7 +1068,16 @@
         "/elicitation/agent_projection/exposure",
         "/elicitation/agent_projection/value",
         "/elicitation/agent_projection/secret_material",
-        "/elicitation/authoritative_step_up_result/verifier"
+        "/elicitation/authoritative_step_up_result/verifier",
+        "/risk_explanation/hint/localizations/0/effect_summaries",
+        "/risk_explanation/hint/default_language",
+        "/risk_explanation/hint_surface_hash",
+        "/risk_explanation/hint/localizations/1/summary",
+        "/risk_explanation/rendered_summary",
+        "/risk_explanation/hint/localizations/0/language",
+        "/risk_explanation/hint_action_id",
+        "/risk_explanation/escaped",
+        "/risk_explanation/bidi_isolated"
       ]
     },
     "pathAndValue": {
@@ -1038,7 +1163,17 @@
         { "properties": { "path": { "const": "/elicitation/agent_projection/exposure" }, "value": { "enum": ["minimized", "full_step_up_response"] } } },
         { "properties": { "path": { "const": "/elicitation/agent_projection/value" } } },
         { "properties": { "path": { "const": "/elicitation/agent_projection/secret_material" }, "value": { "enum": ["absent", "present"] } } },
-        { "properties": { "path": { "const": "/elicitation/authoritative_step_up_result/verifier" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/verifier" } } }
+        { "properties": { "path": { "const": "/elicitation/authoritative_step_up_result/verifier" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1#/$defs/verifier" } } },
+        { "properties": { "path": { "const": "/risk_explanation/hint/localizations/0/effect_summaries" }, "value": { "type": "array", "items": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1#/$defs/effectSummary" } } } },
+        { "properties": { "path": { "const": "/risk_explanation/hint/default_language" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1#/$defs/language" } } },
+        { "properties": { "path": { "const": "/risk_explanation/hint_surface_hash" }, "value": { "enum": ["surface_hash_a", "surface_hash_b"] } } },
+        { "properties": { "path": { "const": "/risk_explanation/hint/localizations/1/summary" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1#/$defs/summary" } } },
+        { "properties": { "path": { "const": "/risk_explanation/rendered_summary" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1#/$defs/summary" } } }
+        ,
+        { "properties": { "path": { "const": "/risk_explanation/hint/localizations/0/language" }, "value": { "const": "de-1901-1901" } } },
+        { "properties": { "path": { "const": "/risk_explanation/hint_action_id" }, "value": { "const": "comment.delete" } } },
+        { "properties": { "path": { "const": "/risk_explanation/escaped" }, "value": { "type": "boolean" } } },
+        { "properties": { "path": { "const": "/risk_explanation/bidi_isolated" }, "value": { "type": "boolean" } } }
       ]
     },
     "patchOperation": {
@@ -1109,7 +1244,9 @@
         { "properties": { "fixture_id": { "const": "ASP-F-RM-039" }, "baseline_vector_id": { "const": "ASP-V-RM-039" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-AA-009" }, "baseline_vector_id": { "const": "ASP-V-AA-009" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-AE-027" }, "baseline_vector_id": { "const": "ASP-V-AE-027" } }, "required": ["fixture_id", "baseline_vector_id"] },
-        { "properties": { "fixture_id": { "const": "ASP-F-AE-028" }, "baseline_vector_id": { "const": "ASP-V-AE-028" } }, "required": ["fixture_id", "baseline_vector_id"] }
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-028" }, "baseline_vector_id": { "const": "ASP-V-AE-028" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-SP-007" }, "baseline_vector_id": { "const": "ASP-V-SP-007" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-043" }, "baseline_vector_id": { "const": "ASP-V-RM-043" } }, "required": ["fixture_id", "baseline_vector_id"] }
       ]
     },
     "mutationBinding": {
@@ -1183,7 +1320,15 @@
         { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-AUTHORITATIVE-VERIFIER-MISMATCH" }, "input_variant": { "const": "elicitation_authoritative_verifier_mismatch" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-EXTERNAL-DYNAMIC-SCHEMA-REF" }, "input_variant": { "const": "elicitation_external_dynamic_schema_ref" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-REDLINE-INVALID-ARRAY-INDEX" }, "input_variant": { "const": "elicitation_redline_invalid_array_index" } }, "required": ["mutation_id", "input_variant"] },
-        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-FUTURE-RESOLUTION" }, "input_variant": { "const": "elicitation_future_resolution" } }, "required": ["mutation_id", "input_variant"] }
+        { "properties": { "mutation_id": { "const": "ASP-M-ELICITATION-FUTURE-RESOLUTION" }, "input_variant": { "const": "elicitation_future_resolution" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-EFFECT-COVERAGE-MISMATCH" }, "input_variant": { "const": "risk_explanation_effect_coverage_mismatch" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-DEFAULT-LANGUAGE-MISSING" }, "input_variant": { "const": "risk_explanation_default_language_missing" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-STALE-SURFACE" }, "input_variant": { "const": "risk_explanation_stale_surface" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-ADVERSARIAL-PROSE" }, "input_variant": { "const": "risk_explanation_adversarial_prose" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-MALFORMED-LANGUAGE" }, "input_variant": { "const": "risk_explanation_malformed_language" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-ACTION-SUBSTITUTION" }, "input_variant": { "const": "risk_explanation_action_substitution" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-UNESCAPED" }, "input_variant": { "const": "risk_explanation_unescaped" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-BIDI-UNISOLATED" }, "input_variant": { "const": "risk_explanation_bidi_unisolated" } }, "required": ["mutation_id", "input_variant"] }
       ]
     },
     "fixtureCoverage": {
@@ -1223,7 +1368,9 @@
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-039" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AA-009" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-027" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-028" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-028" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-SP-007" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-043" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "mutationCoverage": {
@@ -1297,7 +1444,15 @@
         { "contains": { "properties": { "input_variant": { "const": "elicitation_authoritative_verifier_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "elicitation_external_dynamic_schema_ref" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "elicitation_redline_invalid_array_index" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "input_variant": { "const": "elicitation_future_resolution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "input_variant": { "const": "elicitation_future_resolution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "risk_explanation_effect_coverage_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "risk_explanation_default_language_missing" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "risk_explanation_stale_surface" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "risk_explanation_adversarial_prose" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "risk_explanation_malformed_language" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "risk_explanation_action_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "risk_explanation_unescaped" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "risk_explanation_bidi_unisolated" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "limitIdSet": {

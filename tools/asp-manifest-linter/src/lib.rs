@@ -5,6 +5,7 @@ use std::fmt;
 use std::fs;
 use std::path::Path;
 
+use fluent_uri::Uri;
 use serde::de::{self, Deserializer, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -18,13 +19,27 @@ pub const RULE_REGISTRY: &str = include_str!("../rules/v1/rules.json");
 
 pub const RULE_SCHEMA_DECLARATION: &str = "ASP-LINT-SCHEMA-001";
 pub const RULE_RISK_LABEL: &str = "ASP-LINT-RISK-001";
+pub const RULE_RISK_EXPLANATION: &str = "ASP-LINT-RISK-EXPLANATION-001";
 pub const RULE_IDEMPOTENCY: &str = "ASP-LINT-IDEMPOTENCY-001";
 pub const RULE_SCOPE: &str = "ASP-LINT-SCOPE-001";
 
 const SAFE_INTEGER: i128 = (1_i128 << 53) - 1;
-const IMPLEMENTED_RULES: [&str; 4] = [
+const CORE_RISK_LABELS: [&str; 8] = [
+    "read",
+    "propose",
+    "write",
+    "public_side_effect",
+    "external_side_effect",
+    "financial_side_effect",
+    "destructive",
+    "privileged",
+];
+const LANGUAGE_TAG_PATTERN: &str =
+    "^[a-z]{2,8}(?:-[a-z]{4})?(?:-(?:[a-z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*$";
+const IMPLEMENTED_RULES: [&str; 5] = [
     RULE_SCHEMA_DECLARATION,
     RULE_RISK_LABEL,
+    RULE_RISK_EXPLANATION,
     RULE_IDEMPOTENCY,
     RULE_SCOPE,
 ];
@@ -326,14 +341,374 @@ fn lint_schema_declarations(manifest: &Value, context: &mut Context<'_>) -> Resu
     Ok(())
 }
 
+fn is_absolute_risk_uri(value: &str) -> bool {
+    value.is_ascii()
+        && value
+            .split_once(':')
+            .is_some_and(|(_, remainder)| !remainder.is_empty())
+        && Uri::parse(value).is_ok()
+}
+
+fn is_valid_risk_label(value: &str) -> bool {
+    CORE_RISK_LABELS.contains(&value) || is_absolute_risk_uri(value)
+}
+
 fn lint_risk_labels(manifest: &Value, context: &mut Context<'_>) -> Result<(), LintError> {
     for (index, action) in required_array(manifest, "actions")?.iter().enumerate() {
         let object = required_object(action, &format!("/actions/{index}"))?;
-        if !has_nonempty_string(object, "risk") {
+        if !object
+            .get("risk")
+            .and_then(Value::as_str)
+            .is_some_and(is_valid_risk_label)
+        {
             context.emit(
                 RULE_RISK_LABEL,
                 format!("/actions/{index}/risk"),
-                "action should declare a non-empty risk label",
+                "risk must be one of the eight core labels or a non-empty ASCII RFC 3986 URI",
+            );
+        }
+    }
+    Ok(())
+}
+
+fn json_pointer_token(value: &str) -> String {
+    value.replace('~', "~0").replace('/', "~1")
+}
+
+fn lint_closed_object(
+    object: &Map<String, Value>,
+    allowed: &[&str],
+    path: &str,
+    context: &mut Context<'_>,
+) {
+    for member in object.keys() {
+        if !allowed.contains(&member.as_str()) {
+            context.emit(
+                RULE_RISK_EXPLANATION,
+                format!("{path}/{}", json_pointer_token(member)),
+                format!("risk explanation object member {member:?} is not allowed"),
+            );
+        }
+    }
+}
+
+fn is_canonical_language_tag(value: &str) -> bool {
+    if value.len() > 63 {
+        return false;
+    }
+    let subtags: Vec<&str> = value.split('-').collect();
+    let Some(primary) = subtags.first() else {
+        return false;
+    };
+    if !(2..=8).contains(&primary.len()) || !primary.bytes().all(|byte| byte.is_ascii_lowercase()) {
+        return false;
+    }
+    let mut index = 1;
+    if subtags.get(index).is_some_and(|subtag| {
+        subtag.len() == 4 && subtag.bytes().all(|byte| byte.is_ascii_lowercase())
+    }) {
+        index += 1;
+    }
+    if subtags.get(index).is_some_and(|subtag| {
+        (subtag.len() == 2 && subtag.bytes().all(|byte| byte.is_ascii_lowercase()))
+            || (subtag.len() == 3 && subtag.bytes().all(|byte| byte.is_ascii_digit()))
+    }) {
+        index += 1;
+    }
+    let mut variants = HashSet::new();
+    subtags[index..].iter().all(|subtag| {
+        (((5..=8).contains(&subtag.len())
+            && subtag
+                .bytes()
+                .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit()))
+            || (subtag.len() == 4
+                && subtag.as_bytes()[0].is_ascii_digit()
+                && subtag
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())))
+            && variants.insert(*subtag)
+    })
+}
+
+fn is_forbidden_explanation_control(character: char) -> bool {
+    matches!(
+        character as u32,
+        0x00..=0x1f
+            | 0x7f..=0x9f
+            | 0x061c
+            | 0x200e
+            | 0x200f
+            | 0x202a..=0x202e
+            | 0x2066..=0x2069
+    )
+}
+
+fn lint_explanation_text(
+    value: Option<&Value>,
+    path: String,
+    label: &str,
+    context: &mut Context<'_>,
+) {
+    let Some(text) = value.and_then(Value::as_str) else {
+        context.emit(
+            RULE_RISK_EXPLANATION,
+            path,
+            format!("{label} must be a string"),
+        );
+        return;
+    };
+    let length = text.chars().count();
+    if !(1..=512).contains(&length) {
+        context.emit(
+            RULE_RISK_EXPLANATION,
+            path.clone(),
+            format!("{label} must contain 1 to 512 Unicode code points"),
+        );
+    }
+    if text.chars().any(is_forbidden_explanation_control) {
+        context.emit(
+            RULE_RISK_EXPLANATION,
+            path,
+            format!("{label} must not contain C0, C1, or Unicode Bidi_Control characters"),
+        );
+    }
+}
+
+fn parent_effect_ids<'a>(
+    action: &'a Map<String, Value>,
+    action_index: usize,
+    context: &mut Context<'_>,
+) -> Option<Vec<&'a str>> {
+    let Some(effects) = action.get("effects") else {
+        return Some(Vec::new());
+    };
+    let Some(effects) = effects.as_array() else {
+        context.emit(
+            RULE_RISK_EXPLANATION,
+            format!("/actions/{action_index}/effects"),
+            "effects must be an array when risk_explanation is present",
+        );
+        return None;
+    };
+    let mut effect_ids = Vec::with_capacity(effects.len());
+    let mut seen = HashSet::new();
+    let mut valid = true;
+    for (effect_index, effect) in effects.iter().enumerate() {
+        let path = format!("/actions/{action_index}/effects/{effect_index}");
+        let Some(object) = effect.as_object() else {
+            context.emit(
+                RULE_RISK_EXPLANATION,
+                path,
+                "effect must be an object when risk_explanation is present",
+            );
+            valid = false;
+            continue;
+        };
+        let Some(effect_id) = object.get("effect_id").and_then(Value::as_str) else {
+            context.emit(
+                RULE_RISK_EXPLANATION,
+                format!("{path}/effect_id"),
+                "effect_id must be a non-empty string when risk_explanation is present",
+            );
+            valid = false;
+            continue;
+        };
+        if effect_id.is_empty() {
+            context.emit(
+                RULE_RISK_EXPLANATION,
+                format!("{path}/effect_id"),
+                "effect_id must be a non-empty string when risk_explanation is present",
+            );
+            valid = false;
+            continue;
+        }
+        if !seen.insert(effect_id) {
+            context.emit(
+                RULE_RISK_EXPLANATION,
+                format!("{path}/effect_id"),
+                format!("effect_id {effect_id:?} is declared more than once"),
+            );
+            valid = false;
+        }
+        effect_ids.push(effect_id);
+    }
+    valid.then_some(effect_ids)
+}
+
+fn lint_effect_summaries(
+    value: Option<&Value>,
+    path: &str,
+    expected_effect_ids: Option<&[&str]>,
+    context: &mut Context<'_>,
+) {
+    let Some(effect_summaries) = value.and_then(Value::as_array) else {
+        context.emit(
+            RULE_RISK_EXPLANATION,
+            path.to_owned(),
+            "effect_summaries must be an array",
+        );
+        return;
+    };
+    let mut actual_effect_ids = Vec::with_capacity(effect_summaries.len());
+    let mut structurally_valid = true;
+    for (effect_index, effect_summary) in effect_summaries.iter().enumerate() {
+        let effect_path = format!("{path}/{effect_index}");
+        let Some(object) = effect_summary.as_object() else {
+            context.emit(
+                RULE_RISK_EXPLANATION,
+                effect_path,
+                "effect summary must be an object",
+            );
+            structurally_valid = false;
+            continue;
+        };
+        lint_closed_object(object, &["effect_id", "summary"], &effect_path, context);
+        match object.get("effect_id").and_then(Value::as_str) {
+            Some(effect_id) if !effect_id.is_empty() => actual_effect_ids.push(effect_id),
+            _ => {
+                context.emit(
+                    RULE_RISK_EXPLANATION,
+                    format!("{effect_path}/effect_id"),
+                    "effect summary effect_id must be a non-empty string",
+                );
+                structurally_valid = false;
+            }
+        }
+        lint_explanation_text(
+            object.get("summary"),
+            format!("{effect_path}/summary"),
+            "effect summary",
+            context,
+        );
+    }
+    if structurally_valid
+        && expected_effect_ids.is_some_and(|expected| actual_effect_ids.as_slice() != expected)
+    {
+        context.emit(
+            RULE_RISK_EXPLANATION,
+            path.to_owned(),
+            "effect_summaries must cover each parent action effect_id exactly once and in declaration order",
+        );
+    }
+}
+
+fn lint_risk_explanations(manifest: &Value, context: &mut Context<'_>) -> Result<(), LintError> {
+    for (action_index, action) in required_array(manifest, "actions")?.iter().enumerate() {
+        let action = required_object(action, &format!("/actions/{action_index}"))?;
+        let Some(explanation) = action.get("risk_explanation") else {
+            continue;
+        };
+        let explanation_path = format!("/actions/{action_index}/risk_explanation");
+        let Some(explanation) = explanation.as_object() else {
+            context.emit(
+                RULE_RISK_EXPLANATION,
+                explanation_path,
+                "risk_explanation must be an object",
+            );
+            continue;
+        };
+        lint_closed_object(
+            explanation,
+            &["default_language", "localizations"],
+            &explanation_path,
+            context,
+        );
+
+        let default_language = match explanation.get("default_language").and_then(Value::as_str) {
+            Some(language) if is_canonical_language_tag(language) => Some(language),
+            _ => {
+                context.emit(
+                    RULE_RISK_EXPLANATION,
+                    format!("{explanation_path}/default_language"),
+                    format!(
+                        "default_language must match {LANGUAGE_TAG_PATTERN}, contain unique variant subtags, and be at most 63 characters"
+                    ),
+                );
+                None
+            }
+        };
+        let Some(localizations) = explanation.get("localizations").and_then(Value::as_array) else {
+            context.emit(
+                RULE_RISK_EXPLANATION,
+                format!("{explanation_path}/localizations"),
+                "localizations must be an array",
+            );
+            continue;
+        };
+        if !(1..=16).contains(&localizations.len()) {
+            context.emit(
+                RULE_RISK_EXPLANATION,
+                format!("{explanation_path}/localizations"),
+                "localizations must contain 1 to 16 entries",
+            );
+        }
+
+        let expected_effect_ids = parent_effect_ids(action, action_index, context);
+        let mut languages = Vec::with_capacity(localizations.len());
+        let mut seen_languages = HashSet::new();
+        let mut previous_language: Option<&str> = None;
+        for (localization_index, localization) in localizations.iter().enumerate() {
+            let localization_path =
+                format!("{explanation_path}/localizations/{localization_index}");
+            let Some(localization) = localization.as_object() else {
+                context.emit(
+                    RULE_RISK_EXPLANATION,
+                    localization_path,
+                    "localization must be an object",
+                );
+                continue;
+            };
+            lint_closed_object(
+                localization,
+                &["language", "summary", "effect_summaries"],
+                &localization_path,
+                context,
+            );
+            match localization.get("language").and_then(Value::as_str) {
+                Some(language) if is_canonical_language_tag(language) => {
+                    if !seen_languages.insert(language) {
+                        context.emit(
+                            RULE_RISK_EXPLANATION,
+                            format!("{localization_path}/language"),
+                            format!("language {language:?} is declared more than once"),
+                        );
+                    }
+                    if previous_language.is_some_and(|previous| previous > language) {
+                        context.emit(
+                            RULE_RISK_EXPLANATION,
+                            format!("{localization_path}/language"),
+                            "localizations must be sorted lexicographically by language",
+                        );
+                    }
+                    previous_language = Some(language);
+                    languages.push(language);
+                }
+                _ => context.emit(
+                    RULE_RISK_EXPLANATION,
+                    format!("{localization_path}/language"),
+                    format!(
+                        "language must match {LANGUAGE_TAG_PATTERN}, contain unique variant subtags, and be at most 63 characters"
+                    ),
+                ),
+            }
+            lint_explanation_text(
+                localization.get("summary"),
+                format!("{localization_path}/summary"),
+                "localization summary",
+                context,
+            );
+            lint_effect_summaries(
+                localization.get("effect_summaries"),
+                &format!("{localization_path}/effect_summaries"),
+                expected_effect_ids.as_deref(),
+                context,
+            );
+        }
+        if default_language.is_some_and(|default| !languages.contains(&default)) {
+            context.emit(
+                RULE_RISK_EXPLANATION,
+                format!("{explanation_path}/default_language"),
+                "default_language must exactly match one localization language",
             );
         }
     }
@@ -483,6 +858,7 @@ pub fn lint_manifest(source: &str, document: &str) -> Result<LintReport, LintErr
     let mut context = Context::new(&registry);
     lint_schema_declarations(&manifest, &mut context)?;
     lint_risk_labels(&manifest, &mut context)?;
+    lint_risk_explanations(&manifest, &mut context)?;
     lint_idempotency(&manifest, &mut context)?;
     lint_scopes(&manifest, &mut context)?;
     let errors = context
@@ -627,6 +1003,10 @@ mod tests {
             "valid" => include_str!("../tests/fixtures/valid.json"),
             "missing-schema" => include_str!("../tests/fixtures/invalid-missing-schema.json"),
             "missing-risk" => include_str!("../tests/fixtures/invalid-missing-risk.json"),
+            "risk-label" => include_str!("../tests/fixtures/invalid-risk-label.json"),
+            "risk-explanation" => {
+                include_str!("../tests/fixtures/invalid-risk-explanation.json")
+            }
             "idempotency" => include_str!("../tests/fixtures/invalid-idempotency.json"),
             "scope" => include_str!("../tests/fixtures/invalid-scope.json"),
             _ => panic!("unknown fixture"),
@@ -654,7 +1034,12 @@ mod tests {
                 RULE_SCHEMA_DECLARATION,
                 "/actions/0/input_schema",
             ),
-            ("missing-risk", RULE_RISK_LABEL, "/actions/0/risk"),
+            ("risk-label", RULE_RISK_LABEL, "/actions/0/risk"),
+            (
+                "risk-explanation",
+                RULE_RISK_EXPLANATION,
+                "/actions/0/risk_explanation/localizations/0/effect_summaries",
+            ),
             ("idempotency", RULE_IDEMPOTENCY, "/actions/0/idempotency"),
             ("scope", RULE_SCOPE, "/actions/0/scope"),
         ];
@@ -667,6 +1052,362 @@ mod tests {
                     .any(|item| item.rule_id == rule_id && item.path == path)
             );
         }
+    }
+
+    fn manifest_with_risk_label(risk: Value) -> String {
+        let mut manifest: Value = serde_json::from_str(fixture("valid")).unwrap();
+        manifest["actions"][0]["risk"] = risk;
+        serde_json::to_string(&manifest).unwrap()
+    }
+
+    #[test]
+    fn risk_label_is_core_or_absolute_extension_uri() {
+        for risk in CORE_RISK_LABELS {
+            let document = manifest_with_risk_label(Value::String(risk.into()));
+            let report = lint_manifest("risk-label.json", &document).unwrap();
+            assert!(
+                report
+                    .diagnostics
+                    .iter()
+                    .all(|item| item.rule_id != RULE_RISK_LABEL),
+                "rejected core risk {risk:?}: {:?}",
+                report.diagnostics
+            );
+        }
+        for risk in [
+            "https://user@example.com:443/risks/dangerous?source=spec#v1",
+            "urn:example:risk:dangerous",
+            "risk+v1:dangerous",
+            "risk:danger%20level",
+        ] {
+            let document = manifest_with_risk_label(Value::String(risk.into()));
+            let report = lint_manifest("risk-label.json", &document).unwrap();
+            assert!(
+                report
+                    .diagnostics
+                    .iter()
+                    .all(|item| item.rule_id != RULE_RISK_LABEL),
+                "rejected extension risk URI {risk:?}: {:?}",
+                report.diagnostics
+            );
+        }
+
+        for risk in [
+            "dangerous",
+            "1risk:dangerous",
+            "risk_name:dangerous",
+            "risk:",
+            "risk:danger ous",
+            "risk:danger\u{00a0}ous",
+            "risk:danger\nous",
+            "risk:опасно",
+            "risk:zero\u{200b}width",
+            "risk:danger<ous",
+            "risk:bad%ZZ",
+            "risk:[",
+            "https://[broken",
+            "risk:value#one#two",
+        ] {
+            let document = manifest_with_risk_label(Value::String(risk.into()));
+            let report = lint_manifest("risk-label.json", &document).unwrap();
+            assert!(
+                report.diagnostics.iter().any(|item| {
+                    item.rule_id == RULE_RISK_LABEL && item.path == "/actions/0/risk"
+                }),
+                "accepted invalid risk label {risk:?}: {:?}",
+                report.diagnostics
+            );
+        }
+    }
+
+    fn manifest_with_risk_explanation(explanation: Value, effects: Value) -> String {
+        let mut manifest: Value = serde_json::from_str(fixture("valid")).unwrap();
+        manifest["actions"][0]["effects"] = effects;
+        manifest["actions"][0]["risk_explanation"] = explanation;
+        serde_json::to_string(&manifest).unwrap()
+    }
+
+    fn valid_effect_explanation() -> Value {
+        serde_json::json!({
+            "default_language": "fr",
+            "localizations": [
+                {
+                    "language": "en",
+                    "summary": "Reads and records the selected task.",
+                    "effect_summaries": [
+                        {"effect_id": "task-read", "summary": "Reads task fields."},
+                        {"effect_id": "audit-record", "summary": "Records an audit entry."}
+                    ]
+                },
+                {
+                    "language": "fr",
+                    "summary": "Lit et journalise la tâche sélectionnée.",
+                    "effect_summaries": [
+                        {"effect_id": "task-read", "summary": "Lit les champs de la tâche."},
+                        {"effect_id": "audit-record", "summary": "Enregistre une entrée d'audit."}
+                    ]
+                }
+            ]
+        })
+    }
+
+    fn effect_declarations() -> Value {
+        serde_json::json!([
+            {"effect_id": "task-read"},
+            {"effect_id": "audit-record"}
+        ])
+    }
+
+    fn assert_risk_finding(explanation: Value, effects: Value, expected_path: &str) {
+        let document = manifest_with_risk_explanation(explanation, effects);
+        let report = lint_manifest("risk-explanation.json", &document).unwrap();
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.rule_id == RULE_RISK_EXPLANATION && item.path == expected_path),
+            "missing {expected_path:?} in {:?}",
+            report.diagnostics
+        );
+    }
+
+    #[test]
+    fn valid_risk_explanation_covers_effects_in_order() {
+        let document =
+            manifest_with_risk_explanation(valid_effect_explanation(), effect_declarations());
+        let report = lint_manifest("risk-explanation.json", &document).unwrap();
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .all(|item| item.rule_id != RULE_RISK_EXPLANATION),
+            "{:?}",
+            report.diagnostics
+        );
+    }
+
+    #[test]
+    fn risk_explanation_objects_are_closed_and_bounded() {
+        let mut explanation = valid_effect_explanation();
+        explanation["unknown"] = Value::Bool(true);
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/unknown",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][0]["unknown/member"] = Value::Bool(true);
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/0/unknown~1member",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][0]["effect_summaries"][0]["unknown"] = Value::Bool(true);
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/0/effect_summaries/0/unknown",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"] = Value::Array(Vec::new());
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations",
+        );
+
+        let mut localizations = Vec::new();
+        for suffix in b'a'..=b'q' {
+            localizations.push(serde_json::json!({
+                "language": format!("a{}", char::from(suffix)),
+                "summary": "Bounded summary.",
+                "effect_summaries": []
+            }));
+        }
+        assert_risk_finding(
+            serde_json::json!({
+                "default_language": "aa",
+                "localizations": localizations
+            }),
+            Value::Array(Vec::new()),
+            "/actions/0/risk_explanation/localizations",
+        );
+    }
+
+    #[test]
+    fn risk_explanation_languages_are_canonical_unique_and_ordered() {
+        for language in [
+            "en",
+            "en-us",
+            "es-419",
+            "zh-hans",
+            "zh-hans-cn",
+            "de-1901",
+            "sl-latn-si-rozaj-biske",
+            "en-1abc",
+        ] {
+            assert!(
+                is_canonical_language_tag(language),
+                "rejected valid language tag {language:?}"
+            );
+        }
+        for language in [
+            "en-a",
+            "en-12",
+            "zh-cmn",
+            "en-u-ca-gregory",
+            "x-private",
+            "i-klingon",
+            "en-US",
+            "en-ab1d",
+            "en-abc",
+            "de-1901-1901",
+        ] {
+            assert!(
+                !is_canonical_language_tag(language),
+                "accepted invalid language tag {language:?}"
+            );
+        }
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][0]["language"] = Value::String("EN".to_owned());
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/0/language",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][1]["language"] = Value::String("en".to_owned());
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/1/language",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/1/language",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["default_language"] = Value::String("de".to_owned());
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/default_language",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["default_language"] = Value::String(format!("aa-{}", "a".repeat(61)));
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/default_language",
+        );
+    }
+
+    #[test]
+    fn risk_explanation_text_is_bounded_and_control_free() {
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][0]["summary"] = Value::String(String::new());
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/0/summary",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][0]["summary"] = Value::String("x".repeat(513));
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/0/summary",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][0]["summary"] = Value::String("unsafe\nsummary".to_owned());
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/0/summary",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][0]["effect_summaries"][0]["summary"] =
+            Value::String("unsafe\u{0085}summary".to_owned());
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/0/effect_summaries/0/summary",
+        );
+
+        for bidi_control in [
+            '\u{061c}', '\u{200e}', '\u{200f}', '\u{202a}', '\u{202b}', '\u{202c}', '\u{202d}',
+            '\u{202e}', '\u{2066}', '\u{2067}', '\u{2068}', '\u{2069}',
+        ] {
+            let mut explanation = valid_effect_explanation();
+            explanation["localizations"][0]["summary"] =
+                Value::String(format!("unsafe{bidi_control}summary"));
+            assert_risk_finding(
+                explanation,
+                effect_declarations(),
+                "/actions/0/risk_explanation/localizations/0/summary",
+            );
+        }
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][0]["effect_summaries"][0]["summary"] =
+            Value::String("unsafe\u{202e}summary".to_owned());
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/0/effect_summaries/0/summary",
+        );
+    }
+
+    #[test]
+    fn risk_explanation_effect_coverage_is_exact_and_ordered() {
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][0]["effect_summaries"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/0/effect_summaries",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][0]["effect_summaries"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/0/effect_summaries",
+        );
+
+        let mut explanation = valid_effect_explanation();
+        explanation["localizations"][0]["effect_summaries"][1]["effect_id"] =
+            Value::String("task-read".to_owned());
+        assert_risk_finding(
+            explanation,
+            effect_declarations(),
+            "/actions/0/risk_explanation/localizations/0/effect_summaries",
+        );
     }
 
     #[test]

@@ -40,6 +40,32 @@ fn findings_exit_one_and_emit_json_report() {
 }
 
 #[test]
+fn risk_explanation_finding_uses_stable_rule_and_pointer() {
+    let output = Command::new(binary())
+        .args([
+            "check",
+            &fixture("invalid-risk-explanation.json"),
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(
+        report["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| {
+                item["rule_id"] == "ASP-LINT-RISK-EXPLANATION-001"
+                    && item["path"]
+                        == "/actions/0/risk_explanation/localizations/0/effect_summaries"
+            })
+    );
+}
+
+#[test]
 fn malformed_input_exits_two() {
     let mut child = Command::new(binary())
         .args(["check", "-"])

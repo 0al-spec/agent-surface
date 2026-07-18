@@ -22,12 +22,12 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.5.0"
+      "const": "1.6.0"
     },
     "cases": {
       "type": "array",
-      "minItems": 41,
-      "maxItems": 41,
+      "minItems": 51,
+      "maxItems": 51,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/case"
@@ -110,6 +110,23 @@
       "additionalProperties": false,
       "maxProperties": 0
     },
+    "riskExplanationContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effect_ids"
+      ],
+      "properties": {
+        "effect_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
     "case": {
       "type": "object",
       "additionalProperties": false,
@@ -123,13 +140,14 @@
       "properties": {
         "case_id": {
           "type": "string",
-          "pattern": "^ASP-SC-(OL|CE|HE)-[0-9]{3}$"
+          "pattern": "^ASP-SC-(OL|CE|HE|RE)-[0-9]{3}$"
         },
         "schema_id": {
           "enum": [
             "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
-            "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1"
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1"
           ]
         },
         "polarity": {
@@ -182,9 +200,28 @@
               }
             },
             "else": {
-              "properties": {
-                "context": {
-                  "$ref": "#/$defs/emptyContext"
+              "if": {
+                "properties": {
+                  "schema_id": {
+                    "const": "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1"
+                  }
+                },
+                "required": [
+                  "schema_id"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "context": {
+                    "$ref": "#/$defs/riskExplanationContext"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "context": {
+                    "$ref": "#/$defs/emptyContext"
+                  }
                 }
               }
             }
