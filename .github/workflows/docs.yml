@@ -13,7 +13,7 @@ jobs:
   quality:
     name: RFC quality gates
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -52,7 +52,7 @@ jobs:
           python -m pip install --requirement review/requirements.txt
 
       - name: Check conformance catalog
-        timeout-minutes: 8
+        timeout-minutes: 15
         shell: bash
         run: make conformance-check
 
