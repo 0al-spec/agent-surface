@@ -318,14 +318,14 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 AA,
                 "translate_action",
                 "post_issuance",
-                ("grant", "execution"),
+                ("execution",),
                 "adapter_request_rejected",
             ),
             (
                 AA,
                 "translate_ahp_action",
                 "post_issuance",
-                ("grant", "execution"),
+                ("execution",),
                 "adapter_request_rejected",
             ),
         )
@@ -381,6 +381,28 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                     initial_state=common_state,
                 )
                 self.assertEqual(result.decision, "accepted")
+                self.assertNotIn(
+                    "impact_simulation_authority_rejected", result.tokens
+                )
+
+        for operation, fixture_id, accepted_token in (
+            ("translate_action", "ASP-F-AA-001", "typed_request_forwarded"),
+            ("translate_ahp_action", "ASP-F-AA-006", "ahp_control_translated"),
+        ):
+            with self.subTest(operation=operation, carrier="grant-unconsumed"):
+                document = copy.deepcopy(self.catalog.fixtures[fixture_id]["document"])
+                document["grant"]["impact_simulation"] = copy.deepcopy(
+                    baseline["impact_simulation"]["result"]
+                )
+                result = evaluate(
+                    profile_id=AA,
+                    producer_role=None,
+                    operation=operation,
+                    document=document,
+                    initial_state=common_state,
+                )
+                self.assertEqual(result.decision, "accepted")
+                self.assertIn(accepted_token, result.tokens)
                 self.assertNotIn(
                     "impact_simulation_authority_rejected", result.tokens
                 )

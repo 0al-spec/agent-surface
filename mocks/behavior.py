@@ -93,7 +93,7 @@ _IMPACT_AUTHORITY_GUARDS = {
         ),
     ),
     (AA, "translate_action"): (
-        ("grant", "execution"),
+        ("execution",),
         (
             "adapter_request_rejected",
             "impact_simulation_binding_rejected",
@@ -103,7 +103,7 @@ _IMPACT_AUTHORITY_GUARDS = {
         ),
     ),
     (AA, "translate_ahp_action"): (
-        ("grant", "execution"),
+        ("execution",),
         (
             "adapter_request_rejected",
             "impact_simulation_binding_rejected",
