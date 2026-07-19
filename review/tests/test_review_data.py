@@ -515,14 +515,14 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 62)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 430)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 434)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 49, "proposal": 3, "machine_validated": 10}),
+            Counter({"specified": 50, "proposal": 2, "machine_validated": 10}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 59, "partial": 1, "missing": 2}),
+            Counter({"present": 60, "missing": 2}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 139)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -571,11 +571,25 @@ class ReviewDataValidationTests(unittest.TestCase):
         reviews_by_id = {review["id"]: review for review in reviews}
         ready_ids = {review["id"] for review in reviews if review["readiness"] == "ready"}
         blocked_ids = set(reviews_by_id) - ready_ids
+        self.assertEqual(blocked_ids, set())
+        self.assertEqual(len(ready_ids), 62)
+        self.assertEqual(reviews_by_id[16]["status"], "present")
+        self.assertEqual(reviews_by_id[16]["maturity"], "specified")
+        self.assertEqual(reviews_by_id[16]["readiness"], "ready")
         self.assertEqual(
-            blocked_ids,
-            {17},
+            [anchor["anchorId"] for anchor in reviews_by_id[16]["anchors"]],
+            [
+                "non-goals",
+                "agent-surface",
+                "curated-surface-boundary",
+                "model-context-protocol",
+                "grant-verification",
+                "versioning-and-compatibility",
+                "surface-publisher-profile",
+                "application-mvp-mapping",
+            ],
         )
-        self.assertEqual(len(ready_ids), 61)
+        self.assertEqual(reviews_by_id[17]["readiness"], "ready")
         self.assertEqual(reviews_by_id[26]["readiness"], "ready")
         self.assertEqual(reviews_by_id[27]["status"], "present")
         self.assertEqual(reviews_by_id[27]["maturity"], "machine_validated")
