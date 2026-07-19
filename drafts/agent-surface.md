@@ -190,6 +190,9 @@ publish a civilized surface and enforce grants on its side.
 - Do not define another general-purpose agent framework.
 - Do not replace MCP, ACP, OAuth, DID, Verifiable Credentials, JSON Schema, or
   existing application APIs.
+- Do not require an application to expose, enumerate, or mirror every public,
+  private, or internal API operation, UI command, RPC method, or integration
+  endpoint through an Agent Surface.
 - Do not require applications to trust local runtimes blindly.
 - Do not require agents to receive raw user credentials.
 - Do not require browser-to-localhost communication.
@@ -234,8 +237,13 @@ delegation. A surface includes resources, actions, events, schemas, scopes, risk
 labels, approval hints, idempotency rules, audit semantics, versioning, endpoints,
 and revocation semantics.
 
-The surface is not merely an API endpoint list. It is an application contract for
-safe delegated agent behavior.
+The surface is a deliberately curated affordance layer, not merely an API
+endpoint list and not a mirror or completeness claim for the application's
+public, private, or internal APIs. It is an application contract for safe
+delegated agent behavior. Its inventory is authoritative only for the exact ASP
+surface snapshot: omission means that an operation has no ASP discovery, Grant,
+or action authority under that snapshot, not that the underlying application
+operation does not exist.
 
 ### Agent Surface Manifest
 
@@ -608,6 +616,11 @@ useful substrates below an agent or runtime, but they do not by themselves defin
 an app-native delegation contract, user-approved Agent Grants, app-side grant
 enforcement, risk labels, approval semantics, revocation semantics, or portable
 receipts.
+
+Likewise, discovering a tool or resource through MCP does not add it to an
+Agent Surface. The application must deliberately publish the corresponding ASP
+resource, action, or event with complete ASP semantics before it can participate
+in capability matching, consent, Grant issuance, or ASP invocation.
 
 More importantly, MCP makes agents more capable, but it does not by itself make
 ordinary applications agentic. In an MCP-only integration, the application often
@@ -1560,6 +1573,75 @@ same tenant, issuer, and app id MUST atomically migrate the lifecycle state and
 supersede the prior location; it MUST NOT create an independent issuance
 history. A cached or retained object can remain valid for an already-issued
 Grant without remaining eligible for new issuance.
+
+### Curated Surface Boundary
+
+An Agent Surface is an explicit, application-selected allow-list of affordances
+for agent delegation. It is not a requirement to publish the application's full
+API, route table, RPC service, MCP tool inventory, UI command set, or
+administrative interface. A publisher MAY expose a very small surface, such as
+one read resource and one proposal action, while leaving billing, account
+administration, bulk export, destructive maintenance, and other application
+operations outside ASP.
+
+The curated inventory defines which affordances are eligible for ASP discovery
+and delegation; it is not authority by itself. A valid Agent Grant and every
+ordinary runtime-side and application-side check remain required.
+
+For every included resource, action, or event, the publisher MUST provide the
+complete ASP declaration required by this specification. That completeness
+requirement applies to the selected surface inventory and its references; it
+does not require completeness relative to any underlying application API. An
+underlying operation's existence, visibility, or authentication policy is not
+by itself an ASP declaration.
+
+A publisher MUST NOT treat membership in an OpenAPI document, AsyncAPI
+document, route table, RPC schema, MCP server, SDK, or UI registry as sufficient
+for inclusion in the Agent Surface. It MUST NOT mechanically mirror an
+underlying interface merely because those operations exist; every resulting ASP
+member MUST independently declare every field and semantic required for its
+member type, including the applicable scope, risk, approval, exposure,
+execution, idempotency, effect, receipt, endpoint, and lifecycle semantics. A
+publisher MAY deliberately map every operation from an underlying interface
+only when it explicitly selects each operation and every resulting ASP
+declaration independently satisfies this specification. One ASP action MAY
+compose multiple application operations, and multiple ASP actions MAY map to
+different safety stages of one application operation.
+
+Only declarations in the exact verified manifest snapshot define its ASP
+inventory. A runtime, Grant Issuer, Action Executor, or Agent Adapter MUST NOT
+synthesize additional ASP resources, actions, events, scopes, or authority from
+endpoint naming, ordinary API documentation, SDK metadata, MCP discovery, UI
+availability, or a credential's broader capabilities. A request for an action
+absent from the Grant's pinned surface remains `action_unknown`; the component
+MUST NOT search another API description, call an ordinary application endpoint,
+or substitute a similarly named operation.
+
+Publishing a previously omitted affordance is a manifest change and therefore
+requires a new `surface_version` and `surface_hash`. It does not add authority
+to a Grant pinned to the prior snapshot. The ordinary compatibility,
+fresh-consent, renewal, and attenuation rules determine whether a new Grant can
+include it. Conversely, adding or removing an underlying application operation
+that was never part of the Agent Surface does not by itself change the manifest,
+unless that change alters the implementation or semantics of a published
+affordance.
+
+Applications and non-agent integrations MAY continue to use ordinary
+application APIs under their own authority models. Such access is outside ASP
+and MUST NOT be represented as an ASP Grant, ASP action, ASP receipt, or ASP
+conformance evidence. The separate runtime-mediation rule still prohibits an
+agent, adapter, or subagent from using that alternative path to bypass the
+Agent Surface authority boundary.
+
+The boundary has these required fail-closed outcomes:
+
+| Condition | Required outcome |
+| --- | --- |
+| An API route, RPC method, MCP tool, SDK method, or UI command exists but is absent from the exact manifest snapshot | It remains outside ASP; do not infer or synthesize a resource, action, event, scope, or authority. |
+| A semantic Grant request names an action absent from the current verified manifest | Reject issuance; the OAuth profile uses `invalid_authorization_details`. |
+| An Action Request names an action absent from the Grant's retained pinned manifest | Return `action_unknown` before idempotency lookup, budget admission, receipt creation, workload dispatch, or effect; do not search another interface or snapshot. |
+| A selected affordance lacks required ASP semantics or the publisher cannot enforce its declaration | Reject the manifest as `surface_incompatible`; do not expose the member as partially usable. |
+| The application adds a backend operation without publishing a new manifest snapshot | Do not change ASP discovery or any active Grant. |
 
 ### Required Top-Level Fields
 
@@ -8350,8 +8432,9 @@ Applications MUST verify every action against grant state:
   not rejected by itself
 - for a proof-bound server session, the session is active, bound to the grant
   and runtime, and authenticated with the bound key or channel credential
-- the grant contains a non-empty `actions` allow-list, the requested action
-  identifier is a member, is served at a granted `location`, and remains
+- the requested action identifier resolves exactly once in the retained pinned
+  manifest, the grant contains a non-empty `actions` allow-list containing that
+  identifier, and the action is served at a granted `location` and remains
   compatible with the granted scopes and resource constraints
 - the grant action allow-list is closed over every required companion
   dependency in its pinned manifest snapshot
@@ -11261,6 +11344,11 @@ Compatibility rules:
   valid under its `surface_mode` and existing action semantics do not change. A
   state-changing action on a proposal-only surface is invalid, not an addition
   that compatibility rules can repair.
+- Publishing an application operation that was previously outside ASP is an
+  ordinary resource, action, or event addition: it requires a new surface
+  version and hash and does not widen a Grant pinned to the prior curated
+  snapshot. An underlying API-only change need not change the manifest when it
+  does not alter any published affordance or its implementation semantics.
 - Changing risk labels to a higher risk class can require grant renewal.
 - Changing an action's execution mode, operation id, required companion stage,
   effect envelope, precondition or effect schema, reservation policy, or
@@ -12256,6 +12344,10 @@ check defined by this specification.
 A component conforms to the Surface Publisher Profile when it:
 
 - publishes an Agent Surface Manifest
+- publishes an explicitly curated ASP inventory and does not infer exposure
+  merely from an underlying API, route, RPC, MCP, SDK, or UI inventory; every
+  selected affordance has complete ASP semantics and every omitted operation
+  remains outside that surface snapshot
 - computes and publishes a valid `surface_hash` and changes
   `surface_version` whenever the manifest hashing view changes
 - does not publish an Impact Simulation Result or feature identifier as a
@@ -12828,6 +12920,13 @@ An application implementation can start with a small runtime bridge:
 - local policy evaluation
 - local approvals
 - agent adapter boundary
+
+The MVP surface SHOULD begin with a deliberately selected subset of application
+affordances rather than an import of the complete route or API inventory. For
+example, an application can initially publish `task.read` and
+`comment.propose` while keeping account deletion, billing changes, workspace
+export, and other operations outside ASP. Each later addition follows the
+ordinary manifest version, hash, consent, and Grant rules.
 
 To support Agent Surface Protocol, the next slices are:
 

@@ -947,21 +947,37 @@
           "anchorId": "agent-surface"
         },
         {
+          "heading": "Curated Surface Boundary",
+          "anchorId": "curated-surface-boundary"
+        },
+        {
           "heading": "Model Context Protocol",
           "anchorId": "model-context-protocol"
+        },
+        {
+          "heading": "Grant Verification",
+          "anchorId": "grant-verification"
+        },
+        {
+          "heading": "Versioning and Compatibility",
+          "anchorId": "versioning-and-compatibility"
+        },
+        {
+          "heading": "Surface Publisher Profile",
+          "anchorId": "surface-publisher-profile"
         },
         {
           "heading": "Application MVP Mapping",
           "anchorId": "application-mvp-mapping"
         }
       ],
-      "status": "partial",
-      "rationale": "Surface отделён от API endpoint list и не заменяет existing APIs, но curated/selective exposure и запрет зеркалирования API не сформулированы явно.",
+      "status": "present",
+      "rationale": "RFC нормативно определяет Agent Surface как явно выбранный allow-list ASP affordances, запрещает выводить exposure из API, route, RPC, MCP, SDK или UI inventory, оставляет omitted operations вне pinned surface и связывает последующее добавление с новым version/hash и обычным consent/Grant lifecycle.",
       "priority": "P2",
       "profile": "manifest",
       "depends_on": [],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -973,7 +989,23 @@
         },
         {
           "kind": "rfc_anchor",
+          "ref": "curated-surface-boundary"
+        },
+        {
+          "kind": "rfc_anchor",
           "ref": "model-context-protocol"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "versioning-and-compatibility"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
