@@ -24,15 +24,15 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.6.0"
+      "const": "1.7.0"
     },
     "fixture_catalog_id": {
       "const": "agent-surface/conformance/fixtures/v1"
     },
     "fixtures": {
       "type": "array",
-      "minItems": 38,
-      "maxItems": 38,
+      "minItems": 39,
+      "maxItems": 39,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/fixture"
@@ -43,8 +43,8 @@
     },
     "mutations": {
       "type": "array",
-      "minItems": 78,
-      "maxItems": 78,
+      "minItems": 96,
+      "maxItems": 96,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/mutation"
@@ -94,7 +94,8 @@
         "ASP-F-AE-027",
         "ASP-F-AE-028",
         "ASP-F-SP-007",
-        "ASP-F-RM-043"
+        "ASP-F-RM-043",
+        "ASP-F-RM-051"
       ]
     },
     "baselineVectorId": {
@@ -136,7 +137,8 @@
         "ASP-V-AE-027",
         "ASP-V-AE-028",
         "ASP-V-SP-007",
-        "ASP-V-RM-043"
+        "ASP-V-RM-043",
+        "ASP-V-RM-051"
       ]
     },
     "mutationId": {
@@ -218,7 +220,25 @@
         "ASP-M-RISK-EXPLANATION-MALFORMED-LANGUAGE",
         "ASP-M-RISK-EXPLANATION-ACTION-SUBSTITUTION",
         "ASP-M-RISK-EXPLANATION-UNESCAPED",
-        "ASP-M-RISK-EXPLANATION-BIDI-UNISOLATED"
+        "ASP-M-RISK-EXPLANATION-BIDI-UNISOLATED",
+        "ASP-M-IMPACT-SIMULATION-STALE-SURFACE",
+        "ASP-M-IMPACT-SIMULATION-GRANT-HASH-MISMATCH",
+        "ASP-M-IMPACT-SIMULATION-INCOMPLETE-COVERAGE",
+        "ASP-M-IMPACT-SIMULATION-WRONG-SELECTION",
+        "ASP-M-IMPACT-SIMULATION-UNREQUESTED-COVERED",
+        "ASP-M-IMPACT-SIMULATION-UNKNOWN-COVERED",
+        "ASP-M-IMPACT-SIMULATION-ACTION-SUBSTITUTION",
+        "ASP-M-IMPACT-SIMULATION-AUTHORITY-ATTEMPT",
+        "ASP-M-IMPACT-SIMULATION-UNCLOSED-COMPANION",
+        "ASP-M-IMPACT-SIMULATION-MATCH-CAUSALITY",
+        "ASP-M-IMPACT-SIMULATION-POST-ISSUANCE",
+        "ASP-M-IMPACT-SIMULATION-ACTION-AUTHORITY-ATTEMPT",
+        "ASP-M-IMPACT-SIMULATION-REVISION-SUBSTITUTION",
+        "ASP-M-IMPACT-SIMULATION-BINDING-SUBSTITUTION",
+        "ASP-M-IMPACT-SIMULATION-FAR-FUTURE",
+        "ASP-M-IMPACT-SIMULATION-DECISION-SUBSTITUTION",
+        "ASP-M-IMPACT-SIMULATION-REQUEST-OVERFLOW",
+        "ASP-M-IMPACT-SIMULATION-ACTIVE-GRANT-AUTHORITY-ATTEMPT"
       ]
     },
     "inputVariant": {
@@ -300,13 +320,43 @@
         "risk_explanation_malformed_language",
         "risk_explanation_action_substitution",
         "risk_explanation_unescaped",
-        "risk_explanation_bidi_unisolated"
+        "risk_explanation_bidi_unisolated",
+        "impact_simulation_stale_surface",
+        "impact_simulation_grant_hash_mismatch",
+        "impact_simulation_incomplete_coverage",
+        "impact_simulation_wrong_selection",
+        "impact_simulation_unrequested_covered",
+        "impact_simulation_unknown_covered",
+        "impact_simulation_action_substitution",
+        "impact_simulation_authority_attempt",
+        "impact_simulation_unclosed_companion",
+        "impact_simulation_match_causality",
+        "impact_simulation_post_issuance",
+        "impact_simulation_action_authority_attempt",
+        "impact_simulation_revision_substitution",
+        "impact_simulation_binding_substitution",
+        "impact_simulation_far_future",
+        "impact_simulation_decision_substitution",
+        "impact_simulation_request_overflow",
+        "impact_simulation_active_grant_authority_attempt"
       ]
     },
     "actionSet": {
       "oneOf": [
+        { "const": [] },
         { "const": ["action.read"] },
-        { "const": ["action.read", "action.write"] }
+        { "const": ["action.read", "action.write"] },
+        { "const": ["action.read", "action.revert", "action.write"] },
+        {
+          "type": "array",
+          "minItems": 65,
+          "maxItems": 65,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^action\\.[0-9]{3}$"
+          }
+        }
       ]
     },
     "surface": {
@@ -324,8 +374,19 @@
       "properties": {
         "status": { "enum": ["current", "stale"] },
         "version": { "const": "surface_v1" },
-        "retained_hash": { "const": "surface_hash_a" },
-        "candidate_hash": { "enum": ["surface_hash_a", "surface_hash_b"] },
+        "retained_hash": {
+          "enum": [
+            "surface_hash_a",
+            "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          ]
+        },
+        "candidate_hash": {
+          "enum": [
+            "surface_hash_a",
+            "surface_hash_b",
+            "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          ]
+        },
         "references": { "enum": ["complete", "incomplete"] },
         "mode": { "enum": ["standard", "proposal_only"] },
         "action_semantics": { "enum": ["closed_read_propose", "state_changing"] }
@@ -347,16 +408,28 @@
         "recorded_revocation_request_hash"
       ],
       "properties": {
-        "status": { "enum": ["active", "revoked"] },
+        "status": { "enum": ["proposed", "active", "revoked"] },
         "issuer": { "const": "issuer_a" },
         "claimed_issuer": { "enum": ["issuer_a", "issuer_b"] },
         "requested_actions": { "$ref": "#/$defs/actionSet" },
+        "requested_scopes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
         "issued_actions": { "$ref": "#/$defs/actionSet" },
         "companion_closure": { "enum": ["closed", "unclosed"] },
         "passport_status": { "enum": ["current", "unavailable"] },
         "revocation_state": { "enum": ["active", "revoked", "unknown"] },
         "revocation_request_hash": { "enum": ["revocation_hash_a", "revocation_hash_b"] },
-        "recorded_revocation_request_hash": { "const": "revocation_hash_a" }
+        "recorded_revocation_request_hash": { "const": "revocation_hash_a" },
+        "impact_simulation": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1"
+        }
       }
     },
     "execution": {
@@ -402,7 +475,10 @@
         "bound_session_binding": { "const": "session_binding_a" },
         "attestation": { "enum": ["current", "unavailable"] },
         "outcome_state": { "enum": ["known", "unknown"] },
-        "retry_key": { "enum": ["same", "new"] }
+        "retry_key": { "enum": ["same", "new"] },
+        "impact_simulation": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1"
+        }
       }
     },
     "receipt": {
@@ -949,6 +1025,417 @@
         }
       }
     },
+    "impactCandidateReason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "subject"],
+      "properties": {
+        "code": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/reason"
+        },
+        "severity": {
+          "enum": ["blocking", "advisory"]
+        },
+        "subject": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "id"],
+          "properties": {
+            "kind": {
+              "enum": [
+                "candidate",
+                "runtime",
+                "passport",
+                "capability",
+                "adapter",
+                "action",
+                "scope",
+                "approval",
+                "effect",
+                "recovery",
+                "exposure",
+                "sandbox",
+                "policy"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "impactCandidateCheckFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check_id", "state", "subject"],
+      "properties": {
+        "check_id": {
+          "oneOf": [
+            {
+              "enum": [
+                "adapter",
+                "approval",
+                "capability",
+                "data_exposure",
+                "effect",
+                "execution_stage",
+                "passport_integrity",
+                "passport_presence",
+                "passport_profile",
+                "passport_status",
+                "policy",
+                "recovery",
+                "remote_processing",
+                "required_input",
+                "retention",
+                "risk",
+                "runtime_attestation_availability",
+                "runtime_attestation_support",
+                "runtime_identity_availability",
+                "runtime_identity_integrity",
+                "sandbox",
+                "schema",
+                "scope",
+                "training_use"
+              ]
+            },
+            {
+              "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/extensionUri"
+            }
+          ]
+        },
+        "state": {
+          "enum": ["satisfied", "blocking", "advisory"]
+        },
+        "subject": {
+          "$ref": "#/$defs/impactCandidateReason/properties/subject"
+        }
+      }
+    },
+    "impactFreshnessDeadlines": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passport_status",
+        "capability_match",
+        "agent_inventory",
+        "adapter_inventory",
+        "local_policy",
+        "enterprise_policy",
+        "user_preferences",
+        "runtime_identity",
+        "runtime_attestation",
+        "local_maximum"
+      ],
+      "properties": {
+        "passport_status": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp"
+        },
+        "capability_match": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp"
+            }
+          ]
+        },
+        "agent_inventory": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp"
+        },
+        "adapter_inventory": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp"
+        },
+        "local_policy": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp"
+        },
+        "enterprise_policy": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp"
+            }
+          ]
+        },
+        "user_preferences": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp"
+            }
+          ]
+        },
+        "runtime_identity": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp"
+            }
+          ]
+        },
+        "runtime_attestation": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp"
+            }
+          ]
+        },
+        "local_maximum": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp"
+        }
+      }
+    },
+    "impactCurrentBindingFacts": {
+      "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/bindings"
+    },
+    "impactMatchedCandidate": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bindings",
+            "agent_id",
+            "passport_profile",
+            "passport_hash_profile",
+            "passport_hash",
+            "passport_verification_profile",
+            "grant_request_hash",
+            "status",
+            "reasons"
+          ],
+          "properties": {
+            "bindings": {
+              "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/bindings"
+            },
+            "agent_id": { "type": "string", "minLength": 1 },
+            "passport_profile": { "type": "string", "minLength": 1 },
+            "passport_hash_profile": { "type": "string", "minLength": 1 },
+            "passport_hash": {
+              "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/digest"
+            },
+            "passport_verification_profile": { "type": "string", "minLength": 1 },
+            "grant_request_hash": {
+              "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/digest"
+            },
+            "status": {
+              "enum": ["compatible", "incompatible", "indeterminate"]
+            },
+            "reasons": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/impactCandidateReason"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "impactRecoveryTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "effect_ids", "recovery_window_seconds"],
+      "properties": {
+        "action_id": { "type": "string", "minLength": 1 },
+        "effect_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "recovery_window_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "impactRecoveryAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "action_id",
+        "effect_ids",
+        "recovery_window_seconds"
+      ],
+      "properties": {
+        "mode": { "enum": ["compensate", "revert"] },
+        "action_id": { "type": "string", "minLength": 1 },
+        "effect_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "recovery_window_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "impactActionDeclaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "scope",
+        "operation_id",
+        "mode",
+        "risk",
+        "approval",
+        "required_companion_action_ids",
+        "effects",
+        "data_exposure",
+        "recovery_actions",
+        "recovery_targets"
+      ],
+      "properties": {
+        "action_id": { "type": "string", "minLength": 1 },
+        "scope": { "type": "string", "minLength": 1 },
+        "operation_id": { "type": "string", "minLength": 1 },
+        "mode": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/action/properties/mode"
+        },
+        "risk": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/action/properties/risk"
+        },
+        "approval": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/action/properties/approval"
+        },
+        "required_companion_action_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/effect"
+          }
+        },
+        "data_exposure": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/exposure"
+        },
+        "recovery_actions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/impactRecoveryAction"
+          }
+        },
+        "recovery_targets": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/impactRecoveryTarget"
+          }
+        }
+      }
+    },
+    "impactSimulationSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bindings",
+        "freshness_deadlines",
+        "requested_action_ids",
+        "requested_scope_ids",
+        "candidate_check_facts",
+        "matched_candidate",
+        "actions"
+      ],
+      "properties": {
+        "bindings": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/bindings"
+        },
+        "freshness_deadlines": {
+          "$ref": "#/$defs/impactFreshnessDeadlines"
+        },
+        "requested_action_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 65,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requested_scope_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "candidate_check_facts": {
+          "type": "array",
+          "minItems": 24,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/impactCandidateCheckFact"
+          }
+        },
+        "matched_candidate": {
+          "$ref": "#/$defs/impactMatchedCandidate"
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/impactActionDeclaration"
+          }
+        }
+      }
+    },
+    "impactSimulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "evaluation_time",
+        "authority_use",
+        "current_binding_facts",
+        "source",
+        "result"
+      ],
+      "properties": {
+        "phase": {
+          "enum": ["pre_issuance", "post_issuance"]
+        },
+        "evaluation_time": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z(?![\\s\\S])"
+        },
+        "authority_use": {
+          "enum": [
+            "none",
+            "grant"
+          ]
+        },
+        "current_binding_facts": {
+          "$ref": "#/$defs/impactCurrentBindingFacts"
+        },
+        "source": {
+          "$ref": "#/$defs/impactSimulationSource"
+        },
+        "result": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1"
+        }
+      }
+    },
     "semanticDocument": {
       "type": "object",
       "additionalProperties": false,
@@ -971,7 +1458,8 @@
         "transport": { "$ref": "#/$defs/transport" },
         "ahp": { "$ref": "#/$defs/ahp" },
         "elicitation": { "$ref": "#/$defs/elicitation" },
-        "risk_explanation": { "$ref": "#/$defs/riskExplanation" }
+        "risk_explanation": { "$ref": "#/$defs/riskExplanation" },
+        "impact_simulation": { "$ref": "#/$defs/impactSimulation" }
       }
     },
     "fixture": {
@@ -996,6 +1484,7 @@
         "/surface/action_semantics",
         "/grant/status",
         "/grant/claimed_issuer",
+        "/grant/requested_actions",
         "/grant/issued_actions",
         "/grant/companion_closure",
         "/grant/passport_status",
@@ -1077,7 +1566,38 @@
         "/risk_explanation/hint/localizations/0/language",
         "/risk_explanation/hint_action_id",
         "/risk_explanation/escaped",
-        "/risk_explanation/bidi_isolated"
+        "/risk_explanation/bidi_isolated",
+        "/impact_simulation/result/bindings/surface/surface_hash",
+        "/impact_simulation/result/bindings/grant_request_hash",
+        "/impact_simulation/result/coverage/requested/included",
+        "/impact_simulation/result/examples/3/action/action_id",
+        "/impact_simulation/result/examples/4/action/action_id",
+        "/impact_simulation/result/examples/3/outcome",
+        "/impact_simulation/result/examples/3/reasons",
+        "/impact_simulation/source/candidate_check_facts/13/state",
+        "/impact_simulation/result/examples/0/action/scope",
+        "/impact_simulation/source/actions/0/required_companion_action_ids",
+        "/impact_simulation/result/examples/0/action/required_companion_action_ids",
+        "/impact_simulation/source/bindings/capability_match",
+        "/impact_simulation/result/bindings/capability_match",
+        "/impact_simulation/source/matched_candidate",
+        "/impact_simulation/phase",
+        "/grant/impact_simulation",
+        "/execution/impact_simulation",
+        "/impact_simulation/source/bindings/local_policy_revision",
+        "/impact_simulation/result/bindings/local_policy_revision",
+        "/impact_simulation/source/bindings/surface/surface_hash",
+        "/impact_simulation/source/bindings/grant_request_hash",
+        "/impact_simulation/source/bindings/delegate/agent_id",
+        "/impact_simulation/result/bindings/delegate/agent_id",
+        "/impact_simulation/result/valid_until",
+        "/impact_simulation/result/examples/0/outcome",
+        "/impact_simulation/result/examples/0/reasons",
+        "/impact_simulation/result/examples/1/outcome",
+        "/impact_simulation/result/examples/1/reasons",
+        "/impact_simulation/result/examples/2/outcome",
+        "/impact_simulation/result/examples/2/reasons",
+        "/impact_simulation/source/requested_action_ids"
       ]
     },
     "pathAndValue": {
@@ -1087,8 +1607,9 @@
         { "properties": { "path": { "const": "/surface/references" }, "value": { "enum": ["complete", "incomplete"] } } },
         { "properties": { "path": { "const": "/surface/mode" }, "value": { "enum": ["standard", "proposal_only"] } } },
         { "properties": { "path": { "const": "/surface/action_semantics" }, "value": { "enum": ["closed_read_propose", "state_changing"] } } },
-        { "properties": { "path": { "const": "/grant/status" }, "value": { "enum": ["active", "revoked"] } } },
+        { "properties": { "path": { "const": "/grant/status" }, "value": { "enum": ["proposed", "active", "revoked"] } } },
         { "properties": { "path": { "const": "/grant/claimed_issuer" }, "value": { "enum": ["issuer_a", "issuer_b"] } } },
+        { "properties": { "path": { "const": "/grant/requested_actions" }, "value": { "$ref": "#/$defs/actionSet" } } },
         { "properties": { "path": { "const": "/grant/issued_actions" }, "value": { "$ref": "#/$defs/actionSet" } } },
         { "properties": { "path": { "const": "/grant/companion_closure" }, "value": { "enum": ["closed", "unclosed"] } } },
         { "properties": { "path": { "const": "/grant/passport_status" }, "value": { "enum": ["current", "unavailable"] } } },
@@ -1173,20 +1694,64 @@
         { "properties": { "path": { "const": "/risk_explanation/hint/localizations/0/language" }, "value": { "const": "de-1901-1901" } } },
         { "properties": { "path": { "const": "/risk_explanation/hint_action_id" }, "value": { "const": "comment.delete" } } },
         { "properties": { "path": { "const": "/risk_explanation/escaped" }, "value": { "type": "boolean" } } },
-        { "properties": { "path": { "const": "/risk_explanation/bidi_isolated" }, "value": { "type": "boolean" } } }
+        { "properties": { "path": { "const": "/risk_explanation/bidi_isolated" }, "value": { "type": "boolean" } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/bindings/surface/surface_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/bindings/grant_request_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/coverage/requested/included" }, "value": { "type": "integer", "minimum": 0, "maximum": 64 } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/examples/3/action/action_id" }, "value": { "enum": ["action.delete", "action.publish"] } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/examples/4/action/action_id" }, "value": { "enum": ["action.delete", "action.publish"] } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/examples/3/outcome" }, "value": { "const": "covered" } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/examples/3/reasons" }, "value": { "type": "array", "uniqueItems": true, "items": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/reason" } } } },
+        { "properties": { "path": { "const": "/impact_simulation/source/candidate_check_facts/13/state" }, "value": { "const": "blocking" } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/examples/0/action/scope" }, "value": { "enum": ["item.read", "item.write"] } } },
+        { "properties": { "path": { "const": "/impact_simulation/source/actions/0/required_companion_action_ids" }, "value": { "const": ["action.publish"] } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/examples/0/action/required_companion_action_ids" }, "value": { "const": ["action.publish"] } } },
+        { "properties": { "path": { "const": "/impact_simulation/source/bindings/capability_match" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/capabilityMatchBinding" } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/bindings/capability_match" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/capabilityMatchBinding" } } },
+        { "properties": { "path": { "const": "/impact_simulation/source/matched_candidate" }, "value": { "$ref": "#/$defs/impactMatchedCandidate" } } },
+        { "properties": { "path": { "const": "/impact_simulation/phase" }, "value": { "enum": ["pre_issuance", "post_issuance"] } } },
+        { "properties": { "path": { "const": "/impact_simulation/source/bindings/local_policy_revision" }, "value": { "const": "policy-2" } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/bindings/local_policy_revision" }, "value": { "const": "policy-2" } } },
+        { "properties": { "path": { "const": "/impact_simulation/source/bindings/surface/surface_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/impact_simulation/source/bindings/grant_request_hash" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/digest" } } },
+        { "properties": { "path": { "const": "/impact_simulation/source/bindings/delegate/agent_id" }, "value": { "const": "agent_b" } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/bindings/delegate/agent_id" }, "value": { "const": "agent_b" } } },
+        { "properties": { "path": { "const": "/impact_simulation/result/valid_until" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp" } } },
+        { "properties": { "path": { "enum": ["/impact_simulation/result/examples/0/outcome", "/impact_simulation/result/examples/1/outcome", "/impact_simulation/result/examples/2/outcome"] }, "value": { "const": "not_covered" } } },
+        { "properties": { "path": { "enum": ["/impact_simulation/result/examples/0/reasons", "/impact_simulation/result/examples/1/reasons", "/impact_simulation/result/examples/2/reasons"] }, "value": { "const": ["policy_denied"] } } },
+        { "properties": { "path": { "const": "/impact_simulation/source/requested_action_ids" }, "value": { "type": "array", "minItems": 65, "maxItems": 65, "uniqueItems": true, "items": { "type": "string", "pattern": "^action\\.[0-9]{3}$" } } } }
       ]
     },
     "patchOperation": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["op", "path", "value"],
-      "properties": {
-        "op": { "const": "replace" },
-        "path": { "$ref": "#/$defs/patchPath" },
-        "value": {}
-      },
-      "allOf": [
-        { "$ref": "#/$defs/pathAndValue" }
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["op", "path", "value"],
+          "properties": {
+            "op": { "const": "replace" },
+            "path": { "$ref": "#/$defs/patchPath" },
+            "value": {}
+          },
+          "allOf": [
+            { "$ref": "#/$defs/pathAndValue" }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["op", "from", "path"],
+          "properties": {
+            "op": { "const": "copy" },
+            "from": { "const": "/impact_simulation/result" },
+            "path": {
+              "enum": [
+                "/grant/impact_simulation",
+                "/execution/impact_simulation"
+              ]
+            }
+          }
+        }
       ]
     },
     "mutation": {
@@ -1246,7 +1811,8 @@
         { "properties": { "fixture_id": { "const": "ASP-F-AE-027" }, "baseline_vector_id": { "const": "ASP-V-AE-027" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-AE-028" }, "baseline_vector_id": { "const": "ASP-V-AE-028" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-SP-007" }, "baseline_vector_id": { "const": "ASP-V-SP-007" } }, "required": ["fixture_id", "baseline_vector_id"] },
-        { "properties": { "fixture_id": { "const": "ASP-F-RM-043" }, "baseline_vector_id": { "const": "ASP-V-RM-043" } }, "required": ["fixture_id", "baseline_vector_id"] }
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-043" }, "baseline_vector_id": { "const": "ASP-V-RM-043" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-051" }, "baseline_vector_id": { "const": "ASP-V-RM-051" } }, "required": ["fixture_id", "baseline_vector_id"] }
       ]
     },
     "mutationBinding": {
@@ -1328,7 +1894,25 @@
         { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-MALFORMED-LANGUAGE" }, "input_variant": { "const": "risk_explanation_malformed_language" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-ACTION-SUBSTITUTION" }, "input_variant": { "const": "risk_explanation_action_substitution" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-UNESCAPED" }, "input_variant": { "const": "risk_explanation_unescaped" } }, "required": ["mutation_id", "input_variant"] },
-        { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-BIDI-UNISOLATED" }, "input_variant": { "const": "risk_explanation_bidi_unisolated" } }, "required": ["mutation_id", "input_variant"] }
+        { "properties": { "mutation_id": { "const": "ASP-M-RISK-EXPLANATION-BIDI-UNISOLATED" }, "input_variant": { "const": "risk_explanation_bidi_unisolated" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-STALE-SURFACE" }, "input_variant": { "const": "impact_simulation_stale_surface" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-GRANT-HASH-MISMATCH" }, "input_variant": { "const": "impact_simulation_grant_hash_mismatch" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-INCOMPLETE-COVERAGE" }, "input_variant": { "const": "impact_simulation_incomplete_coverage" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-WRONG-SELECTION" }, "input_variant": { "const": "impact_simulation_wrong_selection" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-UNREQUESTED-COVERED" }, "input_variant": { "const": "impact_simulation_unrequested_covered" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-UNKNOWN-COVERED" }, "input_variant": { "const": "impact_simulation_unknown_covered" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-ACTION-SUBSTITUTION" }, "input_variant": { "const": "impact_simulation_action_substitution" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-AUTHORITY-ATTEMPT" }, "input_variant": { "const": "impact_simulation_authority_attempt" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-UNCLOSED-COMPANION" }, "input_variant": { "const": "impact_simulation_unclosed_companion" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-MATCH-CAUSALITY" }, "input_variant": { "const": "impact_simulation_match_causality" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-POST-ISSUANCE" }, "input_variant": { "const": "impact_simulation_post_issuance" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-ACTION-AUTHORITY-ATTEMPT" }, "input_variant": { "const": "impact_simulation_action_authority_attempt" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-REVISION-SUBSTITUTION" }, "input_variant": { "const": "impact_simulation_revision_substitution" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-BINDING-SUBSTITUTION" }, "input_variant": { "const": "impact_simulation_binding_substitution" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-FAR-FUTURE" }, "input_variant": { "const": "impact_simulation_far_future" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-DECISION-SUBSTITUTION" }, "input_variant": { "const": "impact_simulation_decision_substitution" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-REQUEST-OVERFLOW" }, "input_variant": { "const": "impact_simulation_request_overflow" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-IMPACT-SIMULATION-ACTIVE-GRANT-AUTHORITY-ATTEMPT" }, "input_variant": { "const": "impact_simulation_active_grant_authority_attempt" } }, "required": ["mutation_id", "input_variant"] }
       ]
     },
     "fixtureCoverage": {
@@ -1370,7 +1954,8 @@
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-027" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-028" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-SP-007" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-043" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-043" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-051" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "mutationCoverage": {
@@ -1452,7 +2037,25 @@
         { "contains": { "properties": { "input_variant": { "const": "risk_explanation_malformed_language" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "risk_explanation_action_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "risk_explanation_unescaped" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "input_variant": { "const": "risk_explanation_bidi_unisolated" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "input_variant": { "const": "risk_explanation_bidi_unisolated" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_stale_surface" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_grant_hash_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_incomplete_coverage" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_wrong_selection" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_unrequested_covered" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_unknown_covered" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_action_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_authority_attempt" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_unclosed_companion" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_match_causality" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_post_issuance" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_action_authority_attempt" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_revision_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_binding_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_far_future" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_decision_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_request_overflow" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "impact_simulation_active_grant_authority_attempt" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "limitIdSet": {

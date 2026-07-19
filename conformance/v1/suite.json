@@ -2,7 +2,7 @@
   "$schema": "./suite.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.6.0",
+  "suite_version": "1.7.0",
   "protocol_version": "agent-surface/0.1",
   "specification": {
     "path": "drafts/agent-surface.md",
@@ -75,7 +75,8 @@
         "ASP-RM-010",
         "ASP-RM-011",
         "ASP-RM-012",
-        "ASP-RM-013"
+        "ASP-RM-013",
+        "ASP-RM-014"
       ]
     },
     {
@@ -92,6 +93,14 @@
     }
   ],
   "features": [
+    {
+      "feature_id": "agent-surface/feature/impact-simulation",
+      "title": "Impact Simulation",
+      "rfc_anchor": "impact-simulation",
+      "requirement_ids": [
+        "ASP-RM-014"
+      ]
+    },
     {
       "feature_id": "agent-surface/feature/proposal-only",
       "title": "Proposal-Only Surface Mode",
@@ -881,6 +890,40 @@
         "ASP-V-RM-048",
         "ASP-V-RM-049",
         "ASP-V-RM-050"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-014",
+      "title": "Present only current, complete, deterministic, non-authoritative Impact Simulation results",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "impact-simulation",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "agent-surface/feature/impact-simulation"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-051",
+        "ASP-V-RM-052",
+        "ASP-V-RM-053",
+        "ASP-V-RM-054",
+        "ASP-V-RM-055",
+        "ASP-V-RM-056",
+        "ASP-V-RM-057",
+        "ASP-V-RM-058",
+        "ASP-V-RM-059",
+        "ASP-V-RM-060",
+        "ASP-V-RM-061",
+        "ASP-V-RM-062",
+        "ASP-V-RM-063",
+        "ASP-V-RM-064",
+        "ASP-V-RM-065",
+        "ASP-V-RM-066",
+        "ASP-V-RM-067",
+        "ASP-V-RM-068",
+        "ASP-V-RM-069",
+        "ASP-V-RM-070",
+        "ASP-V-RM-071"
       ]
     }
   ]

@@ -17,6 +17,7 @@ from typing import Any
 
 from conformance.check import ConformanceError, _resolved_fixture, run_suite, validate_catalog
 from mocks.behavior import (
+    AA,
     AE,
     GI,
     RM,
@@ -26,7 +27,9 @@ from mocks.behavior import (
     BehaviorResult,
     FEATURE_INVENTORY,
     _apply_redline,
+    _derive_impact_actions,
     _hash_without,
+    _impact_candidate_projection,
     _object_hash,
     _validate_risk_explanation_publisher,
     evaluate,
@@ -141,10 +144,390 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 "state_deltas",
             }
         )
-        self.assertEqual(len(self.catalog.vectors), 116)
+        self.assertEqual(len(self.catalog.vectors), 137)
         for vector_id in self.catalog.vectors:
             with self.subTest(vector_id=vector_id):
                 self.assert_matches_catalog_oracle(vector_id)
+
+    def test_impact_simulation_is_supplemental_and_never_authority(self) -> None:
+        for vector_id in (
+            "ASP-V-RM-051",
+            "ASP-V-RM-052",
+            "ASP-V-RM-053",
+            "ASP-V-RM-054",
+            "ASP-V-RM-055",
+            "ASP-V-RM-056",
+            "ASP-V-RM-057",
+            "ASP-V-RM-058",
+            "ASP-V-RM-059",
+            "ASP-V-RM-060",
+            "ASP-V-RM-061",
+            "ASP-V-RM-062",
+            "ASP-V-RM-063",
+            "ASP-V-RM-064",
+            "ASP-V-RM-065",
+            "ASP-V-RM-066",
+            "ASP-V-RM-067",
+            "ASP-V-RM-068",
+            "ASP-V-RM-069",
+            "ASP-V-RM-070",
+            "ASP-V-RM-071",
+        ):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertNotIn("impact_simulation_used_as_authority", result.tokens)
+                self.assertNotIn("application_dry_run_invoked", result.tokens)
+                self.assertNotIn("impact_simulation_agent_projected", result.tokens)
+                for state in (
+                    "grant.issued_count",
+                    "approval.interaction_count",
+                    "action.dispatch_count",
+                    "action.effect_count",
+                    "receipt.runtime_count",
+                ):
+                    self.assertEqual(result.state_after[state], result.state_before[state])
+                if vector_id == "ASP-V-RM-051":
+                    self.assertEqual(
+                        result.state_after[
+                            "runtime.impact_simulation_presentation_count"
+                        ],
+                        1,
+                    )
+                else:
+                    self.assertEqual(result.state_after, result.state_before)
+
+                expanded_state = [
+                    {"state": name, "value": 0}
+                    for name in (
+                        "runtime.impact_simulation_presentation_count",
+                        "runtime.stored_grant_width",
+                        "grant.issued_count",
+                        "credential.issued_count",
+                        "credential.agent_visible_count",
+                        "approval.interaction_count",
+                        "action.dispatch_count",
+                        "action.effect_count",
+                        "application.workload_count",
+                        "adapter.forwarded_count",
+                        "receipt.application_count",
+                        "receipt.runtime_count",
+                        "idempotency.record_count",
+                        "budget.application_charge",
+                    )
+                ]
+                vector = self.catalog.vectors[vector_id]
+                document = _resolved_fixture(self.catalog, vector)["document"]
+                expanded = evaluate(
+                    profile_id=vector["profile_id"],
+                    producer_role=vector.get("producer_role"),
+                    operation=vector["stimulus"]["operation"],
+                    document=document,
+                    initial_state=expanded_state,
+                )
+                expanded_after = dict(expanded.state_after)
+                expanded_before = dict(expanded.state_before)
+                if vector_id == "ASP-V-RM-051":
+                    expanded_before[
+                        "runtime.impact_simulation_presentation_count"
+                    ] = 1
+                self.assertEqual(expanded_after, expanded_before)
+
+        source = self.catalog.fixtures["ASP-F-RM-051"]["document"][
+            "impact_simulation"
+        ]["source"]
+        indeterminate = copy.deepcopy(source["candidate_check_facts"])
+        next(
+            fact
+            for fact in indeterminate
+            if fact["check_id"] == "required_input"
+        )["state"] = "blocking"
+        next(
+            fact for fact in indeterminate if fact["check_id"] == "risk"
+        )["state"] = "advisory"
+        self.assertEqual(
+            _impact_candidate_projection(
+                indeterminate, None, source["bindings"]
+            ),
+            ("indeterminate", ["input_unknown"]),
+        )
+
+    def test_impact_simulation_embedded_carriers_fail_before_any_state_change(
+        self,
+    ) -> None:
+        baseline = copy.deepcopy(self.catalog.fixtures["ASP-F-RM-051"]["document"])
+        common_state = [
+            {"state": name, "value": 0}
+            for name in (
+                "runtime.impact_simulation_presentation_count",
+                "runtime.stored_grant_width",
+                "grant.issued_count",
+                "credential.issued_count",
+                "credential.agent_visible_count",
+                "approval.interaction_count",
+                "action.dispatch_count",
+                "action.effect_count",
+                "application.workload_count",
+                "adapter.forwarded_count",
+                "receipt.application_count",
+                "receipt.runtime_count",
+                "idempotency.record_count",
+                "budget.application_charge",
+            )
+        ]
+        carriers: dict[tuple[str, str], dict[str, Any]] = {}
+        for phase in ("pre_issuance", "post_issuance"):
+            for carrier in ("grant", "execution"):
+                document = copy.deepcopy(baseline)
+                if phase == "post_issuance":
+                    document["impact_simulation"]["phase"] = "post_issuance"
+                    document["grant"]["status"] = "active"
+                    document["grant"]["issued_actions"] = copy.deepcopy(
+                        document["grant"]["requested_actions"]
+                    )
+                document[carrier]["impact_simulation"] = copy.deepcopy(
+                    document["impact_simulation"]["result"]
+                )
+                carriers[(phase, carrier)] = document
+
+        cases = (
+            (GI, "issue_grant", "pre_issuance", ("grant",), "grant_rejected"),
+            (GI, "revoke_grant", "post_issuance", ("grant",), "grant_rejected"),
+            (RM, "mediate_grant", "pre_issuance", ("grant",), "grant_rejected"),
+            (
+                RM,
+                "mediate_action",
+                "post_issuance",
+                ("grant", "execution"),
+                "action_rejected",
+            ),
+            (
+                AE,
+                "invoke_action",
+                "post_issuance",
+                ("grant", "execution"),
+                "action_rejected",
+            ),
+            (
+                AE,
+                "replay_action",
+                "post_issuance",
+                ("grant", "execution"),
+                "action_rejected",
+            ),
+            (
+                AA,
+                "translate_action",
+                "post_issuance",
+                ("execution",),
+                "adapter_request_rejected",
+            ),
+            (
+                AA,
+                "translate_ahp_action",
+                "post_issuance",
+                ("execution",),
+                "adapter_request_rejected",
+            ),
+        )
+        for profile_id, operation, phase, consumed, envelope_token in cases:
+            for carrier in consumed:
+                with self.subTest(
+                    profile_id=profile_id,
+                    operation=operation,
+                    phase=phase,
+                    carrier=carrier,
+                ):
+                    result = evaluate(
+                        profile_id=profile_id,
+                        producer_role=None,
+                        operation=operation,
+                        document=carriers[(phase, carrier)],
+                        initial_state=common_state,
+                    )
+                    self.assertEqual(result.decision, "rejected")
+                    self.assertIn(envelope_token, result.tokens)
+                    self.assertIn(
+                        "impact_simulation_authority_rejected", result.tokens
+                    )
+                    self.assertIn(
+                        "application_dry_run_suppressed", result.tokens
+                    )
+                    self.assertEqual(result.state_after, result.state_before)
+
+        for carrier in ("grant", "execution"):
+            with self.subTest(operation="simulate_impact", carrier=carrier):
+                result = evaluate(
+                    profile_id=RM,
+                    producer_role=None,
+                    operation="simulate_impact",
+                    document=carriers[("pre_issuance", carrier)],
+                    initial_state=common_state,
+                )
+                self.assertEqual(result.decision, "stopped")
+                self.assertIn("impact_simulation_binding_rejected", result.tokens)
+                self.assertIn("impact_simulation_suppressed", result.tokens)
+                self.assertIn("consent_preview_retained", result.tokens)
+                self.assertNotIn("impact_simulation_presented", result.tokens)
+                self.assertEqual(result.state_after, result.state_before)
+
+        for operation in ("issue_grant", "mediate_grant"):
+            with self.subTest(operation=operation, carrier="execution-unconsumed"):
+                profile_id = GI if operation == "issue_grant" else RM
+                result = evaluate(
+                    profile_id=profile_id,
+                    producer_role=None,
+                    operation=operation,
+                    document=carriers[("pre_issuance", "execution")],
+                    initial_state=common_state,
+                )
+                self.assertEqual(result.decision, "accepted")
+                self.assertNotIn(
+                    "impact_simulation_authority_rejected", result.tokens
+                )
+
+        for operation, fixture_id, accepted_token in (
+            ("translate_action", "ASP-F-AA-001", "typed_request_forwarded"),
+            ("translate_ahp_action", "ASP-F-AA-006", "ahp_control_translated"),
+        ):
+            with self.subTest(operation=operation, carrier="grant-unconsumed"):
+                document = copy.deepcopy(self.catalog.fixtures[fixture_id]["document"])
+                document["grant"]["impact_simulation"] = copy.deepcopy(
+                    baseline["impact_simulation"]["result"]
+                )
+                result = evaluate(
+                    profile_id=AA,
+                    producer_role=None,
+                    operation=operation,
+                    document=document,
+                    initial_state=common_state,
+                )
+                self.assertEqual(result.decision, "accepted")
+                self.assertIn(accepted_token, result.tokens)
+                self.assertNotIn(
+                    "impact_simulation_authority_rejected", result.tokens
+                )
+
+    def test_impact_simulation_positive_behavioral_matrix(self) -> None:
+        baseline = self.catalog.fixtures["ASP-F-RM-051"]["document"]
+        vector = self.catalog.vectors["ASP-V-RM-051"]
+
+        incompatible = copy.deepcopy(baseline)
+        facts = incompatible["impact_simulation"]["source"][
+            "candidate_check_facts"
+        ]
+        next(fact for fact in facts if fact["check_id"] == "policy")[
+            "state"
+        ] = "blocking"
+        for example in incompatible["impact_simulation"]["result"]["examples"][:3]:
+            example["outcome"] = "not_covered"
+            example["reasons"] = ["policy_denied"]
+        result = self.evaluate_document(vector, incompatible)
+        self.assertEqual(result.decision, "accepted")
+        self.assertIn("impact_simulation_presented", result.tokens)
+
+        indeterminate = copy.deepcopy(baseline)
+        projection = indeterminate["impact_simulation"]
+        match_binding = {
+            "match_id": "match-current",
+            "evaluated_at": "2026-07-19T09:59:00Z",
+            "valid_until": "2026-07-19T10:05:00Z",
+        }
+        projection["source"]["bindings"]["capability_match"] = copy.deepcopy(
+            match_binding
+        )
+        projection["result"]["bindings"]["capability_match"] = copy.deepcopy(
+            match_binding
+        )
+        projection["current_binding_facts"] = copy.deepcopy(
+            projection["source"]["bindings"]
+        )
+        projection["source"]["freshness_deadlines"][
+            "capability_match"
+        ] = match_binding["valid_until"]
+        required_input = next(
+            fact
+            for fact in projection["source"]["candidate_check_facts"]
+            if fact["check_id"] == "required_input"
+        )
+        required_input["state"] = "blocking"
+        reason = {
+            "code": "input_unknown",
+            "severity": "blocking",
+            "subject": copy.deepcopy(required_input["subject"]),
+        }
+        delegate = projection["source"]["bindings"]["delegate"]
+        projection["source"]["matched_candidate"] = {
+            "bindings": copy.deepcopy(projection["source"]["bindings"]),
+            "agent_id": delegate["agent_id"],
+            "passport_profile": delegate["passport_profile"],
+            "passport_hash_profile": delegate["passport_hash_profile"],
+            "passport_hash": delegate["passport_hash"],
+            "passport_verification_profile": delegate[
+                "passport_verification_profile"
+            ],
+            "grant_request_hash": projection["source"]["bindings"][
+                "grant_request_hash"
+            ],
+            "status": "indeterminate",
+            "reasons": [reason],
+        }
+        for example in projection["result"]["examples"][:3]:
+            example["outcome"] = "indeterminate"
+            example["reasons"] = ["input_unknown"]
+        result = self.evaluate_document(vector, indeterminate)
+        self.assertEqual(result.decision, "accepted")
+        self.assertIn("impact_simulation_presented", result.tokens)
+
+        truncated = copy.deepcopy(baseline)
+        projection = truncated["impact_simulation"]
+        exposure = copy.deepcopy(
+            projection["source"]["actions"][0]["data_exposure"]
+        )
+        for index in range(9):
+            projection["source"]["actions"].append(
+                {
+                    "action_id": f"action.extra-{index:02d}",
+                    "scope": "item.read",
+                    "operation_id": f"item.extra-{index:02d}",
+                    "mode": "read",
+                    "risk": "read",
+                    "approval": "none",
+                    "required_companion_action_ids": [],
+                    "effects": [],
+                    "data_exposure": copy.deepcopy(exposure),
+                    "recovery_actions": [],
+                    "recovery_targets": [],
+                }
+            )
+        derived = _derive_impact_actions(
+            projection["source"]["actions"],
+            projection["source"]["requested_action_ids"],
+        )
+        selected_unrequested = [
+            "action.delete",
+            "action.publish",
+            *[f"action.extra-{index:02d}" for index in range(6)],
+        ]
+        projection["result"]["examples"] = [
+            *projection["result"]["examples"][:3],
+            *[
+                {
+                    "request_relation": "unrequested",
+                    "outcome": "not_covered",
+                    "reasons": ["action_not_requested"],
+                    "action": copy.deepcopy(derived[action_id]),
+                }
+                for action_id in selected_unrequested
+            ],
+        ]
+        projection["result"]["coverage"]["unrequested"] = {
+            "total": 11,
+            "included": 8,
+            "truncated": True,
+        }
+        result = self.evaluate_document(vector, truncated)
+        self.assertEqual(result.decision, "accepted")
+        self.assertIn("impact_simulation_presented", result.tokens)
 
     def test_risk_explanations_are_bound_literal_and_never_authority(self) -> None:
         for vector_id in (

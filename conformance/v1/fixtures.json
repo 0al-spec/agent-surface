@@ -2,7 +2,7 @@
   "$schema": "./fixtures.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.6.0",
+  "suite_version": "1.7.0",
   "fixture_catalog_id": "agent-surface/conformance/fixtures/v1",
   "fixtures": [
     {
@@ -1848,6 +1848,430 @@
           "agent_projection": "absent"
         }
       }
+    },
+    {
+      "fixture_id": "ASP-F-RM-051",
+      "baseline_vector_id": "ASP-V-RM-051",
+      "document": {
+        "surface": { "status": "current", "version": "surface_v1", "retained_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "candidate_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "references": "complete", "mode": "standard", "action_semantics": "state_changing" },
+        "grant": { "status": "proposed", "issuer": "issuer_a", "claimed_issuer": "issuer_a", "requested_actions": ["action.read", "action.revert", "action.write"], "requested_scopes": ["item.read", "item.write"], "issued_actions": [], "companion_closure": "closed", "passport_status": "current", "revocation_state": "active", "revocation_request_hash": "revocation_hash_a", "recorded_revocation_request_hash": "revocation_hash_a" },
+        "execution": { "input_hash": "input_hash_a", "recorded_input_hash": "input_hash_a", "input_schema_hash": "input_schema_hash_a", "recorded_input_schema_hash": "input_schema_hash_a", "normalization": "fixed_point", "execution_hash": "execution_hash_a", "recorded_execution_hash": "execution_hash_a", "approval_hash": "approval_hash_a", "recorded_approval_hash": "approval_hash_a", "policy": "allow", "runtime_identity": "runtime_identity_a", "bound_runtime_identity": "runtime_identity_a", "sender_credential_audience": "credential_audience_a", "bound_credential_audience": "credential_audience_a", "proof_session_binding": "session_binding_a", "bound_session_binding": "session_binding_a", "attestation": "current", "outcome_state": "known", "retry_key": "same" },
+        "receipt": { "producer_role": "runtime", "claimed_observation": "runtime_observation", "integrity": "valid", "authority_use": "prohibited", "origin": "observed" },
+        "runtime": { "returned_grant_width": "equal", "credential_release": "none", "revocation_state": "current", "remote_path": "known", "training_policy": "exact", "capability_match": "current" },
+        "adapter": { "credential_input": "none", "action_authority": "exact", "receipt_evidence": "observed", "unknown_outcome_handling": "stop" },
+        "impact_simulation": {
+          "phase": "pre_issuance",
+          "evaluation_time": "2026-07-19T10:01:00Z",
+          "authority_use": "none",
+          "current_binding_facts": {
+            "surface": {
+              "issuer": "issuer_a",
+              "app_id": "app_a",
+              "surface_version": "surface_v1",
+              "surface_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            },
+            "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "delegate": {
+              "runtime_id": "runtime_a",
+              "agent_id": "agent_a",
+              "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+              "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+              "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "passport_verification_profile": "https://example.com/passport-verification/v1"
+            },
+            "capability_match": null,
+            "agent_inventory_revision": "agents-1",
+            "adapter_inventory_revision": "adapters-1",
+            "local_policy_revision": "policy-1",
+            "enterprise_policy_revision": null,
+            "user_preferences_revision": null
+          },
+          "source": {
+            "bindings": {
+              "surface": {
+                "issuer": "issuer_a",
+                "app_id": "app_a",
+                "surface_version": "surface_v1",
+                "surface_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+              },
+              "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "delegate": {
+                "runtime_id": "runtime_a",
+                "agent_id": "agent_a",
+                "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+                "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+                "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "passport_verification_profile": "https://example.com/passport-verification/v1"
+              },
+              "capability_match": null,
+              "agent_inventory_revision": "agents-1",
+              "adapter_inventory_revision": "adapters-1",
+              "local_policy_revision": "policy-1",
+              "enterprise_policy_revision": null,
+              "user_preferences_revision": null
+            },
+            "freshness_deadlines": {
+              "passport_status": "2026-07-19T10:05:00Z",
+              "capability_match": null,
+              "agent_inventory": "2026-07-19T10:05:00Z",
+              "adapter_inventory": "2026-07-19T10:05:00Z",
+              "local_policy": "2026-07-19T10:05:00Z",
+              "enterprise_policy": null,
+              "user_preferences": null,
+              "runtime_identity": "2026-07-19T10:05:00Z",
+              "runtime_attestation": "2026-07-19T10:05:00Z",
+              "local_maximum": "2026-07-19T10:05:00Z"
+            },
+            "requested_action_ids": ["action.read", "action.revert", "action.write"],
+            "requested_scope_ids": ["item.read", "item.write"],
+            "candidate_check_facts": [
+              { "check_id": "adapter", "state": "satisfied", "subject": { "kind": "adapter", "id": "adapter_a" } },
+              { "check_id": "approval", "state": "satisfied", "subject": { "kind": "approval", "id": "action.write" } },
+              { "check_id": "capability", "state": "satisfied", "subject": { "kind": "capability", "id": "item.write" } },
+              { "check_id": "data_exposure", "state": "satisfied", "subject": { "kind": "exposure", "id": "item.content" } },
+              { "check_id": "effect", "state": "satisfied", "subject": { "kind": "effect", "id": "item-update" } },
+              { "check_id": "execution_stage", "state": "satisfied", "subject": { "kind": "action", "id": "action.write" } },
+              { "check_id": "passport_integrity", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+              { "check_id": "passport_presence", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+              { "check_id": "passport_profile", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+              { "check_id": "passport_status", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+              { "check_id": "policy", "state": "satisfied", "subject": { "kind": "policy", "id": "policy-1" } },
+              { "check_id": "recovery", "state": "satisfied", "subject": { "kind": "recovery", "id": "action.revert" } },
+              { "check_id": "remote_processing", "state": "satisfied", "subject": { "kind": "policy", "id": "local" } },
+              { "check_id": "required_input", "state": "satisfied", "subject": { "kind": "policy", "id": "item.content" } },
+              { "check_id": "retention", "state": "satisfied", "subject": { "kind": "exposure", "id": "item.content" } },
+              { "check_id": "risk", "state": "satisfied", "subject": { "kind": "action", "id": "action.write" } },
+              { "check_id": "runtime_attestation_availability", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+              { "check_id": "runtime_attestation_support", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+              { "check_id": "runtime_identity_availability", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+              { "check_id": "runtime_identity_integrity", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+              { "check_id": "sandbox", "state": "satisfied", "subject": { "kind": "sandbox", "id": "runtime_a" } },
+              { "check_id": "schema", "state": "satisfied", "subject": { "kind": "action", "id": "action.write" } },
+              { "check_id": "scope", "state": "satisfied", "subject": { "kind": "scope", "id": "item.write" } },
+              { "check_id": "training_use", "state": "satisfied", "subject": { "kind": "policy", "id": "local" } }
+            ],
+            "matched_candidate": null,
+            "actions": [
+              {
+                "action_id": "action.read",
+                "scope": "item.read",
+                "operation_id": "item.write",
+                "mode": "dry_run",
+                "risk": "read",
+                "approval": "none",
+                "required_companion_action_ids": [],
+                "effects": [],
+                "data_exposure": {
+                  "classes": ["item.content"],
+                  "redaction": { "mode": "none" },
+                  "retention": { "mode": "transient", "delete_on_grant_end": true }
+                },
+                "recovery_actions": [],
+                "recovery_targets": []
+              },
+              {
+                "action_id": "action.delete",
+                "scope": "item.write",
+                "operation_id": "item.delete",
+                "mode": "commit",
+                "risk": "destructive",
+                "approval": "user_or_app",
+                "required_companion_action_ids": [],
+                "effects": [
+                  {
+                    "effect_id": "item-delete",
+                    "operation": "delete",
+                    "resource_type": "item",
+                    "visibility": "private",
+                    "boundary": "internal",
+                    "reversibility": "irreversible",
+                    "domain": "data"
+                  }
+                ],
+                "data_exposure": {
+                  "classes": ["item.content"],
+                  "redaction": { "mode": "none" },
+                  "retention": { "mode": "transient", "delete_on_grant_end": true }
+                },
+                "recovery_actions": [],
+                "recovery_targets": []
+              },
+              {
+                "action_id": "action.revert",
+                "scope": "item.write",
+                "operation_id": "item.write",
+                "mode": "revert",
+                "risk": "write",
+                "approval": "user_or_app",
+                "required_companion_action_ids": [],
+                "effects": [
+                  {
+                    "effect_id": "item-revert",
+                    "operation": "update",
+                    "resource_type": "item",
+                    "visibility": "private",
+                    "boundary": "internal",
+                    "reversibility": "irreversible",
+                    "domain": "data"
+                  }
+                ],
+                "data_exposure": {
+                  "classes": ["item.content"],
+                  "redaction": { "mode": "none" },
+                  "retention": { "mode": "transient", "delete_on_grant_end": true }
+                },
+                "recovery_actions": [],
+                "recovery_targets": [
+                  {
+                    "action_id": "action.write",
+                    "effect_ids": ["item-update"],
+                    "recovery_window_seconds": 3600
+                  }
+                ]
+              },
+              {
+                "action_id": "action.write",
+                "scope": "item.write",
+                "operation_id": "item.write",
+                "mode": "commit",
+                "risk": "write",
+                "approval": "user_or_app",
+                "required_companion_action_ids": ["action.read"],
+                "effects": [
+                  {
+                    "effect_id": "item-update",
+                    "operation": "update",
+                    "resource_type": "item",
+                    "visibility": "private",
+                    "boundary": "internal",
+                    "reversibility": "reversible",
+                    "domain": "data"
+                  }
+                ],
+                "data_exposure": {
+                  "classes": ["item.content"],
+                  "redaction": { "mode": "none" },
+                  "retention": { "mode": "transient", "delete_on_grant_end": true }
+                },
+                "recovery_actions": [
+                  {
+                    "mode": "revert",
+                    "action_id": "action.revert",
+                    "effect_ids": ["item-update"],
+                    "recovery_window_seconds": 3600
+                  }
+                ],
+                "recovery_targets": []
+              },
+              {
+                "action_id": "action.publish",
+                "scope": "item.write",
+                "operation_id": "item.write",
+                "mode": "commit",
+                "risk": "public_side_effect",
+                "approval": "user_or_app",
+                "required_companion_action_ids": [],
+                "effects": [
+                  {
+                    "effect_id": "item-publish",
+                    "operation": "publish",
+                    "resource_type": "item",
+                    "visibility": "public",
+                    "boundary": "internal",
+                    "reversibility": "irreversible",
+                    "domain": "communication"
+                  }
+                ],
+                "data_exposure": {
+                  "classes": ["item.content"],
+                  "redaction": { "mode": "none" },
+                  "retention": { "mode": "transient", "delete_on_grant_end": true }
+                },
+                "recovery_actions": [],
+                "recovery_targets": []
+              }
+            ]
+          },
+          "result": {
+            "feature": "agent-surface/feature/impact-simulation",
+            "evaluated_at": "2026-07-19T10:00:00Z",
+            "valid_until": "2026-07-19T10:05:00Z",
+            "bindings": {
+              "surface": {
+                "issuer": "issuer_a",
+                "app_id": "app_a",
+                "surface_version": "surface_v1",
+                "surface_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+              },
+              "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "delegate": {
+                "runtime_id": "runtime_a",
+                "agent_id": "agent_a",
+                "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+                "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+                "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "passport_verification_profile": "https://example.com/passport-verification/v1"
+              },
+              "capability_match": null,
+              "agent_inventory_revision": "agents-1",
+              "adapter_inventory_revision": "adapters-1",
+              "local_policy_revision": "policy-1",
+              "enterprise_policy_revision": null,
+              "user_preferences_revision": null
+            },
+            "coverage": {
+              "requested": { "total": 3, "included": 3, "complete": true },
+              "unrequested": { "total": 2, "included": 2, "truncated": false },
+              "selection_algorithm": "highest-risk-then-action-id-v1"
+            },
+            "examples": [
+              {
+                "request_relation": "requested",
+                "outcome": "covered",
+                "reasons": [],
+                "action": {
+                  "action_id": "action.read",
+                  "scope": "item.read",
+                  "mode": "dry_run",
+                  "risk": "read",
+                  "approval": "none",
+                  "required_companion_action_ids": [],
+                  "maximum_effects": [],
+                  "data_exposure": {
+                    "classes": ["item.content"],
+                    "redaction": { "mode": "none" },
+                    "retention": { "mode": "transient", "delete_on_grant_end": true }
+                  },
+                  "recovery": { "available_action_ids": [], "limitations": [] }
+                }
+              },
+              {
+                "request_relation": "requested",
+                "outcome": "covered",
+                "reasons": [],
+                "action": {
+                  "action_id": "action.revert",
+                  "scope": "item.write",
+                  "mode": "revert",
+                  "risk": "write",
+                  "approval": "user_or_app",
+                  "required_companion_action_ids": [],
+                  "maximum_effects": [
+                    {
+                      "effect_id": "item-revert",
+                      "operation": "update",
+                      "resource_type": "item",
+                      "visibility": "private",
+                      "boundary": "internal",
+                      "reversibility": "irreversible",
+                      "domain": "data"
+                    }
+                  ],
+                  "data_exposure": {
+                    "classes": ["item.content"],
+                    "redaction": { "mode": "none" },
+                    "retention": { "mode": "transient", "delete_on_grant_end": true }
+                  },
+                  "recovery": { "available_action_ids": [], "limitations": ["irreversible"] }
+                }
+              },
+              {
+                "request_relation": "requested",
+                "outcome": "covered",
+                "reasons": [],
+                "action": {
+                  "action_id": "action.write",
+                  "scope": "item.write",
+                  "mode": "commit",
+                  "risk": "write",
+                  "approval": "user_or_app",
+                  "required_companion_action_ids": ["action.read"],
+                  "maximum_effects": [
+                    {
+                      "effect_id": "item-update",
+                      "operation": "update",
+                      "resource_type": "item",
+                      "visibility": "private",
+                      "boundary": "internal",
+                      "reversibility": "reversible",
+                      "domain": "data"
+                    }
+                  ],
+                  "data_exposure": {
+                    "classes": ["item.content"],
+                    "redaction": { "mode": "none" },
+                    "retention": { "mode": "transient", "delete_on_grant_end": true }
+                  },
+                  "recovery": {
+                    "available_action_ids": ["action.revert"],
+                    "limitations": ["recovery_window_limited"]
+                  }
+                }
+              },
+              {
+                "request_relation": "unrequested",
+                "outcome": "not_covered",
+                "reasons": ["action_not_requested"],
+                "action": {
+                  "action_id": "action.delete",
+                  "scope": "item.write",
+                  "mode": "commit",
+                  "risk": "destructive",
+                  "approval": "user_or_app",
+                  "required_companion_action_ids": [],
+                  "maximum_effects": [
+                    {
+                      "effect_id": "item-delete",
+                      "operation": "delete",
+                      "resource_type": "item",
+                      "visibility": "private",
+                      "boundary": "internal",
+                      "reversibility": "irreversible",
+                      "domain": "data"
+                    }
+                  ],
+                  "data_exposure": {
+                    "classes": ["item.content"],
+                    "redaction": { "mode": "none" },
+                    "retention": { "mode": "transient", "delete_on_grant_end": true }
+                  },
+                  "recovery": { "available_action_ids": [], "limitations": ["irreversible", "no_recovery_action"] }
+                }
+              },
+              {
+                "request_relation": "unrequested",
+                "outcome": "not_covered",
+                "reasons": ["action_not_requested"],
+                "action": {
+                  "action_id": "action.publish",
+                  "scope": "item.write",
+                  "mode": "commit",
+                  "risk": "public_side_effect",
+                  "approval": "user_or_app",
+                  "required_companion_action_ids": [],
+                  "maximum_effects": [
+                    {
+                      "effect_id": "item-publish",
+                      "operation": "publish",
+                      "resource_type": "item",
+                      "visibility": "public",
+                      "boundary": "internal",
+                      "reversibility": "irreversible",
+                      "domain": "communication"
+                    }
+                  ],
+                  "data_exposure": {
+                    "classes": ["item.content"],
+                    "redaction": { "mode": "none" },
+                    "retention": { "mode": "transient", "delete_on_grant_end": true }
+                  },
+                  "recovery": { "available_action_ids": [], "limitations": ["irreversible", "no_recovery_action"] }
+                }
+              }
+            ]
+          }
+        }
+      }
     }
   ],
   "mutations": [
@@ -2681,6 +3105,386 @@
           "op": "replace",
           "path": "/risk_explanation/bidi_isolated",
           "value": false
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-STALE-SURFACE",
+      "input_variant": "impact_simulation_stale_surface",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/bindings/surface/surface_hash",
+          "value": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-GRANT-HASH-MISMATCH",
+      "input_variant": "impact_simulation_grant_hash_mismatch",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/bindings/grant_request_hash",
+          "value": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-INCOMPLETE-COVERAGE",
+      "input_variant": "impact_simulation_incomplete_coverage",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/coverage/requested/included",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-WRONG-SELECTION",
+      "input_variant": "impact_simulation_wrong_selection",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/3/action/action_id",
+          "value": "action.publish"
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/4/action/action_id",
+          "value": "action.delete"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-UNREQUESTED-COVERED",
+      "input_variant": "impact_simulation_unrequested_covered",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/3/outcome",
+          "value": "covered"
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/3/reasons",
+          "value": []
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-UNKNOWN-COVERED",
+      "input_variant": "impact_simulation_unknown_covered",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/source/candidate_check_facts/13/state",
+          "value": "blocking"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-ACTION-SUBSTITUTION",
+      "input_variant": "impact_simulation_action_substitution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/0/action/scope",
+          "value": "item.write"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-AUTHORITY-ATTEMPT",
+      "input_variant": "impact_simulation_authority_attempt",
+      "patch": [
+        {
+          "op": "copy",
+          "from": "/impact_simulation/result",
+          "path": "/grant/impact_simulation"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-UNCLOSED-COMPANION",
+      "input_variant": "impact_simulation_unclosed_companion",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/source/actions/0/required_companion_action_ids",
+          "value": ["action.publish"]
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/0/action/required_companion_action_ids",
+          "value": ["action.publish"]
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-MATCH-CAUSALITY",
+      "input_variant": "impact_simulation_match_causality",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/source/bindings/capability_match",
+          "value": {
+            "match_id": "match_late",
+            "evaluated_at": "2026-07-19T10:00:30Z",
+            "valid_until": "2026-07-19T10:05:00Z"
+          }
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/bindings/capability_match",
+          "value": {
+            "match_id": "match_late",
+            "evaluated_at": "2026-07-19T10:00:30Z",
+            "valid_until": "2026-07-19T10:05:00Z"
+          }
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/source/matched_candidate",
+          "value": {
+            "bindings": {
+              "surface": {
+                "issuer": "issuer_a",
+                "app_id": "app_a",
+                "surface_version": "surface_v1",
+                "surface_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+              },
+              "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "delegate": {
+                "runtime_id": "runtime_a",
+                "agent_id": "agent_a",
+                "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+                "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+                "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "passport_verification_profile": "https://example.com/passport-verification/v1"
+              },
+              "capability_match": {
+                "match_id": "match_late",
+                "evaluated_at": "2026-07-19T10:00:30Z",
+                "valid_until": "2026-07-19T10:05:00Z"
+              },
+              "agent_inventory_revision": "agents-1",
+              "adapter_inventory_revision": "adapters-1",
+              "local_policy_revision": "policy-1",
+              "enterprise_policy_revision": null,
+              "user_preferences_revision": null
+            },
+            "agent_id": "agent_a",
+            "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+            "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+            "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "passport_verification_profile": "https://example.com/passport-verification/v1",
+            "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "status": "compatible",
+            "reasons": []
+          }
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-POST-ISSUANCE",
+      "input_variant": "impact_simulation_post_issuance",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/phase",
+          "value": "post_issuance"
+        },
+        {
+          "op": "replace",
+          "path": "/grant/status",
+          "value": "active"
+        },
+        {
+          "op": "replace",
+          "path": "/grant/issued_actions",
+          "value": ["action.read", "action.revert", "action.write"]
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-ACTION-AUTHORITY-ATTEMPT",
+      "input_variant": "impact_simulation_action_authority_attempt",
+      "patch": [
+        {
+          "op": "copy",
+          "from": "/impact_simulation/result",
+          "path": "/execution/impact_simulation"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-REVISION-SUBSTITUTION",
+      "input_variant": "impact_simulation_revision_substitution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/source/bindings/local_policy_revision",
+          "value": "policy-2"
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/bindings/local_policy_revision",
+          "value": "policy-2"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-BINDING-SUBSTITUTION",
+      "input_variant": "impact_simulation_binding_substitution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/source/bindings/surface/surface_hash",
+          "value": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/bindings/surface/surface_hash",
+          "value": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/source/bindings/grant_request_hash",
+          "value": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/bindings/grant_request_hash",
+          "value": "sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/source/bindings/delegate/agent_id",
+          "value": "agent_b"
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/bindings/delegate/agent_id",
+          "value": "agent_b"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-FAR-FUTURE",
+      "input_variant": "impact_simulation_far_future",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/valid_until",
+          "value": "2026-07-19T10:06:00Z"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-DECISION-SUBSTITUTION",
+      "input_variant": "impact_simulation_decision_substitution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/0/outcome",
+          "value": "not_covered"
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/0/reasons",
+          "value": ["policy_denied"]
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/1/outcome",
+          "value": "not_covered"
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/1/reasons",
+          "value": ["policy_denied"]
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/2/outcome",
+          "value": "not_covered"
+        },
+        {
+          "op": "replace",
+          "path": "/impact_simulation/result/examples/2/reasons",
+          "value": ["policy_denied"]
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-REQUEST-OVERFLOW",
+      "input_variant": "impact_simulation_request_overflow",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/source/requested_action_ids",
+          "value": [
+            "action.000", "action.001", "action.002", "action.003", "action.004",
+            "action.005", "action.006", "action.007", "action.008", "action.009",
+            "action.010", "action.011", "action.012", "action.013", "action.014",
+            "action.015", "action.016", "action.017", "action.018", "action.019",
+            "action.020", "action.021", "action.022", "action.023", "action.024",
+            "action.025", "action.026", "action.027", "action.028", "action.029",
+            "action.030", "action.031", "action.032", "action.033", "action.034",
+            "action.035", "action.036", "action.037", "action.038", "action.039",
+            "action.040", "action.041", "action.042", "action.043", "action.044",
+            "action.045", "action.046", "action.047", "action.048", "action.049",
+            "action.050", "action.051", "action.052", "action.053", "action.054",
+            "action.055", "action.056", "action.057", "action.058", "action.059",
+            "action.060", "action.061", "action.062", "action.063", "action.064"
+          ]
+        },
+        {
+          "op": "replace",
+          "path": "/grant/requested_actions",
+          "value": [
+            "action.000", "action.001", "action.002", "action.003", "action.004",
+            "action.005", "action.006", "action.007", "action.008", "action.009",
+            "action.010", "action.011", "action.012", "action.013", "action.014",
+            "action.015", "action.016", "action.017", "action.018", "action.019",
+            "action.020", "action.021", "action.022", "action.023", "action.024",
+            "action.025", "action.026", "action.027", "action.028", "action.029",
+            "action.030", "action.031", "action.032", "action.033", "action.034",
+            "action.035", "action.036", "action.037", "action.038", "action.039",
+            "action.040", "action.041", "action.042", "action.043", "action.044",
+            "action.045", "action.046", "action.047", "action.048", "action.049",
+            "action.050", "action.051", "action.052", "action.053", "action.054",
+            "action.055", "action.056", "action.057", "action.058", "action.059",
+            "action.060", "action.061", "action.062", "action.063", "action.064"
+          ]
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-IMPACT-SIMULATION-ACTIVE-GRANT-AUTHORITY-ATTEMPT",
+      "input_variant": "impact_simulation_active_grant_authority_attempt",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/impact_simulation/phase",
+          "value": "post_issuance"
+        },
+        {
+          "op": "replace",
+          "path": "/grant/status",
+          "value": "active"
+        },
+        {
+          "op": "replace",
+          "path": "/grant/issued_actions",
+          "value": ["action.read", "action.revert", "action.write"]
+        },
+        {
+          "op": "copy",
+          "from": "/impact_simulation/result",
+          "path": "/grant/impact_simulation"
         }
       ]
     }

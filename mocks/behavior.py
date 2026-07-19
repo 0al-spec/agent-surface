@@ -9,6 +9,7 @@ authoritative state.
 from __future__ import annotations
 
 import base64
+import binascii
 import copy
 import hashlib
 import json
@@ -29,6 +30,89 @@ AE = "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1"
 RP = "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1"
 RM = "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
 AA = "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
+_IMPACT_AUTHORITY_GUARDS = {
+    (GI, "issue_grant"): (
+        ("grant",),
+        (
+            "grant_rejected",
+            "impact_simulation_binding_rejected",
+            "impact_simulation_authority_rejected",
+            "application_dry_run_suppressed",
+            "impact_simulation_agent_projection_suppressed",
+        ),
+    ),
+    (GI, "revoke_grant"): (
+        ("grant",),
+        (
+            "grant_rejected",
+            "impact_simulation_binding_rejected",
+            "impact_simulation_authority_rejected",
+            "application_dry_run_suppressed",
+            "impact_simulation_agent_projection_suppressed",
+        ),
+    ),
+    (RM, "mediate_grant"): (
+        ("grant",),
+        (
+            "grant_rejected",
+            "impact_simulation_binding_rejected",
+            "impact_simulation_authority_rejected",
+            "application_dry_run_suppressed",
+            "impact_simulation_agent_projection_suppressed",
+        ),
+    ),
+    (RM, "mediate_action"): (
+        ("grant", "execution"),
+        (
+            "action_rejected",
+            "mediation_stopped",
+            "impact_simulation_binding_rejected",
+            "impact_simulation_authority_rejected",
+            "application_dry_run_suppressed",
+            "impact_simulation_agent_projection_suppressed",
+        ),
+    ),
+    (AE, "invoke_action"): (
+        ("grant", "execution"),
+        (
+            "action_rejected",
+            "impact_simulation_binding_rejected",
+            "impact_simulation_authority_rejected",
+            "application_dry_run_suppressed",
+            "impact_simulation_agent_projection_suppressed",
+        ),
+    ),
+    (AE, "replay_action"): (
+        ("grant", "execution"),
+        (
+            "action_rejected",
+            "impact_simulation_binding_rejected",
+            "impact_simulation_authority_rejected",
+            "application_dry_run_suppressed",
+            "impact_simulation_agent_projection_suppressed",
+        ),
+    ),
+    (AA, "translate_action"): (
+        ("execution",),
+        (
+            "adapter_request_rejected",
+            "impact_simulation_binding_rejected",
+            "impact_simulation_authority_rejected",
+            "application_dry_run_suppressed",
+            "impact_simulation_agent_projection_suppressed",
+        ),
+    ),
+    (AA, "translate_ahp_action"): (
+        ("execution",),
+        (
+            "adapter_request_rejected",
+            "impact_simulation_binding_rejected",
+            "impact_simulation_authority_rejected",
+            "application_dry_run_suppressed",
+            "impact_simulation_agent_projection_suppressed",
+        ),
+    ),
+}
 OPERATIONAL_LIMITS = (
     "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
 )
@@ -39,11 +123,189 @@ HUMAN_ELICITATION = (
     "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
 )
 RISK_EXPLANATION = "agent-surface/feature/risk-explanation-ui-hints"
+IMPACT_SIMULATION = "agent-surface/feature/impact-simulation"
 SAFE_INTEGER = 2**53 - 1
 RISK_LANGUAGE_PATTERN = re.compile(
     r"^[a-z]{2,8}(?:-[a-z]{4})?(?:-(?:[a-z]{2}|[0-9]{3}))?"
     r"(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*$"
 )
+IMPACT_DIGEST_PATTERN = re.compile(
+    r"^sha-256:[A-Za-z0-9_-]{43}(?![\s\S])"
+)
+IMPACT_EXTENSION_URI_PATTERN = re.compile(
+    r"^[A-Za-z][A-Za-z0-9+.-]*:"
+    r"(?:[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=-]|%[0-9A-Fa-f]{2})+"
+)
+IMPACT_RISK_ORDER = {
+    name: index
+    for index, name in enumerate(
+        (
+            "read",
+            "propose",
+            "write",
+            "public_side_effect",
+            "external_side_effect",
+            "financial_side_effect",
+            "destructive",
+            "privileged",
+        )
+    )
+}
+IMPACT_INDETERMINATE_REASONS = frozenset(
+    {
+        "passport_profile_unsupported",
+        "passport_status_unavailable",
+        "runtime_attestation_unavailable",
+        "runtime_identity_unavailable",
+        "input_unknown",
+    }
+)
+IMPACT_DEFINITIVE_REASONS = frozenset(
+    {
+        "action_not_requested",
+        "approval_unsupported",
+        "adapter_unavailable",
+        "capability_missing",
+        "data_exposure_unsupported",
+        "effect_unsupported",
+        "execution_stage_unsupported",
+        "passport_invalid",
+        "passport_missing",
+        "policy_denied",
+        "recovery_unsupported",
+        "remote_processing_unsupported",
+        "retention_unsupported",
+        "risk_denied",
+        "runtime_attestation_unsupported",
+        "runtime_identity_invalid",
+        "sandbox_unsatisfied",
+        "schema_unsupported",
+        "scope_unavailable",
+        "training_use_unsupported",
+    }
+)
+IMPACT_MODES = frozenset(
+    {"read", "dry_run", "propose", "reserve", "commit", "compensate", "revert"}
+)
+IMPACT_STATE_CHANGING_MODES = frozenset(
+    {"reserve", "commit", "compensate", "revert"}
+)
+IMPACT_REASON_SUBJECT_KINDS = frozenset(
+    {
+        "candidate",
+        "runtime",
+        "passport",
+        "capability",
+        "adapter",
+        "action",
+        "scope",
+        "approval",
+        "effect",
+        "recovery",
+        "exposure",
+        "sandbox",
+        "policy",
+    }
+)
+IMPACT_EFFECT_VALUES = {
+    "operation": frozenset(
+        {
+            "create",
+            "update",
+            "delete",
+            "publish",
+            "send",
+            "execute",
+            "transfer",
+            "grant",
+            "revoke",
+            "deploy",
+            "reserve",
+            "renew",
+            "release",
+        }
+    ),
+    "visibility": frozenset({"private", "shared", "public"}),
+    "boundary": frozenset({"internal", "external"}),
+    "reversibility": frozenset(
+        {"reversible", "compensatable", "irreversible", "not_applicable"}
+    ),
+    "domain": frozenset(
+        {
+            "data",
+            "communication",
+            "workflow",
+            "financial",
+            "security",
+            "identity",
+            "authorization",
+            "deployment",
+            "configuration",
+        }
+    ),
+}
+IMPACT_CANDIDATE_CHECKS = {
+    "adapter": ("adapter_unavailable", "definitive", "adapter"),
+    "approval": ("approval_unsupported", "definitive", "approval"),
+    "capability": ("capability_missing", "definitive", "capability"),
+    "data_exposure": ("data_exposure_unsupported", "definitive", "exposure"),
+    "effect": ("effect_unsupported", "definitive", "effect"),
+    "execution_stage": (
+        "execution_stage_unsupported",
+        "definitive",
+        "action",
+    ),
+    "passport_integrity": ("passport_invalid", "definitive", "passport"),
+    "passport_presence": ("passport_missing", "definitive", "passport"),
+    "passport_profile": (
+        "passport_profile_unsupported",
+        "indeterminate",
+        "passport",
+    ),
+    "passport_status": (
+        "passport_status_unavailable",
+        "indeterminate",
+        "passport",
+    ),
+    "policy": ("policy_denied", "definitive", "policy"),
+    "recovery": ("recovery_unsupported", "definitive", "recovery"),
+    "remote_processing": (
+        "remote_processing_unsupported",
+        "definitive",
+        "policy",
+    ),
+    "required_input": ("input_unknown", "indeterminate", "policy"),
+    "retention": ("retention_unsupported", "definitive", "exposure"),
+    "risk": ("risk_denied", "definitive", "action"),
+    "runtime_attestation_availability": (
+        "runtime_attestation_unavailable",
+        "indeterminate",
+        "runtime",
+    ),
+    "runtime_attestation_support": (
+        "runtime_attestation_unsupported",
+        "definitive",
+        "runtime",
+    ),
+    "runtime_identity_availability": (
+        "runtime_identity_unavailable",
+        "indeterminate",
+        "runtime",
+    ),
+    "runtime_identity_integrity": (
+        "runtime_identity_invalid",
+        "definitive",
+        "runtime",
+    ),
+    "sandbox": ("sandbox_unsatisfied", "definitive", "sandbox"),
+    "schema": ("schema_unsupported", "definitive", "action"),
+    "scope": ("scope_unavailable", "definitive", "scope"),
+    "training_use": (
+        "training_use_unsupported",
+        "definitive",
+        "policy",
+    ),
+}
 HTTP_MONTHS = {
     name: number
     for number, name in enumerate(
@@ -103,6 +365,7 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
     ),
     RP: (),
     RM: (
+        IMPACT_SIMULATION,
         RISK_EXPLANATION,
         "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
         ASP_OVER_AHP,
@@ -121,6 +384,10 @@ class BehaviorError(ValueError):
 
 class _RiskExplanationBindingError(BehaviorError):
     """Raised when otherwise bounded hint data is stale or action-substituted."""
+
+
+class _EmbeddedImpactAuthorityError(BehaviorError):
+    """Raised when a consumed closed authority object embeds a supplemental Result."""
 
 
 @dataclass(frozen=True)
@@ -173,6 +440,23 @@ def _section(document: Mapping[str, Any], name: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise BehaviorError(f"semantic document requires object section {name!r}")
     return value
+
+
+def _reject_embedded_impact(
+    document: Mapping[str, Any],
+    consumed_sections: Sequence[str],
+) -> None:
+    """Reject supplemental Impact Results embedded in consumed authority objects."""
+
+    for section_name in consumed_sections:
+        if section_name not in {"grant", "execution"}:
+            raise BehaviorError(
+                f"unsupported Impact Simulation carrier {section_name!r}"
+            )
+        if "impact_simulation" in _section(document, section_name):
+            raise _EmbeddedImpactAuthorityError(
+                f"{section_name} embeds a supplemental Impact Simulation Result"
+            )
 
 
 def _initial_state(items: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
@@ -1571,6 +1855,1089 @@ def _validate_risk_explanation_projection(
     return selected
 
 
+def _impact_sorted_unique(value: Any, label: str) -> list[str]:
+    if (
+        not isinstance(value, list)
+        or any(not isinstance(item, str) or not item for item in value)
+        or value != sorted(value, key=lambda item: item.encode("utf-8"))
+        or len(value) != len(set(value))
+    ):
+        raise BehaviorError(
+            f"impact simulation {label} must be sorted unique strings"
+        )
+    return value
+
+
+def _impact_digest(value: Any, label: str) -> str:
+    if not isinstance(value, str) or IMPACT_DIGEST_PATTERN.fullmatch(value) is None:
+        raise BehaviorError(f"impact simulation {label} is not a SHA-256 digest")
+    encoded = value.removeprefix("sha-256:")
+    try:
+        raw = base64.urlsafe_b64decode(encoded + "=")
+    except (ValueError, TypeError, binascii.Error) as error:
+        raise BehaviorError(
+            f"impact simulation {label} is not canonical base64url"
+        ) from error
+    canonical = base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+    if len(raw) != 32 or encoded != canonical:
+        raise BehaviorError(
+            f"impact simulation {label} is not canonical base64url"
+        )
+    return value
+
+
+def _validate_impact_action(action: Any) -> Mapping[str, Any]:
+    if not isinstance(action, Mapping) or set(action) != {
+        "action_id",
+        "scope",
+        "mode",
+        "risk",
+        "approval",
+        "required_companion_action_ids",
+        "maximum_effects",
+        "data_exposure",
+        "recovery",
+    }:
+        raise BehaviorError("impact simulation action is not the closed shape")
+    for name in ("action_id", "scope"):
+        if not isinstance(action.get(name), str) or not action[name]:
+            raise BehaviorError(f"impact simulation action {name} is invalid")
+    if action.get("mode") not in IMPACT_MODES:
+        raise BehaviorError("impact simulation action mode is invalid")
+    if action.get("risk") not in IMPACT_RISK_ORDER:
+        raise BehaviorError("impact simulation action risk mapping is unsupported")
+    if action.get("approval") not in {
+        "none",
+        "runtime",
+        "app",
+        "user_or_app",
+        "runtime_and_app",
+    }:
+        raise BehaviorError("impact simulation action approval is invalid")
+    _impact_sorted_unique(
+        action.get("required_companion_action_ids"),
+        "required_companion_action_ids",
+    )
+    effects = action.get("maximum_effects")
+    if not isinstance(effects, list):
+        raise BehaviorError("impact simulation maximum_effects must be an array")
+    for effect in effects:
+        if not isinstance(effect, Mapping):
+            raise BehaviorError("impact simulation effect must be an object")
+        required = {
+            "effect_id",
+            "operation",
+            "resource_type",
+            "visibility",
+            "boundary",
+            "reversibility",
+            "domain",
+        }
+        if not required.issubset(effect) or any(
+            key not in required
+            and IMPACT_EXTENSION_URI_PATTERN.fullmatch(key) is None
+            for key in effect
+        ) or (
+            not isinstance(effect.get("effect_id"), str)
+            or not effect["effect_id"]
+            or not isinstance(effect.get("resource_type"), str)
+            or not effect["resource_type"]
+            or any(
+                effect.get(field) not in allowed
+                for field, allowed in IMPACT_EFFECT_VALUES.items()
+            )
+        ):
+            raise BehaviorError("impact simulation effect is not the closed shape")
+    exposure = action.get("data_exposure")
+    if not isinstance(exposure, Mapping) or set(exposure) != {
+        "classes",
+        "redaction",
+        "retention",
+    }:
+        raise BehaviorError(
+            "impact simulation data_exposure is not the action contract"
+        )
+    _impact_sorted_unique(exposure.get("classes"), "data_exposure.classes")
+    redaction = exposure.get("redaction")
+    if not isinstance(redaction, Mapping) or redaction.get("mode") not in {
+        "none",
+        "policy",
+    }:
+        raise BehaviorError("impact simulation redaction contract is invalid")
+    required_redaction_fields = (
+        {"mode"}
+        if redaction.get("mode") == "none"
+        else {"mode", "policy_id", "summary"}
+    )
+    if set(redaction) != required_redaction_fields or any(
+        name != "mode"
+        and (not isinstance(redaction[name], str) or not redaction[name])
+        for name in redaction
+    ):
+        raise BehaviorError("impact simulation redaction contract is invalid")
+    retention = exposure.get("retention")
+    if not isinstance(retention, Mapping) or retention.get("mode") not in {
+        "transient",
+        "bounded",
+    }:
+        raise BehaviorError("impact simulation retention contract is invalid")
+    required_retention_fields = (
+        {"mode", "delete_on_grant_end"}
+        if retention.get("mode") == "transient"
+        else {"mode", "max_seconds", "delete_on_grant_end"}
+    )
+    if (
+        set(retention) != required_retention_fields
+        or not isinstance(retention.get("delete_on_grant_end"), bool)
+        or (
+            retention.get("mode") == "bounded"
+            and (
+                isinstance(retention.get("max_seconds"), bool)
+                or not isinstance(retention.get("max_seconds"), int)
+                or not 1 <= retention["max_seconds"] <= SAFE_INTEGER
+            )
+        )
+    ):
+        raise BehaviorError("impact simulation retention contract is invalid")
+    recovery = action.get("recovery")
+    if not isinstance(recovery, Mapping) or set(recovery) != {
+        "available_action_ids",
+        "limitations",
+    }:
+        raise BehaviorError("impact simulation recovery is not the closed shape")
+    _impact_sorted_unique(
+        recovery.get("available_action_ids"), "recovery.available_action_ids"
+    )
+    limitations = _impact_sorted_unique(
+        recovery.get("limitations"), "recovery.limitations"
+    )
+    core_limitations = {
+        "irreversible",
+        "external_outcome_may_be_unknown",
+        "recovery_window_limited",
+        "no_recovery_action",
+    }
+    if any(
+        limitation not in core_limitations
+        and IMPACT_EXTENSION_URI_PATTERN.fullmatch(limitation) is None
+        for limitation in limitations
+    ):
+        raise BehaviorError("impact simulation recovery limitation is invalid")
+    state_changing = action["mode"] in IMPACT_STATE_CHANGING_MODES
+    if state_changing != bool(effects):
+        raise BehaviorError(
+            "impact simulation action mode and effect envelope conflict"
+        )
+    if not state_changing and (
+        recovery["available_action_ids"] or recovery["limitations"]
+    ):
+        raise BehaviorError(
+            "impact simulation non-state action projects recovery"
+        )
+    return action
+
+
+def _validate_impact_bindings(value: Any) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping) or set(value) != {
+        "surface",
+        "grant_request_hash",
+        "delegate",
+        "capability_match",
+        "agent_inventory_revision",
+        "adapter_inventory_revision",
+        "local_policy_revision",
+        "enterprise_policy_revision",
+        "user_preferences_revision",
+    }:
+        raise BehaviorError("impact simulation bindings are not the closed shape")
+    surface = value.get("surface")
+    if not isinstance(surface, Mapping) or set(surface) != {
+        "issuer",
+        "app_id",
+        "surface_version",
+        "surface_hash",
+    }:
+        raise BehaviorError("impact simulation surface binding is invalid")
+    for name in ("issuer", "app_id", "surface_version"):
+        if not isinstance(surface.get(name), str) or not surface[name]:
+            raise BehaviorError("impact simulation surface binding is invalid")
+    _impact_digest(surface.get("surface_hash"), "surface_hash")
+    _impact_digest(value.get("grant_request_hash"), "grant_request_hash")
+    delegate = value.get("delegate")
+    if not isinstance(delegate, Mapping) or set(delegate) != {
+        "runtime_id",
+        "agent_id",
+        "passport_profile",
+        "passport_hash_profile",
+        "passport_hash",
+        "passport_verification_profile",
+    }:
+        raise BehaviorError("impact simulation delegate binding is invalid")
+    for name in delegate:
+        if not isinstance(delegate[name], str) or not delegate[name]:
+            raise BehaviorError("impact simulation delegate binding is invalid")
+    _impact_digest(delegate.get("passport_hash"), "passport_hash")
+    capability_match = value.get("capability_match")
+    if capability_match is not None and (
+        not isinstance(capability_match, Mapping)
+        or set(capability_match) != {"match_id", "evaluated_at", "valid_until"}
+        or not isinstance(capability_match.get("match_id"), str)
+        or not capability_match["match_id"]
+    ):
+        raise BehaviorError("impact simulation capability_match binding is invalid")
+    for name in (
+        "agent_inventory_revision",
+        "adapter_inventory_revision",
+        "local_policy_revision",
+    ):
+        if not isinstance(value.get(name), str) or not value[name]:
+            raise BehaviorError("impact simulation required revision is invalid")
+    for name in ("enterprise_policy_revision", "user_preferences_revision"):
+        revision = value.get(name)
+        if revision is not None and (
+            not isinstance(revision, str) or not revision
+        ):
+            raise BehaviorError("impact simulation nullable revision is invalid")
+    return value
+
+
+def _impact_candidate_projection(
+    candidate_check_facts: Any,
+    matched_candidate: Any,
+    bindings: Mapping[str, Any],
+) -> tuple[str, list[str]]:
+    if (
+        not isinstance(candidate_check_facts, list)
+        or not 24 <= len(candidate_check_facts) <= 64
+    ):
+        raise BehaviorError("impact simulation candidate check facts are unbounded")
+    check_ids: list[str] = []
+    reasons: list[Mapping[str, Any]] = []
+    reason_classifications: dict[str, str] = {}
+    for fact in candidate_check_facts:
+        if (
+            not isinstance(fact, Mapping)
+            or set(fact) != {"check_id", "state", "subject"}
+            or not isinstance(fact.get("check_id"), str)
+            or not fact["check_id"]
+            or fact.get("state") not in {"satisfied", "blocking", "advisory"}
+            or not isinstance(fact.get("subject"), Mapping)
+            or set(fact["subject"]) != {"kind", "id"}
+            or fact["subject"].get("kind") not in IMPACT_REASON_SUBJECT_KINDS
+            or not isinstance(fact["subject"].get("id"), str)
+            or not fact["subject"]["id"]
+        ):
+            raise BehaviorError("impact simulation candidate check fact is invalid")
+        check_id = fact["check_id"]
+        check_ids.append(check_id)
+        mapping = IMPACT_CANDIDATE_CHECKS.get(check_id)
+        if mapping is None:
+            if IMPACT_EXTENSION_URI_PATTERN.fullmatch(check_id) is None:
+                raise BehaviorError(
+                    "impact simulation candidate check identifier is invalid"
+                )
+            code = check_id
+            classification = "indeterminate"
+        else:
+            code, classification, required_subject_kind = mapping
+            if fact["subject"]["kind"] != required_subject_kind:
+                raise BehaviorError(
+                    f"impact simulation candidate check {check_id} has the "
+                    "wrong subject kind"
+                )
+        state = fact["state"]
+        if state != "satisfied":
+            reason_classifications[code] = classification
+            reasons.append(
+                {
+                    "code": code,
+                    "severity": state,
+                    "subject": fact["subject"],
+                }
+            )
+    if (
+        check_ids != sorted(check_ids, key=lambda item: item.encode("utf-8"))
+        or len(check_ids) != len(set(check_ids))
+        or not set(IMPACT_CANDIDATE_CHECKS).issubset(check_ids)
+    ):
+        raise BehaviorError(
+            "impact simulation candidate checks are not canonical and complete"
+        )
+    reasons.sort(
+        key=lambda reason: (
+            0 if reason["severity"] == "blocking" else 1,
+            reason["code"].encode("utf-8"),
+            reason["subject"]["kind"].encode("utf-8"),
+            reason["subject"]["id"].encode("utf-8"),
+        )
+    )
+    definitive_codes = {
+        reason["code"]
+        for reason in reasons
+        if reason["severity"] == "blocking"
+        and reason_classifications[reason["code"]] == "definitive"
+    }
+    indeterminate_codes = {
+        reason["code"]
+        for reason in reasons
+        if reason["severity"] == "blocking"
+        and reason_classifications[reason["code"]] == "indeterminate"
+    }
+    if definitive_codes:
+        derived_status = "incompatible"
+        outcome = "not_covered"
+        projected_codes = definitive_codes
+    elif indeterminate_codes:
+        derived_status = "indeterminate"
+        outcome = "indeterminate"
+        projected_codes = indeterminate_codes
+    else:
+        derived_status = "compatible"
+        outcome = "covered"
+        projected_codes = set()
+    derived_decision = {"status": derived_status, "reasons": reasons}
+    capability_match = bindings["capability_match"]
+    if capability_match is None:
+        if matched_candidate is not None:
+            raise BehaviorError(
+                "impact simulation retained candidate lacks a match binding"
+            )
+    else:
+        matched_fields = {
+            "bindings",
+            "agent_id",
+            "passport_profile",
+            "passport_hash_profile",
+            "passport_hash",
+            "passport_verification_profile",
+            "grant_request_hash",
+            "status",
+            "reasons",
+        }
+        delegate = bindings["delegate"]
+        if (
+            not isinstance(matched_candidate, Mapping)
+            or set(matched_candidate) != matched_fields
+            or matched_candidate["bindings"] != bindings
+            or matched_candidate["agent_id"] != delegate["agent_id"]
+            or matched_candidate["passport_profile"]
+            != delegate["passport_profile"]
+            or matched_candidate["passport_hash_profile"]
+            != delegate["passport_hash_profile"]
+            or matched_candidate["passport_hash"] != delegate["passport_hash"]
+            or matched_candidate["passport_verification_profile"]
+            != delegate["passport_verification_profile"]
+            or matched_candidate["grant_request_hash"]
+            != bindings["grant_request_hash"]
+            or {
+                "status": matched_candidate["status"],
+                "reasons": matched_candidate["reasons"],
+            }
+            != derived_decision
+        ):
+            raise BehaviorError(
+                "impact simulation retained match candidate is not exact"
+            )
+    return outcome, sorted(projected_codes, key=lambda item: item.encode("utf-8"))
+
+
+def _derive_impact_actions(
+    entries: Any,
+    requested_ids: list[str],
+) -> dict[str, Mapping[str, Any]]:
+    if not isinstance(entries, list) or not entries:
+        raise BehaviorError("impact simulation manifest declarations are absent")
+    declaration_fields = {
+        "action_id",
+        "scope",
+        "operation_id",
+        "mode",
+        "risk",
+        "approval",
+        "required_companion_action_ids",
+        "effects",
+        "data_exposure",
+        "recovery_actions",
+        "recovery_targets",
+    }
+    declarations: dict[str, Mapping[str, Any]] = {}
+    for declaration in entries:
+        if (
+            not isinstance(declaration, Mapping)
+            or set(declaration) != declaration_fields
+        ):
+            raise BehaviorError(
+                "impact simulation source is not a manifest declaration"
+            )
+        for field in ("action_id", "scope", "operation_id"):
+            if (
+                not isinstance(declaration.get(field), str)
+                or not declaration[field]
+            ):
+                raise BehaviorError(
+                    f"impact simulation declaration {field} is invalid"
+                )
+        action_id = declaration["action_id"]
+        if action_id in declarations:
+            raise BehaviorError(
+                "impact simulation repeats a manifest action declaration"
+            )
+        if declaration.get("mode") not in IMPACT_MODES:
+            raise BehaviorError("impact simulation declaration mode is invalid")
+        if declaration.get("risk") not in IMPACT_RISK_ORDER:
+            raise BehaviorError(
+                "impact simulation declaration risk mapping is unsupported"
+            )
+        if declaration.get("approval") not in {
+            "none",
+            "runtime",
+            "app",
+            "user_or_app",
+            "runtime_and_app",
+        }:
+            raise BehaviorError("impact simulation declaration approval is invalid")
+        companions = _impact_sorted_unique(
+            declaration.get("required_companion_action_ids"),
+            "direct required companion action ids",
+        )
+        if action_id in companions:
+            raise BehaviorError(
+                "impact simulation action requires itself as a companion"
+            )
+        effects = declaration.get("effects")
+        relationships = declaration.get("recovery_actions")
+        recovery_targets = declaration.get("recovery_targets")
+        if (
+            not isinstance(effects, list)
+            or not isinstance(relationships, list)
+            or not isinstance(recovery_targets, list)
+        ):
+            raise BehaviorError(
+                "impact simulation declaration effects and recovery are invalid"
+            )
+        state_changing = declaration["mode"] in IMPACT_STATE_CHANGING_MODES
+        if state_changing != bool(effects):
+            raise BehaviorError(
+                "impact simulation declaration mode and effects conflict"
+            )
+        if declaration["mode"] != "commit" and relationships:
+            raise BehaviorError(
+                "impact simulation non-commit declares outbound recovery"
+            )
+        if (
+            declaration["mode"] in {"compensate", "revert"}
+        ) != bool(recovery_targets):
+            raise BehaviorError(
+                "impact simulation recovery-stage targets are inconsistent"
+            )
+        effect_ids: list[str] = []
+        for effect in effects:
+            required_effect_fields = {
+                "effect_id",
+                "operation",
+                "resource_type",
+                "visibility",
+                "boundary",
+                "reversibility",
+                "domain",
+            }
+            if (
+                not isinstance(effect, Mapping)
+                or not required_effect_fields.issubset(effect)
+                or any(
+                    field not in required_effect_fields
+                    and IMPACT_EXTENSION_URI_PATTERN.fullmatch(field) is None
+                    for field in effect
+                )
+                or not isinstance(effect.get("effect_id"), str)
+                or not effect["effect_id"]
+                or not isinstance(effect.get("resource_type"), str)
+                or not effect["resource_type"]
+                or any(
+                    effect.get(field) not in allowed
+                    for field, allowed in IMPACT_EFFECT_VALUES.items()
+                )
+            ):
+                raise BehaviorError(
+                    "impact simulation declaration effect mapping is unsupported"
+                )
+            effect_ids.append(effect["effect_id"])
+        if len(effect_ids) != len(set(effect_ids)):
+            raise BehaviorError(
+                "impact simulation declaration repeats an effect identifier"
+            )
+        required_risk = "write" if state_changing else "read"
+        for effect in effects:
+            floors = [required_risk]
+            if effect["visibility"] == "public":
+                floors.append("public_side_effect")
+            if effect["boundary"] == "external":
+                floors.append("external_side_effect")
+            if effect["domain"] == "financial":
+                floors.append("financial_side_effect")
+            if effect["domain"] in {
+                "security",
+                "identity",
+                "authorization",
+            }:
+                floors.append("privileged")
+            if (
+                effect["operation"] in {"delete", "revoke"}
+                and effect["reversibility"] == "irreversible"
+            ):
+                floors.append("destructive")
+            required_risk = max(
+                floors, key=lambda risk: IMPACT_RISK_ORDER[risk]
+            )
+        if (
+            IMPACT_RISK_ORDER[declaration["risk"]]
+            < IMPACT_RISK_ORDER[required_risk]
+        ):
+            raise BehaviorError(
+                "impact simulation declaration risk is below its effect floor"
+            )
+        relationship_keys: set[tuple[Any, ...]] = set()
+        for relationship in relationships:
+            if (
+                not isinstance(relationship, Mapping)
+                or set(relationship)
+                != {
+                    "mode",
+                    "action_id",
+                    "effect_ids",
+                    "recovery_window_seconds",
+                }
+                or relationship.get("mode") not in {"compensate", "revert"}
+                or not isinstance(relationship.get("action_id"), str)
+                or not relationship["action_id"]
+                or relationship["action_id"] == action_id
+                or isinstance(relationship.get("recovery_window_seconds"), bool)
+                or not isinstance(
+                    relationship.get("recovery_window_seconds"), int
+                )
+                or not 1
+                <= relationship["recovery_window_seconds"]
+                <= SAFE_INTEGER
+            ):
+                raise BehaviorError(
+                    "impact simulation recovery relationship is invalid"
+                )
+            relationship_effects = _impact_sorted_unique(
+                relationship.get("effect_ids"),
+                "recovery relationship effect ids",
+            )
+            if not relationship_effects or not set(
+                relationship_effects
+            ).issubset(effect_ids):
+                raise BehaviorError(
+                    "impact simulation recovery relationship names unknown effects"
+                )
+            relationship_key = (
+                relationship["mode"],
+                relationship["action_id"],
+                tuple(relationship_effects),
+                relationship["recovery_window_seconds"],
+            )
+            if relationship_key in relationship_keys:
+                raise BehaviorError(
+                    "impact simulation repeats a recovery relationship"
+                )
+            relationship_keys.add(relationship_key)
+        recovery_target_keys: set[tuple[Any, ...]] = set()
+        for target in recovery_targets:
+            if (
+                not isinstance(target, Mapping)
+                or set(target)
+                != {
+                    "action_id",
+                    "effect_ids",
+                    "recovery_window_seconds",
+                }
+                or not isinstance(target.get("action_id"), str)
+                or not target["action_id"]
+                or target["action_id"] == action_id
+                or isinstance(target.get("recovery_window_seconds"), bool)
+                or not isinstance(target.get("recovery_window_seconds"), int)
+                or not 1
+                <= target["recovery_window_seconds"]
+                <= SAFE_INTEGER
+            ):
+                raise BehaviorError(
+                    "impact simulation recovery target is invalid"
+                )
+            target_effect_ids = _impact_sorted_unique(
+                target.get("effect_ids"), "recovery target effect ids"
+            )
+            if not target_effect_ids:
+                raise BehaviorError(
+                    "impact simulation recovery target has no effects"
+                )
+            target_key = (
+                target["action_id"],
+                tuple(target_effect_ids),
+                target["recovery_window_seconds"],
+            )
+            if target_key in recovery_target_keys:
+                raise BehaviorError(
+                    "impact simulation repeats a recovery target"
+                )
+            recovery_target_keys.add(target_key)
+        declarations[action_id] = declaration
+
+    for action_id, declaration in declarations.items():
+        if any(
+            companion not in declarations
+            or declarations[companion]["operation_id"]
+            != declaration["operation_id"]
+            for companion in declaration["required_companion_action_ids"]
+        ):
+            raise BehaviorError(
+                "impact simulation declaration has an invalid companion"
+            )
+        effects_by_id = {
+            effect["effect_id"]: effect for effect in declaration["effects"]
+        }
+        covered_reversible: set[str] = set()
+        covered_compensatable: set[str] = set()
+        for relationship in declaration["recovery_actions"]:
+            target = declarations.get(relationship["action_id"])
+            reciprocal = {
+                "action_id": action_id,
+                "effect_ids": relationship["effect_ids"],
+                "recovery_window_seconds": relationship[
+                    "recovery_window_seconds"
+                ],
+            }
+            if (
+                target is None
+                or target["mode"] != relationship["mode"]
+                or target["operation_id"] != declaration["operation_id"]
+                or reciprocal not in target["recovery_targets"]
+            ):
+                raise BehaviorError(
+                    "impact simulation recovery target is inconsistent"
+                )
+            for effect_id in relationship["effect_ids"]:
+                effect = effects_by_id[effect_id]
+                if relationship["mode"] == "revert":
+                    if (
+                        effect["reversibility"] != "reversible"
+                        or effect["boundary"] != "internal"
+                    ):
+                        raise BehaviorError(
+                            "impact simulation revert relationship is invalid"
+                        )
+                    covered_reversible.add(effect_id)
+                else:
+                    if effect["reversibility"] != "compensatable":
+                        raise BehaviorError(
+                            "impact simulation compensation relationship is invalid"
+                        )
+                    covered_compensatable.add(effect_id)
+        if declaration["mode"] == "commit":
+            reversible = {
+                effect_id
+                for effect_id, effect in effects_by_id.items()
+                if effect["reversibility"] == "reversible"
+            }
+            compensatable = {
+                effect_id
+                for effect_id, effect in effects_by_id.items()
+                if effect["reversibility"] == "compensatable"
+            }
+            if (
+                reversible != covered_reversible
+                or compensatable != covered_compensatable
+            ):
+                raise BehaviorError(
+                    "impact simulation commit recovery coverage is inconsistent"
+                )
+        for target in declaration["recovery_targets"]:
+            source = declarations.get(target["action_id"])
+            outbound = (
+                {
+                    "mode": declaration["mode"],
+                    "action_id": action_id,
+                    "effect_ids": target["effect_ids"],
+                    "recovery_window_seconds": target[
+                        "recovery_window_seconds"
+                    ],
+                }
+                if source is not None
+                else None
+            )
+            if (
+                source is None
+                or source["mode"] != "commit"
+                or source["operation_id"] != declaration["operation_id"]
+                or outbound not in source["recovery_actions"]
+            ):
+                raise BehaviorError(
+                    "impact simulation recovery target lacks a reciprocal"
+                )
+
+    closure_cache: dict[str, list[str]] = {}
+
+    def companion_closure(action_id: str) -> list[str]:
+        if action_id in closure_cache:
+            return closure_cache[action_id]
+        closure: set[str] = set()
+        pending = list(declarations[action_id]["required_companion_action_ids"])
+        while pending:
+            companion = pending.pop()
+            if companion == action_id or companion in closure:
+                continue
+            closure.add(companion)
+            pending.extend(
+                declarations[companion]["required_companion_action_ids"]
+            )
+        ordered = sorted(closure, key=lambda item: item.encode("utf-8"))
+        closure_cache[action_id] = ordered
+        return ordered
+
+    requested_set = set(requested_ids)
+    derived: dict[str, Mapping[str, Any]] = {}
+    for action_id, declaration in declarations.items():
+        effects = declaration["effects"]
+        relationships = declaration["recovery_actions"]
+        limitations: set[str] = set()
+        if any(
+            effect["reversibility"] == "irreversible" for effect in effects
+        ):
+            limitations.add("irreversible")
+        if any(effect["boundary"] == "external" for effect in effects):
+            limitations.add("external_outcome_may_be_unknown")
+        if relationships:
+            limitations.add("recovery_window_limited")
+        elif declaration["mode"] == "commit" and effects:
+            limitations.add("no_recovery_action")
+        action: Mapping[str, Any] = {
+            "action_id": action_id,
+            "scope": declaration["scope"],
+            "mode": declaration["mode"],
+            "risk": declaration["risk"],
+            "approval": declaration["approval"],
+            "required_companion_action_ids": companion_closure(action_id),
+            "maximum_effects": effects,
+            "data_exposure": declaration["data_exposure"],
+            "recovery": {
+                "available_action_ids": sorted(
+                    {
+                        relationship["action_id"]
+                        for relationship in relationships
+                        if relationship["action_id"] in requested_set
+                    },
+                    key=lambda item: item.encode("utf-8"),
+                ),
+                "limitations": sorted(
+                    limitations, key=lambda item: item.encode("utf-8")
+                ),
+            },
+        }
+        _validate_impact_action(action)
+        derived[action_id] = action
+    return derived
+
+
+def _validate_impact_simulation(document: Mapping[str, Any]) -> None:
+    _reject_embedded_impact(document, ("grant", "execution"))
+    projection = _section(document, "impact_simulation")
+    if set(projection) != {
+        "phase",
+        "evaluation_time",
+        "authority_use",
+        "current_binding_facts",
+        "source",
+        "result",
+    }:
+        raise BehaviorError("impact simulation fixture projection is not closed")
+    if (
+        projection.get("phase") != "pre_issuance"
+        or projection.get("authority_use") != "none"
+    ):
+        raise BehaviorError("impact simulation is not pre-issuance and local")
+    surface = _section(document, "surface")
+    grant = _section(document, "grant")
+    if (
+        surface.get("status") != "current"
+        or surface.get("references") != "complete"
+    ):
+        raise BehaviorError("impact simulation retained surface is stale")
+    source = projection.get("source")
+    result = projection.get("result")
+    if not isinstance(source, Mapping) or set(source) != {
+        "bindings",
+        "requested_action_ids",
+        "requested_scope_ids",
+        "candidate_check_facts",
+        "matched_candidate",
+        "actions",
+        "freshness_deadlines",
+    }:
+        raise BehaviorError("impact simulation authoritative source is not closed")
+    if not isinstance(result, Mapping) or set(result) != {
+        "feature",
+        "evaluated_at",
+        "valid_until",
+        "bindings",
+        "coverage",
+        "examples",
+    }:
+        raise BehaviorError("impact simulation result is not the closed shape")
+    if result.get("feature") != IMPACT_SIMULATION:
+        raise BehaviorError("impact simulation feature identifier is invalid")
+    source_bindings = _validate_impact_bindings(source.get("bindings"))
+    result_bindings = _validate_impact_bindings(result.get("bindings"))
+    if result_bindings != source_bindings:
+        raise BehaviorError("impact simulation bindings are not authoritative")
+    current_binding_facts = projection.get("current_binding_facts")
+    if (
+        not isinstance(current_binding_facts, Mapping)
+        or current_binding_facts != result_bindings
+    ):
+        raise BehaviorError(
+            "impact simulation bindings differ from runner-owned current facts"
+        )
+    result_surface = result_bindings["surface"]
+    if (
+        result_surface["surface_version"] != surface.get("version")
+        or result_surface["surface_hash"] != surface.get("retained_hash")
+    ):
+        raise BehaviorError("impact simulation is detached from the retained surface")
+    requested_ids = _impact_sorted_unique(
+        source.get("requested_action_ids"), "requested_action_ids"
+    )
+    requested_scope_ids = set(
+        _impact_sorted_unique(
+            source.get("requested_scope_ids"), "requested_scope_ids"
+        )
+    )
+    if not 1 <= len(requested_ids) <= 64:
+        raise BehaviorError("impact simulation requested coverage is out of bounds")
+    if (
+        requested_ids != grant.get("requested_actions")
+        or source.get("requested_scope_ids") != grant.get("requested_scopes")
+        or grant.get("status") != "proposed"
+        or grant.get("issued_actions") != []
+        or grant.get("companion_closure") != "closed"
+    ):
+        raise BehaviorError("impact simulation is detached from the Grant request")
+
+    evaluated_at = _utc_timestamp(result.get("evaluated_at"), "impact evaluated_at")
+    valid_until = _utc_timestamp(result.get("valid_until"), "impact valid_until")
+    evaluation_time = _utc_timestamp(
+        projection.get("evaluation_time"), "impact evaluation_time"
+    )
+    if (
+        not evaluated_at < valid_until
+        or evaluation_time < evaluated_at
+        or evaluation_time >= valid_until
+    ):
+        raise BehaviorError("impact simulation freshness interval is invalid")
+    freshness_deadlines = source.get("freshness_deadlines")
+    deadline_fields = {
+        "passport_status",
+        "capability_match",
+        "agent_inventory",
+        "adapter_inventory",
+        "local_policy",
+        "enterprise_policy",
+        "user_preferences",
+        "runtime_identity",
+        "runtime_attestation",
+        "local_maximum",
+    }
+    if not isinstance(freshness_deadlines, Mapping) or set(
+        freshness_deadlines
+    ) != deadline_fields:
+        raise BehaviorError("impact simulation freshness deadlines are not closed")
+    parsed_deadlines: dict[str, datetime | None] = {}
+    for name, deadline in freshness_deadlines.items():
+        if deadline is None:
+            parsed_deadlines[name] = None
+            continue
+        parsed = _utc_timestamp(deadline, f"impact {name} freshness deadline")
+        if parsed <= evaluated_at:
+            raise BehaviorError(
+                f"impact simulation freshness deadline {name} is not future"
+            )
+        parsed_deadlines[name] = parsed
+    for required_deadline in {
+        "passport_status",
+        "agent_inventory",
+        "adapter_inventory",
+        "local_policy",
+        "local_maximum",
+    }:
+        if parsed_deadlines[required_deadline] is None:
+            raise BehaviorError(
+                f"impact simulation required deadline {required_deadline} is absent"
+            )
+    if valid_until > min(
+        deadline
+        for deadline in parsed_deadlines.values()
+        if deadline is not None
+    ):
+        raise BehaviorError(
+            "impact simulation valid_until exceeds an authoritative deadline"
+        )
+    capability_match = result_bindings["capability_match"]
+    if capability_match is None:
+        if freshness_deadlines["capability_match"] is not None:
+            raise BehaviorError(
+                "impact simulation capability deadline lacks a match"
+            )
+    else:
+        if (
+            freshness_deadlines["capability_match"]
+            != capability_match["valid_until"]
+        ):
+            raise BehaviorError(
+                "impact simulation capability deadline differs from binding"
+            )
+        match_evaluated = _utc_timestamp(
+            capability_match["evaluated_at"], "impact match evaluated_at"
+        )
+        match_valid = _utc_timestamp(
+            capability_match["valid_until"], "impact match valid_until"
+        )
+        if (
+            not match_evaluated < match_valid
+            or match_evaluated > evaluated_at
+            or evaluation_time < match_evaluated
+            or evaluation_time >= match_valid
+            or valid_until > match_valid
+        ):
+            raise BehaviorError("impact simulation capability match is stale")
+    for revision_name, deadline_name in (
+        ("enterprise_policy_revision", "enterprise_policy"),
+        ("user_preferences_revision", "user_preferences"),
+    ):
+        if (result_bindings[revision_name] is None) != (
+            freshness_deadlines[deadline_name] is None
+        ):
+            raise BehaviorError(
+                f"impact simulation {deadline_name} deadline differs from revision"
+            )
+
+    authoritative = _derive_impact_actions(source.get("actions"), requested_ids)
+    requested_outcome, requested_reasons = _impact_candidate_projection(
+        source.get("candidate_check_facts"),
+        source.get("matched_candidate"),
+        result_bindings,
+    )
+    check_facts_by_id = {
+        fact["check_id"]: fact for fact in source["candidate_check_facts"]
+    }
+    for availability_check, deadline_name in (
+        ("runtime_identity_availability", "runtime_identity"),
+        ("runtime_attestation_availability", "runtime_attestation"),
+    ):
+        unavailable = (
+            check_facts_by_id[availability_check]["state"] == "blocking"
+        )
+        if unavailable != (freshness_deadlines[deadline_name] is None):
+            raise BehaviorError(
+                f"impact simulation {deadline_name} deadline differs from "
+                "availability"
+            )
+    if any(action_id not in authoritative for action_id in requested_ids):
+        raise BehaviorError("impact simulation requested action is unresolved")
+    for action_id in requested_ids:
+        action = authoritative[action_id]
+        if (
+            action["scope"] not in requested_scope_ids
+            or not set(action["required_companion_action_ids"]).issubset(
+                requested_ids
+            )
+        ):
+            raise BehaviorError(
+                "impact simulation request has an unavailable scope or "
+                "unclosed companion set"
+            )
+    requested_set = set(requested_ids)
+    unrequested_ids = [
+        action_id for action_id in authoritative if action_id not in requested_set
+    ]
+    selected_unrequested = sorted(
+        unrequested_ids,
+        key=lambda action_id: (
+            -IMPACT_RISK_ORDER[authoritative[action_id]["risk"]],
+            action_id.encode("utf-8"),
+        ),
+    )[:8]
+    selected_action_ids = requested_ids + selected_unrequested
+    examples = result.get("examples")
+    if (
+        not isinstance(examples, list)
+        or not 1 <= len(examples) <= 72
+        or any(
+            not isinstance(example, Mapping)
+            or set(example)
+            != {"request_relation", "outcome", "reasons", "action"}
+            for example in examples
+        )
+    ):
+        raise BehaviorError("impact simulation examples are not closed")
+    actual_ids = [example["action"].get("action_id") for example in examples]
+    if actual_ids != selected_action_ids:
+        raise BehaviorError("impact simulation selection order is not deterministic")
+    coverage = result.get("coverage")
+    if not isinstance(coverage, Mapping) or set(coverage) != {
+        "requested",
+        "unrequested",
+        "selection_algorithm",
+    }:
+        raise BehaviorError("impact simulation coverage is not closed")
+    if (
+        coverage.get("selection_algorithm")
+        != "highest-risk-then-action-id-v1"
+        or coverage.get("requested")
+        != {
+            "total": len(requested_ids),
+            "included": len(requested_ids),
+            "complete": True,
+        }
+        or coverage.get("unrequested")
+        != {
+            "total": len(unrequested_ids),
+            "included": len(selected_unrequested),
+            "truncated": len(unrequested_ids) > len(selected_unrequested),
+        }
+    ):
+        raise BehaviorError("impact simulation coverage metadata is not exact")
+    for example, action_id in zip(examples, selected_action_ids, strict=True):
+        action = _validate_impact_action(example["action"])
+        relation = "requested" if action_id in requested_set else "unrequested"
+        reasons = _impact_sorted_unique(example.get("reasons"), "example reasons")
+        derived_outcome = (
+            requested_outcome if relation == "requested" else "not_covered"
+        )
+        derived_reasons = (
+            requested_reasons
+            if relation == "requested"
+            else ["action_not_requested"]
+        )
+        if (
+            action != authoritative[action_id]
+            or example.get("request_relation") != relation
+            or example.get("outcome") != derived_outcome
+            or reasons != derived_reasons
+        ):
+            raise BehaviorError(
+                "impact simulation example is not independently derived"
+            )
+        outcome = example.get("outcome")
+        if relation == "unrequested" and (
+            outcome != "not_covered" or reasons != ["action_not_requested"]
+        ):
+            raise BehaviorError(
+                "impact simulation unrequested reasons are not the exact singleton"
+            )
+        if outcome == "covered" and reasons:
+            raise BehaviorError("impact simulation covered action has a reason")
+
+
 def _surface(operation: str, document: Mapping[str, Any], state: _Transition) -> BehaviorResult:
     if operation != "publish_manifest":
         raise BehaviorError(f"Surface Publisher does not support {operation!r}")
@@ -1956,6 +3323,29 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
     execution = _section(document, "execution")
     runtime = _section(document, "runtime")
     operational = document.get("operational")
+    if operation == "simulate_impact":
+        try:
+            _validate_impact_simulation(document)
+        except BehaviorError:
+            return state.result(
+                "stopped",
+                "impact_simulation_binding_rejected",
+                "impact_simulation_suppressed",
+                "consent_preview_retained",
+                "impact_simulation_authority_unchanged",
+                "application_dry_run_suppressed",
+                "impact_simulation_agent_projection_suppressed",
+            )
+        state.increment("runtime.impact_simulation_presentation_count")
+        return state.result(
+            "accepted",
+            "impact_simulation_validated",
+            "impact_simulation_presented",
+            "consent_preview_retained",
+            "impact_simulation_authority_unchanged",
+            "application_dry_run_suppressed",
+            "impact_simulation_agent_projection_suppressed",
+        )
     if operation == "render_risk_explanation":
         try:
             _validate_risk_explanation_projection(document)
@@ -2472,6 +3862,13 @@ def evaluate(
         raise BehaviorError("semantic document must be an object")
     family_for(profile_id, producer_role)
     transition = _Transition(_initial_state(initial_state))
+    impact_guard = _IMPACT_AUTHORITY_GUARDS.get((profile_id, operation))
+    if impact_guard is not None:
+        consumed_sections, rejection_tokens = impact_guard
+        try:
+            _reject_embedded_impact(document, consumed_sections)
+        except _EmbeddedImpactAuthorityError:
+            return transition.result("rejected", *rejection_tokens)
     if profile_id == SP:
         return _surface(operation, document, transition)
     if profile_id == GI:

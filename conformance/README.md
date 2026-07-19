@@ -8,13 +8,14 @@ object.
 
 ## Version 1 artifacts
 
-`conformance/v1/suite.json` is the authoritative Suite 1.6.0 role, feature,
-requirement, and vector matrix: six profiles, 45 requirements, and 116 closed
-declarative scenarios. `conformance/v1/fixtures.json` resolves them through 38
-exact semantic baselines and 78 closed mutation patches.
-`conformance/v1/schema-cases.json` carries 51 executable positive and negative
+`conformance/v1/suite.json` is the authoritative Suite 1.7.0 role, feature,
+requirement, and vector matrix: six profiles, 46 requirements, and 137 closed
+declarative scenarios. `conformance/v1/fixtures.json` resolves them through 39
+exact semantic baselines and 96 closed mutation patches.
+`conformance/v1/schema-cases.json` carries 65 executable positive and negative
 cases for the Operational Limits declaration, capacity-error envelope, Human
-Elicitation messages, and Risk Explanation hints. Human cases use their RFC
+Elicitation messages, Impact Simulation results, and Risk Explanation hints.
+Human cases use their RFC
 8785-compatible parser;
 `ASP-SC-HE-002` exercises binary64 and UTF-16 member-order hash boundaries,
 `ASP-SC-HE-102` rejects negative zero, and `ASP-SC-HE-103` rejects a
@@ -66,6 +67,42 @@ instruction or authority. The restricted lowercase RFC 5646 subset rejects
 repeated variants, extensions, and private-use forms; display prose also
 rejects C0/C1 and Bidi_Control characters.
 
+Impact Simulation vectors use the standalone closed
+`impact-simulation.schema.json` result plus an optional closed
+`impact_simulation` fixture projection of authoritative inputs. Its
+`source.actions` are a closed normalized verified-manifest semantic projection
+produced from an exact manifest at the verified-surface boundary, not a second
+general-purpose manifest validator: the fixture checker revalidates
+only Impact-relevant references, fixed-point companion closure, reciprocal
+recovery tuples, mode/effect consistency, core risk floors, and conservative
+mapping support. Runtime Mediator rows require the pre-issuance phase, a
+current exact surface and Grant-request binding, complete requested-action
+coverage, deterministic risk-first unrequested selection, independently
+derived action/exposure/recovery projections, and one candidate-wide decision
+derived from runner-owned normalized Capability Match check facts. All 24 core
+checks are present exactly once in UTF-8 order; extension URI checks remain
+fail-closed indeterminate because this harness has no authoritative extension
+classifier. `current_binding_facts` is the complete normalized authoritative
+Result binding tuple, and `freshness_deadlines` bounds `valid_until` by every
+available source. Its `grant_request_hash` is a runner-owned normalized hash
+fact already recomputed at the Capability Match boundary; the Impact mock does
+not rehash the full request or act as a raw policy engine. A retained non-null
+match repeats the complete current binding tuple as well as the exact delegate,
+request, status, and reasons. Invalid or stale detached supplements are
+suppressed atomically while the canonical Consent Preview remains available;
+the harness copies the full Result into a Grant or Action carrier for negative
+tests, and embedding it rejects that complete closed object. No row issues a
+Grant, opens approval, invokes an application
+`dry_run`, dispatches an action, records an effect or receipt, or projects the
+supplement to the agent.
+
+Carrier rows cover duplicate Results under both Grant and Action during
+simulation and active post-issuance Grant reuse during action mediation. Direct
+semantic tests apply the same pre-dispatch rule to every consumed carrier for
+Grant issue/revocation, Grant/action mediation, action invocation/replay, and
+native/AHP translation; an unrelated closed object is not treated as an input
+to an operation that does not consume it.
+
 Each run evaluates one exact profile for one named deployment boundary. A
 product that implements several profiles runs and reports each profile
 independently. A Receipt Producer run additionally names exactly one
@@ -78,24 +115,25 @@ does not give them, or the target, another role claim.
 All digests use SHA-256 and the text representation
 `sha-256:<base64url-without-padding>`. The single `catalog_sha256` digest uses
 the exact RFC-defined `ASP-CONFORMANCE-CATALOG-V1` domain. Hash the ASCII domain
-string, one zero octet, and then each of these fifteen canonical repo-relative
+string, one zero octet, and then each of these sixteen canonical repo-relative
 paths in lexicographic order:
 
 1. `conformance/v1/capacity-error.schema.json`
 2. `conformance/v1/fixtures.json`
 3. `conformance/v1/fixtures.schema.json`
 4. `conformance/v1/human-elicitation.schema.json`
-5. `conformance/v1/observation.schema.json`
-6. `conformance/v1/operational-limits.schema.json`
-7. `conformance/v1/report.schema.json`
-8. `conformance/v1/risk-explanation.schema.json`
-9. `conformance/v1/schema-cases.json`
-10. `conformance/v1/schema-cases.schema.json`
-11. `conformance/v1/subject.schema.json`
-12. `conformance/v1/suite.json`
-13. `conformance/v1/suite.schema.json`
-14. `conformance/v1/vectors.json`
-15. `conformance/v1/vectors.schema.json`
+5. `conformance/v1/impact-simulation.schema.json`
+6. `conformance/v1/observation.schema.json`
+7. `conformance/v1/operational-limits.schema.json`
+8. `conformance/v1/report.schema.json`
+9. `conformance/v1/risk-explanation.schema.json`
+10. `conformance/v1/schema-cases.json`
+11. `conformance/v1/schema-cases.schema.json`
+12. `conformance/v1/subject.schema.json`
+13. `conformance/v1/suite.json`
+14. `conformance/v1/suite.schema.json`
+15. `conformance/v1/vectors.json`
+16. `conformance/v1/vectors.schema.json`
 
 For each file, hash its path as UTF-8, a zero octet, its exact raw bytes, and a
 final zero octet. No newline, whitespace, Unicode, or JSON member-order

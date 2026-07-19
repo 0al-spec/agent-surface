@@ -384,6 +384,16 @@ that materially affect authority, effects, and data exposure. The projection
 helps a user decide whether to continue; it is not a credential, approval
 object, or substitute for authorization-server consent.
 
+### Impact Simulation Result
+
+A bounded, runtime-local, machine-readable supplement to one Consent Preview
+that gives one example for every requested action plus a deterministic bounded
+set of unrequested actions, classified as covered, not covered, or not
+currently decidable under the exact proposed semantic Grant request and current
+runtime evaluation inputs. It is not an execution preview, policy decision,
+Grant, credential, consent record, approval, receipt, or prediction that an
+action will succeed.
+
 ### Execution Preview
 
 An application-produced prediction of the preconditions and expected effects
@@ -2395,6 +2405,11 @@ The Grant does not repeat `surface_mode`; its exact
 binds the mode. A scope, action name, proposal result, old Grant, refresh token,
 or token exchange MUST NOT override that binding.
 
+An Impact Simulation for a proposal-only surface can project only the exact
+known `read` and `propose` action inventory and the proposal-only upper bound.
+It MUST NOT fabricate a state-changing companion as a denied example or claim
+that the application has no human-operated or non-ASP write path.
+
 The bound forbids application-domain or external write authority through an
 ASP action and forbids raw credential release. Closed Grant lifecycle,
 revocation, budget-query, session start/pause/resume/cancel, event
@@ -4089,6 +4104,11 @@ more permissive.
 
 ### Preconditions and Effect Preview
 
+An Impact Simulation is not a dry run. It copies only the static maximum effect
+envelope for a known action and MUST NOT call the application, carry action
+input, create a preview token, or claim application-observed preconditions or
+`expected_effects`.
+
 A commit that declares `dry_run_action` MUST declare both
 `preconditions_schema` and `expected_effects_schema`. Those two members MUST be
 absent when no dry-run action is linked; a direct commit expresses ordinary
@@ -4448,6 +4468,11 @@ support that exact mapping MUST reject the surface or action as
 description, identifier spelling, icon, or local similarity rule. A bare
 unrecognized label is invalid.
 
+Impact Simulation uses this same conservative mapping only to select the
+bounded set of unrequested examples. It MUST NOT change an action's risk,
+downgrade an extension, or use the selection order as a safety or authority
+ranking.
+
 ### Risk Explanation UI Hints
 
 This draft assigns the following core feature identifier:
@@ -4639,6 +4664,11 @@ one declared effect are represented through `resource_keys` or another
 schema-defined value, not duplicate `effect_id` entries. Their canonical hashes
 bind the exact arrays, including extension members and array order.
 
+The `maximum_effects` member of an Impact Simulation example is instead an
+exact copy of this manifest envelope. It contains no resource keys or
+input-specific prediction and MUST NOT be presented as an `expected_effects`
+array, dry-run result, or guarantee of the actual outcome.
+
 Before a commit, the application MUST reject an expected effect that exceeds
 the manifest envelope. If the expected effects differ from the approved
 `expected_effects_hash`, the application MUST fail with `effect_mismatch` and
@@ -4681,6 +4711,12 @@ detached hint is discarded. Approval evidence for an old Grant remains
 interpreted under that Grant's retained snapshot; a new snapshot follows the
 ordinary fresh preview, policy, and approval rules and does not rewrite the old
 evidence.
+
+An Impact Simulation outcome is likewise not invocation approval. A
+`covered` example MUST NOT satisfy an approval mode, create approval evidence,
+or be included in an approval binding. Consent confirmation authorizes only the
+subsequent Grant request; every invocation continues to require its exact
+policy decision and approval evidence.
 
 Approval records SHOULD be linked into action receipts. The base profile permits
 an opaque approval reference. A Grant selecting the Approval Receipt Profile
@@ -6719,7 +6755,8 @@ discover surface
   -> verify manifest
   -> choose agent
   -> verify Agent Passport
-  -> derive and confirm local consent preview
+  -> derive local consent preview and optional impact simulation
+  -> confirm the canonical local consent preview
   -> request grant through the selected issuance model
   -> grant-issuer consent
   -> issue or exchange Grant Credential
@@ -6811,6 +6848,10 @@ confirms:
   their actual outcome can be partial or unknown;
 - required dry-run or reservation stages and available compensation or revert
   actions with their limitations;
+- when the optional Impact Simulation feature is presented, its complete
+  coverage and truncation metadata, exact `covered`, `not_covered`, or
+  `indeterminate` outcome, and the distinction between request coverage and
+  later execution admission;
 - requested credential profile, credential-release policy, any parent or child
   grant fields actually present in the proposed request, and receipt
   requirements;
@@ -7001,12 +7042,461 @@ values fail closed as `surface_incompatible`; omission MUST NOT be rendered as
 "no access", "no risk", or "no exposure".
 
 This contract standardizes the semantic inputs and staleness rules for a
-preview, not layout, icons, ordering, accessibility mechanisms, biometric
-confirmation, or example simulations. Localization remains runtime-local
-except for selection and fallback of the optional publisher-authored Risk
-Explanation UI Hint. The contract deliberately defines no `preview_id`,
-consent hash, signed approval object, or portable human-readable wire payload.
-Such evidence requires a separate approval profile.
+preview, not layout, icons, ordering, accessibility mechanisms, or biometric
+confirmation. The optional Impact Simulation feature below defines a bounded
+local machine projection for example actions; it does not change the required
+canonical preview or turn an example into consent or authority. Localization
+remains runtime-local except for selection and fallback of the optional
+publisher-authored Risk Explanation UI Hint. The contract deliberately defines
+no `preview_id`, consent hash, signed approval object, or portable
+human-readable wire payload. Such evidence requires a separate approval
+profile.
+
+### Impact Simulation
+
+This draft assigns the following optional core feature identifier:
+
+```text
+agent-surface/feature/impact-simulation
+```
+
+The feature is a bounded, Runtime Mediator-local supplement to one Consent
+Preview. It gives deterministic examples of known manifest actions that are
+covered, not covered, or not currently decidable under the exact proposed
+semantic Grant request and current runtime evaluation inputs. It is not a
+negotiated profile, manifest member, Grant constraint, capability, policy
+decision, execution preview, approval, receipt, credential, consent record, or
+prediction that an action will succeed. An implementation declares the feature
+only in its conformance feature inventory; it MUST NOT add the identifier or an
+Impact Simulation Result to the semantic Grant request.
+
+An Impact Simulation Result is a closed I-JSON object. Its top level contains
+exactly `feature`, `evaluated_at`, `valid_until`, `bindings`, `coverage`, and
+`examples`. The `bindings`, `surface`, `delegate`, `capability_match`,
+`coverage`, requested-coverage, unrequested-coverage,
+example, and action objects are also closed. Embedded Effect Model and Data
+Exposure Contract objects retain the closed shapes and extension rules of
+their defining sections. `feature` MUST exactly equal the identifier above.
+This feature defines no `profile`, `schema_version`, `simulation_id`,
+simulation hash, consent hash, signature, or portable confirmation field.
+
+Example:
+
+```json
+{
+  "feature": "agent-surface/feature/impact-simulation",
+  "evaluated_at": "2026-07-19T10:00:00Z",
+  "valid_until": "2026-07-19T10:05:00Z",
+  "bindings": {
+    "surface": {
+      "issuer": "https://code.example.com",
+      "app_id": "code.example.com",
+      "surface_version": "2026-07-19",
+      "surface_hash": "sha-256:<base64url-digest>"
+    },
+    "grant_request_hash": "sha-256:<base64url-digest>",
+    "delegate": {
+      "runtime_id": "application_runtime_456",
+      "agent_id": "local_agent_789",
+      "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+      "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+      "passport_hash": "sha-256:<base64url-digest>",
+      "passport_verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01"
+    },
+    "capability_match": {
+      "match_id": "match_01J2E7M2V6Z91Y2R3B4C5D6E7F",
+      "evaluated_at": "2026-07-19T10:00:00Z",
+      "valid_until": "2026-07-19T10:05:00Z"
+    },
+    "agent_inventory_revision": "agents-42",
+    "adapter_inventory_revision": "adapters-9",
+    "local_policy_revision": "local-policy-18",
+    "enterprise_policy_revision": "enterprise-policy-7",
+    "user_preferences_revision": "preferences-4"
+  },
+  "coverage": {
+    "requested": {
+      "total": 2,
+      "included": 2,
+      "complete": true
+    },
+    "unrequested": {
+      "total": 1,
+      "included": 1,
+      "truncated": false
+    },
+    "selection_algorithm": "highest-risk-then-action-id-v1"
+  },
+  "examples": [
+    {
+      "request_relation": "requested",
+      "outcome": "covered",
+      "reasons": [],
+      "action": {
+        "action_id": "comment.create",
+        "scope": "comments.write",
+        "mode": "commit",
+        "risk": "public_side_effect",
+        "approval": "user_or_app",
+        "required_companion_action_ids": [],
+        "maximum_effects": [
+          {
+            "effect_id": "comment-publish",
+            "operation": "publish",
+            "resource_type": "comment",
+            "visibility": "shared",
+            "boundary": "internal",
+            "reversibility": "irreversible",
+            "domain": "communication"
+          }
+        ],
+        "data_exposure": {
+          "classes": ["repository.content"],
+          "redaction": {"mode": "none"},
+          "retention": {"mode": "transient", "delete_on_grant_end": true}
+        },
+        "recovery": {
+          "available_action_ids": [],
+          "limitations": ["irreversible", "no_recovery_action"]
+        }
+      }
+    },
+    {
+      "request_relation": "unrequested",
+      "outcome": "not_covered",
+      "reasons": ["action_not_requested"],
+      "action": {
+        "action_id": "comment.propose",
+        "scope": "comments.propose",
+        "mode": "propose",
+        "risk": "propose",
+        "approval": "none",
+        "required_companion_action_ids": [],
+        "maximum_effects": [],
+        "data_exposure": {
+          "classes": ["repository.content"],
+          "redaction": {"mode": "none"},
+          "retention": {"mode": "transient", "delete_on_grant_end": true}
+        },
+        "recovery": {
+          "available_action_ids": [],
+          "limitations": []
+        }
+      }
+    }
+  ]
+}
+```
+
+`evaluated_at` and `valid_until` are RFC 3339 UTC timestamps with the `Z`
+suffix and MUST satisfy `evaluated_at < valid_until`. `valid_until` MUST be no
+later than the earliest contributing Passport-status, capability-match,
+inventory, policy, preference, runtime-identity, attestation, or local maximum
+simulation freshness deadline. Passing that time invalidates the complete
+result.
+
+`bindings.surface` contains exactly `issuer`, `app_id`, `surface_version`, and
+`surface_hash` from the verified manifest snapshot. `grant_request_hash` is
+the Canonical Object Hash of the exact candidate-specific semantic Grant
+request defined by Capability Matching. The runtime MUST recompute it from the
+primary request and MUST NOT copy it without verification from a Capability
+Match Result or caller.
+
+`bindings.delegate` contains exactly `runtime_id`, `agent_id`,
+`passport_profile`, `passport_hash_profile`, `passport_hash`, and
+`passport_verification_profile`. They are the complete selected base delegate
+tuple projected from `delegate.runtime`, `delegate.agent`, and the four-value
+Passport tuple in the exact request. Selected runtime-identity, Runtime
+Attestation, privacy, training-use, approval-receipt, and other optional
+request semantics remain bound through `grant_request_hash`; their current
+runtime-local inputs remain subject to the complete Consent Preview staleness
+rules.
+
+`bindings.capability_match` is REQUIRED and is either `null` or contains
+exactly `match_id`, `evaluated_at`, and `valid_until` from the fresh Capability
+Match Result used to identify the selected candidate. A runtime is not required
+to create a Capability Match Result before this feature and uses `null` when it
+did not use one; it MUST NOT omit the member. When it uses a result the binding
+MUST be exact and the timestamps MUST satisfy
+`capability_match.evaluated_at <= evaluated_at < valid_until <=
+capability_match.valid_until`. The runtime MUST locate the exact candidate
+whose agent id, Passport tuple, and `grant_request_hash` match the selected
+delegate and request, then verify the complete Capability Match Result
+bindings, candidate status, and reasons against the same current primary
+inputs. It MUST also independently recompute the equivalent candidate decision
+and every action projection from those primary inputs. A stale result, missing
+exact candidate, binding mismatch, invalid causal ordering, or difference
+between the retained and recomputed status or reasons invalidates the complete
+simulation. A copied candidate summary is not an authoritative simulation
+source.
+
+When `capability_match` is `null`, the runtime MUST independently evaluate the
+selected candidate with the same inputs, status rules, blocking-reason
+vocabulary, and classification rules as the Capability Match Result Profile.
+This local equivalent decision need not be serialized as a Capability Match
+Result, but it MUST produce the same candidate status and blocking reasons that
+a fresh exact result would have produced. Thus `null` means that no result was
+used; it does not permit a weaker, action-local, optimistic, or
+implementation-defined decision.
+
+The five revision members are REQUIRED. `agent_inventory_revision`,
+`adapter_inventory_revision`, and `local_policy_revision` are non-empty opaque
+strings. `enterprise_policy_revision` and `user_preferences_revision` are
+either non-empty opaque strings or `null` when that input does not exist. They
+have the same exact-equality semantics as the Capability Match Result bindings.
+A runtime that cannot name a current required input MUST NOT substitute an
+empty string, old revision, or invented revision merely to produce a result.
+
+`coverage` contains exactly `requested`, `unrequested`, and
+`selection_algorithm`. Each count is a non-negative I-JSON safe integer.
+`selection_algorithm` MUST equal `highest-risk-then-action-id-v1`.
+`requested` contains exactly `total`, `included`, and `complete`. A valid
+result exists only when the exact semantic request contains from one through
+64 action identifiers: each requested action MUST appear exactly once,
+`requested.included` MUST equal `requested.total`, and `complete` MUST be the
+literal `true`. If the request contains zero or more than 64 actions, the
+runtime MUST atomically omit the complete optional action simulation and retain
+the canonical Consent Preview; it MUST NOT fabricate or sample requested
+actions or claim partial coverage.
+
+`unrequested.total` is the number of actions in the pinned manifest that are
+not in the exact request. `unrequested.included` is the lesser of that value
+and eight. `truncated` is `true` exactly when `total` is greater than
+`included`. The runtime selects those examples by descending minimum standard
+risk severity, using the Risk Taxonomy order, then by ascending unsigned
+lexicographic order of UTF-8 `action_id` bytes. A supported extension risk uses
+its required conservative standard mapping. An unsupported or invalid mapping
+makes the action or surface `surface_incompatible`; it is not assigned a low
+risk or skipped. This selection is deterministic and prevents a presenter from
+choosing only benign omitted actions.
+
+The `examples` array contains all requested examples first in ascending
+unsigned lexicographic order of UTF-8 `action_id` bytes, followed by the
+selected unrequested examples in their risk-descending selection order. It
+contains at most 72 entries. The tuple (`request_relation`,
+`action.action_id`) is unique. Every identifier MUST resolve exactly once in
+the pinned manifest; a runtime MUST NOT fabricate an action, copy an action
+from another snapshot, or silently substitute a similarly named companion.
+
+Each example contains exactly `request_relation`, `outcome`, `reasons`, and
+`action`. `request_relation` is `requested` or `unrequested`. `outcome` is
+`covered`, `not_covered`, or `indeterminate`:
+
+- for every requested example, selected-candidate status `compatible` maps to
+  `covered` with an empty `reasons` array;
+- for every requested example, selected-candidate status `incompatible` maps
+  to `not_covered` with exactly the sorted unique codes from that candidate's
+  definitive blocking reasons;
+- for every requested example, selected-candidate status `indeterminate` maps
+  to `indeterminate` with exactly the sorted unique codes from that candidate's
+  indeterminate blocking reasons; and
+- every unrequested example remains `not_covered` and its `reasons` array is
+  exactly `["action_not_requested"]`.
+
+The mapping is candidate-wide: every requested example in one result has the
+same outcome and `reasons` array. It deliberately projects only the decisive
+blocking codes after the complete candidate status has been determined.
+Advisory reasons MUST NOT be serialized. For an incompatible candidate,
+indeterminate blocking reasons that were overridden by a definitive blocking
+reason MUST NOT be serialized; for an indeterminate candidate, no definitive
+blocking reason can exist. Sorting uses ascending unsigned lexicographic order
+of UTF-8 code bytes, and duplicate codes caused by different reason subjects
+collapse to one string. The reason subject and repeated occurrences are
+deliberately lost only after the candidate-wide decision; their omission MUST
+NOT be used to calculate that decision action by action.
+
+`covered` does not mean that a Grant will be issued or that a later invocation
+will pass approval, active-Grant, session, input, precondition, reservation,
+budget, capacity, current policy, or final application checks.
+`indeterminate` MUST NOT be presented optimistically as covered or definitively
+denied.
+
+`reasons` is a sorted array of unique machine reason-code strings. Except for
+`action_not_requested`, its complete core vocabulary and classifications are
+exactly those defined by **Candidate Status and Reasons** for a Capability Match
+Result:
+
+| Classification | Allowed core reason codes |
+| --- | --- |
+| Indeterminate | `passport_profile_unsupported`, `passport_status_unavailable`, `runtime_identity_unavailable`, `runtime_attestation_unavailable`, `input_unknown` |
+| Definitive | `passport_missing`, `passport_invalid`, `capability_missing`, `adapter_unavailable`, `schema_unsupported`, `execution_stage_unsupported`, `scope_unavailable`, `approval_unsupported`, `risk_denied`, `effect_unsupported`, `recovery_unsupported`, `data_exposure_unsupported`, `retention_unsupported`, `remote_processing_unsupported`, `training_use_unsupported`, `sandbox_unsatisfied`, `runtime_identity_invalid`, `runtime_attestation_unsupported`, `policy_denied` |
+| Impact Simulation-specific definitive | `action_not_requested` |
+
+The runtime MUST implement the complete vocabulary above and MUST NOT create a
+local alias for a Capability Match Result reason. `action_not_requested` is
+valid only for an unrequested `not_covered` example, and it is the sole reason
+for such an example; candidate blocking or advisory codes MUST NOT be copied to
+an unrequested action because the candidate decision covers the exact requested
+set. A missing requested scope, unclosed required companion set, malformed
+request, or stale primary input invalidates or stales the complete simulation
+under the primary request and freshness rules; it MUST NOT be represented by a
+per-example reason.
+
+An extension reason code MUST be a collision-resistant URI and retains the
+definitive or indeterminate classification assigned by its supported Capability
+Match Result profile. An unknown blocking extension code defaults to
+indeterminate, as it does in a Capability Match Result. A supported definitive
+extension blocking code is included for an incompatible candidate; a supported
+or unknown indeterminate extension blocking code is included for an
+indeterminate candidate. Advisory extension codes are omitted. A `covered`
+requested example has no reason. A requested `not_covered` example has at least
+one definitive reason. An `indeterminate` example has at least one
+indeterminate reason and no definitive reason. Human-readable explanations are
+runtime-local presentation, not members of this object.
+
+The `action` object contains exactly `action_id`, `scope`, `mode`, `risk`,
+`approval`, `required_companion_action_ids`, `maximum_effects`,
+`data_exposure`, and `recovery`. The runtime MUST independently copy or derive
+these fields from the exact pinned action and request:
+
+- `scope`, `mode`, `risk`, and `approval` repeat the manifest values without
+  relabeling or attenuation;
+- `required_companion_action_ids` is the sorted unique recursive closure of
+  required companion actions for that action, excluding the action itself;
+- `maximum_effects` is the complete manifest effect envelope in declaration
+  order, or an empty array when the action correctly omits `effects`;
+- `data_exposure` is the complete manifest-pinned action exposure contract;
+  for a requested action it MUST equal the corresponding source contract in
+  the recomputed proposed Data Exposure projection, while for an unrequested
+  action it describes only hypothetical potential disclosure and MUST NOT be
+  presented as effective Grant exposure; and
+- `recovery` contains exactly `available_action_ids` and `limitations`.
+  `available_action_ids` is the exact sorted unique set of recovery actions
+  declared for the action in the same retained surface that are also present
+  in the proposed request and its required companion closure. It is sorted by
+  ascending unsigned lexicographic order of UTF-8 action-id bytes and contains
+  each action exactly once even when several relationships name it. The actions
+  are only potentially available: inclusion is not issuance, approval, current
+  authority, satisfied recovery preconditions, or a promise of success.
+  `limitations` is derived exactly from the retained declaration:
+
+  - `irreversible` is present if and only if at least one
+    `maximum_effects` entry has the effective standard reversibility
+    `irreversible`;
+  - `external_outcome_may_be_unknown` is present if and only if at least one
+    `maximum_effects` entry has the effective standard boundary `external`;
+  - `recovery_window_limited` is present if and only if the action declares at
+    least one outbound `execution.recovery_actions` relationship with a finite
+    positive `recovery_window_seconds`; and
+  - `no_recovery_action` is present if and only if the action has mode
+    `commit`, has a non-empty `maximum_effects` array, and declares no outbound
+    `execution.recovery_actions` relationship.
+
+  For a standard effect value, its effective standard value is the literal
+  value. For a supported extension value, the runtime MUST use the defining
+  specification's required conservative mapping to the standard
+  `reversibility` or `boundary` value before applying these conditions. A
+  missing, invalid, or unsupported conservative mapping makes the action or
+  surface `surface_incompatible`; the runtime MUST NOT omit a limitation or
+  derive a reassuring lower-severity value.
+
+  These four core codes appear if and only if their conditions apply; absence
+  of a recovery action from the proposed request does not create
+  `no_recovery_action` when a valid relationship exists in the retained
+  manifest. A supported collision-resistant URI limitation code is included if
+  and only if its defining profile says its condition applies to the retained
+  declaration. Unsupported extension limitation semantics make the action or
+  surface `surface_incompatible`; they are not silently omitted. The complete
+  `limitations` array is sorted by ascending unsigned lexicographic order of
+  UTF-8 code bytes and contains each applicable code exactly once.
+
+  The `irreversible` and `external_outcome_may_be_unknown` tests apply to the
+  maximum effects of every state-changing mode. `no_recovery_action` does not
+  apply to a `reserve` action, including reservation acquire, renew, or release:
+  its cleanup contract is represented by the required companion closure and
+  the reservation release, consumption, invalidation, and expiry semantics.
+  Nor does it apply to `compensate` or `revert`; those actions are already
+  independently authorized recovery stages, and this projection MUST NOT infer
+  recursive recovery for them.
+
+  Actions in mode `read`, `dry_run`, or `propose` have no committed
+  `maximum_effects` and cannot declare a recovery relationship; therefore both
+  `available_action_ids` and `limitations` are empty. Both arrays remain
+  present for every mode. They are a canonical declaration projection, not a
+  recovery promise; the canonical Consent Preview continues to show the exact
+  effect ids, recovery modes, windows, and preconditions. An unavailable
+  recovery action or irreversible effect MUST NOT be described as rollback.
+
+A malformed action, unresolved companion, unclosed requested subset, unknown
+scope, unsupported risk or effect mapping, missing exposure contract, or
+inconsistent recovery relationship is a failure of the primary surface or
+request, not an `indeterminate` simulation example. The runtime follows the
+ordinary fail-closed `surface_incompatible` or request-invalid path and MUST
+NOT use an Impact Simulation Result to make the primary input appear usable.
+
+This v1 feature produces action examples only. It does not define a mapping
+from a Grant resource constraint to a particular action-input field. A runtime
+MUST NOT invent or probe an out-of-filter resource, contact the application to
+discover one, infer a constraint-to-input binding from field names or prose, or
+claim that a concrete resource would be allowed or denied. Exact resource
+filters remain visible in the canonical Consent Preview. A future profile can
+define concrete resource examples only with a machine-readable binding and
+non-enumerating privacy rules.
+
+The runtime derives the result without invoking an application action, sending
+an Action Request, running a `dry_run`, validating an application state
+precondition, acquiring a reservation, consuming budget or capacity, creating
+a session, requesting approval, or contacting an action endpoint. In
+particular, `maximum_effects` is a static manifest envelope, not the
+application-produced `expected_effects` for one input and state snapshot.
+
+The complete result remains inside the user-controlled Runtime Mediator
+boundary. The runtime MUST NOT send it to the application or authorization
+server as request input, expose it to an agent or Agent Adapter, copy it into a
+Grant, credential, Policy Decision, approval or action receipt, Human
+Elicitation request or response, Action Request or Response, prompt, tool
+instruction, or privileged instruction channel. A component that nevertheless
+receives a detached out-of-band result MUST discard it and MUST NOT treat it as
+authority, consent, approval, policy evidence, or a reason to skip an ordinary
+check. If a sender embeds the feature identifier or result in a closed ASP
+request, Grant, receipt, approval, policy, action, or elicitation object that
+does not define that member, the receiver MUST reject the complete enclosing
+object under its ordinary structural validation; it MUST NOT remove only the
+unexpected member and continue.
+
+Risk Explanation UI Hint prose is not part of the result and MUST NOT affect
+outcome, reasons, inclusion, ordering, or truncation. A presenter MAY attach
+one valid selected hint only after validating the complete machine result and
+retrieving the hint independently from the same pinned action. It MUST label
+the text as publisher-authored and keep it distinct from the runtime-derived
+example. A malformed or stale hint is suppressed under its own rules without
+changing the simulation.
+
+The examples supplement rather than replace the canonical Consent Preview.
+Every requested action, companion stage, scope, location, resource filter,
+constraint, material effect, approval, recovery limitation, and exposure
+source remains inspectable before confirmation. The presenter MUST describe
+`covered` as no stronger than "would be covered by this proposed Grant" and
+MUST NOT label it "safe", "approved", "will succeed", or equivalent. If no
+unrequested action exists, the result honestly contains no unrequested example;
+the runtime MUST NOT invent a denial or present that absence as unlimited
+authority.
+
+The result has no independent confirmation or authority lifecycle. It is
+derived and presented as part of one local Consent Preview. Any condition that
+makes that preview stale also makes the complete simulation stale. In
+addition, expiry or any change to its surface, request hash, delegate tuple,
+Capability Match Result binding, agent or adapter inventory, local or
+enterprise policy, user preferences, selected action, outcome, or projected
+machine semantics invalidates the complete result. The runtime MUST regenerate
+it from all current sources; it MUST NOT patch one example, carry forward the
+unrequested sample, or preserve confirmation of the old preview.
+
+A structurally invalid, detached, expired, stale, partially inconsistent,
+incorrectly ordered, incorrectly counted, or incorrectly truncated result MUST
+be atomically suppressed. The runtime falls back to the complete canonical
+Consent Preview and MUST NOT render only the fields or examples it recognizes.
+Suppression of this optional supplement does not repair an invalid primary
+manifest, request, tuple, policy, or exposure projection.
+
+After local confirmation and dispatch of the issuance request, the simulation
+is only transient local presentation state. It MUST NOT be used as the active
+Grant view. A returned Grant that is a valid narrower subset does not inherit
+examples for omitted authority; the runtime derives active management and use
+from the authoritative returned Grant and retained manifest. Rejection,
+expiry, revocation, renewal, exchange, child derivation, or a later surface
+version MUST NOT reactivate, mutate, or reinterpret the pre-issuance result.
+Deriving post-issuance or historical examples is outside this feature.
 
 ### Grant Issuance Models
 
@@ -7990,6 +8480,18 @@ candidate status, reasons, ranking, required approval, or the canonical risk
 summary. A local user interface can attach the selected publisher hint only
 after matching, from the still-current pinned manifest snapshot.
 
+Impact Simulation is a downstream local presentation feature, not a matching
+input, candidate-ranking signal, or Capability Match Result member. When a
+runtime binds a result to a selected Capability Match Result, it can use the
+fresh candidate status and machine reasons only after exact verification and
+independent recomputation of the same candidate decision. Every requested
+example projects that one decision; the runtime MUST NOT rerun matching per
+action or serialize advisory or overridden reasons. It also independently
+recomputes every example's request relation, action semantics, effect envelope,
+exposure, companion closure, and exact recovery projection. Adding, removing,
+or reordering an example MUST NOT change candidate status or
+`grant_request_hash`.
+
 This draft standardizes those outputs with the local-only Capability Match
 Result Profile:
 
@@ -8316,7 +8818,9 @@ recorded binding.
 A stale result MUST NOT be used to select a candidate, populate a new Consent
 Preview, or justify a Grant request. The runtime recomputes the complete result;
 it does not patch one status or revision in place. A result that becomes stale
-during selection makes the selection stale as well.
+during selection makes the selection stale as well. An Impact Simulation bound
+to that result becomes stale at the same transition and MUST be regenerated in
+full rather than retaining its prior examples.
 
 In a deployment with separate runtime and application trust domains, the object
 remains inside the user-controlled runtime boundary. The runtime MUST NOT send
@@ -10747,6 +11251,12 @@ Compatibility rules:
   continues to use its retained old snapshot and hint. This rule does not make
   a simultaneous change to risk, effects, approval, execution, or recovery
   semantics non-breaking.
+- Impact Simulation is runtime-local and adds no manifest member. Enabling or
+  disabling the feature does not itself change a surface version. Any manifest
+  change still changes `surface_hash`, invalidates a pending simulation with
+  its parent Consent Preview, and requires the runtime to regenerate examples
+  from the new snapshot. A simulation for a new snapshot MUST NOT reinterpret
+  an active Grant pinned to an older retained snapshot.
 - Adding a new action is non-breaking only when the resulting manifest remains
   valid under its `surface_mode` and existing action semantics do not change. A
   state-changing action on a proposal-only surface is invalid, not an addition
@@ -10891,6 +11401,45 @@ Mitigations:
 - action-scoped grants
 - app-side receipts
 - anomaly detection
+
+### Misleading Impact Simulation
+
+A compromised runtime can omit severe examples, label request coverage as
+execution permission, reuse a stale result, or invent reassuring denied cases.
+The deterministic coverage counts and selection order make those deviations
+machine-detectable, while the mandatory canonical Consent Preview keeps every
+requested action and material semantic inspectable. An application or
+authorization server that receives a result embedded in a closed protocol
+object MUST reject that complete object; if it receives a detached out-of-band
+supplement, it MUST discard it as evidence. In both cases it performs ordinary
+request, consent, Grant, and action verification. The result cannot weaken
+app-side enforcement even when the runtime lies to its user.
+
+A malicious application outside the Runtime Mediator trust boundary can
+publish misleading labels or Risk Explanation UI Hints and can attempt to send
+a fabricated supplement, but it does not supply the machine result or select
+its outcome. The user-controlled runtime rejects or discards that input and
+derives its result from the verified manifest, exact request, and current local
+matching inputs. It retains the canonical risk and effect projection and keeps
+any publisher prose outside the closed object. It MUST NOT contact the
+application for a concrete negative example because doing so could create a
+resource-enumeration oracle or disclose the user's intended delegation before
+issuance.
+
+An app-operated, app-embedded, or otherwise compromised runtime collapses that
+provenance boundary: the application can then fabricate both the canonical
+presentation and the local machine result. In that deployment the Impact
+Simulation Result is not independently trustworthy evidence for the user or
+any other party. The ordinary application-side and authorization-server-side
+verification requirements still apply, and no downstream component can recover
+the lost user-controlled presentation guarantee by validating this local
+result.
+
+A malformed or stale result is suppressed as one object. Partial rendering is
+unsafe because accepting only known examples, omitting coverage metadata, or
+retaining an old high-risk ordering can make a broader request appear narrower.
+Suppression falls back to the canonical Consent Preview; it never converts
+unknown impact into no impact.
 
 ### App-Embedded Runtime
 
@@ -11203,6 +11752,16 @@ telemetry, browser history, or general-purpose logs. A local preview is not
 portable consent evidence and SHOULD be retained only as long as local policy
 needs it to complete and audit the authorization flow.
 
+Impact Simulation Results contain the same surface, delegate, Passport,
+inventory, policy, preference, and requested-action relationship metadata.
+They MUST remain within the user-controlled runtime boundary, MUST NOT contain
+action input, concrete resource keys, hidden policy text, publisher prose, or
+application payloads, and SHOULD be retained no longer than their parent local
+preview. Telemetry SHOULD retain at most the feature identifier, request and
+surface hashes, coverage counts, outcome counts, and machine reason codes under
+a bounded local policy; it SHOULD omit action identifiers when aggregate
+diagnostics suffice.
+
 Active-grant management views contain the same relationship metadata plus
 lifecycle state and usage-sensitive constraints. Applications and runtimes MUST
 authenticate those views, avoid cross-subject enumeration, exclude credentials
@@ -11339,8 +11898,9 @@ role integrity, runtime mediation, adapter authority boundaries, and the
 Operational Limits declaration, action-admission, logical event-delivery, and
 retry contracts. It also covers the core Risk Explanation UI Hints manifest
 shape and the boundary between inert publisher prose and runtime-derived
-machine semantics. It does not enumerate every normative requirement in every
-role profile. Consequently,
+machine semantics, plus the bounded local Impact Simulation projection and its
+separation from execution, consent, and authority. It does not enumerate every
+normative requirement in every role profile. Consequently,
 a `pass` suite verdict means only that every applicable vector in the exact
 catalog revision passed. It MUST NOT be represented as complete role-profile
 conformance, certification, interoperability with arbitrary implementations,
@@ -11376,7 +11936,7 @@ MUST NOT contain executable code, shell commands, or target URLs.
 
 The versioned `schema-cases.json` corpus executes positive and negative cases
 for the Operational Limits declaration, operational-capacity error envelope,
-and Risk Explanation UI Hint object.
+Risk Explanation UI Hint object, and Impact Simulation Result.
 Each candidate is carried as an inert JSON string so malformed I-JSON,
 duplicate-member, unsafe-integer, schema-invalid, and semantic binding failures
 can be represented without making the corpus itself invalid. The validator
@@ -11387,7 +11947,13 @@ core control event plus manifest-declared control-event exclusion against the
 case's closed manifest context. For a risk explanation it additionally checks
 canonical sorted languages, exact default-language presence, bounded inert
 text, and complete declaration-order effect coverage against the case's closed
-parent-action context. For a capacity envelope it additionally
+parent-action context. For an impact simulation it additionally checks exact
+surface, request, delegate, match and revision bindings, complete requested
+coverage, bounded deterministic unrequested selection, outcome/reason
+consistency with the exact selected-candidate decision, omission of advisory
+reasons, canonical action projections, exact derived recovery limitations, and
+absence of resource instances or publisher prose. For a capacity envelope it
+additionally
 requires every disclosed `limit_id` to be both manifest-declared and safe for
 the authenticated active partition. The common capacity envelope remains open
 to extension members as required by the Error Model, while its `limit` member
@@ -11464,6 +12030,32 @@ establishes only structural and boundary behavior; it cannot prove that
 human-authored prose is truthful or complete beyond its machine-checkable
 effect-id coverage.
 
+The Impact Simulation cases use a closed normalized verified-manifest semantic
+projection produced from an exact manifest, semantic Grant request, selected
+delegate, normalized matching check facts, complete authoritative binding and
+freshness facts, plus a normalized Runtime Mediator presentation observation.
+Positive schema and direct semantic cases cover complete
+requested action projection, deterministic highest-risk unrequested selection,
+covered, not-covered, and indeterminate outcomes, empty and truncated
+unrequested sets, exact companion, effect, exposure, and recovery data, and
+atomic fallback to the canonical Consent Preview. Negative catalog cases cover
+an omitted requested action, more than 64 requested actions represented as a
+partial result, incorrect high-risk selection or coverage counts, stale
+surface, request, match or revision bindings, outcome/reason conflicts, closed
+Grant and Action carrier embedding, and post-issuance reuse. Direct semantic
+and state-isolation checks additionally prove that accepted and suppressed
+paths do not contact the application, run an application dry run, or project
+the result into approval, receipt, Policy Decision, or agent state. Detached
+publisher prose and fabricated concrete resource examples remain prohibited
+normative inputs but are outside the executable input subset of this v1
+harness. Closed-carrier vectors and direct semantic cases duplicate the
+complete Result into Grant and Action objects, reuse an active post-issuance
+Grant, and exercise exact-action replay. Each Grant Issuer, Runtime Mediator,
+Action Executor, and Agent Adapter case rejects the duplicate before changing
+state whenever that operation actually consumes the affected closed object. A
+passing case establishes local projection behavior only; it does not establish
+consent, issuance, current authority, approval, or successful execution.
+
 The report binds the exact suite and specification sources, ordered applicable
 requirements and vectors, each vector digest, subject and counterpart artifacts,
 runner, adapter and probe entry-point digests, configuration digests and
@@ -11485,7 +12077,8 @@ The catalog digest is SHA-256 over the ASCII domain
 catalog path in lexicographic order as UTF-8, a zero octet, its raw file bytes,
 and a final zero octet. The canonical set is exactly
 `capacity-error.schema.json`, `fixtures.json`, `fixtures.schema.json`,
-`human-elicitation.schema.json`, `observation.schema.json`,
+`human-elicitation.schema.json`, `impact-simulation.schema.json`,
+`observation.schema.json`,
 `operational-limits.schema.json`,
 `report.schema.json`, `risk-explanation.schema.json`, `schema-cases.json`,
 `schema-cases.schema.json`,
@@ -11588,6 +12181,26 @@ effect values, and preserves its matching, approval, admission, and agent
 projection state when a hint is malformed, stale, detached, or hostile. The
 Mock Agent Adapter MUST NOT receive the hint as an instruction or authority.
 
+For Impact Simulation tests, the Mock Runtime derives a deterministic closed
+result only from a synthetic normalized verified-manifest semantic projection,
+request, delegate, runner-owned Capability Match check facts, complete current
+binding facts, and per-source freshness deadlines. It derives candidate-wide
+status and decisive blocking reason codes from those check facts, maps them to
+every requested example, omits advisory and overridden indeterminate reasons,
+and derives the exact recovery limitation set from the retained effects and
+recovery relationships. It includes every requested
+action or atomically suppresses the feature above the bound, selects only the
+required highest-risk unrequested actions, and keeps all examples local. The
+Mock App MUST NOT provide an example or be contacted for a dry run or resource
+probe, and the Mock Agent Adapter MUST NOT receive a result. Malformed, stale,
+detached, incomplete, or authority-bearing candidates preserve all Grant,
+approval, dispatch, effect, receipt, policy-decision, and agent-projection
+state while the Mock Runtime returns the canonical Consent Preview fallback
+observation. Before dispatch, every mock consumer checks each closed Grant or
+Action object it actually consumes and rejects an embedded Result; the direct
+semantic matrix includes Grant issue and revocation, Grant and action
+mediation, action invocation and replay, and native and AHP action translation.
+
 All mock inputs, identifiers, payloads, keys, credentials, evidence, and state
 are deterministic synthetic test values. The bundle MUST NOT accept or retain
 production secrets, user content, tenant data, private keys, live Grant
@@ -11645,6 +12258,9 @@ A component conforms to the Surface Publisher Profile when it:
 - publishes an Agent Surface Manifest
 - computes and publishes a valid `surface_hash` and changes
   `surface_version` whenever the manifest hashing view changes
+- does not publish an Impact Simulation Result or feature identifier as a
+  manifest semantic; the result is derived only inside a claiming Runtime
+  Mediator
 - declares a supported `surface_mode` and, for `proposal_only`, exposes only a
   closed `read`/`propose` action inventory with at least one proposal action,
   no effects, and no state-changing companion relationship
@@ -11684,6 +12300,11 @@ A component conforms to the Grant Issuer Profile when it:
 - authenticates the resource owner and obtains issuer-side consent from the
   exact semantic Grant request, manifest semantics, delegate tuple, effects,
   constraints, and effective data-exposure projection
+- rejects the complete closed protocol object when a client embeds an Impact
+  Simulation Result or feature identifier in an undefined member, discards a
+  detached out-of-band supplement as consent, authority, request semantics, or
+  evidence, and independently derives its own consent presentation from the
+  verified primary sources
 - validates requested actions, locations, scopes, resources, surface mode,
   required companion closure, expiration, budgets, credential-release policy,
   audit requirements, and every selected optional profile before issuance
@@ -11753,6 +12374,8 @@ A protected-resource component conforms to the Action Executor Profile when it:
   `surface_hash`, credential proof, user-runtime-agent-Passport binding, action
   allow-list, scopes, resource constraints, expiration, and current lifecycle
   state for every action
+- rejects an Impact Simulation Result presented as Action Request input,
+  approval, policy evidence, receipt evidence, or authority
 - when the Grant selects the Minimal Agent Passport Grant-Issuance Profile,
   independently revalidates the exact Passport tuple and current authenticated
   lifecycle state before every action without treating declarations or
@@ -12046,6 +12669,15 @@ An application runtime conforms to the Runtime Mediator Profile when it:
   object with the exact manifest, semantic request, identity, Passport,
   inventory, policy, and preference bindings; treats unknowns as indeterminate;
   and discards stale results before selection or consent
+- when claiming the Impact Simulation feature, emits only the exact closed,
+  bounded, deterministic local result; includes every requested action or
+  suppresses the complete optional result; selects unrequested actions by the
+  fixed conservative risk order; projects the exact candidate-wide status and
+  decisive blocking reason codes to every requested example; treats unknown
+  blocking extensions as indeterminate; derives the exact recovery limitation
+  set; keeps hints and concrete resources outside the object; and never uses an
+  example as execution, consent, approval, policy, receipt, Grant, or agent
+  authority
 - obtains explicit user consent before storing a grant
 - derives and confirms the local Consent Preview Contract projection before
   sending a grant issuance request, regenerates it after any material change,
@@ -12162,6 +12794,8 @@ An adapter conforms to the Agent Adapter Profile when it:
 - does not require raw app credentials
 - does not receive a Grant Credential or transfer one to downstream components
 - requests app actions through runtime APIs
+- does not receive, request, interpret, or forward an Impact Simulation Result
+  as agent-visible state or an instruction
 - emits typed events
 - handles denials and approval waits
 - preserves the manifest-declared action id and mode and handles preview,
@@ -12230,7 +12864,9 @@ To support Agent Surface Protocol, the next slices are:
 4. Runtime verifies the selected agent's Agent Passport.
 5. Runtime derives and the user confirms a local preview from the exact request,
    verified tuple, pinned manifest, effects, exposure contracts, and labeled
-   local operator/processing-path assertions.
+   local operator/processing-path assertions. When it claims Impact Simulation,
+   the runtime also shows the complete bounded local action examples and labels
+   `covered` as proposed-request coverage rather than execution permission.
 6. Runtime sends that exact Agent Grant `authorization_details` request.
 7. The app authorization server independently shows consent:
    - app: code.example.com

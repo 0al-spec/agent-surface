@@ -1,0 +1,716 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+  "title": "ASP Impact Simulation Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature",
+    "evaluated_at",
+    "valid_until",
+    "bindings",
+    "coverage",
+    "examples"
+  ],
+  "properties": {
+    "feature": {
+      "const": "agent-surface/feature/impact-simulation"
+    },
+    "evaluated_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "valid_until": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "bindings": {
+      "$ref": "#/$defs/bindings"
+    },
+    "coverage": {
+      "$ref": "#/$defs/coverage"
+    },
+    "examples": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 72,
+      "items": {
+        "$ref": "#/$defs/example"
+      }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "extensionUri": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:(?:[A-Za-z0-9._~:/?#\\[\\]@!$&'()*+,;=-]|%[0-9A-Fa-f]{2})+(?![\\s\\S])"
+    },
+    "nonNegativeSafeInteger": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha-256:[A-Za-z0-9_-]{43}(?![\\s\\S])"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z(?![\\s\\S])"
+    },
+    "nullableRevision": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "surfaceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "issuer",
+        "app_id",
+        "surface_version",
+        "surface_hash"
+      ],
+      "properties": {
+        "issuer": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "app_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "surface_version": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "surface_hash": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "delegateBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_id",
+        "agent_id",
+        "passport_profile",
+        "passport_hash_profile",
+        "passport_hash",
+        "passport_verification_profile"
+      ],
+      "properties": {
+        "runtime_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "agent_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "passport_profile": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "passport_hash_profile": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "passport_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "passport_verification_profile": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "capabilityMatchBinding": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "match_id",
+            "evaluated_at",
+            "valid_until"
+          ],
+          "properties": {
+            "match_id": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "evaluated_at": {
+              "$ref": "#/$defs/timestamp"
+            },
+            "valid_until": {
+              "$ref": "#/$defs/timestamp"
+            }
+          }
+        }
+      ]
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface",
+        "grant_request_hash",
+        "delegate",
+        "capability_match",
+        "agent_inventory_revision",
+        "adapter_inventory_revision",
+        "local_policy_revision",
+        "enterprise_policy_revision",
+        "user_preferences_revision"
+      ],
+      "properties": {
+        "surface": {
+          "$ref": "#/$defs/surfaceBinding"
+        },
+        "grant_request_hash": {
+          "$ref": "#/$defs/digest"
+        },
+        "delegate": {
+          "$ref": "#/$defs/delegateBinding"
+        },
+        "capability_match": {
+          "$ref": "#/$defs/capabilityMatchBinding"
+        },
+        "agent_inventory_revision": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "adapter_inventory_revision": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "local_policy_revision": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "enterprise_policy_revision": {
+          "$ref": "#/$defs/nullableRevision"
+        },
+        "user_preferences_revision": {
+          "$ref": "#/$defs/nullableRevision"
+        }
+      }
+    },
+    "requestedCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "included",
+        "complete"
+      ],
+      "properties": {
+        "total": {
+          "$ref": "#/$defs/nonNegativeSafeInteger",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "included": {
+          "$ref": "#/$defs/nonNegativeSafeInteger",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "complete": {
+          "const": true
+        }
+      }
+    },
+    "unrequestedCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "included",
+        "truncated"
+      ],
+      "properties": {
+        "total": {
+          "$ref": "#/$defs/nonNegativeSafeInteger"
+        },
+        "included": {
+          "$ref": "#/$defs/nonNegativeSafeInteger",
+          "maximum": 8
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested",
+        "unrequested",
+        "selection_algorithm"
+      ],
+      "properties": {
+        "requested": {
+          "$ref": "#/$defs/requestedCoverage"
+        },
+        "unrequested": {
+          "$ref": "#/$defs/unrequestedCoverage"
+        },
+        "selection_algorithm": {
+          "const": "highest-risk-then-action-id-v1"
+        }
+      }
+    },
+    "effect": {
+      "type": "object",
+      "required": [
+        "effect_id",
+        "operation",
+        "resource_type",
+        "visibility",
+        "boundary",
+        "reversibility",
+        "domain"
+      ],
+      "properties": {
+        "effect_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "operation": {
+          "oneOf": [
+            {
+              "enum": [
+                "create",
+                "update",
+                "delete",
+                "publish",
+                "send",
+                "execute",
+                "transfer",
+                "grant",
+                "revoke",
+                "deploy",
+                "reserve",
+                "renew",
+                "release"
+              ]
+            },
+            {
+              "$ref": "#/$defs/extensionUri"
+            }
+          ]
+        },
+        "resource_type": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "visibility": {
+          "oneOf": [
+            {
+              "enum": [
+                "private",
+                "shared",
+                "public"
+              ]
+            },
+            {
+              "$ref": "#/$defs/extensionUri"
+            }
+          ]
+        },
+        "boundary": {
+          "oneOf": [
+            {
+              "enum": [
+                "internal",
+                "external"
+              ]
+            },
+            {
+              "$ref": "#/$defs/extensionUri"
+            }
+          ]
+        },
+        "reversibility": {
+          "oneOf": [
+            {
+              "enum": [
+                "reversible",
+                "compensatable",
+                "irreversible",
+                "not_applicable"
+              ]
+            },
+            {
+              "$ref": "#/$defs/extensionUri"
+            }
+          ]
+        },
+        "domain": {
+          "oneOf": [
+            {
+              "enum": [
+                "data",
+                "communication",
+                "workflow",
+                "financial",
+                "security",
+                "identity",
+                "authorization",
+                "deployment",
+                "configuration"
+              ]
+            },
+            {
+              "$ref": "#/$defs/extensionUri"
+            }
+          ]
+        }
+      },
+      "propertyNames": {
+        "oneOf": [
+          {
+            "enum": [
+              "effect_id",
+              "operation",
+              "resource_type",
+              "visibility",
+              "boundary",
+              "reversibility",
+              "domain"
+            ]
+          },
+          {
+            "$ref": "#/$defs/extensionUri"
+          }
+        ]
+      },
+      "patternProperties": {
+        "^[A-Za-z][A-Za-z0-9+.-]*:": {}
+      },
+      "additionalProperties": false
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "none",
+            "policy"
+          ]
+        },
+        "policy_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "summary": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "policy"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "policy_id",
+              "summary"
+            ]
+          },
+          "else": {
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "policy_id"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "summary"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "delete_on_grant_end"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "transient",
+            "bounded"
+          ]
+        },
+        "max_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "delete_on_grant_end": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "bounded"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "max_seconds"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "max_seconds"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classes",
+        "redaction",
+        "retention"
+      ],
+      "properties": {
+        "classes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "redaction": {
+          "$ref": "#/$defs/redaction"
+        },
+        "retention": {
+          "$ref": "#/$defs/retention"
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available_action_ids",
+        "limitations"
+      ],
+      "properties": {
+        "available_action_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "oneOf": [
+              {
+                "enum": [
+                  "irreversible",
+                  "external_outcome_may_be_unknown",
+                  "recovery_window_limited",
+                  "no_recovery_action"
+                ]
+              },
+              {
+                "$ref": "#/$defs/extensionUri"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "scope",
+        "mode",
+        "risk",
+        "approval",
+        "required_companion_action_ids",
+        "maximum_effects",
+        "data_exposure",
+        "recovery"
+      ],
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "scope": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "mode": {
+          "enum": [
+            "read",
+            "dry_run",
+            "propose",
+            "reserve",
+            "commit",
+            "compensate",
+            "revert"
+          ]
+        },
+        "risk": {
+          "oneOf": [
+            {
+              "enum": [
+                "read",
+                "propose",
+                "write",
+                "public_side_effect",
+                "external_side_effect",
+                "financial_side_effect",
+                "destructive",
+                "privileged"
+              ]
+            },
+            {
+              "$ref": "#/$defs/extensionUri"
+            }
+          ]
+        },
+        "approval": {
+          "enum": [
+            "none",
+            "runtime",
+            "app",
+            "user_or_app",
+            "runtime_and_app"
+          ]
+        },
+        "required_companion_action_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "maximum_effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/effect"
+          }
+        },
+        "data_exposure": {
+          "$ref": "#/$defs/exposure"
+        },
+        "recovery": {
+          "$ref": "#/$defs/recovery"
+        }
+      }
+    },
+    "reason": {
+      "oneOf": [
+        {
+          "enum": [
+            "action_not_requested",
+            "approval_unsupported",
+            "adapter_unavailable",
+            "capability_missing",
+            "data_exposure_unsupported",
+            "effect_unsupported",
+            "execution_stage_unsupported",
+            "input_unknown",
+            "passport_invalid",
+            "passport_missing",
+            "passport_profile_unsupported",
+            "passport_status_unavailable",
+            "policy_denied",
+            "recovery_unsupported",
+            "remote_processing_unsupported",
+            "retention_unsupported",
+            "risk_denied",
+            "runtime_attestation_unavailable",
+            "runtime_attestation_unsupported",
+            "runtime_identity_invalid",
+            "runtime_identity_unavailable",
+            "sandbox_unsatisfied",
+            "schema_unsupported",
+            "scope_unavailable",
+            "training_use_unsupported"
+          ]
+        },
+        {
+          "$ref": "#/$defs/extensionUri"
+        }
+      ]
+    },
+    "example": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_relation",
+        "outcome",
+        "reasons",
+        "action"
+      ],
+      "properties": {
+        "request_relation": {
+          "enum": [
+            "requested",
+            "unrequested"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "covered",
+            "not_covered",
+            "indeterminate"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/reason"
+          }
+        },
+        "action": {
+          "$ref": "#/$defs/action"
+        }
+      }
+    }
+  }
+}

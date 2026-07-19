@@ -26,7 +26,7 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.6.0"
+      "const": "1.7.0"
     },
     "protocol_version": {
       "const": "agent-surface/0.1"
@@ -57,16 +57,16 @@
     },
     "features": {
       "type": "array",
-      "minItems": 12,
-      "maxItems": 12,
+      "minItems": 13,
+      "maxItems": 13,
       "items": {
         "$ref": "#/$defs/feature"
       }
     },
     "requirements": {
       "type": "array",
-      "minItems": 45,
-      "maxItems": 45,
+      "minItems": 46,
+      "maxItems": 46,
       "items": {
         "$ref": "#/$defs/requirement"
       }
@@ -85,6 +85,7 @@
     },
     "featureId": {
       "enum": [
+        "agent-surface/feature/impact-simulation",
         "agent-surface/feature/proposal-only",
         "agent-surface/feature/risk-explanation-ui-hints",
         "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
