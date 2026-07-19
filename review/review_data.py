@@ -629,13 +629,20 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
             f"{ref!r}"
         )
     try:
-        schema = json.loads(schema_path.read_text(encoding="utf-8"))
-        Draft202012Validator.check_schema(schema)
+        _validate_schema_document(schema_path)
     except (OSError, json.JSONDecodeError, SchemaError) as error:
         raise ValueError(
             f"Review #{review_id} schema evidence is not a valid Draft 2020-12 schema: "
             f"{ref!r}"
         ) from error
+
+
+@lru_cache(maxsize=None)
+def _validate_schema_document(schema_path: Path) -> None:
+    """Validate each immutable repository schema at most once per process."""
+
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(schema)
 
 
 def _validate_registry_evidence(review_id: int, ref: str) -> None:
@@ -655,6 +662,19 @@ def _validate_registry_evidence(review_id: int, ref: str) -> None:
             f"{ref!r}"
         )
 
+    try:
+        _validate_canonical_conformance_catalog()
+    except Exception as error:
+        raise ValueError(
+            f"Review #{review_id} registry evidence failed canonical catalog validation: "
+            f"{ref!r}: {error}"
+        ) from error
+
+
+@lru_cache(maxsize=1)
+def _validate_canonical_conformance_catalog() -> None:
+    """Validate the immutable canonical conformance bundle once per process."""
+
     root_is_first = bool(sys.path) and sys.path[0] == str(REPO_ROOT)
     if not root_is_first:
         sys.path.insert(0, str(REPO_ROOT))
@@ -663,16 +683,9 @@ def _validate_registry_evidence(review_id: int, ref: str) -> None:
         module_path = Path(conformance_check.__file__).resolve()
         expected_module_path = REPO_ROOT / "conformance" / "check.py"
         if module_path != expected_module_path:
-            raise ValueError(
-                f"loaded non-canonical conformance validator: {module_path}"
-            )
+            raise ValueError(f"loaded non-canonical conformance validator: {module_path}")
         validate_catalog = getattr(conformance_check, "validate_catalog")
         validate_catalog(REPO_ROOT)
-    except Exception as error:
-        raise ValueError(
-            f"Review #{review_id} registry evidence failed canonical catalog validation: "
-            f"{ref!r}: {error}"
-        ) from error
     finally:
         if not root_is_first:
             sys.path.pop(0)
@@ -767,6 +780,19 @@ def _cargo_command() -> list[str]:
 
 
 def _validate_mock_bundle_evidence(review_id: int, kind: str, ref: str) -> None:
+    try:
+        _validate_canonical_mock_bundle()
+    except Exception as error:
+        raise ValueError(
+            f"Review #{review_id} {kind} evidence failed canonical mock bundle "
+            f"validation: {ref!r}: {error}"
+        ) from error
+
+
+@lru_cache(maxsize=1)
+def _validate_canonical_mock_bundle() -> None:
+    """Validate the immutable canonical mock bundle once per process."""
+
     root_is_first = bool(sys.path) and sys.path[0] == str(REPO_ROOT)
     if not root_is_first:
         sys.path.insert(0, str(REPO_ROOT))
@@ -778,11 +804,6 @@ def _validate_mock_bundle_evidence(review_id: int, kind: str, ref: str) -> None:
             raise ValueError(f"loaded non-canonical mock validator: {module_path}")
         validate_bundle = getattr(mock_check, "validate_bundle")
         validate_bundle(REPO_ROOT)
-    except Exception as error:
-        raise ValueError(
-            f"Review #{review_id} {kind} evidence failed canonical mock bundle "
-            f"validation: {ref!r}: {error}"
-        ) from error
     finally:
         if not root_is_first:
             sys.path.pop(0)

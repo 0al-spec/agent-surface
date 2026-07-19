@@ -10,9 +10,10 @@ permissions:
   contents: read
 
 jobs:
-  markdown:
-    name: Markdown and RFC checks
+  quality:
+    name: RFC quality gates
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -44,12 +45,45 @@ jobs:
           test -s drafts/agent-surface.md
           grep -q '^# Agent Surface Protocol Specification' drafts/agent-surface.md
 
-      - name: Check RFC review dashboard
+      - name: Install review dependencies
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install --requirement review/requirements.txt
-          make review-check
+
+      - name: Check conformance catalog
+        timeout-minutes: 8
+        shell: bash
+        run: make conformance-check
+
+      - name: Check mock bundle
+        timeout-minutes: 5
+        shell: bash
+        run: make mock-check
+
+      - name: Check ASP Manifest Linter
+        timeout-minutes: 8
+        shell: bash
+        run: make manifest-lint-check
+
+      - name: Check RFC review data
+        timeout-minutes: 5
+        shell: bash
+        run: make review-data-check
+
+      - name: Check RFC review tests
+        timeout-minutes: 5
+        shell: bash
+        run: make review-test
+
+      - name: Check dashboard artifact and UI state
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          set -euo pipefail
+          make review-js-test
+          python -B review/build_review.py --check
+          node review/check_review.mjs
 
       - name: Check repository whitespace
         shell: bash
@@ -91,6 +125,15 @@ jobs:
 
           exit "${failed}"
 
+  markdown-links:
+    name: Markdown links
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Check Markdown links
         uses: lycheeverse/lychee-action@v2
         with:
@@ -98,6 +141,9 @@ jobs:
             --no-progress
             --accept 200,204,206,301,302,303,307,308,429
             --timeout 20
+            --max-retries 5
+            --retry-wait-time 2
+            --max-concurrency 4
             './**/*.md'
           fail: true
         env:

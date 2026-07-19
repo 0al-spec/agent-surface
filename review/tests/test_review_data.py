@@ -7,6 +7,7 @@ import sys
 import unittest
 from collections import Counter
 from pathlib import Path
+from unittest import mock
 
 
 REVIEW_DIR = Path(__file__).resolve().parents[1]
@@ -21,6 +22,8 @@ from build_review import (  # noqa: E402
 )
 from review_data import (  # noqa: E402
     _cargo_command,
+    _validate_canonical_conformance_catalog,
+    _validate_canonical_mock_bundle,
     load_review_payload,
     normalize_reviews,
     validate_review_payload,
@@ -47,6 +50,21 @@ class ReviewDataValidationTests(unittest.TestCase):
 
     def test_canonical_review_data_is_valid(self) -> None:
         validate_review_payload(load_review_payload(), self.heading_ids)
+
+    def test_canonical_bundle_validation_is_deduplicated_per_process(self) -> None:
+        _validate_canonical_conformance_catalog.cache_clear()
+        _validate_canonical_mock_bundle.cache_clear()
+        try:
+            with (
+                mock.patch("conformance.check.validate_catalog") as validate_catalog,
+                mock.patch("mocks.check.validate_bundle") as validate_bundle,
+            ):
+                validate_review_payload(load_review_payload(), self.heading_ids)
+                self.assertEqual(validate_catalog.call_count, 1)
+                self.assertEqual(validate_bundle.call_count, 1)
+        finally:
+            _validate_canonical_conformance_catalog.cache_clear()
+            _validate_canonical_mock_bundle.cache_clear()
 
     def test_linter_self_check_honors_cargo_override(self) -> None:
         previous = os.environ.get("CARGO")
