@@ -49,6 +49,7 @@ SCHEMA_NAMES = (
     "observation",
     "operational-limits",
     "report",
+    "risk-explanation",
     "schema-cases",
     "subject",
     "suite",
@@ -133,6 +134,7 @@ HTTP_DATE_PATTERNS = (
 OPERATIONAL_LIMITS_SCHEMA_ID = SCHEMA_IDS["operational-limits"]
 CAPACITY_ERROR_SCHEMA_ID = SCHEMA_IDS["capacity-error"]
 HUMAN_ELICITATION_SCHEMA_ID = SCHEMA_IDS["human-elicitation"]
+RISK_EXPLANATION_SCHEMA_ID = SCHEMA_IDS["risk-explanation"]
 OPERATIONAL_LIMITS_FEATURE_ID = (
     "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
 )
@@ -142,6 +144,7 @@ ASP_OVER_AHP_FEATURE_ID = (
 HUMAN_ELICITATION_FEATURE_ID = (
     "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
 )
+RISK_EXPLANATION_FEATURE_ID = "agent-surface/feature/risk-explanation-ui-hints"
 CORE_CONTROL_EVENT_IDS = frozenset(
     {"budget.warning", "budget.exceeded", "session.paused_budget", "grant.revoked"}
 )
@@ -152,6 +155,40 @@ RFC3339_PATTERN = re.compile(
     r"(?:\.[0-9]{1,9})?(?:Z|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])$"
 )
 HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
+RISK_LANGUAGE_PATTERN = re.compile(
+    r"^[a-z]{2,8}(?:-[a-z]{4})?(?:-(?:[a-z]{2}|[0-9]{3}))?"
+    r"(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*$"
+)
+RISK_RUNTIME_PROJECTION_FIELDS = frozenset(
+    {
+        "action_id",
+        "hint_action_id",
+        "declared_risk",
+        "declared_effect_ids",
+        "hint_surface_hash",
+        "hint",
+        "language_preferences",
+        "selected_language",
+        "rendered_summary",
+        "rendered_effect_summaries",
+        "rendering",
+        "escaped",
+        "bidi_isolated",
+        "authority_use",
+        "agent_projection",
+    }
+)
+RISK_RETAINED_SURFACE_FIELDS = frozenset(
+    {
+        "status",
+        "version",
+        "retained_hash",
+        "candidate_hash",
+        "references",
+        "mode",
+        "action_semantics",
+    }
+)
 
 
 class ConformanceError(ValueError):
@@ -610,6 +647,226 @@ def validate_capacity_error(
         raise ConformanceError(
             "capacity error discloses an undeclared or cross-partition limit_id: "
             + ", ".join(undisclosable)
+)
+
+
+def _validate_risk_language_tag(value: str) -> None:
+    if len(value) > 63 or RISK_LANGUAGE_PATTERN.fullmatch(value) is None:
+        raise ConformanceError("risk explanation language tag is not canonical")
+    subtags = value.split("-")
+    index = 1
+    if (
+        index < len(subtags)
+        and len(subtags[index]) == 4
+        and subtags[index].isalpha()
+    ):
+        index += 1
+    if index < len(subtags) and (
+        (len(subtags[index]) == 2 and subtags[index].isalpha())
+        or (len(subtags[index]) == 3 and subtags[index].isdigit())
+    ):
+        index += 1
+    variants = subtags[index:]
+    if len(variants) != len(set(variants)):
+        raise ConformanceError(
+            "risk explanation language tag repeats a variant subtag"
+        )
+
+
+def validate_risk_explanation(
+    value: Any,
+    context: dict[str, Any],
+    *,
+    root: Path = ROOT,
+    registry: Registry | None = None,
+    schema: dict[str, Any] | None = None,
+) -> None:
+    """Validate one closed hint and its exact parent action-effect binding."""
+
+    _validate_ijson_value(value)
+    _validate_with_schema(
+        value,
+        schema
+        or load_strict_json(
+            root / "conformance" / "v1" / "risk-explanation.schema.json"
+        ),
+        "risk explanation",
+        registry=registry or _schema_registry(root),
+    )
+    if set(context) != {"effect_ids"}:
+        raise ConformanceError(
+            "risk explanation context must contain exactly effect_ids"
+        )
+    effect_ids = context["effect_ids"]
+    if (
+        not isinstance(effect_ids, list)
+        or any(not isinstance(item, str) or not item for item in effect_ids)
+        or len(effect_ids) != len(set(effect_ids))
+    ):
+        raise ConformanceError(
+            "risk explanation context effect_ids must be unique non-empty strings"
+        )
+
+    languages = [item["language"] for item in value["localizations"]]
+    _validate_risk_language_tag(value["default_language"])
+    for language in languages:
+        _validate_risk_language_tag(language)
+    if languages != sorted(languages):
+        raise ConformanceError(
+            "risk explanation localizations must be sorted by language"
+        )
+    if len(languages) != len(set(languages)):
+        raise ConformanceError("risk explanation repeats a language")
+    if value["default_language"] not in languages:
+        raise ConformanceError(
+            "risk explanation default_language has no exact localization"
+        )
+    for localization in value["localizations"]:
+        localized_effect_ids = [
+            item["effect_id"] for item in localization["effect_summaries"]
+        ]
+        if localized_effect_ids != effect_ids:
+            raise ConformanceError(
+                "risk explanation effect_summaries must exactly cover the "
+                "parent action effects in declaration order"
+            )
+
+
+def select_risk_explanation_localization(
+    value: dict[str, Any], language_preferences: list[str]
+) -> dict[str, Any]:
+    """Select exactly one localization using RFC 4647 Lookup and defaulting."""
+
+    if (
+        not isinstance(language_preferences, list)
+        or len(language_preferences) > 16
+        or any(
+            not isinstance(item, str)
+            or len(item) > 63
+            for item in language_preferences
+        )
+    ):
+        raise ConformanceError(
+            "risk explanation language preferences must be canonical tags"
+        )
+    for preference in language_preferences:
+        _validate_risk_language_tag(preference)
+    localizations = {
+        item["language"]: item for item in value["localizations"]
+    }
+    for preference in language_preferences:
+        subtags = preference.split("-")
+        while subtags:
+            candidate = "-".join(subtags)
+            if candidate in localizations:
+                return localizations[candidate]
+            subtags.pop()
+            if subtags and len(subtags[-1]) == 1:
+                subtags.pop()
+    return localizations[value["default_language"]]
+
+
+def _validate_risk_explanation_hint_projection(
+    projection: Any,
+    *,
+    root: Path = ROOT,
+) -> None:
+    """Validate publisher-owned hint content and exact action binding."""
+
+    if not isinstance(projection, dict):
+        raise ConformanceError("risk explanation projection must be an object")
+    validate_risk_explanation(
+        projection["hint"],
+        {"effect_ids": projection["declared_effect_ids"]},
+        root=root,
+    )
+    if projection["hint_action_id"] != projection["action_id"]:
+        raise ConformanceError(
+            "risk explanation projection is not bound to its authoritative action"
+        )
+
+
+def validate_risk_explanation_publisher_projection(
+    projection: Any,
+    surface: dict[str, Any],
+    *,
+    root: Path = ROOT,
+) -> None:
+    """Validate only publisher-owned hint state against the candidate manifest."""
+
+    _validate_risk_explanation_hint_projection(projection, root=root)
+    if projection["hint_surface_hash"] != surface["candidate_hash"]:
+        raise ConformanceError(
+            "risk explanation publisher projection is not bound to the candidate surface"
+        )
+
+
+def validate_risk_explanation_projection(
+    projection: Any,
+    surface: dict[str, Any],
+    *,
+    root: Path = ROOT,
+) -> None:
+    """Validate Runtime presentation against the exact retained surface."""
+
+    if not isinstance(projection, dict) or set(projection) != set(
+        RISK_RUNTIME_PROJECTION_FIELDS
+    ):
+        raise ConformanceError(
+            "risk explanation Runtime projection must be a closed presentation"
+        )
+    if (
+        not isinstance(surface, dict)
+        or set(surface) != set(RISK_RETAINED_SURFACE_FIELDS)
+        or surface["status"] != "current"
+        or not isinstance(surface["version"], str)
+        or not surface["version"]
+        or not isinstance(surface["retained_hash"], str)
+        or not surface["retained_hash"]
+        or not isinstance(surface["candidate_hash"], str)
+        or not surface["candidate_hash"]
+        or surface["references"] != "complete"
+        or surface["mode"] not in {"standard", "proposal_only"}
+        or surface["action_semantics"] not in {
+            "closed_read_propose",
+            "state_changing",
+        }
+        or (
+            surface["mode"] == "proposal_only"
+            and surface["action_semantics"] != "closed_read_propose"
+        )
+    ):
+        raise ConformanceError(
+            "risk explanation Runtime presentation lacks the complete verified "
+            "retained manifest projection"
+        )
+    _validate_risk_explanation_hint_projection(projection, root=root)
+    if projection["hint_surface_hash"] != surface["retained_hash"]:
+        raise ConformanceError(
+            "risk explanation Runtime projection is not bound to the retained surface"
+        )
+    selected = select_risk_explanation_localization(
+        projection["hint"], projection["language_preferences"]
+    )
+    if (
+        projection["selected_language"] != selected["language"]
+        or projection["rendered_summary"] != selected["summary"]
+        or projection["rendered_effect_summaries"]
+        != selected["effect_summaries"]
+    ):
+        raise ConformanceError(
+            "risk explanation rendered projection differs from RFC 4647 selection"
+        )
+    if (
+        projection["rendering"] != "literal_with_canonical_facts"
+        or projection["escaped"] is not True
+        or projection["bidi_isolated"] is not True
+        or projection["authority_use"] != "advisory_only"
+        or projection["agent_projection"] != "absent"
+    ):
+        raise ConformanceError(
+            "risk explanation prose must remain escaped, bidi-isolated, literal, "
+            "advisory, and agent-hidden"
         )
 
 
@@ -1431,6 +1688,7 @@ def _validate_schema_cases(
         OPERATIONAL_LIMITS_SCHEMA_ID: set(),
         CAPACITY_ERROR_SCHEMA_ID: set(),
         HUMAN_ELICITATION_SCHEMA_ID: set(),
+        RISK_EXPLANATION_SCHEMA_ID: set(),
     }
     for case in catalog["cases"]:
         schema_id = case["schema_id"]
@@ -1438,6 +1696,7 @@ def _validate_schema_cases(
             OPERATIONAL_LIMITS_SCHEMA_ID: "ASP-SC-OL-",
             CAPACITY_ERROR_SCHEMA_ID: "ASP-SC-CE-",
             HUMAN_ELICITATION_SCHEMA_ID: "ASP-SC-HE-",
+            RISK_EXPLANATION_SCHEMA_ID: "ASP-SC-RE-",
         }[schema_id]
         if not case["case_id"].startswith(expected_prefix):
             raise ConformanceError(
@@ -1471,13 +1730,21 @@ def _validate_schema_cases(
                     registry=registry,
                     schema=schemas["capacity-error"],
                 )
-            else:
+            elif schema_id == HUMAN_ELICITATION_SCHEMA_ID:
                 validate_human_elicitation(
                     instance,
                     case["context"],
                     root=root,
                     registry=registry,
                     schema=schemas["human-elicitation"],
+                )
+            else:
+                validate_risk_explanation(
+                    instance,
+                    case["context"],
+                    root=root,
+                    registry=registry,
+                    schema=schemas["risk-explanation"],
                 )
         except ConformanceError as caught:
             error = caught
@@ -1874,6 +2141,54 @@ def _semantic_validate_catalog(
             raise ConformanceError(
                 f"non-elicitation vector {vector_id} carries a Human "
                 "Elicitation projection"
+            )
+        has_risk_explanation_feature = (
+            RISK_EXPLANATION_FEATURE_ID in vector["features"]
+        )
+        has_risk_explanation_projection = (
+            "risk_explanation" in fixture["document"]
+        )
+        if has_risk_explanation_feature != has_risk_explanation_projection:
+            raise ConformanceError(
+                f"Risk Explanation vector {vector_id} feature selection and "
+                "fixture state differ"
+            )
+        renders_risk_explanation = operation == "render_risk_explanation"
+        selects_risk_explanation = "risk_explanation_present" in vector["setup"]
+        if renders_risk_explanation != selects_risk_explanation:
+            raise ConformanceError(
+                f"Risk Explanation vector {vector_id} setup and operation differ"
+            )
+        if has_risk_explanation_feature:
+            if operation not in {"publish_manifest", "render_risk_explanation"}:
+                raise ConformanceError(
+                    f"Risk Explanation vector {vector_id} uses an invalid operation"
+                )
+            if (
+                operation == "publish_manifest"
+                and profile_id
+                != "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1"
+            ) or (
+                operation == "render_risk_explanation"
+                and profile_id
+                != "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
+            ):
+                raise ConformanceError(
+                    f"Risk Explanation vector {vector_id} targets the wrong role"
+                )
+            validator = (
+                validate_risk_explanation_publisher_projection
+                if operation == "publish_manifest"
+                else validate_risk_explanation_projection
+            )
+            validator(
+                fixture["document"]["risk_explanation"],
+                fixture["document"]["surface"],
+                root=root,
+            )
+        elif selects_risk_explanation:
+            raise ConformanceError(
+                f"non-Risk-Explanation vector {vector_id} selects hint rendering"
             )
         if vector["polarity"] == "negative":
             baseline_id = vector["baseline_vector_id"]
@@ -2504,7 +2819,7 @@ def run_suite(
     started_at = _utc_now()
     runner = {
         "runner_id": "asp-reference-conformance-runner",
-        "runner_version": "1.5.0",
+        "runner_version": "1.6.0",
         "runner_artifact_sha256": file_digest(
             "ASP-CONFORMANCE-RUNNER-V1", root / "conformance" / "check.py"
         ),

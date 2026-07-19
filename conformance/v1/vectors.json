@@ -2,7 +2,7 @@
   "$schema": "./vectors.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.5.0",
+  "suite_version": "1.6.0",
   "vectors": [
     {
       "vector_id": "ASP-V-SP-001",
@@ -5489,6 +5489,479 @@
         { "state": "receipt.runtime_count", "before": 0, "after": 0 }
       ],
       "expected_error": "elicitation_invalid"
+    },
+    {
+      "vector_id": "ASP-V-SP-007",
+      "title": "Accept a closed, bounded, and fully effect-bound Risk Explanation hint",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-SP-004"
+      ],
+      "features": [
+        "agent-surface/feature/risk-explanation-ui-hints"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "valid_manifest",
+        "current_surface"
+      ],
+      "stimulus": {
+        "operation": "publish_manifest",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "risk_explanation_validated",
+        "manifest_published"
+      ],
+      "forbidden_observations": [
+        "risk_explanation_rejected",
+        "manifest_rejected"
+      ],
+      "state_deltas": [
+        { "state": "manifest.accepted_count", "before": 0, "after": 1 },
+        { "state": "surface.version_binding_count", "before": 0, "after": 1 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-SP-008",
+      "title": "Reject a Risk Explanation hint that omits a declared effect",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-SP-007",
+      "requirement_ids": [
+        "ASP-SP-004"
+      ],
+      "features": [
+        "agent-surface/feature/risk-explanation-ui-hints"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "valid_manifest",
+        "current_surface"
+      ],
+      "stimulus": {
+        "operation": "publish_manifest",
+        "input_variant": "risk_explanation_effect_coverage_mismatch"
+      },
+      "required_observations": [
+        "risk_explanation_rejected",
+        "manifest_rejected"
+      ],
+      "forbidden_observations": [
+        "risk_explanation_validated",
+        "manifest_published"
+      ],
+      "state_deltas": [
+        { "state": "manifest.accepted_count", "before": 0, "after": 0 },
+        { "state": "surface.version_binding_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "surface_incompatible"
+    },
+    {
+      "vector_id": "ASP-V-SP-009",
+      "title": "Reject a Risk Explanation hint whose default localization is absent",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-SP-007",
+      "requirement_ids": [
+        "ASP-SP-004"
+      ],
+      "features": [
+        "agent-surface/feature/risk-explanation-ui-hints"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "valid_manifest",
+        "current_surface"
+      ],
+      "stimulus": {
+        "operation": "publish_manifest",
+        "input_variant": "risk_explanation_default_language_missing"
+      },
+      "required_observations": [
+        "risk_explanation_rejected",
+        "manifest_rejected"
+      ],
+      "forbidden_observations": [
+        "risk_explanation_validated",
+        "manifest_published"
+      ],
+      "state_deltas": [
+        { "state": "manifest.accepted_count", "before": 0, "after": 0 },
+        { "state": "surface.version_binding_count", "before": 0, "after": 0 }
+      ],
+      "expected_error": "surface_incompatible"
+    },
+    {
+      "vector_id": "ASP-V-RM-043",
+      "title": "Select and render a surface-bound Risk Explanation while preserving canonical facts",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-013"
+      ],
+      "features": [
+        "agent-surface/feature/risk-explanation-ui-hints"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "current_surface",
+        "risk_explanation_present"
+      ],
+      "stimulus": {
+        "operation": "render_risk_explanation",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "risk_explanation_selected",
+        "risk_explanation_rendered_literal",
+        "canonical_risk_presented",
+        "canonical_effects_presented",
+        "risk_explanation_authority_unchanged",
+        "agent_instruction_suppressed"
+      ],
+      "forbidden_observations": [
+        "risk_explanation_binding_rejected",
+        "risk_explanation_suppressed",
+        "risk_explanation_used_as_authority",
+        "canonical_risk_suppressed",
+        "canonical_effects_suppressed",
+        "agent_instruction_projected"
+      ],
+      "state_deltas": [
+        { "state": "runtime.risk_explanation_presentation_count", "before": 0, "after": 1 },
+        { "state": "approval.interaction_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-044",
+      "title": "Suppress a stale Risk Explanation and retain machine-readable canonical facts",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-043",
+      "requirement_ids": [
+        "ASP-RM-013"
+      ],
+      "features": [
+        "agent-surface/feature/risk-explanation-ui-hints"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "current_surface",
+        "risk_explanation_present"
+      ],
+      "stimulus": {
+        "operation": "render_risk_explanation",
+        "input_variant": "risk_explanation_stale_surface"
+      },
+      "required_observations": [
+        "risk_explanation_binding_rejected",
+        "risk_explanation_suppressed",
+        "canonical_risk_presented",
+        "canonical_effects_presented",
+        "risk_explanation_authority_unchanged",
+        "agent_instruction_suppressed"
+      ],
+      "forbidden_observations": [
+        "risk_explanation_selected",
+        "risk_explanation_rendered_literal",
+        "risk_explanation_used_as_authority",
+        "canonical_risk_suppressed",
+        "canonical_effects_suppressed",
+        "agent_instruction_projected"
+      ],
+      "state_deltas": [
+        { "state": "runtime.risk_explanation_presentation_count", "before": 0, "after": 0 },
+        { "state": "approval.interaction_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-045",
+      "title": "Render adversarial Risk Explanation prose literally without projecting an agent instruction",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-043",
+      "requirement_ids": [
+        "ASP-RM-013"
+      ],
+      "features": [
+        "agent-surface/feature/risk-explanation-ui-hints"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_session",
+        "current_surface",
+        "risk_explanation_present"
+      ],
+      "stimulus": {
+        "operation": "render_risk_explanation",
+        "input_variant": "risk_explanation_adversarial_prose"
+      },
+      "required_observations": [
+        "risk_explanation_selected",
+        "risk_explanation_rendered_literal",
+        "canonical_risk_presented",
+        "canonical_effects_presented",
+        "risk_explanation_authority_unchanged",
+        "agent_instruction_suppressed"
+      ],
+      "forbidden_observations": [
+        "risk_explanation_binding_rejected",
+        "risk_explanation_suppressed",
+        "risk_explanation_used_as_authority",
+        "canonical_risk_suppressed",
+        "canonical_effects_suppressed",
+        "agent_instruction_projected"
+      ],
+      "state_deltas": [
+        { "state": "runtime.risk_explanation_presentation_count", "before": 0, "after": 1 },
+        { "state": "approval.interaction_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-046",
+      "title": "Suppress a malformed Risk Explanation language and retain canonical facts",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-043",
+      "requirement_ids": [
+        "ASP-RM-013"
+      ],
+      "features": [
+        "agent-surface/feature/risk-explanation-ui-hints"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "current_surface",
+        "risk_explanation_present"
+      ],
+      "stimulus": {
+        "operation": "render_risk_explanation",
+        "input_variant": "risk_explanation_malformed_language"
+      },
+      "required_observations": [
+        "risk_explanation_binding_rejected",
+        "risk_explanation_suppressed",
+        "canonical_risk_presented",
+        "canonical_effects_presented",
+        "risk_explanation_authority_unchanged",
+        "agent_instruction_suppressed"
+      ],
+      "forbidden_observations": [
+        "risk_explanation_selected",
+        "risk_explanation_rendered_literal",
+        "risk_explanation_used_as_authority",
+        "canonical_risk_suppressed",
+        "canonical_effects_suppressed",
+        "agent_instruction_projected"
+      ],
+      "state_deltas": [
+        { "state": "runtime.risk_explanation_presentation_count", "before": 0, "after": 0 },
+        { "state": "approval.interaction_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-047",
+      "title": "Suppress an action-substituted Risk Explanation and retain canonical facts",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-043",
+      "requirement_ids": [
+        "ASP-RM-013"
+      ],
+      "features": [
+        "agent-surface/feature/risk-explanation-ui-hints"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_session",
+        "current_surface",
+        "risk_explanation_present"
+      ],
+      "stimulus": {
+        "operation": "render_risk_explanation",
+        "input_variant": "risk_explanation_action_substitution"
+      },
+      "required_observations": [
+        "risk_explanation_binding_rejected",
+        "risk_explanation_suppressed",
+        "canonical_risk_presented",
+        "canonical_effects_presented",
+        "risk_explanation_authority_unchanged",
+        "agent_instruction_suppressed"
+      ],
+      "forbidden_observations": [
+        "risk_explanation_selected",
+        "risk_explanation_rendered_literal",
+        "risk_explanation_used_as_authority",
+        "canonical_risk_suppressed",
+        "canonical_effects_suppressed",
+        "agent_instruction_projected"
+      ],
+      "state_deltas": [
+        { "state": "runtime.risk_explanation_presentation_count", "before": 0, "after": 0 },
+        { "state": "approval.interaction_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-048",
+      "title": "Suppress a Risk Explanation from an incomplete retained manifest projection",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-043",
+      "requirement_ids": [
+        "ASP-RM-013"
+      ],
+      "features": [
+        "agent-surface/feature/risk-explanation-ui-hints"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "current_surface",
+        "risk_explanation_present"
+      ],
+      "stimulus": {
+        "operation": "render_risk_explanation",
+        "input_variant": "incomplete_references"
+      },
+      "required_observations": [
+        "risk_explanation_binding_rejected",
+        "risk_explanation_suppressed",
+        "canonical_risk_presented",
+        "canonical_effects_presented",
+        "risk_explanation_authority_unchanged",
+        "agent_instruction_suppressed"
+      ],
+      "forbidden_observations": [
+        "risk_explanation_selected",
+        "risk_explanation_rendered_literal",
+        "risk_explanation_used_as_authority",
+        "canonical_risk_suppressed",
+        "canonical_effects_suppressed",
+        "agent_instruction_projected"
+      ],
+      "state_deltas": [
+        { "state": "runtime.risk_explanation_presentation_count", "before": 0, "after": 0 },
+        { "state": "approval.interaction_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-049",
+      "title": "Suppress a Risk Explanation without verified output-context escaping",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-043",
+      "requirement_ids": [
+        "ASP-RM-013"
+      ],
+      "features": [
+        "agent-surface/feature/risk-explanation-ui-hints"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "current_surface",
+        "risk_explanation_present"
+      ],
+      "stimulus": {
+        "operation": "render_risk_explanation",
+        "input_variant": "risk_explanation_unescaped"
+      },
+      "required_observations": [
+        "risk_explanation_binding_rejected",
+        "risk_explanation_suppressed",
+        "canonical_risk_presented",
+        "canonical_effects_presented",
+        "risk_explanation_authority_unchanged",
+        "agent_instruction_suppressed"
+      ],
+      "forbidden_observations": [
+        "risk_explanation_selected",
+        "risk_explanation_rendered_literal",
+        "risk_explanation_used_as_authority",
+        "canonical_risk_suppressed",
+        "canonical_effects_suppressed",
+        "agent_instruction_projected"
+      ],
+      "state_deltas": [
+        { "state": "runtime.risk_explanation_presentation_count", "before": 0, "after": 0 },
+        { "state": "approval.interaction_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-050",
+      "title": "Suppress a Risk Explanation outside presenter-controlled bidi isolation",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-043",
+      "requirement_ids": [
+        "ASP-RM-013"
+      ],
+      "features": [
+        "agent-surface/feature/risk-explanation-ui-hints"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_session",
+        "current_surface",
+        "risk_explanation_present"
+      ],
+      "stimulus": {
+        "operation": "render_risk_explanation",
+        "input_variant": "risk_explanation_bidi_unisolated"
+      },
+      "required_observations": [
+        "risk_explanation_binding_rejected",
+        "risk_explanation_suppressed",
+        "canonical_risk_presented",
+        "canonical_effects_presented",
+        "risk_explanation_authority_unchanged",
+        "agent_instruction_suppressed"
+      ],
+      "forbidden_observations": [
+        "risk_explanation_selected",
+        "risk_explanation_rendered_literal",
+        "risk_explanation_used_as_authority",
+        "canonical_risk_suppressed",
+        "canonical_effects_suppressed",
+        "agent_instruction_projected"
+      ],
+      "state_deltas": [
+        { "state": "runtime.risk_explanation_presentation_count", "before": 0, "after": 0 },
+        { "state": "approval.interaction_count", "before": 0, "after": 0 },
+        { "state": "action.dispatch_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ]
     }
   ]
 }

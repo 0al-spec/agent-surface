@@ -28,6 +28,7 @@ from mocks.behavior import (
     _apply_redline,
     _hash_without,
     _object_hash,
+    _validate_risk_explanation_publisher,
     evaluate,
     family_for,
 )
@@ -140,10 +141,162 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 "state_deltas",
             }
         )
-        self.assertEqual(len(self.catalog.vectors), 105)
+        self.assertEqual(len(self.catalog.vectors), 116)
         for vector_id in self.catalog.vectors:
             with self.subTest(vector_id=vector_id):
                 self.assert_matches_catalog_oracle(vector_id)
+
+    def test_risk_explanations_are_bound_literal_and_never_authority(self) -> None:
+        for vector_id in (
+            "ASP-V-SP-007",
+            "ASP-V-SP-008",
+            "ASP-V-SP-009",
+            "ASP-V-RM-043",
+            "ASP-V-RM-044",
+            "ASP-V-RM-045",
+            "ASP-V-RM-046",
+            "ASP-V-RM-047",
+            "ASP-V-RM-048",
+            "ASP-V-RM-049",
+            "ASP-V-RM-050",
+        ):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                self.assertNotIn("risk_explanation_used_as_authority", result.tokens)
+                self.assertNotIn("agent_instruction_projected", result.tokens)
+
+        vector = self.catalog.vectors["ASP-V-RM-043"]
+        fixture = _resolved_fixture(self.catalog, vector)
+
+        action_substitution = copy.deepcopy(fixture["document"])
+        action_substitution["risk_explanation"]["hint_action_id"] = "comment.delete"
+        substituted = self.evaluate_document(vector, action_substitution)
+        self.assertEqual(substituted.decision, "stopped")
+        self.assertIn("risk_explanation_binding_rejected", substituted.tokens)
+        self.assertIn("canonical_risk_presented", substituted.tokens)
+        self.assertEqual(substituted.state_after, substituted.state_before)
+
+        invalid_present_hint = copy.deepcopy(fixture["document"])
+        invalid_present_hint["risk_explanation"]["hint"]["default_language"] = "de"
+        fallback = self.evaluate_document(vector, invalid_present_hint)
+        self.assertEqual(fallback.decision, "stopped")
+        self.assertIn("risk_explanation_suppressed", fallback.tokens)
+        self.assertIn("canonical_effects_presented", fallback.tokens)
+        self.assertNotIn("risk_explanation_rendered_literal", fallback.tokens)
+
+        defaulted = copy.deepcopy(fixture["document"])
+        risk = defaulted["risk_explanation"]
+        risk["language_preferences"] = []
+        risk["selected_language"] = "en"
+        risk["rendered_summary"] = risk["hint"]["localizations"][0]["summary"]
+        risk["rendered_effect_summaries"] = risk["hint"]["localizations"][0][
+            "effect_summaries"
+        ]
+        selected_default = self.evaluate_document(vector, defaulted)
+        self.assertEqual(selected_default.decision, "accepted")
+        self.assertIn("risk_explanation_rendered_literal", selected_default.tokens)
+
+        publisher_vector = self.catalog.vectors["ASP-V-SP-007"]
+        publisher_fixture = _resolved_fixture(self.catalog, publisher_vector)
+        runtime_owned_noise = copy.deepcopy(publisher_fixture["document"])
+        publisher_risk = runtime_owned_noise["risk_explanation"]
+        publisher_risk["language_preferences"] = ["not-a-language-tag!"]
+        publisher_risk["selected_language"] = "de"
+        publisher_risk["rendered_summary"] = "Runtime-owned stale state"
+        publisher_risk["rendered_effect_summaries"] = []
+        publisher_risk["rendering"] = "not-a-rendering-mode"
+        publisher_risk["authority_use"] = "attempted"
+        publisher_risk["agent_projection"] = "present"
+        publisher_result = self.evaluate_document(
+            publisher_vector,
+            runtime_owned_noise,
+        )
+        self.assertEqual(publisher_result.decision, "accepted")
+        self.assertIn("risk_explanation_validated", publisher_result.tokens)
+
+        next_manifest = copy.deepcopy(publisher_fixture["document"])
+        next_manifest["surface"]["candidate_hash"] = "surface_hash_b"
+        next_manifest["risk_explanation"]["hint_surface_hash"] = "surface_hash_b"
+        _validate_risk_explanation_publisher(next_manifest)
+
+        retained_snapshot = copy.deepcopy(fixture["document"])
+        retained_snapshot["surface"]["candidate_hash"] = "surface_hash_b"
+        retained_result = self.evaluate_document(vector, retained_snapshot)
+        self.assertEqual(retained_result.decision, "accepted")
+        self.assertIn("risk_explanation_rendered_literal", retained_result.tokens)
+
+        incomplete_retained = copy.deepcopy(fixture["document"])
+        incomplete_retained["surface"]["references"] = "incomplete"
+        incomplete_result = self.evaluate_document(vector, incomplete_retained)
+        self.assertEqual(incomplete_result.decision, "stopped")
+        self.assertIsNone(incomplete_result.asp_error)
+        self.assertIn("risk_explanation_suppressed", incomplete_result.tokens)
+        self.assertIn("canonical_risk_presented", incomplete_result.tokens)
+        self.assertIn("canonical_effects_presented", incomplete_result.tokens)
+        self.assertNotIn(
+            "risk_explanation_rendered_literal", incomplete_result.tokens
+        )
+        self.assertEqual(
+            incomplete_result.state_after,
+            incomplete_result.state_before,
+        )
+
+        for presentation_field in ("escaped", "bidi_isolated"):
+            for presentation_value in ("missing", False):
+                with self.subTest(
+                    presentation_field=presentation_field,
+                    presentation_value=presentation_value,
+                ):
+                    invalid_presentation = copy.deepcopy(fixture["document"])
+                    risk_projection = invalid_presentation["risk_explanation"]
+                    if presentation_value == "missing":
+                        del risk_projection[presentation_field]
+                    else:
+                        risk_projection[presentation_field] = presentation_value
+                    presentation_result = self.evaluate_document(
+                        vector,
+                        invalid_presentation,
+                    )
+                    self.assertEqual(presentation_result.decision, "stopped")
+                    self.assertIsNone(presentation_result.asp_error)
+                    self.assertIn(
+                        "risk_explanation_suppressed",
+                        presentation_result.tokens,
+                    )
+                    self.assertIn(
+                        "canonical_risk_presented",
+                        presentation_result.tokens,
+                    )
+                    self.assertIn(
+                        "canonical_effects_presented",
+                        presentation_result.tokens,
+                    )
+                    self.assertNotIn(
+                        "risk_explanation_rendered_literal",
+                        presentation_result.tokens,
+                    )
+                    self.assertEqual(
+                        presentation_result.state_after,
+                        presentation_result.state_before,
+                    )
+
+        for language in ("en-a", "en-12", "de-1901-1901"):
+            with self.subTest(language=language):
+                malformed = copy.deepcopy(fixture["document"])
+                malformed_risk = malformed["risk_explanation"]
+                malformed_risk["hint"]["default_language"] = language
+                malformed_risk["hint"]["localizations"][0]["language"] = language
+                result = self.evaluate_document(vector, malformed)
+                self.assertEqual(result.decision, "stopped")
+                self.assertIn("risk_explanation_suppressed", result.tokens)
+
+        bidi = copy.deepcopy(fixture["document"])
+        bidi_risk = bidi["risk_explanation"]
+        bidi_risk["hint"]["localizations"][1]["summary"] = "unsafe\u202esummary"
+        bidi_risk["rendered_summary"] = "unsafe\u202esummary"
+        result = self.evaluate_document(vector, bidi)
+        self.assertEqual(result.decision, "stopped")
+        self.assertIn("canonical_risk_presented", result.tokens)
 
     def test_opaque_case_label_cannot_change_behavior(self) -> None:
         vector = self.catalog.vectors["ASP-V-AE-004"]

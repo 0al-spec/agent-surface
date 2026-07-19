@@ -170,8 +170,8 @@ credentials, secrets, user content, or attestation evidence.
 ## ASP Manifest Linter
 
 The Rust `asp-lint` CLI performs deterministic offline checks for missing
-schema declarations, risk labels, idempotency closure, and inconsistent scope
-references:
+schema declarations, risk labels, malformed optional Risk Explanation UI
+Hints, idempotency closure, and inconsistent scope references:
 
 ```sh
 make manifest-lint-check

@@ -19,7 +19,18 @@
       "side_effect": false,
       "execution": {"mode": "read", "operation_id": "task.get"},
       "input_schema": "https://example.com/schemas/task-get-input.json",
-      "output_schema": "https://example.com/schemas/task-get-output.json"
+      "output_schema": "https://example.com/schemas/task-get-output.json",
+      "effects": [],
+      "risk_explanation": {
+        "default_language": "en",
+        "localizations": [
+          {
+            "language": "en",
+            "summary": "Reads one task without changing it.",
+            "effect_summaries": []
+          }
+        ]
+      }
     }
   ],
   "events": [

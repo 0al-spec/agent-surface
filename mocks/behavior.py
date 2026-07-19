@@ -38,7 +38,12 @@ ASP_OVER_AHP = (
 HUMAN_ELICITATION = (
     "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
 )
+RISK_EXPLANATION = "agent-surface/feature/risk-explanation-ui-hints"
 SAFE_INTEGER = 2**53 - 1
+RISK_LANGUAGE_PATTERN = re.compile(
+    r"^[a-z]{2,8}(?:-[a-z]{4})?(?:-(?:[a-z]{2}|[0-9]{3}))?"
+    r"(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*$"
+)
 HTTP_MONTHS = {
     name: number
     for number, name in enumerate(
@@ -81,7 +86,11 @@ RUNTIME_PROFILES = frozenset({RM, AA})
 PRODUCER_ROLES = frozenset({"application", "runtime"})
 
 FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
-    SP: ("agent-surface/feature/proposal-only", OPERATIONAL_LIMITS),
+    SP: (
+        "agent-surface/feature/proposal-only",
+        RISK_EXPLANATION,
+        OPERATIONAL_LIMITS,
+    ),
     GI: (
         "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
     ),
@@ -94,6 +103,7 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
     ),
     RP: (),
     RM: (
+        RISK_EXPLANATION,
         "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
         ASP_OVER_AHP,
         "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
@@ -107,6 +117,10 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
 
 class BehaviorError(ValueError):
     """Raised when an invocation is outside the closed mock behavior model."""
+
+
+class _RiskExplanationBindingError(BehaviorError):
+    """Raised when otherwise bounded hint data is stale or action-substituted."""
 
 
 @dataclass(frozen=True)
@@ -1269,11 +1283,310 @@ def _validate_human_elicitation(
     )
 
 
+def _risk_language(value: Any, *, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) > 63
+        or RISK_LANGUAGE_PATTERN.fullmatch(value) is None
+    ):
+        raise BehaviorError(f"{label} is not a canonical language tag")
+    subtags = value.split("-")
+    index = 1
+    if (
+        index < len(subtags)
+        and len(subtags[index]) == 4
+        and subtags[index].isalpha()
+    ):
+        index += 1
+    if index < len(subtags) and (
+        (len(subtags[index]) == 2 and subtags[index].isalpha())
+        or (len(subtags[index]) == 3 and subtags[index].isdigit())
+    ):
+        index += 1
+    variants = subtags[index:]
+    if len(variants) != len(set(variants)):
+        raise BehaviorError(f"{label} repeats a variant subtag")
+    return value
+
+
+def _risk_summary(value: Any, *, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or not 1 <= len(value) <= 512
+        or any(
+            ord(character) <= 0x1F
+            or 0x7F <= ord(character) <= 0x9F
+            or ord(character) in {0x061C, 0x200E, 0x200F}
+            or 0x202A <= ord(character) <= 0x202E
+            or 0x2066 <= ord(character) <= 0x2069
+            for character in value
+        )
+    ):
+        raise BehaviorError(f"{label} is not bounded display prose")
+    return value
+
+
+def _select_risk_localization(
+    localizations: Sequence[Mapping[str, Any]],
+    preferences: Sequence[Any],
+    default_language: str,
+) -> Mapping[str, Any]:
+    if (
+        isinstance(preferences, (str, bytes))
+        or not 0 <= len(preferences) <= 16
+    ):
+        raise BehaviorError("risk language preferences must be a bounded array")
+    by_language = {
+        localization["language"]: localization for localization in localizations
+    }
+    for raw_preference in preferences:
+        preference = _risk_language(raw_preference, label="risk language preference")
+        subtags = preference.split("-")
+        while subtags:
+            candidate = "-".join(subtags)
+            if candidate in by_language:
+                return by_language[candidate]
+            subtags.pop()
+            if subtags and len(subtags[-1]) == 1:
+                subtags.pop()
+    return by_language[default_language]
+
+
+def _validate_risk_explanation_hint(
+    document: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], list[Mapping[str, Any]], str]:
+    """Validate publisher-owned hint data independently of Runtime state."""
+
+    projection = _section(document, "risk_explanation")
+    publisher_fields = {
+        "action_id",
+        "hint_action_id",
+        "declared_risk",
+        "declared_effect_ids",
+        "hint_surface_hash",
+        "hint",
+    }
+    if not publisher_fields.issubset(projection):
+        raise BehaviorError("risk explanation publisher projection is incomplete")
+    action_id = projection.get("action_id")
+    hint_action_id = projection.get("hint_action_id")
+    if (
+        not isinstance(action_id, str)
+        or not action_id
+        or not isinstance(hint_action_id, str)
+        or not hint_action_id
+        or hint_action_id != action_id
+    ):
+        raise _RiskExplanationBindingError(
+            "risk explanation action binding is stale or substituted"
+        )
+    if projection.get("declared_risk") not in {
+        "read",
+        "propose",
+        "write",
+        "public_side_effect",
+        "external_side_effect",
+        "financial_side_effect",
+        "destructive",
+        "privileged",
+    }:
+        raise BehaviorError("risk explanation canonical risk is invalid")
+    declared_effect_ids = projection.get("declared_effect_ids")
+    if (
+        not isinstance(declared_effect_ids, list)
+        or any(
+            not isinstance(effect_id, str) or not effect_id
+            for effect_id in declared_effect_ids
+        )
+        or len(declared_effect_ids) != len(set(declared_effect_ids))
+    ):
+        raise BehaviorError("risk explanation declared effects are invalid")
+    hint = projection.get("hint")
+    if not isinstance(hint, Mapping) or set(hint) != {
+        "default_language",
+        "localizations",
+    }:
+        raise BehaviorError("risk explanation hint is not the closed shape")
+    default_language = _risk_language(
+        hint.get("default_language"),
+        label="risk default language",
+    )
+    localizations = hint.get("localizations")
+    if (
+        not isinstance(localizations, list)
+        or not 1 <= len(localizations) <= 16
+    ):
+        raise BehaviorError("risk explanation localizations are not bounded")
+    languages: list[str] = []
+    for index, localization in enumerate(localizations):
+        if not isinstance(localization, Mapping) or set(localization) != {
+            "language",
+            "summary",
+            "effect_summaries",
+        }:
+            raise BehaviorError("risk localization is not the closed shape")
+        language = _risk_language(
+            localization.get("language"),
+            label=f"risk localization {index} language",
+        )
+        languages.append(language)
+        _risk_summary(
+            localization.get("summary"),
+            label=f"risk localization {language} summary",
+        )
+        effect_summaries = localization.get("effect_summaries")
+        if not isinstance(effect_summaries, list):
+            raise BehaviorError("risk effect summaries must be an array")
+        localized_effect_ids: list[str] = []
+        for effect_summary in effect_summaries:
+            if not isinstance(effect_summary, Mapping) or set(effect_summary) != {
+                "effect_id",
+                "summary",
+            }:
+                raise BehaviorError("risk effect summary is not the closed shape")
+            effect_id = effect_summary.get("effect_id")
+            if not isinstance(effect_id, str) or not effect_id:
+                raise BehaviorError("risk effect summary has an invalid effect id")
+            localized_effect_ids.append(effect_id)
+            _risk_summary(
+                effect_summary.get("summary"),
+                label=f"risk effect {effect_id} summary",
+            )
+        if localized_effect_ids != declared_effect_ids:
+            raise BehaviorError(
+                "risk effect summaries do not exactly cover declared effects"
+            )
+    if languages != sorted(languages) or len(languages) != len(set(languages)):
+        raise BehaviorError(
+            "risk explanation languages must be unique and canonically sorted"
+        )
+    if default_language not in languages:
+        raise BehaviorError("risk default language has no exact localization")
+    return projection, localizations, default_language
+
+
+def _validate_risk_explanation_publisher(
+    document: Mapping[str, Any],
+) -> None:
+    projection, _, _ = _validate_risk_explanation_hint(document)
+    surface = _section(document, "surface")
+    if projection.get("hint_surface_hash") != surface.get("candidate_hash"):
+        raise _RiskExplanationBindingError(
+            "risk explanation publisher binding is not the candidate surface"
+        )
+
+
+def _validate_risk_explanation_projection(
+    document: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    """Validate Runtime-owned presentation against the retained Grant surface."""
+
+    projection, localizations, default_language = _validate_risk_explanation_hint(
+        document
+    )
+    runtime_fields = {
+        "action_id",
+        "hint_action_id",
+        "declared_risk",
+        "declared_effect_ids",
+        "hint_surface_hash",
+        "hint",
+        "language_preferences",
+        "selected_language",
+        "rendered_summary",
+        "rendered_effect_summaries",
+        "rendering",
+        "escaped",
+        "bidi_isolated",
+        "authority_use",
+        "agent_projection",
+    }
+    if set(projection) != runtime_fields:
+        raise BehaviorError("risk explanation Runtime projection is not the closed shape")
+    surface = _section(document, "surface")
+    surface_fields = {
+        "status",
+        "version",
+        "retained_hash",
+        "candidate_hash",
+        "references",
+        "mode",
+        "action_semantics",
+    }
+    if (
+        set(surface) != surface_fields
+        or surface.get("status") != "current"
+        or not isinstance(surface.get("version"), str)
+        or not surface.get("version")
+        or not isinstance(surface.get("retained_hash"), str)
+        or not surface.get("retained_hash")
+        or not isinstance(surface.get("candidate_hash"), str)
+        or not surface.get("candidate_hash")
+        or surface.get("references") != "complete"
+        or surface.get("mode") not in {"standard", "proposal_only"}
+        or surface.get("action_semantics")
+        not in {"closed_read_propose", "state_changing"}
+        or (
+            surface.get("mode") == "proposal_only"
+            and surface.get("action_semantics") != "closed_read_propose"
+        )
+    ):
+        raise _RiskExplanationBindingError(
+            "risk explanation Runtime presentation lacks the complete verified "
+            "retained manifest projection"
+        )
+    if projection.get("hint_surface_hash") != surface.get("retained_hash"):
+        raise _RiskExplanationBindingError(
+            "risk explanation Runtime binding is not the retained surface"
+        )
+
+    preferences = projection.get("language_preferences")
+    if not isinstance(preferences, list):
+        raise BehaviorError("risk language preferences must be an array")
+    selected = _select_risk_localization(
+        localizations,
+        preferences,
+        default_language,
+    )
+    if (
+        projection.get("selected_language") != selected["language"]
+        or projection.get("rendered_summary") != selected["summary"]
+        or projection.get("rendered_effect_summaries")
+        != selected["effect_summaries"]
+    ):
+        raise BehaviorError(
+            "rendered risk explanation differs from RFC 4647 Lookup selection"
+        )
+    if (
+        projection.get("rendering") != "literal_with_canonical_facts"
+        or projection.get("escaped") is not True
+        or projection.get("bidi_isolated") is not True
+        or projection.get("authority_use") != "advisory_only"
+        or projection.get("agent_projection") != "absent"
+    ):
+        raise BehaviorError(
+            "risk explanation must remain escaped, bidi-isolated, literal, "
+            "advisory, and agent-hidden"
+        )
+    return selected
+
+
 def _surface(operation: str, document: Mapping[str, Any], state: _Transition) -> BehaviorResult:
     if operation != "publish_manifest":
         raise BehaviorError(f"Surface Publisher does not support {operation!r}")
     surface = _section(document, "surface")
     operational = document.get("operational")
+    has_risk_explanation = "risk_explanation" in document
+    if has_risk_explanation:
+        try:
+            _validate_risk_explanation_publisher(document)
+        except BehaviorError:
+            return state.result(
+                "rejected",
+                "risk_explanation_rejected",
+                "manifest_rejected",
+                asp_error="surface_incompatible",
+            )
     if operational is not None:
         operational = _section(document, "operational")
         if operational.get("declaration") != "valid":
@@ -1295,8 +1608,19 @@ def _surface(operation: str, document: Mapping[str, Any], state: _Transition) ->
     state.increment("manifest.accepted_count")
     state.increment("surface.version_binding_count")
     if operational is not None:
+        if has_risk_explanation:
+            return state.result(
+                "accepted",
+                "operational_limits_validated",
+                "risk_explanation_validated",
+                "manifest_published",
+            )
         return state.result(
             "accepted", "operational_limits_validated", "manifest_published"
+        )
+    if has_risk_explanation:
+        return state.result(
+            "accepted", "risk_explanation_validated", "manifest_published"
         )
     return state.result("accepted", "manifest_published")
 
@@ -1632,6 +1956,29 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
     execution = _section(document, "execution")
     runtime = _section(document, "runtime")
     operational = document.get("operational")
+    if operation == "render_risk_explanation":
+        try:
+            _validate_risk_explanation_projection(document)
+        except BehaviorError:
+            return state.result(
+                "stopped",
+                "risk_explanation_binding_rejected",
+                "risk_explanation_suppressed",
+                "canonical_risk_presented",
+                "canonical_effects_presented",
+                "risk_explanation_authority_unchanged",
+                "agent_instruction_suppressed",
+            )
+        state.increment("runtime.risk_explanation_presentation_count")
+        return state.result(
+            "accepted",
+            "risk_explanation_selected",
+            "risk_explanation_rendered_literal",
+            "canonical_risk_presented",
+            "canonical_effects_presented",
+            "risk_explanation_authority_unchanged",
+            "agent_instruction_suppressed",
+        )
     if operation == "mediate_human_elicitation":
         raw_elicitation = document.get("elicitation")
         raw_request = (

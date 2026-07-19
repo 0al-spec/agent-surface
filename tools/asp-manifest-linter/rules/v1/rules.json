@@ -2,7 +2,7 @@
   "$schema": "../../schema/rules.schema.json",
   "schema_version": 1,
   "ruleset_id": "https://github.com/0al-spec/agent-surface/tools/asp-manifest-linter/rules/v1",
-  "ruleset_version": "1.0.0",
+  "ruleset_version": "1.1.0",
   "rules": [
     {
       "rule_id": "ASP-LINT-SCHEMA-001",
@@ -16,7 +16,14 @@
       "title": "Action risk labels",
       "severity": "warning",
       "rfc_anchor": "risk-taxonomy",
-      "help": "Declare the most severe applicable standard or mapped extension risk label."
+      "help": "Use one of the eight core labels or a non-empty ASCII URI valid under RFC 3986 generic syntax; runtimes remain responsible for verifying collision resistance, support, and conservative mapping."
+    },
+    {
+      "rule_id": "ASP-LINT-RISK-EXPLANATION-001",
+      "title": "Risk explanation UI hints",
+      "severity": "error",
+      "rfc_anchor": "risk-explanation-ui-hints",
+      "help": "Use a closed, bounded, canonically ordered risk_explanation with restricted language tags, control-free inert text, and exact parent-effect coverage."
     },
     {
       "rule_id": "ASP-LINT-IDEMPOTENCY-001",

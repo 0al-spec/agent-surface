@@ -8,11 +8,11 @@
     "$schema": {"const": "../../schema/rules.schema.json"},
     "schema_version": {"const": 1},
     "ruleset_id": {"const": "https://github.com/0al-spec/agent-surface/tools/asp-manifest-linter/rules/v1"},
-    "ruleset_version": {"const": "1.0.0"},
+    "ruleset_version": {"const": "1.1.0"},
     "rules": {
       "type": "array",
-      "minItems": 4,
-      "maxItems": 4,
+      "minItems": 5,
+      "maxItems": 5,
       "items": {"$ref": "#/$defs/rule"}
     }
   },
@@ -26,6 +26,7 @@
           "enum": [
             "ASP-LINT-SCHEMA-001",
             "ASP-LINT-RISK-001",
+            "ASP-LINT-RISK-EXPLANATION-001",
             "ASP-LINT-IDEMPOTENCY-001",
             "ASP-LINT-SCOPE-001"
           ]

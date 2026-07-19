@@ -15,7 +15,7 @@
         "name": {"const": "asp-manifest-linter"},
         "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
         "ruleset_id": {"const": "https://github.com/0al-spec/agent-surface/tools/asp-manifest-linter/rules/v1"},
-        "ruleset_version": {"const": "1.0.0"}
+        "ruleset_version": {"const": "1.1.0"}
       }
     },
     "input": {
@@ -46,7 +46,7 @@
       "properties": {
         "rule_id": {
           "type": "string",
-          "pattern": "^ASP-LINT-[A-Z]+-[0-9]{3}$"
+          "pattern": "^ASP-LINT-[A-Z]+(?:-[A-Z]+)*-[0-9]{3}$"
         },
         "severity": {"enum": ["error", "warning"]},
         "path": {"type": "string", "pattern": "^/"},
