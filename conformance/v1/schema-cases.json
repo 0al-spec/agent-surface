@@ -2,7 +2,7 @@
   "$schema": "./schema-cases.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.6.0",
+  "suite_version": "1.7.0",
   "cases": [
     {
       "case_id": "ASP-SC-OL-001",
@@ -687,6 +687,392 @@
           "comment-publish"
         ]
       }
+    },
+    {
+      "case_id": "ASP-SC-IS-001",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "positive",
+      "instance_json": "{\"feature\":\"agent-surface/feature/impact-simulation\",\"evaluated_at\":\"2026-07-19T10:00:00Z\",\"valid_until\":\"2026-07-19T10:05:00Z\",\"bindings\":{\"surface\":{\"issuer\":\"issuer_a\",\"app_id\":\"app_a\",\"surface_version\":\"surface_v1\",\"surface_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"},\"grant_request_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"delegate\":{\"runtime_id\":\"runtime_a\",\"agent_id\":\"agent_a\",\"passport_profile\":\"https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1\",\"passport_hash_profile\":\"https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1\",\"passport_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"passport_verification_profile\":\"https://example.com/passport-verification/v1\"},\"capability_match\":null,\"agent_inventory_revision\":\"agents-1\",\"adapter_inventory_revision\":\"adapters-1\",\"local_policy_revision\":\"policy-1\",\"enterprise_policy_revision\":null,\"user_preferences_revision\":null},\"coverage\":{\"requested\":{\"total\":1,\"included\":1,\"complete\":true},\"unrequested\":{\"total\":0,\"included\":0,\"truncated\":false},\"selection_algorithm\":\"highest-risk-then-action-id-v1\"},\"examples\":[{\"request_relation\":\"requested\",\"outcome\":\"covered\",\"reasons\":[],\"action\":{\"action_id\":\"action.read\",\"scope\":\"item.read\",\"mode\":\"read\",\"risk\":\"read\",\"approval\":\"none\",\"required_companion_action_ids\":[],\"maximum_effects\":[],\"data_exposure\":{\"classes\":[\"item.content\"],\"redaction\":{\"mode\":\"none\"},\"retention\":{\"mode\":\"transient\",\"delete_on_grant_end\":true}},\"recovery\":{\"available_action_ids\":[],\"limitations\":[]}}}]}",
+      "context": {
+        "evaluation_time": "2026-07-19T10:01:00Z",
+        "current_binding_facts": {
+          "surface": {
+            "issuer": "issuer_a",
+            "app_id": "app_a",
+            "surface_version": "surface_v1",
+            "surface_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "delegate": {
+            "runtime_id": "runtime_a",
+            "agent_id": "agent_a",
+            "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+            "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+            "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "passport_verification_profile": "https://example.com/passport-verification/v1"
+          },
+          "capability_match": null,
+          "agent_inventory_revision": "agents-1",
+          "adapter_inventory_revision": "adapters-1",
+          "local_policy_revision": "policy-1",
+          "enterprise_policy_revision": null,
+          "user_preferences_revision": null
+        },
+        "bindings": {
+          "surface": {
+            "issuer": "issuer_a",
+            "app_id": "app_a",
+            "surface_version": "surface_v1",
+            "surface_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "delegate": {
+            "runtime_id": "runtime_a",
+            "agent_id": "agent_a",
+            "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+            "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+            "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "passport_verification_profile": "https://example.com/passport-verification/v1"
+          },
+          "capability_match": null,
+          "agent_inventory_revision": "agents-1",
+          "adapter_inventory_revision": "adapters-1",
+          "local_policy_revision": "policy-1",
+          "enterprise_policy_revision": null,
+          "user_preferences_revision": null
+        },
+        "freshness_deadlines": {
+          "passport_status": "2026-07-19T10:05:00Z",
+          "capability_match": null,
+          "agent_inventory": "2026-07-19T10:05:00Z",
+          "adapter_inventory": "2026-07-19T10:05:00Z",
+          "local_policy": "2026-07-19T10:05:00Z",
+          "enterprise_policy": null,
+          "user_preferences": null,
+          "runtime_identity": "2026-07-19T10:05:00Z",
+          "runtime_attestation": "2026-07-19T10:05:00Z",
+          "local_maximum": "2026-07-19T10:05:00Z"
+        },
+        "requested_action_ids": [
+          "action.read"
+        ],
+        "requested_scope_ids": [
+          "item.read"
+        ],
+        "candidate_check_facts": [
+          { "check_id": "adapter", "state": "satisfied", "subject": { "kind": "adapter", "id": "adapter_a" } },
+          { "check_id": "approval", "state": "satisfied", "subject": { "kind": "approval", "id": "action.read" } },
+          { "check_id": "capability", "state": "satisfied", "subject": { "kind": "capability", "id": "item.read" } },
+          { "check_id": "data_exposure", "state": "satisfied", "subject": { "kind": "exposure", "id": "item.content" } },
+          { "check_id": "effect", "state": "satisfied", "subject": { "kind": "effect", "id": "action.read" } },
+          { "check_id": "execution_stage", "state": "satisfied", "subject": { "kind": "action", "id": "action.read" } },
+          { "check_id": "passport_integrity", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+          { "check_id": "passport_presence", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+          { "check_id": "passport_profile", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+          { "check_id": "passport_status", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+          { "check_id": "policy", "state": "satisfied", "subject": { "kind": "policy", "id": "policy-1" } },
+          { "check_id": "recovery", "state": "satisfied", "subject": { "kind": "recovery", "id": "action.read" } },
+          { "check_id": "remote_processing", "state": "satisfied", "subject": { "kind": "policy", "id": "local" } },
+          { "check_id": "required_input", "state": "satisfied", "subject": { "kind": "policy", "id": "item.content" } },
+          { "check_id": "retention", "state": "satisfied", "subject": { "kind": "exposure", "id": "item.content" } },
+          { "check_id": "risk", "state": "satisfied", "subject": { "kind": "action", "id": "action.read" } },
+          { "check_id": "runtime_attestation_availability", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+          { "check_id": "runtime_attestation_support", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+          { "check_id": "runtime_identity_availability", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+          { "check_id": "runtime_identity_integrity", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+          { "check_id": "sandbox", "state": "satisfied", "subject": { "kind": "sandbox", "id": "runtime_a" } },
+          { "check_id": "schema", "state": "satisfied", "subject": { "kind": "action", "id": "action.read" } },
+          { "check_id": "scope", "state": "satisfied", "subject": { "kind": "scope", "id": "item.read" } },
+          { "check_id": "training_use", "state": "satisfied", "subject": { "kind": "policy", "id": "local" } }
+        ],
+        "matched_candidate": null,
+        "actions": [
+          {
+            "action_id": "action.read",
+            "scope": "item.read",
+            "operation_id": "item.read",
+            "mode": "read",
+            "risk": "read",
+            "approval": "none",
+            "required_companion_action_ids": [],
+            "effects": [],
+            "data_exposure": {
+              "classes": [
+                "item.content"
+              ],
+              "redaction": {
+                "mode": "none"
+              },
+              "retention": {
+                "mode": "transient",
+                "delete_on_grant_end": true
+              }
+            },
+            "recovery_actions": [],
+            "recovery_targets": []
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-IS-002",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "positive",
+      "instance_json": "{\"feature\":\"agent-surface/feature/impact-simulation\",\"evaluated_at\":\"2026-07-19T10:00:00Z\",\"valid_until\":\"2026-07-19T10:05:00Z\",\"bindings\":{\"surface\":{\"issuer\":\"issuer_a\",\"app_id\":\"app_a\",\"surface_version\":\"surface_v1\",\"surface_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"},\"grant_request_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"delegate\":{\"runtime_id\":\"runtime_a\",\"agent_id\":\"agent_a\",\"passport_profile\":\"https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1\",\"passport_hash_profile\":\"https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1\",\"passport_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"passport_verification_profile\":\"https://example.com/passport-verification/v1\"},\"capability_match\":{\"match_id\":\"match-1\",\"evaluated_at\":\"2026-07-19T09:59:00Z\",\"valid_until\":\"2026-07-19T10:05:00Z\"},\"agent_inventory_revision\":\"agents-1\",\"adapter_inventory_revision\":\"adapters-1\",\"local_policy_revision\":\"policy-1\",\"enterprise_policy_revision\":null,\"user_preferences_revision\":null},\"coverage\":{\"requested\":{\"total\":1,\"included\":1,\"complete\":true},\"unrequested\":{\"total\":0,\"included\":0,\"truncated\":false},\"selection_algorithm\":\"highest-risk-then-action-id-v1\"},\"examples\":[{\"request_relation\":\"requested\",\"outcome\":\"indeterminate\",\"reasons\":[\"input_unknown\"],\"action\":{\"action_id\":\"action.read\",\"scope\":\"item.read\",\"mode\":\"read\",\"risk\":\"read\",\"approval\":\"none\",\"required_companion_action_ids\":[],\"maximum_effects\":[],\"data_exposure\":{\"classes\":[\"item.content\"],\"redaction\":{\"mode\":\"none\"},\"retention\":{\"mode\":\"transient\",\"delete_on_grant_end\":true}},\"recovery\":{\"available_action_ids\":[],\"limitations\":[]}}}]}",
+      "context": {
+        "evaluation_time": "2026-07-19T10:01:00Z",
+        "current_binding_facts": {
+          "surface": {
+            "issuer": "issuer_a",
+            "app_id": "app_a",
+            "surface_version": "surface_v1",
+            "surface_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "delegate": {
+            "runtime_id": "runtime_a",
+            "agent_id": "agent_a",
+            "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+            "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+            "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "passport_verification_profile": "https://example.com/passport-verification/v1"
+          },
+          "capability_match": {
+            "match_id": "match-1",
+            "evaluated_at": "2026-07-19T09:59:00Z",
+            "valid_until": "2026-07-19T10:05:00Z"
+          },
+          "agent_inventory_revision": "agents-1",
+          "adapter_inventory_revision": "adapters-1",
+          "local_policy_revision": "policy-1",
+          "enterprise_policy_revision": null,
+          "user_preferences_revision": null
+        },
+        "bindings": {
+          "surface": {
+            "issuer": "issuer_a",
+            "app_id": "app_a",
+            "surface_version": "surface_v1",
+            "surface_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "delegate": {
+            "runtime_id": "runtime_a",
+            "agent_id": "agent_a",
+            "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+            "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+            "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "passport_verification_profile": "https://example.com/passport-verification/v1"
+          },
+          "capability_match": {
+            "match_id": "match-1",
+            "evaluated_at": "2026-07-19T09:59:00Z",
+            "valid_until": "2026-07-19T10:05:00Z"
+          },
+          "agent_inventory_revision": "agents-1",
+          "adapter_inventory_revision": "adapters-1",
+          "local_policy_revision": "policy-1",
+          "enterprise_policy_revision": null,
+          "user_preferences_revision": null
+        },
+        "freshness_deadlines": {
+          "passport_status": "2026-07-19T10:05:00Z",
+          "capability_match": "2026-07-19T10:05:00Z",
+          "agent_inventory": "2026-07-19T10:05:00Z",
+          "adapter_inventory": "2026-07-19T10:05:00Z",
+          "local_policy": "2026-07-19T10:05:00Z",
+          "enterprise_policy": null,
+          "user_preferences": null,
+          "runtime_identity": "2026-07-19T10:05:00Z",
+          "runtime_attestation": "2026-07-19T10:05:00Z",
+          "local_maximum": "2026-07-19T10:05:00Z"
+        },
+        "requested_action_ids": [
+          "action.read"
+        ],
+        "requested_scope_ids": [
+          "item.read"
+        ],
+        "candidate_check_facts": [
+          { "check_id": "adapter", "state": "satisfied", "subject": { "kind": "adapter", "id": "adapter_a" } },
+          { "check_id": "approval", "state": "satisfied", "subject": { "kind": "approval", "id": "action.read" } },
+          { "check_id": "capability", "state": "satisfied", "subject": { "kind": "capability", "id": "item.read" } },
+          { "check_id": "data_exposure", "state": "satisfied", "subject": { "kind": "exposure", "id": "item.content" } },
+          { "check_id": "effect", "state": "satisfied", "subject": { "kind": "effect", "id": "action.read" } },
+          { "check_id": "execution_stage", "state": "satisfied", "subject": { "kind": "action", "id": "action.read" } },
+          { "check_id": "passport_integrity", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+          { "check_id": "passport_presence", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+          { "check_id": "passport_profile", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+          { "check_id": "passport_status", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+          { "check_id": "policy", "state": "satisfied", "subject": { "kind": "policy", "id": "policy-1" } },
+          { "check_id": "recovery", "state": "satisfied", "subject": { "kind": "recovery", "id": "action.read" } },
+          { "check_id": "remote_processing", "state": "satisfied", "subject": { "kind": "policy", "id": "local" } },
+          { "check_id": "required_input", "state": "blocking", "subject": { "kind": "policy", "id": "item.content" } },
+          { "check_id": "retention", "state": "satisfied", "subject": { "kind": "exposure", "id": "item.content" } },
+          { "check_id": "risk", "state": "satisfied", "subject": { "kind": "action", "id": "action.read" } },
+          { "check_id": "runtime_attestation_availability", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+          { "check_id": "runtime_attestation_support", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+          { "check_id": "runtime_identity_availability", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+          { "check_id": "runtime_identity_integrity", "state": "satisfied", "subject": { "kind": "runtime", "id": "runtime_a" } },
+          { "check_id": "sandbox", "state": "satisfied", "subject": { "kind": "sandbox", "id": "runtime_a" } },
+          { "check_id": "schema", "state": "satisfied", "subject": { "kind": "action", "id": "action.read" } },
+          { "check_id": "scope", "state": "satisfied", "subject": { "kind": "scope", "id": "item.read" } },
+          { "check_id": "training_use", "state": "satisfied", "subject": { "kind": "policy", "id": "local" } }
+        ],
+        "matched_candidate": {
+          "bindings": {
+            "surface": {
+              "issuer": "issuer_a",
+              "app_id": "app_a",
+              "surface_version": "surface_v1",
+              "surface_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            },
+            "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "delegate": {
+              "runtime_id": "runtime_a",
+              "agent_id": "agent_a",
+              "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+              "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+              "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "passport_verification_profile": "https://example.com/passport-verification/v1"
+            },
+            "capability_match": {
+              "match_id": "match-1",
+              "evaluated_at": "2026-07-19T09:59:00Z",
+              "valid_until": "2026-07-19T10:05:00Z"
+            },
+            "agent_inventory_revision": "agents-1",
+            "adapter_inventory_revision": "adapters-1",
+            "local_policy_revision": "policy-1",
+            "enterprise_policy_revision": null,
+            "user_preferences_revision": null
+          },
+          "agent_id": "agent_a",
+          "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+          "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+          "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "passport_verification_profile": "https://example.com/passport-verification/v1",
+          "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "status": "indeterminate",
+          "reasons": [
+            {
+              "code": "input_unknown",
+              "severity": "blocking",
+              "subject": { "kind": "policy", "id": "item.content" }
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action_id": "action.read",
+            "scope": "item.read",
+            "operation_id": "item.read",
+            "mode": "read",
+            "risk": "read",
+            "approval": "none",
+            "required_companion_action_ids": [],
+            "effects": [],
+            "data_exposure": {
+              "classes": [
+                "item.content"
+              ],
+              "redaction": {
+                "mode": "none"
+              },
+              "retention": {
+                "mode": "transient",
+                "delete_on_grant_end": true
+              }
+            },
+            "recovery_actions": [],
+            "recovery_targets": []
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "ASP-SC-IS-101",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"feature\":\"agent-surface/feature/impact-simulation\",\"evaluated_at\":\"2026-07-19T10:00:00Z\",\"valid_until\":\"2026-07-19T10:05:00Z\",\"bindings\":{\"surface\":{\"issuer\":\"issuer_a\",\"app_id\":\"app_a\",\"surface_version\":\"surface_v1\",\"surface_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\\n\"},\"grant_request_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"delegate\":{\"runtime_id\":\"runtime_a\",\"agent_id\":\"agent_a\",\"passport_profile\":\"https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1\",\"passport_hash_profile\":\"https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1\",\"passport_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"passport_verification_profile\":\"https://example.com/passport-verification/v1\"},\"capability_match\":null,\"agent_inventory_revision\":\"agents-1\",\"adapter_inventory_revision\":\"adapters-1\",\"local_policy_revision\":\"policy-1\",\"enterprise_policy_revision\":null,\"user_preferences_revision\":null},\"coverage\":{\"requested\":{\"total\":1,\"included\":1,\"complete\":true},\"unrequested\":{\"total\":0,\"included\":0,\"truncated\":false},\"selection_algorithm\":\"highest-risk-then-action-id-v1\"},\"examples\":[{\"request_relation\":\"requested\",\"outcome\":\"covered\",\"reasons\":[],\"action\":{\"action_id\":\"action.read\",\"scope\":\"item.read\",\"mode\":\"read\",\"risk\":\"read\",\"approval\":\"none\",\"required_companion_action_ids\":[],\"maximum_effects\":[],\"data_exposure\":{\"classes\":[\"item.content\"],\"redaction\":{\"mode\":\"none\"},\"retention\":{\"mode\":\"transient\",\"delete_on_grant_end\":true}},\"recovery\":{\"available_action_ids\":[],\"limitations\":[]}}}]}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-IS-102",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"feature\":\"agent-surface/feature/impact-simulation\",\"evaluated_at\":\"2026-07-19T10:00:00Z\",\"valid_until\":\"2026-07-19T10:05:00Z\\n\",\"bindings\":{\"surface\":{\"issuer\":\"issuer_a\",\"app_id\":\"app_a\",\"surface_version\":\"surface_v1\",\"surface_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"},\"grant_request_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"delegate\":{\"runtime_id\":\"runtime_a\",\"agent_id\":\"agent_a\",\"passport_profile\":\"https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1\",\"passport_hash_profile\":\"https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1\",\"passport_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"passport_verification_profile\":\"https://example.com/passport-verification/v1\"},\"capability_match\":null,\"agent_inventory_revision\":\"agents-1\",\"adapter_inventory_revision\":\"adapters-1\",\"local_policy_revision\":\"policy-1\",\"enterprise_policy_revision\":null,\"user_preferences_revision\":null},\"coverage\":{\"requested\":{\"total\":1,\"included\":1,\"complete\":true},\"unrequested\":{\"total\":0,\"included\":0,\"truncated\":false},\"selection_algorithm\":\"highest-risk-then-action-id-v1\"},\"examples\":[{\"request_relation\":\"requested\",\"outcome\":\"covered\",\"reasons\":[],\"action\":{\"action_id\":\"action.read\",\"scope\":\"item.read\",\"mode\":\"read\",\"risk\":\"read\",\"approval\":\"none\",\"required_companion_action_ids\":[],\"maximum_effects\":[],\"data_exposure\":{\"classes\":[\"item.content\"],\"redaction\":{\"mode\":\"none\"},\"retention\":{\"mode\":\"transient\",\"delete_on_grant_end\":true}},\"recovery\":{\"available_action_ids\":[],\"limitations\":[]}}}]}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-IS-103",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"feature\":\"agent-surface/feature/impact-simulation\",\"evaluated_at\":\"2026-07-19T10:00:00Z\"}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-IS-104",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "[]",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-IS-105",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "null",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-IS-106",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"authority_use\":\"grant\"}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-IS-107",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"feature\":\"agent-surface/feature/impact-simulation\",\"examples\":[]}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-IS-108",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"feature\":\"agent-surface/feature/impact-simulation\",\"profile\":\"unexpected\"}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-IS-109",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"feature\":\"agent-surface/feature/impact-simulation\",\"evaluated_at\":\"2026-07-19T10:00:00Z\",\"valid_until\":\"2026-07-19T10:05:00Z\",\"bindings\":{\"surface\":{\"issuer\":\"issuer_a\",\"app_id\":\"app_a\",\"surface_version\":\"surface_v1\",\"surface_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"},\"grant_request_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"delegate\":{\"runtime_id\":\"runtime_a\",\"agent_id\":\"agent_a\",\"passport_profile\":\"https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1\",\"passport_hash_profile\":\"https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1\",\"passport_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"passport_verification_profile\":\"https://example.com/passport-verification/v1\"},\"capability_match\":null,\"agent_inventory_revision\":\"agents-1\",\"adapter_inventory_revision\":\"adapters-1\",\"local_policy_revision\":\"policy-1\",\"enterprise_policy_revision\":null,\"user_preferences_revision\":null},\"coverage\":{\"requested\":{\"total\":65,\"included\":1,\"complete\":true},\"unrequested\":{\"total\":0,\"included\":0,\"truncated\":false},\"selection_algorithm\":\"highest-risk-then-action-id-v1\"},\"examples\":[{\"request_relation\":\"requested\",\"outcome\":\"covered\",\"reasons\":[],\"action\":{\"action_id\":\"action.read\",\"scope\":\"item.read\",\"mode\":\"read\",\"risk\":\"read\",\"approval\":\"none\",\"required_companion_action_ids\":[],\"maximum_effects\":[],\"data_exposure\":{\"classes\":[\"item.content\"],\"redaction\":{\"mode\":\"none\"},\"retention\":{\"mode\":\"transient\",\"delete_on_grant_end\":true}},\"recovery\":{\"available_action_ids\":[],\"limitations\":[]}}}]}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-IS-110",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"feature\":\"agent-surface/feature/impact-simulation\",\"evaluated_at\":\"2026-07-19T10:00:00Z\",\"valid_until\":\"2026-07-19T10:05:00Z\",\"bindings\":{\"surface\":{\"issuer\":\"issuer_a\",\"app_id\":\"app_a\",\"surface_version\":\"surface_v1\",\"surface_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"},\"grant_request_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"delegate\":{\"runtime_id\":\"runtime_a\",\"agent_id\":\"agent_a\",\"passport_profile\":\"https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1\",\"passport_hash_profile\":\"https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1\",\"passport_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"passport_verification_profile\":\"https://example.com/passport-verification/v1\"},\"capability_match\":null,\"agent_inventory_revision\":\"agents-1\",\"adapter_inventory_revision\":\"adapters-1\",\"local_policy_revision\":\"policy-1\",\"enterprise_policy_revision\":null,\"user_preferences_revision\":null},\"coverage\":{\"requested\":{\"total\":1,\"included\":65,\"complete\":true},\"unrequested\":{\"total\":0,\"included\":0,\"truncated\":false},\"selection_algorithm\":\"highest-risk-then-action-id-v1\"},\"examples\":[{\"request_relation\":\"requested\",\"outcome\":\"covered\",\"reasons\":[],\"action\":{\"action_id\":\"action.read\",\"scope\":\"item.read\",\"mode\":\"read\",\"risk\":\"read\",\"approval\":\"none\",\"required_companion_action_ids\":[],\"maximum_effects\":[],\"data_exposure\":{\"classes\":[\"item.content\"],\"redaction\":{\"mode\":\"none\"},\"retention\":{\"mode\":\"transient\",\"delete_on_grant_end\":true}},\"recovery\":{\"available_action_ids\":[],\"limitations\":[]}}}]}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-IS-111",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"feature\":\"agent-surface/feature/impact-simulation\",\"evaluated_at\":\"2026-07-19T10:00:00Z\",\"valid_until\":\"2026-07-19T10:05:00Z\",\"bindings\":{\"surface\":{\"issuer\":\"issuer_a\",\"app_id\":\"app_a\",\"surface_version\":\"surface_v1\",\"surface_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"},\"grant_request_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"delegate\":{\"runtime_id\":\"runtime_a\",\"agent_id\":\"agent_a\",\"passport_profile\":\"https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1\",\"passport_hash_profile\":\"https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1\",\"passport_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"passport_verification_profile\":\"https://example.com/passport-verification/v1\"},\"capability_match\":null,\"agent_inventory_revision\":\"agents-1\",\"adapter_inventory_revision\":\"adapters-1\",\"local_policy_revision\":\"policy-1\",\"enterprise_policy_revision\":null,\"user_preferences_revision\":null},\"coverage\":{\"requested\":{\"total\":1,\"included\":1,\"complete\":true},\"unrequested\":{\"total\":0,\"included\":0,\"truncated\":false},\"selection_algorithm\":\"highest-risk-then-action-id-v1\"},\"examples\":[{\"request_relation\":\"requested\",\"outcome\":\"covered\",\"reasons\":[],\"action\":{\"action_id\":\"action.read\",\"scope\":\"item.read\",\"mode\":\"read\",\"risk\":\"read\",\"approval\":\"none\",\"required_companion_action_ids\":[],\"maximum_effects\":[{\"effect_id\":\"effect.read\",\"operation\":\"create\",\"resource_type\":\"item\",\"visibility\":\"private\",\"boundary\":\"internal\",\"reversibility\":\"reversible\",\"domain\":\"data\",\"x: bad\":true}],\"data_exposure\":{\"classes\":[\"item.content\"],\"redaction\":{\"mode\":\"none\"},\"retention\":{\"mode\":\"transient\",\"delete_on_grant_end\":true}},\"recovery\":{\"available_action_ids\":[],\"limitations\":[]}}}]}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-IS-112",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
+      "polarity": "negative",
+      "instance_json": "{\"feature\":\"agent-surface/feature/impact-simulation\",\"evaluated_at\":\"2026-07-19T10:00:00Z\",\"valid_until\":\"2026-07-19T10:05:00Z\",\"bindings\":{\"surface\":{\"issuer\":\"issuer_a\",\"app_id\":\"app_a\",\"surface_version\":\"surface_v1\",\"surface_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"},\"grant_request_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"delegate\":{\"runtime_id\":\"runtime_a\",\"agent_id\":\"agent_a\",\"passport_profile\":\"https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1\",\"passport_hash_profile\":\"https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1\",\"passport_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"passport_verification_profile\":\"https://example.com/passport-verification/v1\"},\"capability_match\":null,\"agent_inventory_revision\":\"agents-1\",\"adapter_inventory_revision\":\"adapters-1\",\"local_policy_revision\":\"policy-1\",\"enterprise_policy_revision\":null,\"user_preferences_revision\":null},\"coverage\":{\"requested\":{\"total\":0,\"included\":0,\"complete\":true},\"unrequested\":{\"total\":0,\"included\":0,\"truncated\":false},\"selection_algorithm\":\"highest-risk-then-action-id-v1\"},\"examples\":[{\"request_relation\":\"requested\",\"outcome\":\"covered\",\"reasons\":[],\"action\":{\"action_id\":\"action.read\",\"scope\":\"item.read\",\"mode\":\"read\",\"risk\":\"read\",\"approval\":\"none\",\"required_companion_action_ids\":[],\"maximum_effects\":[],\"data_exposure\":{\"classes\":[\"item.content\"],\"redaction\":{\"mode\":\"none\"},\"retention\":{\"mode\":\"transient\",\"delete_on_grant_end\":true}},\"recovery\":{\"available_action_ids\":[],\"limitations\":[]}}}]}",
+      "context": {}
     }
   ]
 }

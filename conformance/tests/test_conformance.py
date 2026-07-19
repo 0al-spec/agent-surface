@@ -16,8 +16,11 @@ from conformance.check import (
     PROFILE_ROLES,
     RECEIPT_PROFILE,
     _canonical_object_hash,
+    _derive_impact_actions,
     _hash_without_member,
+    _impact_candidate_projection,
     _resolved_fixture,
+    _schema_registry,
     applicable_vectors,
     catalog_digest,
     loads_human_json,
@@ -29,6 +32,8 @@ from conformance.check import (
     validate_catalog,
     validate_human_elicitation,
     validate_human_elicitation_projection,
+    validate_impact_simulation,
+    validate_impact_simulation_projection,
     validate_risk_explanation,
     validate_risk_explanation_publisher_projection,
     validate_risk_explanation_projection,
@@ -169,13 +174,13 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.6.0")
-        self.assertEqual(len(self.catalog.features), 12)
-        self.assertEqual(len(self.catalog.requirements), 45)
-        self.assertEqual(len(self.catalog.vectors), 116)
-        self.assertEqual(len(self.catalog.fixtures), 38)
-        self.assertEqual(len(self.catalog.mutations), 78)
-        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 51)
+        self.assertEqual(self.catalog.suite["suite_version"], "1.7.0")
+        self.assertEqual(len(self.catalog.features), 13)
+        self.assertEqual(len(self.catalog.requirements), 46)
+        self.assertEqual(len(self.catalog.vectors), 137)
+        self.assertEqual(len(self.catalog.fixtures), 39)
+        self.assertEqual(len(self.catalog.mutations), 96)
+        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 65)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
 
     def test_feature_vocabularies_match_the_catalog(self) -> None:
@@ -240,6 +245,7 @@ class ConformanceSuiteTests(unittest.TestCase):
             "https://github.com/0al-spec/agent-surface/conformance/schemas/operational-limits/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
         }:
             self.assertEqual(
@@ -293,6 +299,418 @@ class ConformanceSuiteTests(unittest.TestCase):
                     source=case_id,
                 )
                 self.assertFalse(validator.is_valid(instance))
+
+    def test_impact_simulation_schema_rejects_terminal_lf_and_non_ascii_uri(
+        self,
+    ) -> None:
+        schema = json.loads(
+            (
+                ROOT
+                / "conformance"
+                / "v1"
+                / "impact-simulation.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        validator = Draft202012Validator(
+            schema,
+            format_checker=Draft202012Validator.FORMAT_CHECKER,
+        )
+        cases = {
+            case["case_id"]: case
+            for case in self.catalog.schema_case_catalog["cases"]
+        }
+        for case_id in ("ASP-SC-IS-101", "ASP-SC-IS-102"):
+            with self.subTest(case_id=case_id):
+                instance = loads_strict_json(
+                    cases[case_id]["instance_json"],
+                    source=case_id,
+                )
+                self.assertFalse(validator.is_valid(instance))
+
+        positive = cases["ASP-SC-IS-001"]
+        instance = loads_strict_json(positive["instance_json"])
+        context = copy.deepcopy(positive["context"])
+        invalid_uri = "https://example.com/réason"
+        instance["examples"][0]["outcome"] = "indeterminate"
+        instance["examples"][0]["reasons"] = [invalid_uri]
+        context["candidate_check_facts"].append(
+            {
+                "check_id": invalid_uri,
+                "state": "blocking",
+                "subject": {"kind": "policy", "id": "current-inputs"},
+            }
+        )
+        self.assertFalse(validator.is_valid(instance))
+        with self.assertRaises(ConformanceError):
+            validate_impact_simulation(instance, context)
+
+    def test_impact_simulation_schema_bounds_coverage_and_effect_extensions(
+        self,
+    ) -> None:
+        schema = json.loads(
+            (
+                ROOT
+                / "conformance"
+                / "v1"
+                / "impact-simulation.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        validator = Draft202012Validator(
+            schema,
+            format_checker=Draft202012Validator.FORMAT_CHECKER,
+        )
+        cases = {
+            case["case_id"]: case
+            for case in self.catalog.schema_case_catalog["cases"]
+        }
+        for case_id in (
+            "ASP-SC-IS-109",
+            "ASP-SC-IS-110",
+            "ASP-SC-IS-111",
+            "ASP-SC-IS-112",
+        ):
+            with self.subTest(case_id=case_id):
+                instance = loads_strict_json(
+                    cases[case_id]["instance_json"],
+                    source=case_id,
+                )
+                self.assertFalse(validator.is_valid(instance))
+
+        positive = loads_strict_json(cases["ASP-SC-IS-001"]["instance_json"])
+        positive["examples"][0]["action"]["maximum_effects"] = [
+            {
+                "effect_id": "effect.read",
+                "operation": "create",
+                "resource_type": "item",
+                "visibility": "private",
+                "boundary": "internal",
+                "reversibility": "reversible",
+                "domain": "data",
+                "https://example.com/effect/member": {"value": True},
+            }
+        ]
+        self.assertTrue(validator.is_valid(positive))
+
+    def test_impact_derivation_uses_verified_manifest_semantics(self) -> None:
+        fixture = self.catalog.fixtures["ASP-F-RM-051"]["document"]
+        source = fixture["impact_simulation"]["source"]
+        registry = _schema_registry(ROOT)
+        derived = _derive_impact_actions(
+            copy.deepcopy(source["actions"]),
+            source["requested_action_ids"],
+            root=ROOT,
+            registry=registry,
+        )
+        self.assertEqual(
+            derived["action.write"]["required_companion_action_ids"],
+            ["action.read"],
+        )
+        self.assertEqual(
+            derived["action.write"]["recovery"],
+            {
+                "available_action_ids": ["action.revert"],
+                "limitations": ["recovery_window_limited"],
+            },
+        )
+        self.assertEqual(
+            _impact_candidate_projection(
+                source["candidate_check_facts"],
+                None,
+                source["bindings"],
+            ),
+            ("covered", []),
+        )
+        indeterminate = copy.deepcopy(source["candidate_check_facts"])
+        next(
+            fact
+            for fact in indeterminate
+            if fact["check_id"] == "required_input"
+        )["state"] = "blocking"
+        next(
+            fact for fact in indeterminate if fact["check_id"] == "risk"
+        )["state"] = "advisory"
+        self.assertEqual(
+            _impact_candidate_projection(
+                indeterminate, None, source["bindings"]
+            ),
+            ("indeterminate", ["input_unknown"]),
+        )
+        incompatible = copy.deepcopy(indeterminate)
+        next(
+            fact for fact in incompatible if fact["check_id"] == "policy"
+        )["state"] = "blocking"
+        self.assertEqual(
+            _impact_candidate_projection(
+                incompatible, None, source["bindings"]
+            ),
+            ("not_covered", ["policy_denied"]),
+        )
+        extension_facts = copy.deepcopy(source["candidate_check_facts"])
+        extension_facts.append(
+            {
+                "check_id": "https://example.com/check/custom",
+                "state": "blocking",
+                "subject": {"kind": "policy", "id": "extension-input"},
+            }
+        )
+        extension_facts.sort(key=lambda fact: fact["check_id"].encode("utf-8"))
+        self.assertEqual(
+            _impact_candidate_projection(
+                extension_facts, None, source["bindings"]
+            ),
+            ("indeterminate", ["https://example.com/check/custom"]),
+        )
+        incomplete_facts = copy.deepcopy(source["candidate_check_facts"])[1:]
+        incomplete_facts.append(
+            {
+                "check_id": "https://example.com/check/replacement",
+                "state": "satisfied",
+                "subject": {"kind": "policy", "id": "replacement"},
+            }
+        )
+        incomplete_facts.sort(key=lambda fact: fact["check_id"].encode("utf-8"))
+        with self.assertRaisesRegex(ConformanceError, "complete for the core"):
+            _impact_candidate_projection(
+                incomplete_facts, None, source["bindings"]
+            )
+
+        reciprocal_cycle = copy.deepcopy(source["actions"])
+        next(
+            action
+            for action in reciprocal_cycle
+            if action["action_id"] == "action.read"
+        )["required_companion_action_ids"] = ["action.write"]
+        cyclic_derived = _derive_impact_actions(
+            reciprocal_cycle,
+            source["requested_action_ids"],
+            root=ROOT,
+            registry=registry,
+        )
+        self.assertEqual(
+            cyclic_derived["action.read"]["required_companion_action_ids"],
+            ["action.write"],
+        )
+        self.assertEqual(
+            cyclic_derived["action.write"]["required_companion_action_ids"],
+            ["action.read"],
+        )
+
+        low_risk = copy.deepcopy(source["actions"])
+        next(
+            action for action in low_risk if action["action_id"] == "action.publish"
+        )["risk"] = "write"
+        with self.assertRaisesRegex(ConformanceError, "effect floor"):
+            _derive_impact_actions(
+                low_risk,
+                source["requested_action_ids"],
+                root=ROOT,
+                registry=registry,
+            )
+
+        empty_commit = copy.deepcopy(source["actions"])
+        next(
+            action for action in empty_commit if action["action_id"] == "action.delete"
+        )["effects"] = []
+        with self.assertRaisesRegex(ConformanceError, "mode and effect"):
+            _derive_impact_actions(
+                empty_commit,
+                source["requested_action_ids"],
+                root=ROOT,
+                registry=registry,
+            )
+
+        projection = copy.deepcopy(fixture["impact_simulation"])
+        match_binding = {
+            "match_id": "match_current",
+            "evaluated_at": "2026-07-19T09:59:00Z",
+            "valid_until": "2026-07-19T10:05:00Z",
+        }
+        projection["source"]["bindings"]["capability_match"] = match_binding
+        projection["result"]["bindings"]["capability_match"] = copy.deepcopy(
+            match_binding
+        )
+        projection["source"]["freshness_deadlines"][
+            "capability_match"
+        ] = match_binding["valid_until"]
+        projection["current_binding_facts"] = copy.deepcopy(
+            projection["source"]["bindings"]
+        )
+        projection["source"]["matched_candidate"] = {
+            "bindings": copy.deepcopy(projection["source"]["bindings"]),
+            "agent_id": "wrong-agent",
+            "passport_profile": projection["source"]["bindings"]["delegate"][
+                "passport_profile"
+            ],
+            "passport_hash_profile": projection["source"]["bindings"][
+                "delegate"
+            ]["passport_hash_profile"],
+            "passport_hash": projection["source"]["bindings"]["delegate"][
+                "passport_hash"
+            ],
+            "passport_verification_profile": projection["source"]["bindings"][
+                "delegate"
+            ]["passport_verification_profile"],
+            "grant_request_hash": projection["source"]["bindings"][
+                "grant_request_hash"
+            ],
+            "status": "compatible",
+            "reasons": [],
+        }
+        with self.assertRaisesRegex(ConformanceError, "exact delegate"):
+            validate_impact_simulation_projection(
+                projection,
+                fixture["surface"],
+                fixture["grant"],
+                fixture["execution"],
+                root=ROOT,
+            )
+
+        absent_runtime_identity = copy.deepcopy(fixture["impact_simulation"])
+        identity_fact = next(
+            fact
+            for fact in absent_runtime_identity["source"][
+                "candidate_check_facts"
+            ]
+            if fact["check_id"] == "runtime_identity_availability"
+        )
+        identity_fact["state"] = "blocking"
+        absent_runtime_identity["source"]["freshness_deadlines"][
+            "runtime_identity"
+        ] = None
+        for example in absent_runtime_identity["result"]["examples"][:3]:
+            example["outcome"] = "indeterminate"
+            example["reasons"] = ["runtime_identity_unavailable"]
+        validate_impact_simulation_projection(
+            absent_runtime_identity,
+            fixture["surface"],
+            fixture["grant"],
+            fixture["execution"],
+            root=ROOT,
+        )
+        inconsistent_deadline = copy.deepcopy(fixture["impact_simulation"])
+        inconsistent_deadline["source"]["freshness_deadlines"][
+            "runtime_identity"
+        ] = None
+        with self.assertRaisesRegex(
+            ConformanceError, "deadline presence differs"
+        ):
+            validate_impact_simulation_projection(
+                inconsistent_deadline,
+                fixture["surface"],
+                fixture["grant"],
+                fixture["execution"],
+                root=ROOT,
+            )
+
+        schema = json.loads(
+            (
+                ROOT
+                / "conformance"
+                / "v1"
+                / "impact-simulation.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        validator = Draft202012Validator(
+            schema,
+            format_checker=Draft202012Validator.FORMAT_CHECKER,
+        )
+        result = copy.deepcopy(fixture["impact_simulation"]["result"])
+        result["examples"][0]["action"]["risk"] = "bare-extension"
+        self.assertFalse(validator.is_valid(result))
+        result["examples"][0]["action"]["risk"] = (
+            "https://example.com/risk/custom"
+        )
+        self.assertTrue(validator.is_valid(result))
+        for field in (
+            "operation",
+            "visibility",
+            "boundary",
+            "reversibility",
+            "domain",
+        ):
+            with self.subTest(extension_field=field):
+                bare = copy.deepcopy(fixture["impact_simulation"]["result"])
+                bare["examples"][1]["action"]["maximum_effects"][0][field] = (
+                    "bare-extension"
+                )
+                self.assertFalse(validator.is_valid(bare))
+                uri = copy.deepcopy(fixture["impact_simulation"]["result"])
+                uri["examples"][1]["action"]["maximum_effects"][0][field] = (
+                    f"https://example.com/effect/{field}"
+                )
+                self.assertTrue(validator.is_valid(uri))
+
+        unsupported_mapping = copy.deepcopy(source["actions"])
+        next(
+            action
+            for action in unsupported_mapping
+            if action["action_id"] == "action.revert"
+        )["effects"][0]["boundary"] = "https://example.com/boundary/remote"
+        with self.assertRaisesRegex(ConformanceError, "unsupported effect mapping"):
+            _derive_impact_actions(
+                unsupported_mapping,
+                source["requested_action_ids"],
+                root=ROOT,
+                registry=registry,
+            )
+
+    def test_impact_negative_vectors_reach_semantic_failures(self) -> None:
+        for vector_id in (
+            "ASP-V-RM-052",
+            "ASP-V-RM-053",
+            "ASP-V-RM-054",
+            "ASP-V-RM-055",
+            "ASP-V-RM-056",
+            "ASP-V-RM-057",
+            "ASP-V-RM-058",
+            "ASP-V-RM-060",
+            "ASP-V-RM-061",
+            "ASP-V-RM-062",
+            "ASP-V-RM-064",
+            "ASP-V-RM-065",
+            "ASP-V-RM-066",
+            "ASP-V-RM-067",
+            "ASP-V-RM-068",
+        ):
+            with self.subTest(vector_id=vector_id):
+                document = _resolved_fixture(
+                    self.catalog, self.catalog.vectors[vector_id]
+                )["document"]
+                with self.assertRaises(ConformanceError):
+                    validate_impact_simulation_projection(
+                        document["impact_simulation"],
+                        document["surface"],
+                        document["grant"],
+                        document["execution"],
+                        root=ROOT,
+                    )
+
+        for vector_id, carrier, operation in (
+            ("ASP-V-RM-059", "grant", "mediate_grant"),
+            ("ASP-V-RM-063", "execution", "mediate_action"),
+            ("ASP-V-RM-069", "grant", "simulate_impact"),
+            ("ASP-V-RM-070", "execution", "simulate_impact"),
+            ("ASP-V-RM-071", "grant", "mediate_action"),
+        ):
+            with self.subTest(vector_id=vector_id):
+                vector = self.catalog.vectors[vector_id]
+                self.assertEqual(vector["stimulus"]["operation"], operation)
+                document = _resolved_fixture(self.catalog, vector)["document"]
+                self.assertEqual(
+                    document[carrier]["impact_simulation"],
+                    document["impact_simulation"]["result"],
+                )
+                with self.assertRaisesRegex(
+                    ConformanceError,
+                    "absent from closed Grant and Action",
+                ):
+                    validate_impact_simulation_projection(
+                        document["impact_simulation"],
+                        document["surface"],
+                        document["grant"],
+                        document["execution"],
+                        root=ROOT,
+                    )
 
     def test_risk_explanation_lookup_binding_and_machine_fallback_inputs(self) -> None:
         fixture = self.catalog.fixtures["ASP-F-RM-043"]

@@ -22,12 +22,12 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.6.0"
+      "const": "1.7.0"
     },
     "vectors": {
       "type": "array",
-      "minItems": 116,
-      "maxItems": 116,
+      "minItems": 137,
+      "maxItems": 137,
       "items": {
         "$ref": "#/$defs/vector"
       }
@@ -46,6 +46,7 @@
     },
     "featureId": {
       "enum": [
+        "agent-surface/feature/impact-simulation",
         "agent-surface/feature/proposal-only",
         "agent-surface/feature/risk-explanation-ui-hints",
         "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
@@ -75,6 +76,7 @@
         "active_proof_session",
         "active_reservation",
         "active_session",
+        "pre_issuance_grant_request",
         "application_receipt_producer",
         "approval_profile_selected",
         "capability_match_current",
@@ -116,7 +118,8 @@
         "human_elicitation_selected",
         "authenticated_human_channel",
         "terminal_elicitation_replay_retained",
-        "risk_explanation_present"
+        "risk_explanation_present",
+        "impact_simulation_selected"
       ]
     },
     "operation": {
@@ -142,7 +145,8 @@
         "mediate_human_elicitation",
         "apply_human_elicitation_candidate",
         "project_human_elicitation_answer",
-        "render_risk_explanation"
+        "render_risk_explanation",
+        "simulate_impact"
       ]
     },
     "inputVariant": {
@@ -224,7 +228,25 @@
         "risk_explanation_malformed_language",
         "risk_explanation_action_substitution",
         "risk_explanation_unescaped",
-        "risk_explanation_bidi_unisolated"
+        "risk_explanation_bidi_unisolated",
+        "impact_simulation_stale_surface",
+        "impact_simulation_grant_hash_mismatch",
+        "impact_simulation_incomplete_coverage",
+        "impact_simulation_wrong_selection",
+        "impact_simulation_unrequested_covered",
+        "impact_simulation_unknown_covered",
+        "impact_simulation_action_substitution",
+        "impact_simulation_authority_attempt",
+        "impact_simulation_unclosed_companion",
+        "impact_simulation_match_causality",
+        "impact_simulation_post_issuance",
+        "impact_simulation_action_authority_attempt",
+        "impact_simulation_revision_substitution",
+        "impact_simulation_binding_substitution",
+        "impact_simulation_far_future",
+        "impact_simulation_decision_substitution",
+        "impact_simulation_request_overflow",
+        "impact_simulation_active_grant_authority_attempt"
       ]
     },
     "aspError": {
@@ -377,7 +399,19 @@
         "canonical_risk_suppressed",
         "canonical_effects_suppressed",
         "agent_instruction_suppressed",
-        "agent_instruction_projected"
+        "agent_instruction_projected",
+        "impact_simulation_validated",
+        "impact_simulation_presented",
+        "impact_simulation_binding_rejected",
+        "impact_simulation_suppressed",
+        "consent_preview_retained",
+        "impact_simulation_authority_unchanged",
+        "impact_simulation_authority_rejected",
+        "impact_simulation_used_as_authority",
+        "application_dry_run_suppressed",
+        "application_dry_run_invoked",
+        "impact_simulation_agent_projection_suppressed",
+        "impact_simulation_agent_projected"
       ]
     },
     "stateName": {
@@ -442,6 +476,7 @@
         "runtime.elicitation_response_count",
         "runtime.step_up_verified_count",
         "runtime.risk_explanation_presentation_count",
+        "runtime.impact_simulation_presentation_count",
         "application.proposal_revision",
         "application.proposal_update_count"
       ]

@@ -236,7 +236,19 @@
         "canonical_risk_suppressed",
         "canonical_effects_suppressed",
         "agent_instruction_suppressed",
-        "agent_instruction_projected"
+        "agent_instruction_projected",
+        "impact_simulation_validated",
+        "impact_simulation_presented",
+        "impact_simulation_binding_rejected",
+        "impact_simulation_suppressed",
+        "consent_preview_retained",
+        "impact_simulation_authority_unchanged",
+        "impact_simulation_authority_rejected",
+        "impact_simulation_used_as_authority",
+        "application_dry_run_suppressed",
+        "application_dry_run_invoked",
+        "impact_simulation_agent_projection_suppressed",
+        "impact_simulation_agent_projected"
       ]
     },
     "stateName": {
@@ -301,6 +313,7 @@
         "runtime.elicitation_response_count",
         "runtime.step_up_verified_count",
         "runtime.risk_explanation_presentation_count",
+        "runtime.impact_simulation_presentation_count",
         "application.proposal_revision",
         "application.proposal_update_count"
       ]

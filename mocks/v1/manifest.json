@@ -2,7 +2,7 @@
   "$schema": "./manifest.schema.json",
   "schema_version": 1,
   "manifest_id": "https://github.com/0al-spec/agent-surface/mocks/v1",
-  "manifest_version": "1.6.0",
+  "manifest_version": "1.7.0",
   "protocol_version": "agent-surface/0.1",
   "claim_effect": "suite_fixture_only",
   "participant_protocol": "asp-mock-participant/1",
@@ -92,6 +92,7 @@
     {
       "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
       "feature_ids": [
+        "agent-surface/feature/impact-simulation",
         "agent-surface/feature/risk-explanation-ui-hints",
         "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
         "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
@@ -117,17 +118,17 @@
     "validator": "mocks/check.py"
   },
   "artifacts": [
-    {"path": "mocks/README.md", "sha256": "sha-256:7mgYGVYt0tELvdkyM2VQOWk5tZjumeSTnEAOPzuFLdQ"},
+    {"path": "mocks/README.md", "sha256": "sha-256:JAW8p1AJtyE4IZSx0_OMtI9iNHSbJydehFM3fxRIeno"},
     {"path": "mocks/__init__.py", "sha256": "sha-256:BsfdRwWRgFGRkYGJXv7IzCic49jakLU-zptUO2OWXmw"},
     {"path": "mocks/adapter.py", "sha256": "sha-256:IGlWx3ZyWCgba5r7t2p8xqV8TQA9GW63fGrtqxILTGU"},
-    {"path": "mocks/behavior.py", "sha256": "sha-256:8rtngpmzUuXfaZP0LckmBtV3CWlgq5TBKVDEdcTE7-8"},
+    {"path": "mocks/behavior.py", "sha256": "sha-256:hUMdDpJfkaihQR3jB8hFRmaPdjmQCstABiWi3xnz3oo"},
     {"path": "mocks/check.py", "sha256": "sha-256:-oD_1CnOPTAQeLx9lEPXzolxfeRQ8pPprt5ZoEJmUEo"},
     {"path": "mocks/mock_app.py", "sha256": "sha-256:xut85g6x4h4IZaUdl4nm2UMHt_bPYdwbbB1rjwIU3Ak"},
     {"path": "mocks/mock_runtime.py", "sha256": "sha-256:kBnne5rKRRegfgltpYI69G8cnfIXKvvs0ZdQd6KYscw"},
     {"path": "mocks/participant.py", "sha256": "sha-256:UchAdjyjnwMO6wY2UyPG9EVOXmoailgasG1BFVX2zdo"},
     {"path": "mocks/probe.py", "sha256": "sha-256:5h0zdHg9iBfWMA27AqWoA_t9nN6MskfnKaXwWMsYGnc"},
     {"path": "mocks/state.py", "sha256": "sha-256:Krs_13wEMi8Un-SHXrnKfl7SqSRVSEo9n_0wb_CH070"},
-    {"path": "mocks/tests/test_mocks.py", "sha256": "sha-256:Nu8R5_uGEQiIsD1yY-c2QVPZxcx8kHAB14JOaWNGdR4"},
-    {"path": "mocks/v1/manifest.schema.json", "sha256": "sha-256:Xa3F6W8oniGX6q2dthilQaep7_o9115MwvKHL7AjrfM"}
+    {"path": "mocks/tests/test_mocks.py", "sha256": "sha-256:3QS8qhpN37JNFeLV5m4357B4kJfDWjAZNrwBBphIMgU"},
+    {"path": "mocks/v1/manifest.schema.json", "sha256": "sha-256:Bm0JDMfg1LXhCG3dF4co5zgH21b-0ZoDDX-LW3iDj00"}
   ]
 }

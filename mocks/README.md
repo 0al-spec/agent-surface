@@ -72,6 +72,31 @@ of those canonical facts. Restricted language tags reject repeated variants,
 and prose rejects C0/C1 and Bidi_Control characters. Hint text is treated
 literally, never as policy, approval, matching input, or an agent instruction.
 
+The Impact Simulation path independently validates the closed result,
+pre-issuance phase, current surface and Grant-request bindings, exact input
+revisions, complete requested coverage, deterministic risk-first unrequested
+examples, per-source freshness deadlines, and a closed normalized
+verified-manifest semantic projection produced from an exact manifest. It
+derives candidate-wide outcomes from runner-owned normalized Capability Match
+check facts, recursive companion closure, exact action/data-exposure
+projections, and reciprocal recovery availability and limitation codes instead
+of accepting a projected verdict or consulting a raw policy engine. The
+runner-owned `current_binding_facts` value contains the complete normalized
+surface, request, delegate/runtime, Capability Match, inventory, policy, and
+preference bindings. Its `grant_request_hash` has already been recomputed by
+the Capability Match boundary; the Impact mock deliberately does not hash the
+full request again. A retained non-null match must repeat those complete
+bindings and its exact derived status and reasons. Malformed, stale, detached,
+incomplete, optimistic, or post-issuance detached supplements are suppressed
+atomically while the canonical Consent Preview is retained. Embedding the full
+Result in a closed Grant or Action carrier is rejected before any Grant,
+credential, dispatch, adapter-forwarding, receipt, budget, or workload state
+changes. A centralized pre-dispatch guard checks every Grant or Action section
+actually consumed by issue, revoke, mediation, invocation, replay, and native
+or AHP translation operations. The mock never turns
+simulation into a Grant, approval interaction, application `dry_run`, action
+dispatch, effect, receipt, or agent projection.
+
 The internal `asp-mock-participant/1` protocol is test control plumbing, not an
 ASP wire binding. `mock_app.py` and `mock_runtime.py` accept one closed envelope
 on standard input:

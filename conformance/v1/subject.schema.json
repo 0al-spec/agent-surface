@@ -131,6 +131,7 @@
     },
     "featureId": {
       "enum": [
+        "agent-surface/feature/impact-simulation",
         "agent-surface/feature/proposal-only",
         "agent-surface/feature/risk-explanation-ui-hints",
         "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",

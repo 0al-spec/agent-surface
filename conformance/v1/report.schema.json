@@ -58,7 +58,7 @@
           "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
         },
         "suite_version": {
-          "const": "1.6.0"
+          "const": "1.7.0"
         },
         "protocol_version": {
           "const": "agent-surface/0.1"
@@ -302,6 +302,7 @@
     },
     "featureId": {
       "enum": [
+        "agent-surface/feature/impact-simulation",
         "agent-surface/feature/proposal-only",
         "agent-surface/feature/risk-explanation-ui-hints",
         "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
