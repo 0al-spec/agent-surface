@@ -1,0 +1,31 @@
+[package]
+name = "asp-api-importer"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Fail-closed OpenAPI and AsyncAPI annotation importer for Agent Surface Protocol manifests"
+repository = "https://github.com/0al-spec/agent-surface"
+rust-version = "1.97"
+
+[lib]
+name = "asp_api_importer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "asp-api-import"
+path = "src/main.rs"
+
+[dependencies]
+asp-manifest-linter = { path = "../asp-manifest-linter" }
+base64 = "0.22"
+clap = { version = "4.6", features = ["derive"] }
+jsonschema = { version = "0.47", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_json_canonicalizer = "=0.3.2"
+sha2 = "0.10"
+thiserror = "2.0"
+
+[dev-dependencies]
+assert_cmd = "2.1"
+predicates = "3.1"

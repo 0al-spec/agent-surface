@@ -1,0 +1,52 @@
+{
+  "actions": [
+    {
+      "effects": [],
+      "execution": {
+        "mode": "read",
+        "operation_id": "message.list"
+      },
+      "id": "message.list",
+      "input_schema": "https://messages.example/schemas/message-list-input.json",
+      "output_schema": "https://messages.example/schemas/message-list-output.json",
+      "risk": "read",
+      "scope": "messages.read",
+      "side_effect": false
+    }
+  ],
+  "agent_api": {
+    "action_url": "https://messages.example/agent-actions"
+  },
+  "app_id": "com.example.messages",
+  "audit": {},
+  "auth": {
+    "type": "oauth2"
+  },
+  "data_classes": [],
+  "events": [
+    {
+      "id": "message.sent",
+      "schema": "https://messages.example/schemas/message-sent.json",
+      "scope": "messages.read"
+    }
+  ],
+  "issuer": "https://messages.example",
+  "protocol": "agent-surface/0.1",
+  "resources": [
+    {
+      "id": "message",
+      "read_scope": "messages.read",
+      "schema": "https://messages.example/schemas/message.json"
+    }
+  ],
+  "revocation": {},
+  "scopes": [
+    {
+      "id": "messages.read"
+    }
+  ],
+  "surface_hash": "sha-256:QD4eNcEWP21OP01F3K-uJpZs2UI_l9vu2yEJxN5IUgs",
+  "surface_mode": "standard",
+  "surface_url": "https://messages.example/.well-known/agent-surface.json",
+  "surface_version": "2026-07-20"
+}

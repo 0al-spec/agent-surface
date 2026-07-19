@@ -2,7 +2,7 @@ PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 CARGO ?= cargo
 export CARGO
 
-.PHONY: conformance-validate conformance-test conformance-check mock-validate mock-test mock-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check review-build review-data-check review-test review-js-test review-check
+.PHONY: conformance-validate conformance-test conformance-check mock-validate mock-test mock-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check api-import-self-check api-import-check review-build review-data-check review-test review-js-test review-check
 
 conformance-validate:
 	$(PYTHON) -B conformance/check.py validate
@@ -34,6 +34,11 @@ manifest-lint-self-check:
 
 manifest-lint-check: manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check
 
+api-import-self-check:
+	$(CARGO) run --quiet --locked -p asp-api-importer -- self-check --root .
+
+api-import-check: manifest-lint-fmt manifest-lint-clippy manifest-lint-test api-import-self-check
+
 review-build:
 	$(PYTHON) -B review/build_review.py
 
@@ -46,6 +51,6 @@ review-test:
 review-js-test:
 	node --test review/dashboard-state.test.mjs
 
-review-check: conformance-check mock-check manifest-lint-check review-data-check review-test review-js-test
+review-check: conformance-check mock-check manifest-lint-check api-import-check review-data-check review-test review-js-test
 	$(PYTHON) -B review/build_review.py --check
 	node review/check_review.mjs

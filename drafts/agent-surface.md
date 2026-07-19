@@ -1643,6 +1643,165 @@ The boundary has these required fail-closed outcomes:
 | A selected affordance lacks required ASP semantics or the publisher cannot enforce its declaration | Reject the manifest as `surface_incompatible`; do not expose the member as partially usable. |
 | The application adds a backend operation without publishing a new manifest snapshot | Do not change ASP discovery or any active Grant. |
 
+### OpenAPI and AsyncAPI Import Profile
+
+The optional OpenAPI and AsyncAPI Import Profile lets a publisher generate one
+ordinary Agent Surface Manifest from deliberately placed `x-agent-surface`
+specification extensions. Its profile identifier is
+`https://github.com/0al-spec/agent-surface/profiles/api-import/v1`.
+The profile is a publishing-time authoring transform, not an ASP runtime
+discovery, authorization, or invocation wire protocol, conformance handshake,
+or certification mechanism. An API description, an annotation, importer output
+that has not passed complete manifest validation, or an importer report is
+never Agent Grant or action authority.
+
+Version 1 consumes the parsed I-JSON data model of exactly one of:
+
+- an OpenAPI Description whose `openapi` value is `3.1.<patch>` or
+  `3.2.<patch>`; or
+- an AsyncAPI document whose `asyncapi` value is `3.0.<patch>` or
+  `3.1.<patch>`.
+
+`<patch>` is one or more ASCII decimal digits. A document containing both
+version fields, neither field, another major or minor version, a pre-release
+label, or a non-string version is unsupported and MUST fail without output.
+The importer does not establish that the remaining source document conforms to
+OpenAPI or AsyncAPI; the publisher remains responsible for validating it under
+the selected source specification.
+
+The input can originate from JSON or a YAML 1.2 representation only when the
+frontend produces the same unambiguous I-JSON data model. A frontend MUST
+reject duplicate mapping keys, non-string mapping keys, non-JSON tags,
+every number that is not a finite IEEE 754 binary64 value, JSON negative zero,
+every mathematically integral number outside
+`[-9007199254740991, 9007199254740991]`, every alias, every merge key, and
+any string or member name containing an unpaired surrogate or Unicode
+Noncharacter forbidden by I-JSON. These restrictions apply even to unannotated
+source metadata. Numeric source spellings otherwise identify their parsed
+binary64 value; v1 does not retain decimal lexemes. Version 1 does not define
+alias expansion or merge precedence, even when a frontend could produce one
+deterministic expansion. A frontend MUST NOT resolve ambiguity by last-key-wins
+parsing. The reference importer below intentionally accepts strict JSON only.
+
+#### Annotation Objects and Locations
+
+The source root MUST contain exactly one `x-agent-surface` root annotation.
+That annotation is a closed object containing exactly:
+
+- `profile`, REQUIRED and equal to the profile identifier above;
+- `manifest_base`, REQUIRED and containing the complete ordinary manifest
+  top-level members other than the four importer-owned output members
+  `surface_hash`, `resources`, `actions`, and `events`; and
+- `members`, OPTIONAL, a non-empty array of member mappings.
+
+`manifest_base` MUST contain `protocol`, `app_id`, `issuer`, `surface_mode`,
+`surface_version`, `surface_url`, `auth`, `agent_api`, `scopes`,
+`data_classes`, `audit`, and `revocation` with their ordinary meanings. It MUST
+NOT contain any importer-owned output member, even with an empty, null,
+placeholder, or allegedly precomputed value. In particular, the importer
+always computes `surface_hash`; accepting a caller-supplied value would permit
+a stale or unrelated integrity claim.
+
+Every operation annotation is a closed object containing exactly one
+non-empty `members` array. Each entry in a root or operation array is a closed
+object containing exactly:
+
+- `kind`: `resource`, `action`, or `event`; and
+- `declaration`: the complete ASP declaration for that kind, including a
+  non-empty `id`.
+
+The root `members` array MAY contain any of the three kinds. It is the explicit
+escape hatch for resources, composed actions, events derived from more than one
+source operation, and other mappings that are not one-to-one. An absent root
+array is equivalent to no root members, but the complete document MUST select
+at least one member.
+
+Operation annotations are accepted only at these direct, inline locations:
+
+| Source | Eligible location | Permitted member kind |
+| --- | --- | --- |
+| OpenAPI | an inline HTTP Operation Object at `/paths/{path-template}/{method}`, where `{method}` is exactly `get`, `put`, `post`, `delete`, `options`, `head`, `patch`, or `trace` | `action` |
+| AsyncAPI | an inline Operation Object at `/operations/{operation-id}` whose exact `action` is `send` | `event` |
+
+An annotated Reference Object, OpenAPI callback, webhook, 3.2 `query` or
+`additionalOperations` entry, AsyncAPI `receive` operation or trait, reusable
+component, or any other location is unsupported in v1. The importer MUST reject
+the complete input when the exact `x-agent-surface` name occurs anywhere other
+than the root or an eligible inline operation. It MUST NOT ignore a misplaced
+annotation, merge siblings into a referenced object, or infer that an
+annotation elsewhere was only documentation.
+
+The importer scans only the supplied root document. It MUST NOT fetch a URI,
+follow a `$ref`, load another file, expand a callback, apply a trait, contact an
+API endpoint, or inspect implementation code to discover more annotations.
+An unannotated operation, including one reached through a reference, remains
+unselected.
+
+#### Projection Algorithm
+
+A v1 publishing pipeline using this profile MUST perform these steps in order:
+
+1. Parse the complete source into one duplicate-free I-JSON object and validate
+   the supported source version, exact root profile, annotation shapes, and
+   annotation locations.
+2. Validate every member as a complete declaration of its stated ASP kind.
+   The annotation location supplies build provenance only; it supplies no
+   declaration default.
+3. Collect root members and eligible operation members. Reject a repeated
+   `(kind, declaration.id)` pair even when the declarations are byte-identical.
+4. Sort each resulting `resources`, `actions`, and `events` array by ascending
+   unsigned lexicographic order of the UTF-8 bytes of `declaration.id`. Array
+   order is hash-significant, so a source map's serialization order MUST NOT
+   select the output hash.
+5. Deep-copy `manifest_base`, insert the three complete arrays, validate the
+   resulting object under every ordinary Agent Surface Manifest requirement,
+   and verify that all scopes, data classes, schemas, companions, endpoints,
+   modes, effects, exposure contracts, and other references resolve.
+6. Compute `surface_hash` with the Agent Surface Manifest hashing view in the
+   Canonical Object Hash Profile, insert it, and revalidate the complete
+   publishable manifest.
+7. Emit that one manifest only after every prior step succeeds.
+
+Any parse, profile, version, location, shape, reference, duplicate,
+completeness, lint, validation, or hashing failure aborts the complete
+projection. The importer MUST NOT emit a partial manifest, retain an earlier
+array, skip only the invalid member, or label an unvalidated candidate as
+publishable. Import failure is a local publishing-tool error, not an ASP error
+response. If an invalid generated object is nevertheless served, ordinary
+consumers reject it as `surface_incompatible`.
+
+The importer MUST NOT derive an ASP identifier, scope, resource, schema, risk,
+approval mode, execution mode, idempotency rule, effect, exposure class,
+retention rule, event direction, endpoint, authentication policy, or authority
+from an OpenAPI HTTP method, `operationId`, server, security requirement,
+parameter, request or response schema, tag, callback, or from an AsyncAPI
+channel, message, payload, `schemaFormat`, binding, or trait. Such source
+metadata can help an author prepare an explicit declaration, but it has no
+standardized ASP meaning.
+
+The emitted manifest is the only runtime object produced by this profile.
+It contains neither `x-agent-surface` annotations nor an implicit source
+binding. A publisher MAY add a separately defined collision-resistant
+provenance extension to `manifest_base`; if it does, that extension is part of
+the manifest hashing view and does not become authority merely because it is
+hash-bound.
+
+Changing a projected declaration or any other emitted member changes the
+manifest hashing view and requires a new `surface_version` and
+`surface_hash`. Reordering source maps or changing an unannotated source
+operation does not by itself change the output. The publisher still MUST update
+the manifest when an underlying change alters the implementation or semantics
+of a published affordance. A previously unannotated operation becomes eligible
+for ASP only after an explicit annotation or root mapping produces a new valid
+snapshot and the ordinary consent and Grant lifecycle completes.
+
+At issuance and execution time, import provenance has no fallback semantics. A
+source operation that is absent from the Grant's pinned generated manifest
+remains outside ASP and follows the Curated Surface Boundary:
+`invalid_authorization_details` during OAuth issuance and `action_unknown`
+before idempotency lookup, dispatch, receipt creation, or effect during action
+execution.
+
 ### Required Top-Level Fields
 
 ```json
@@ -12296,6 +12455,50 @@ Credentials, execution tokens, cookies, or raw Runtime Attestation Evidence.
 The synthetic agent-side input is a fixed typed fixture and is not evidence of
 agent identity, capability, intent, approval, or successful agent execution.
 
+### Reference API Importer
+
+This repository publishes the `asp-api-import` reference CLI under
+`tools/asp-api-importer/` for the deterministic projection defined by the
+OpenAPI and AsyncAPI Import Profile. The tool accepts strict JSON, operates
+offline, recognizes only the source versions and annotation locations defined
+by the profile, sorts emitted members deterministically, computes the manifest
+hash with the Canonical Object Hash Profile, and rejects the complete
+projection when any annotation or generated declaration fails its implemented
+checks.
+
+The adjacent annotation JSON Schema defines the closed root, operation, and
+member objects. The versioned case registry and its schema bind positive
+OpenAPI and AsyncAPI inputs, exact generated outputs, and negative parse,
+version, location, reference, duplicate, reserved-member, and incomplete-
+declaration cases. In particular, the positive OpenAPI case contains an
+ordinary unannotated destructive operation and requires it to be absent from
+all generated ASP inventories.
+
+`generate` returns status `0` and writes one hash-bound JSON candidate only after
+the transform, the case-registry-pinned reference-linter ruleset,
+deterministic ordering, and hashing succeed. A ruleset identifier or version
+mismatch fails closed rather than silently changing importer acceptance. The
+command returns status `2` and writes no candidate when it cannot evaluate the
+input safely. `self-check` requires the compiled schemas and case registry to
+equal the selected repository artifacts, validates the registry, ruleset
+binding, and schemas, executes every bound case, and compares positive output
+byte-for-byte with its golden manifest.
+
+The reference importer deliberately does not parse YAML, validate the complete
+OpenAPI or AsyncAPI specification, fetch or resolve a reference, validate
+remote ASP schema bytes, or replace a complete Agent Surface Manifest
+validator. Its successful output is machine evidence for this bounded
+authoring transform, not permission to serve the candidate automatically. The
+publisher MUST complete every ordinary manifest, implementation-semantic,
+version, and deployment check from the profile before designating and serving
+the output as its issuer-authoritative current surface.
+
+The tool never consumes credentials, Grants, user data, live endpoints,
+implementation code, private keys, or network resources. A generated hash
+commits to candidate bytes under the manifest hash profile; it does not
+authenticate the publisher, prove that an annotation is truthful, establish
+source-spec conformance, or authorize an omitted or included operation.
+
 ### Reference Manifest Linter
 
 This repository publishes the `asp-lint` reference CLI under
@@ -12348,6 +12551,10 @@ A component conforms to the Surface Publisher Profile when it:
   merely from an underlying API, route, RPC, MCP, SDK, or UI inventory; every
   selected affordance has complete ASP semantics and every omitted operation
   remains outside that surface snapshot
+- when using the OpenAPI and AsyncAPI Import Profile, accepts only its exact
+  source versions and annotation locations, projects complete declarations
+  atomically without inference, validates the complete generated manifest, and
+  treats the served manifest rather than source annotations as the authority
 - computes and publishes a valid `surface_hash` and changes
   `surface_version` whenever the manifest hashing view changes
 - does not publish an Impact Simulation Result or feature identifier as a
@@ -12928,6 +13135,12 @@ example, an application can initially publish `task.read` and
 export, and other operations outside ASP. Each later addition follows the
 ordinary manifest version, hash, consent, and Grant rules.
 
+An application that already maintains an OpenAPI or AsyncAPI description MAY
+use the import profile to keep those selected declarations near their source
+operations. The initial annotation set should remain equally small: leaving an
+operation unannotated is the explicit safe default, and the generated diff
+should be reviewed as a security-sensitive manifest change before publication.
+
 To support Agent Surface Protocol, the next slices are:
 
 1. Add `AgentSurfaceManifest` TypeScript types and JSON examples.
@@ -13033,6 +13246,14 @@ To support Agent Surface Protocol, the next slices are:
   <https://modelcontextprotocol.io/specification/2025-06-18>
 - Agent Client Protocol Overview:
   <https://agentclientprotocol.com/protocol/v1/overview>
+- OpenAPI Specification 3.2.0:
+  <https://spec.openapis.org/oas/v3.2.0.html>
+- OpenAPI Specification 3.1.2:
+  <https://spec.openapis.org/oas/v3.1.2.html>
+- AsyncAPI Specification 3.1.0:
+  <https://www.asyncapi.com/docs/reference/specification/v3.1.0>
+- AsyncAPI Specification 3.0.0:
+  <https://www.asyncapi.com/docs/reference/specification/v3.0.0>
 - CloudEvents 1.0.2:
   <https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md>
 - CloudEvents JSON Event Format 1.0.2:

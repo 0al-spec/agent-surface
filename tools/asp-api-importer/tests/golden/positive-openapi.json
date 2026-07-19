@@ -1,0 +1,53 @@
+{
+  "actions": [
+    {
+      "effects": [],
+      "execution": {
+        "mode": "read",
+        "operation_id": "task.get"
+      },
+      "id": "task.get",
+      "input_schema": "https://tasks.example/schemas/task-get-input.json",
+      "output_schema": "https://tasks.example/schemas/task-get-output.json",
+      "risk": "read",
+      "scope": "tasks.read",
+      "side_effect": false
+    }
+  ],
+  "agent_api": {
+    "action_url": "https://tasks.example/agent-actions"
+  },
+  "app_id": "com.example.tasks",
+  "audit": {},
+  "auth": {
+    "type": "oauth2"
+  },
+  "data_classes": [],
+  "events": [
+    {
+      "id": "task.changed",
+      "schema": "https://tasks.example/schemas/task-changed.json",
+      "scope": "tasks.read"
+    }
+  ],
+  "issuer": "https://tasks.example",
+  "protocol": "agent-surface/0.1",
+  "resources": [
+    {
+      "id": "task",
+      "read_scope": "tasks.read",
+      "schema": "https://tasks.example/schemas/task.json"
+    }
+  ],
+  "revocation": {},
+  "scopes": [
+    {
+      "id": "tasks.read"
+    }
+  ],
+  "surface_hash": "sha-256:dXcnhJ0RSi670ruLORrVKZjVZ8n3r8zjQpqOKaYekAw",
+  "surface_mode": "standard",
+  "surface_url": "https://tasks.example/.well-known/agent-surface.json",
+  "surface_version": "2026-07-20",
+  "x-example-risk-threshold": 0.1
+}

@@ -1021,8 +1021,24 @@
       "side": "left",
       "anchors": [
         {
-          "heading": "Agent Surface Manifest",
-          "anchorId": "agent-surface-manifest-2"
+          "heading": "Curated Surface Boundary",
+          "anchorId": "curated-surface-boundary"
+        },
+        {
+          "heading": "OpenAPI and AsyncAPI Import Profile",
+          "anchorId": "openapi-and-asyncapi-import-profile"
+        },
+        {
+          "heading": "Canonical Object Hash Profile",
+          "anchorId": "canonical-object-hash-profile"
+        },
+        {
+          "heading": "Required Top-Level Fields",
+          "anchorId": "required-top-level-fields"
+        },
+        {
+          "heading": "Surface Hash",
+          "anchorId": "surface-hash"
         },
         {
           "heading": "Resources",
@@ -1035,18 +1051,104 @@
         {
           "heading": "Events",
           "anchorId": "events"
+        },
+        {
+          "heading": "Versioning and Compatibility",
+          "anchorId": "versioning-and-compatibility"
+        },
+        {
+          "heading": "Reference API Importer",
+          "anchorId": "reference-api-importer"
+        },
+        {
+          "heading": "Surface Publisher Profile",
+          "anchorId": "surface-publisher-profile"
+        },
+        {
+          "heading": "Application MVP Mapping",
+          "anchorId": "application-mvp-mapping"
         }
       ],
-      "status": "missing",
-      "rationale": "JSON Schema URLs поддерживаются, но import/generation и x-agent-surface annotations для OpenAPI/AsyncAPI отсутствуют.",
+      "status": "present",
+      "rationale": "RFC определяет закрытый publishing-time x-agent-surface profile для OpenAPI и AsyncAPI, атомарную deterministic projection без inference, обязательный полный publisher-side manifest validation и hash lifecycle; Rust importer machine-validates bounded annotation projection, schema-bound positive/negative cases и исключение unannotated operations, но выдаёт только candidate.",
       "priority": "P3",
       "profile": "manifest",
       "depends_on": [
-        16
+        16,
+        57
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "machine_validated",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "curated-surface-boundary"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "openapi-and-asyncapi-import-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "canonical-object-hash-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "required-top-level-fields"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-hash"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "resources"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "actions"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "events"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "versioning-and-compatibility"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-api-importer"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-publisher-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-mvp-mapping"
+        },
+        {
+          "kind": "schema",
+          "ref": "tools/asp-api-importer/schema/annotation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "tools/asp-api-importer/schema/cases.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "tools/asp-api-importer/cases/v1/cases.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "tools/asp-api-importer/src/lib.rs"
+        },
+        {
+          "kind": "implementation",
+          "ref": "tools/asp-api-importer/src/main.rs"
+        }
+      ]
     },
     {
       "id": 18,

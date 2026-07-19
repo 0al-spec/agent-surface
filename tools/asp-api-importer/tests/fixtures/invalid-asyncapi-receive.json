@@ -1,0 +1,37 @@
+{
+  "asyncapi": "3.1.0",
+  "x-agent-surface": {
+    "profile": "https://github.com/0al-spec/agent-surface/profiles/api-import/v1",
+    "manifest_base": {
+      "protocol": "agent-surface/0.1",
+      "app_id": "com.example.invalid",
+      "issuer": "https://invalid.example",
+      "surface_mode": "standard",
+      "surface_version": "1",
+      "surface_url": "https://invalid.example/.well-known/agent-surface.json",
+      "auth": {},
+      "agent_api": {},
+      "scopes": [{"id": "read"}],
+      "data_classes": [],
+      "audit": {},
+      "revocation": {}
+    }
+  },
+  "operations": {
+    "receiveItem": {
+      "action": "receive",
+      "x-agent-surface": {
+        "members": [
+          {
+            "kind": "event",
+            "declaration": {
+              "id": "item.received",
+              "scope": "read",
+              "schema": "https://invalid.example/event.json"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

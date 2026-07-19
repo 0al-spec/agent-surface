@@ -64,7 +64,7 @@ agent-surface/
     workflows/docs.yml       Markdown, RFC, and dashboard checks.
   conformance/             Versioned executable matrix, vectors, schemas, and runner.
   mocks/                   Synthetic Mock App and Mock Runtime suite fixtures.
-  tools/                   Rust tooling, including the ASP manifest linter.
+  tools/                   Rust API importer and ASP manifest linter.
   drafts/                  Source RFCs written in Markdown.
   review/                  Source data, template, and generated RFC review dashboard.
   LICENSE                  MIT license for repository source code.
@@ -166,6 +166,26 @@ subject is a `suite_fixture`, so even a fully matching run remains `incomplete`
 and supplies neither implementation nor interoperability credit. The bundle
 uses deterministic synthetic data only and must never receive production
 credentials, secrets, user content, or attestation evidence.
+
+## OpenAPI and AsyncAPI Importer
+
+The Rust `asp-api-import` CLI projects explicit `x-agent-surface` annotations
+from a strict-JSON OpenAPI or AsyncAPI document into a deterministic Agent
+Surface Manifest candidate:
+
+```sh
+make api-import-check
+cargo run --locked -p asp-api-importer -- generate openapi.json
+cargo run --locked -p asp-api-importer -- self-check --root .
+```
+
+The versioned annotation schema, case registry, positive and negative fixtures,
+golden manifests, and implementation live in
+[`tools/asp-api-importer/`](tools/asp-api-importer). The importer is offline,
+does not resolve references, and never infers ASP scopes, risk, approval,
+effects, or authority from API metadata. Unannotated operations are omitted.
+A generated candidate still requires complete publisher-side manifest and
+implementation validation before it can be served as an authoritative Surface.
 
 ## ASP Manifest Linter
 
