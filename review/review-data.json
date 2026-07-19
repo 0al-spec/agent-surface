@@ -3066,27 +3066,173 @@
       "description": "consent screen может показывать примеры allowed и denied действий для снижения consent fatigue.",
       "category": "UX / consent",
       "side": "left",
-      "status": "missing",
+      "status": "present",
       "anchors": [
+        {
+          "heading": "Impact Simulation",
+          "anchorId": "impact-simulation"
+        },
+        {
+          "heading": "Actions",
+          "anchorId": "actions"
+        },
+        {
+          "heading": "Preconditions and Effect Preview",
+          "anchorId": "preconditions-and-effect-preview"
+        },
+        {
+          "heading": "Effect Model",
+          "anchorId": "effect-model"
+        },
+        {
+          "heading": "Approval Semantics",
+          "anchorId": "approval-semantics"
+        },
+        {
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        },
+        {
+          "heading": "Risk Explanation UI Hints",
+          "anchorId": "risk-explanation-ui-hints"
+        },
         {
           "heading": "Capability Matching",
           "anchorId": "capability-matching"
+        },
+        {
+          "heading": "Versioning and Compatibility",
+          "anchorId": "versioning-and-compatibility"
+        },
+        {
+          "heading": "Privacy Considerations",
+          "anchorId": "privacy-considerations"
+        },
+        {
+          "heading": "Interoperability Test Suite",
+          "anchorId": "interoperability-test-suite"
+        },
+        {
+          "heading": "Reference Mock Participants",
+          "anchorId": "reference-mock-participants"
+        },
+        {
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         },
         {
           "heading": "Example End-to-End Flow",
           "anchorId": "example-end-to-end-flow"
         }
       ],
-      "rationale": "Consent flow не показывает simulated allowed/denied examples или прогноз impact.",
+      "rationale": "RFC определяет local-only и non-authoritative Impact Simulation для exact verified consent inputs: runtime показывает bounded covered, not_covered и indeterminate examples с canonical risk/effect/approval semantics, не выполняя app action и не создавая Grant, consent, approval или policy authority. Conformance suite и reference Runtime mock проверяют exact bindings, deterministic coverage, staleness, fail-closed outcomes и отсутствие app dispatch; это machine validation тестового bundle, а не production implementation или independent interop evidence.",
       "priority": "P3",
       "profile": "privacy-consent",
       "depends_on": [
         22,
+        44,
         46
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "machine_validated",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "impact-simulation"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "actions"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "preconditions-and-effect-preview"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "effect-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "approval-semantics"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "risk-explanation-ui-hints"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "capability-matching"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "versioning-and-compatibility"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "privacy-considerations"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "interoperability-test-suite"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-mock-participants"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-mediator-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "example-end-to-end-flow"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/impact-simulation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/fixtures.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/observation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/vectors.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/fixtures.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/schema-cases.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/suite.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/vectors.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/behavior.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_runtime.py"
+        }
+      ]
     },
     {
       "id": 48,
@@ -4107,6 +4253,10 @@
         {
           "kind": "schema",
           "ref": "conformance/v1/human-elicitation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/impact-simulation.schema.json"
         },
         {
           "kind": "schema",

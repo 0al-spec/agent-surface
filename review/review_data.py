@@ -30,6 +30,7 @@ CONFORMANCE_SCHEMAS = {
         "capacity-error",
         "fixtures",
         "human-elicitation",
+        "impact-simulation",
         "observation",
         "operational-limits",
         "report",
@@ -42,6 +43,7 @@ CONFORMANCE_SCHEMAS = {
 }
 OPERATIONAL_LIMITS_CONFORMANCE_SCHEMAS = CONFORMANCE_SCHEMAS - {
     Path("conformance/v1/human-elicitation.schema.json"),
+    Path("conformance/v1/impact-simulation.schema.json"),
     Path("conformance/v1/risk-explanation.schema.json"),
 }
 CONFORMANCE_REGISTRIES = {
@@ -81,6 +83,10 @@ ASP_OVER_AHP_IMPLEMENTATIONS = {
 HUMAN_ELICITATION_IMPLEMENTATIONS = {
     Path("mocks/behavior.py"),
     Path("mocks/mock_app.py"),
+    Path("mocks/mock_runtime.py"),
+}
+IMPACT_SIMULATION_IMPLEMENTATIONS = {
+    Path("mocks/behavior.py"),
     Path("mocks/mock_runtime.py"),
 }
 RISK_EXPLANATION_IMPLEMENTATIONS = {
@@ -140,6 +146,39 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         },
         "implementation": {
             path.as_posix() for path in HUMAN_ELICITATION_IMPLEMENTATIONS
+        },
+    },
+    47: {
+        "rfc_anchor": {
+            "impact-simulation",
+            "actions",
+            "preconditions-and-effect-preview",
+            "effect-model",
+            "approval-semantics",
+            "consent-preview-contract",
+            "risk-explanation-ui-hints",
+            "capability-matching",
+            "versioning-and-compatibility",
+            "privacy-considerations",
+            "interoperability-test-suite",
+            "reference-mock-participants",
+            "runtime-mediator-profile",
+            "example-end-to-end-flow",
+        },
+        "schema": {
+            "conformance/v1/impact-simulation.schema.json",
+            "conformance/v1/fixtures.schema.json",
+            "conformance/v1/observation.schema.json",
+            "conformance/v1/vectors.schema.json",
+        },
+        "registry": {
+            "conformance/v1/fixtures.json",
+            "conformance/v1/schema-cases.json",
+            "conformance/v1/suite.json",
+            "conformance/v1/vectors.json",
+        },
+        "implementation": {
+            path.as_posix() for path in IMPACT_SIMULATION_IMPLEMENTATIONS
         },
     },
     48: {
@@ -260,7 +299,7 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         },
     },
 }
-EXACT_MACHINE_VALIDATED_REVIEW_IDS = {27, 29, 48, 53, 57, 58, 61, 62}
+EXACT_MACHINE_VALIDATED_REVIEW_IDS = {27, 29, 47, 48, 53, 57, 58, 61, 62}
 MATURITY_ORDER = (
     "proposal",
     "specified",
@@ -660,6 +699,9 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         _validate_mock_bundle_evidence(review_id, "implementation", ref)
         return
     if review_id == 29 and relative_path in HUMAN_ELICITATION_IMPLEMENTATIONS:
+        _validate_mock_bundle_evidence(review_id, "implementation", ref)
+        return
+    if review_id == 47 and relative_path in IMPACT_SIMULATION_IMPLEMENTATIONS:
         _validate_mock_bundle_evidence(review_id, "implementation", ref)
         return
     if review_id == 48 and relative_path in RISK_EXPLANATION_IMPLEMENTATIONS:

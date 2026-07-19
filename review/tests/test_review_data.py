@@ -340,6 +340,36 @@ class ReviewDataValidationTests(unittest.TestCase):
                 ]
                 self.assert_invalid(payload, "exact authoritative evidence binding")
 
+    def test_impact_simulation_requires_the_exact_bound_evidence(self) -> None:
+        for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.machine_validated_payload()
+                review = next(item for item in payload["reviews"] if item["id"] == 47)
+                removed = False
+                retained = []
+                for item in review["evidence"]:
+                    if item["kind"] == missing_kind and not removed:
+                        removed = True
+                        continue
+                    retained.append(item)
+                review["evidence"] = retained
+                self.assertTrue(removed)
+                self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    def test_impact_simulation_rejects_extra_evidence(self) -> None:
+        payload = self.machine_validated_payload()
+        review = next(item for item in payload["reviews"] if item["id"] == 47)
+        review["anchors"].append(
+            {
+                "heading": "Conceptual Architecture",
+                "anchorId": "conceptual-architecture",
+            }
+        )
+        review["evidence"].append(
+            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+        )
+        self.assert_invalid(payload, "exact authoritative evidence binding")
+
     def test_risk_explanation_requires_the_exact_bound_evidence(self) -> None:
         for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
             with self.subTest(missing_kind=missing_kind):
@@ -376,7 +406,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         review["evidence"] = [
             item
             for item in review["evidence"]
-            if item["ref"] != "conformance/v1/risk-explanation.schema.json"
+            if item["ref"] != "conformance/v1/impact-simulation.schema.json"
         ]
         self.assert_invalid(payload, "missing bound evidence")
 
@@ -467,16 +497,16 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 62)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 405)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 430)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 49, "proposal": 4, "machine_validated": 9}),
+            Counter({"specified": 49, "proposal": 3, "machine_validated": 10}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 58, "partial": 1, "missing": 3}),
+            Counter({"present": 59, "partial": 1, "missing": 2}),
         )
-        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 138)
+        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 139)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
         self.assertEqual(
             [
@@ -599,6 +629,41 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(reviews_by_id[44]["maturity"], "specified")
         self.assertEqual(reviews_by_id[45]["status"], "present")
         self.assertEqual(reviews_by_id[45]["maturity"], "specified")
+        self.assertEqual(reviews_by_id[47]["status"], "present")
+        self.assertEqual(reviews_by_id[47]["maturity"], "machine_validated")
+        self.assertEqual(reviews_by_id[47]["depends_on"], [22, 44, 46])
+        self.assertEqual(reviews_by_id[47]["readiness"], "ready")
+        self.assertEqual(len(reviews_by_id[47]["evidence"]), 24)
+        self.assertEqual(
+            Counter(item["kind"] for item in reviews_by_id[47]["evidence"]),
+            Counter(
+                {
+                    "rfc_anchor": 14,
+                    "schema": 4,
+                    "registry": 4,
+                    "implementation": 2,
+                }
+            ),
+        )
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[47]["anchors"]],
+            [
+                "impact-simulation",
+                "actions",
+                "preconditions-and-effect-preview",
+                "effect-model",
+                "approval-semantics",
+                "consent-preview-contract",
+                "risk-explanation-ui-hints",
+                "capability-matching",
+                "versioning-and-compatibility",
+                "privacy-considerations",
+                "interoperability-test-suite",
+                "reference-mock-participants",
+                "runtime-mediator-profile",
+                "example-end-to-end-flow",
+            ],
+        )
         self.assertEqual(reviews_by_id[48]["status"], "present")
         self.assertEqual(reviews_by_id[48]["maturity"], "machine_validated")
         self.assertEqual(reviews_by_id[48]["depends_on"], [20, 46])
@@ -699,7 +764,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             ["reference-mock-participants"],
         )
         self.assertEqual(reviews_by_id[60]["readiness"], "ready")
-        self.assertEqual(len(reviews_by_id[60]["evidence"]), 20)
+        self.assertEqual(len(reviews_by_id[60]["evidence"]), 21)
         self.assertEqual(reviews_by_id[61]["status"], "present")
         self.assertEqual(reviews_by_id[61]["maturity"], "machine_validated")
         self.assertEqual(reviews_by_id[61]["depends_on"], [53, 58, 60])
