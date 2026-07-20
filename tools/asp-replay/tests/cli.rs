@@ -67,6 +67,10 @@ fn compose_blocks_when_required_native_profile_coverage_is_unavailable() {
         .stdout(predicate::str::contains(
             "\"composition_state\": \"blocked\"",
         ))
+        .stdout(predicate::str::contains(
+            "\"provider_name\": \"asp-replay-native-surface\"",
+        ))
+        .stdout(predicate::str::contains("\"status\": \"passed\""))
         .stderr(predicate::str::is_empty());
 }
 

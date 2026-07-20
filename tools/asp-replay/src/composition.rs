@@ -7,6 +7,7 @@ use specification_core::{DecisionSpecification, FirstMatch, Specification};
 
 use crate::hash::object_hash;
 use crate::strict_json::parse_strict;
+use crate::surface_provider::{self, SurfaceVerdict};
 use crate::{ReplayError, TOOL_NAME, TOOL_VERSION, verify};
 
 pub(crate) const COMPOSITION_REPORT_DOMAIN: &str =
@@ -181,7 +182,6 @@ const PROVIDERS: [ProviderDefinition; 7] = [
 ];
 
 enum ProviderOutcome {
-    #[cfg(any(test, fuzzing))]
     Passed {
         provider_name: &'static str,
         provider_version: &'static str,
@@ -189,7 +189,6 @@ enum ProviderOutcome {
         ruleset_version: &'static str,
         ruleset_sha256: &'static str,
     },
-    #[cfg(any(test, fuzzing))]
     Failed {
         provider_name: &'static str,
         provider_version: &'static str,
@@ -211,7 +210,30 @@ trait NativeProviderSet {
 struct BuiltInProviders;
 
 impl NativeProviderSet for BuiltInProviders {
-    fn evaluate(&self, _provider_id: &str, _bundle: &Value) -> ProviderOutcome {
+    fn evaluate(&self, provider_id: &str, bundle: &Value) -> ProviderOutcome {
+        if provider_id == NATIVE_SURFACE {
+            return match surface_provider::evaluate(bundle) {
+                SurfaceVerdict::Passed => ProviderOutcome::Passed {
+                    provider_name: surface_provider::PROVIDER_NAME,
+                    provider_version: surface_provider::PROVIDER_VERSION,
+                    ruleset_id: surface_provider::RULESET_ID,
+                    ruleset_version: surface_provider::RULESET_VERSION,
+                    ruleset_sha256: surface_provider::RULESET_SHA256,
+                },
+                SurfaceVerdict::Failed => ProviderOutcome::Failed {
+                    provider_name: surface_provider::PROVIDER_NAME,
+                    provider_version: surface_provider::PROVIDER_VERSION,
+                    ruleset_id: surface_provider::RULESET_ID,
+                    ruleset_version: surface_provider::RULESET_VERSION,
+                    ruleset_sha256: surface_provider::RULESET_SHA256,
+                },
+                SurfaceVerdict::Unavailable => ProviderOutcome::Unavailable {
+                    reason: "provider_error",
+                    provider_name: Some(surface_provider::PROVIDER_NAME),
+                    provider_version: Some(surface_provider::PROVIDER_VERSION),
+                },
+            };
+        }
         ProviderOutcome::Unavailable {
             reason: "provider_not_implemented",
             provider_name: None,
@@ -364,7 +386,6 @@ fn provider_coverage(
                 }
                 Applicability::Required => match providers.evaluate(definition.provider_id, bundle)
                 {
-                    #[cfg(any(test, fuzzing))]
                     ProviderOutcome::Passed {
                         provider_name,
                         provider_version,
@@ -383,7 +404,6 @@ fn provider_coverage(
                             subject_bundle_hash: bundle_hash.to_owned(),
                         }),
                     ),
-                    #[cfg(any(test, fuzzing))]
                     ProviderOutcome::Failed {
                         provider_name,
                         provider_version,
@@ -898,11 +918,18 @@ mod tests {
         assert!(!first.complete_claim_eligible);
         assert_eq!(first.providers.len(), PROVIDERS.len());
         assert_eq!(first.providers[0].provider_id, NATIVE_SURFACE);
+        assert_eq!(first.providers[0].status, "passed");
+        assert_eq!(
+            first.providers[0].provider_name.as_deref(),
+            Some(surface_provider::PROVIDER_NAME)
+        );
+        assert!(first.providers[0].evidence.is_some());
         assert_eq!(first.providers[1].provider_id, NATIVE_GRANT);
         assert!(
             first
                 .providers
                 .iter()
+                .skip(1)
                 .filter(|provider| provider.applicability == "required")
                 .all(|provider| provider.status == "unavailable")
         );

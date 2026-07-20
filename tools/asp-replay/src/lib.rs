@@ -12,6 +12,7 @@ mod rehash;
 mod selfcheck;
 mod specifications;
 mod strict_json;
+mod surface_provider;
 mod validation;
 mod value;
 

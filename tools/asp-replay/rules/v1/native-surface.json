@@ -1,0 +1,21 @@
+{
+  "ruleset_id": "https://github.com/0al-spec/agent-surface/rules/native-surface/v1",
+  "ruleset_version": "1.0.0",
+  "claim": "Validates the embedded, hash-bound Agent Surface Manifest snapshot only.",
+  "checks": [
+    "bounded input size",
+    "required top-level member shape",
+    "exact protocol and surface mode",
+    "unique inventory identifiers",
+    "HTTPS issuer, discovery, and endpoint URLs",
+    "recomputable surface hash",
+    "manifest lint rules",
+    "proposal-only surface invariant"
+  ],
+  "exclusions": [
+    "publisher lifecycle state",
+    "transport authentication",
+    "implementation enforceability",
+    "inventory completeness relative to an underlying API"
+  ]
+}

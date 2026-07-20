@@ -269,6 +269,23 @@ pub(crate) fn run(repository_root: &Path) -> Result<(), ReplayError> {
                 .to_owned(),
         ));
     }
+    let surface_provider = composition_report
+        .providers
+        .first()
+        .ok_or_else(|| ReplayError::SelfCheck("composition omits Surface provider".to_owned()))?;
+    if surface_provider.provider_id != "native_surface"
+        || surface_provider.status != "passed"
+        || surface_provider.provider_name.as_deref() != Some(crate::surface_provider::PROVIDER_NAME)
+        || surface_provider.evidence.as_ref().is_none_or(|evidence| {
+            evidence.ruleset_id != crate::surface_provider::RULESET_ID
+                || evidence.ruleset_version != crate::surface_provider::RULESET_VERSION
+                || evidence.ruleset_sha256 != crate::surface_provider::RULESET_SHA256
+        })
+    {
+        return Err(ReplayError::SelfCheck(
+            "built-in authoritative Surface provider did not produce canonical evidence".to_owned(),
+        ));
+    }
     let composition_value = serde_json::to_value(&composition_report)
         .map_err(|error| ReplayError::SelfCheck(error.to_string()))?;
     validate_instance(
