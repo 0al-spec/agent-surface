@@ -64,11 +64,21 @@ A `blocked` result still writes its machine-readable composition report.
 Strict parse, input-read, serialization, and internal tool failures also use
 status `2`, but write no report to standard output.
 
-The built-in provider set includes a supplemental local Surface manifest lint,
-but that lint is not an authoritative complete-profile validator. The built-in
-set therefore cannot currently issue `eligible_valid` or
-`eligible_incomplete`; a structurally valid bundle remains `blocked` until the
-required authoritative providers are supplied.
+The built-in provider set includes an authoritative native Surface snapshot
+provider. It validates the embedded manifest's bounded shape, exact protocol
+and mode, unique inventory identifiers, HTTPS endpoint bindings, recomputable
+`surface_hash`, manifest lint rules, and the Proposal-Only Surface invariant.
+Its versioned ruleset also states the evidence boundary: publisher lifecycle
+state, transport authentication, implementation enforceability, and
+completeness relative to an underlying API cannot be proven from a replay
+bundle.
+
+The supplemental Surface lint remains visible as a separate diagnostic aid and
+does not widen the native provider's claim. Other required native providers,
+including the Agent Grant provider, are not yet available. The built-in set
+therefore still cannot issue `eligible_valid` or `eligible_incomplete`; a
+structurally valid bundle remains `blocked` until all other applicable
+authoritative providers are supplied.
 
 Rust consumers should call `validate_composition_report(bundle, report)` before
 using a deserialized report. JSON Schema validates the closed report shape and
