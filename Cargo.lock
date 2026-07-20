@@ -124,6 +124,7 @@ dependencies = [
  "serde_json",
  "serde_json_canonicalizer",
  "sha2",
+ "specification-core",
  "thiserror",
 ]
 
@@ -977,6 +978,12 @@ name = "smallvec"
 version = "1.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
+
+[[package]]
+name = "specification-core"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07603a081c2775d736d8d40c527f0c3410e74865f1a7cb224866e4e6da693f5c"
 
 [[package]]
 name = "stable_deref_trait"
