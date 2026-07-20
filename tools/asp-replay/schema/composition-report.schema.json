@@ -1,0 +1,818 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/tools/asp-replay/schemas/composition-report/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "report_profile",
+    "claim_effect",
+    "tool",
+    "input",
+    "bounded_replay",
+    "composition_state",
+    "complete_claim_eligible",
+    "providers",
+    "supplemental_checks",
+    "report_hash"
+  ],
+  "properties": {
+    "$schema": { "const": "./composition-report.schema.json" },
+    "schema_version": { "const": 1 },
+    "report_profile": {
+      "const": "https://github.com/0al-spec/agent-surface/tools/asp-replay/composition-report/v1"
+    },
+    "claim_effect": { "const": "descriptive_only" },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "policy_profile", "policy_version"],
+      "properties": {
+        "name": { "const": "asp-replay" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "policy_profile": {
+          "const": "https://github.com/0al-spec/agent-surface/tools/asp-replay/composition-policy/v1"
+        },
+        "policy_version": { "const": "1.0.0" }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_sha256", "bundle_id", "bundle_hash"],
+      "properties": {
+        "source_sha256": { "$ref": "#/$defs/digest" },
+        "bundle_id": {
+          "oneOf": [
+            { "$ref": "#/$defs/id" },
+            { "type": "null" }
+          ]
+        },
+        "bundle_hash": {
+          "oneOf": [
+            { "$ref": "#/$defs/digest" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "bounded_replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_hash",
+        "evaluation_state",
+        "integrity_verdict",
+        "replay_completeness",
+        "bounded_verdict"
+      ],
+      "properties": {
+        "report_hash": { "$ref": "#/$defs/digest" },
+        "evaluation_state": {
+          "enum": ["preflight_failed", "semantic_invalid", "incomplete", "valid"]
+        },
+        "integrity_verdict": { "enum": ["valid", "invalid"] },
+        "replay_completeness": {
+          "enum": ["complete", "incomplete", "not_evaluated"]
+        },
+        "bounded_verdict": { "enum": ["valid", "incomplete", "invalid"] }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "evaluation_state": {
+              "enum": ["preflight_failed", "semantic_invalid"]
+            },
+            "integrity_verdict": { "const": "invalid" },
+            "replay_completeness": { "const": "not_evaluated" },
+            "bounded_verdict": { "const": "invalid" }
+          },
+          "required": [
+            "evaluation_state",
+            "integrity_verdict",
+            "replay_completeness",
+            "bounded_verdict"
+          ]
+        },
+        {
+          "properties": {
+            "evaluation_state": { "const": "incomplete" },
+            "integrity_verdict": { "const": "valid" },
+            "replay_completeness": { "const": "incomplete" },
+            "bounded_verdict": { "const": "incomplete" }
+          },
+          "required": [
+            "evaluation_state",
+            "integrity_verdict",
+            "replay_completeness",
+            "bounded_verdict"
+          ]
+        },
+        {
+          "properties": {
+            "evaluation_state": { "const": "valid" },
+            "integrity_verdict": { "const": "valid" },
+            "replay_completeness": { "const": "complete" },
+            "bounded_verdict": { "const": "valid" }
+          },
+          "required": [
+            "evaluation_state",
+            "integrity_verdict",
+            "replay_completeness",
+            "bounded_verdict"
+          ]
+        }
+      ]
+    },
+    "composition_state": {
+      "enum": ["rejected", "blocked", "eligible_incomplete", "eligible_valid"]
+    },
+    "complete_claim_eligible": { "type": "boolean" },
+    "providers": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "prefixItems": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/providerCoverage" },
+            {
+              "properties": {
+                "provider_id": { "const": "native_surface" },
+                "object_profile": { "const": "agent_surface_manifest" },
+                "applicability": { "const": "required" }
+              },
+              "required": ["provider_id", "object_profile", "applicability"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/providerCoverage" },
+            {
+              "properties": {
+                "provider_id": { "const": "native_grant" },
+                "object_profile": { "const": "semantic_agent_grant" },
+                "applicability": { "const": "required" }
+              },
+              "required": ["provider_id", "object_profile", "applicability"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/providerCoverage" },
+            {
+              "properties": {
+                "provider_id": { "const": "native_cloudevent" },
+                "object_profile": { "const": "asp_cloudevent" }
+              },
+              "required": ["provider_id", "object_profile"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/providerCoverage" },
+            {
+              "properties": {
+                "provider_id": { "const": "native_event_ack" },
+                "object_profile": { "const": "event_acknowledgement" }
+              },
+              "required": ["provider_id", "object_profile"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/providerCoverage" },
+            {
+              "properties": {
+                "provider_id": { "const": "native_event_gap" },
+                "object_profile": { "const": "event_gap" }
+              },
+              "required": ["provider_id", "object_profile"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/providerCoverage" },
+            {
+              "properties": {
+                "provider_id": { "const": "native_receipt" },
+                "object_profile": { "const": "receipt" }
+              },
+              "required": ["provider_id", "object_profile"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/providerCoverage" },
+            {
+              "properties": {
+                "provider_id": { "const": "native_receipt_signature" },
+                "object_profile": { "const": "receipt_signature" }
+              },
+              "required": ["provider_id", "object_profile"]
+            }
+          ]
+        }
+      ],
+      "items": false
+    },
+    "supplemental_checks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "prefixItems": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "check_id",
+            "status",
+            "reason",
+            "tool_name",
+            "tool_version",
+            "ruleset_id",
+            "ruleset_version",
+            "errors",
+            "warnings"
+          ],
+          "properties": {
+            "check_id": { "const": "surface_manifest_lint" },
+            "status": {
+              "enum": ["pass", "findings", "error", "not_evaluated"]
+            },
+            "reason": {
+              "enum": [
+                "evaluated",
+                "tool_error",
+                "bounded_replay_rejected",
+                "resource_limit"
+              ]
+            },
+            "tool_name": { "const": "asp-manifest-linter" },
+            "tool_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "ruleset_id": {
+              "oneOf": [
+                { "type": "string", "minLength": 1, "maxLength": 512 },
+                { "type": "null" }
+              ]
+            },
+            "ruleset_version": {
+              "oneOf": [
+                { "type": "string", "minLength": 1, "maxLength": 64 },
+                { "type": "null" }
+              ]
+            },
+            "errors": { "type": "integer", "minimum": 0 },
+            "warnings": { "type": "integer", "minimum": 0 }
+          },
+          "oneOf": [
+            {
+              "properties": {
+                "status": { "const": "pass" },
+                "reason": { "const": "evaluated" },
+                "ruleset_id": { "type": "string", "minLength": 1 },
+                "ruleset_version": { "type": "string", "minLength": 1 },
+                "errors": { "const": 0 },
+                "warnings": { "const": 0 }
+              },
+              "required": [
+                "status",
+                "reason",
+                "ruleset_id",
+                "ruleset_version",
+                "errors",
+                "warnings"
+              ]
+            },
+            {
+              "properties": {
+                "status": { "const": "findings" },
+                "reason": { "const": "evaluated" },
+                "ruleset_id": { "type": "string", "minLength": 1 },
+                "ruleset_version": { "type": "string", "minLength": 1 }
+              },
+              "required": ["status", "reason", "ruleset_id", "ruleset_version"],
+              "anyOf": [
+                {
+                  "properties": { "errors": { "minimum": 1 } },
+                  "required": ["errors"]
+                },
+                {
+                  "properties": { "warnings": { "minimum": 1 } },
+                  "required": ["warnings"]
+                }
+              ]
+            },
+            {
+              "properties": {
+                "status": { "const": "error" },
+                "reason": { "const": "tool_error" },
+                "ruleset_id": { "type": "null" },
+                "ruleset_version": { "type": "null" },
+                "errors": { "const": 0 },
+                "warnings": { "const": 0 }
+              },
+              "required": [
+                "status",
+                "reason",
+                "ruleset_id",
+                "ruleset_version",
+                "errors",
+                "warnings"
+              ]
+            },
+            {
+              "properties": {
+                "status": { "const": "not_evaluated" },
+                "reason": {
+                  "enum": ["bounded_replay_rejected", "resource_limit"]
+                },
+                "ruleset_id": { "type": "null" },
+                "ruleset_version": { "type": "null" },
+                "errors": { "const": 0 },
+                "warnings": { "const": 0 }
+              },
+              "required": [
+                "status",
+                "reason",
+                "ruleset_id",
+                "ruleset_version",
+                "errors",
+                "warnings"
+              ]
+            }
+          ]
+        }
+      ],
+      "items": false
+    },
+    "report_hash": { "$ref": "#/$defs/digest" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "bounded_replay": {
+            "properties": {
+              "evaluation_state": {
+                "enum": ["semantic_invalid", "incomplete", "valid"]
+              }
+            },
+            "required": ["evaluation_state"]
+          }
+        },
+        "required": ["bounded_replay"]
+      },
+      "then": {
+        "properties": {
+          "input": {
+            "properties": {
+              "bundle_id": { "$ref": "#/$defs/id" },
+              "bundle_hash": { "$ref": "#/$defs/digest" }
+            },
+            "required": ["bundle_id", "bundle_hash"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "bounded_replay": {
+            "properties": {
+              "bounded_verdict": { "const": "invalid" }
+            },
+            "required": ["bounded_verdict"]
+          }
+        },
+        "required": ["bounded_replay"]
+      },
+      "then": {
+        "properties": {
+          "providers": {
+            "items": {
+              "if": {
+                "properties": {
+                  "applicability": { "const": "required" }
+                },
+                "required": ["applicability"]
+              },
+              "then": {
+                "properties": {
+                  "status": { "const": "not_evaluated" },
+                  "reason": { "const": "bounded_replay_rejected" },
+                  "provider_name": { "type": "null" },
+                  "provider_version": { "type": "null" },
+                  "evidence": { "type": "null" }
+                },
+                "required": [
+                  "status",
+                  "reason",
+                  "provider_name",
+                  "provider_version",
+                  "evidence"
+                ]
+              }
+            }
+          },
+          "supplemental_checks": {
+            "items": {
+              "properties": {
+                "status": { "const": "not_evaluated" },
+                "reason": { "const": "bounded_replay_rejected" }
+              },
+              "required": ["status", "reason"]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "providers": {
+            "items": {
+              "if": {
+                "properties": {
+                  "applicability": { "const": "required" }
+                },
+                "required": ["applicability"]
+              },
+              "then": {
+                "properties": {
+                  "status": {
+                    "not": { "const": "not_evaluated" }
+                  }
+                },
+                "required": ["status"]
+              }
+            }
+          },
+          "supplemental_checks": {
+            "items": {
+              "properties": {
+                "reason": {
+                  "not": { "const": "bounded_replay_rejected" }
+                }
+              },
+              "required": ["reason"]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "composition_state": {
+            "enum": ["eligible_incomplete", "eligible_valid"]
+          }
+        },
+        "required": ["composition_state"]
+      },
+      "then": {
+        "properties": { "complete_claim_eligible": { "const": true } },
+        "required": ["complete_claim_eligible"]
+      },
+      "else": {
+        "properties": { "complete_claim_eligible": { "const": false } },
+        "required": ["complete_claim_eligible"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "composition_state": { "const": "eligible_valid" } },
+        "required": ["composition_state"]
+      },
+      "then": {
+        "properties": {
+          "bounded_replay": {
+            "properties": {
+              "evaluation_state": { "const": "valid" },
+              "integrity_verdict": { "const": "valid" },
+              "replay_completeness": { "const": "complete" },
+              "bounded_verdict": { "const": "valid" }
+            },
+            "required": [
+              "evaluation_state",
+              "integrity_verdict",
+              "replay_completeness",
+              "bounded_verdict"
+            ]
+          },
+          "providers": {
+            "items": {
+              "if": {
+                "properties": { "applicability": { "const": "required" } },
+                "required": ["applicability"]
+              },
+              "then": {
+                "properties": { "status": { "const": "passed" } },
+                "required": ["status"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "composition_state": { "const": "eligible_incomplete" }
+        },
+        "required": ["composition_state"]
+      },
+      "then": {
+        "properties": {
+          "bounded_replay": {
+            "properties": {
+              "evaluation_state": { "const": "incomplete" },
+              "integrity_verdict": { "const": "valid" },
+              "replay_completeness": { "const": "incomplete" },
+              "bounded_verdict": { "const": "incomplete" }
+            },
+            "required": [
+              "evaluation_state",
+              "integrity_verdict",
+              "replay_completeness",
+              "bounded_verdict"
+            ]
+          },
+          "providers": {
+            "items": {
+              "if": {
+                "properties": { "applicability": { "const": "required" } },
+                "required": ["applicability"]
+              },
+              "then": {
+                "properties": { "status": { "const": "passed" } },
+                "required": ["status"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "composition_state": { "const": "rejected" } },
+        "required": ["composition_state"]
+      },
+      "then": {
+        "anyOf": [
+          {
+            "properties": {
+              "bounded_replay": {
+                "properties": { "bounded_verdict": { "const": "invalid" } },
+                "required": ["bounded_verdict"]
+              }
+            }
+          },
+          {
+            "properties": {
+              "providers": {
+                "contains": {
+                  "properties": {
+                    "applicability": { "const": "required" },
+                    "status": { "const": "failed" }
+                  },
+                  "required": ["applicability", "status"]
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": { "composition_state": { "const": "blocked" } },
+        "required": ["composition_state"]
+      },
+      "then": {
+        "properties": {
+          "bounded_replay": {
+            "properties": {
+              "bounded_verdict": { "enum": ["valid", "incomplete"] }
+            },
+            "required": ["bounded_verdict"]
+          },
+          "providers": {
+            "allOf": [
+              {
+                "contains": {
+                  "properties": {
+                    "applicability": { "const": "required" },
+                    "status": { "const": "unavailable" }
+                  },
+                  "required": ["applicability", "status"]
+                }
+              },
+              {
+                "not": {
+                  "contains": {
+                    "properties": {
+                      "applicability": { "const": "required" },
+                      "status": { "const": "failed" }
+                    },
+                    "required": ["applicability", "status"]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*(?![\\s\\S])"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048](?![\\s\\S])"
+    },
+    "nullableProviderIdentity": {
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 128 },
+        { "type": "null" }
+      ]
+    },
+    "providerCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "object_profile",
+        "applicability",
+        "status",
+        "reason",
+        "provider_name",
+        "provider_version",
+        "evidence"
+      ],
+      "properties": {
+        "provider_id": {
+          "enum": [
+            "native_surface",
+            "native_grant",
+            "native_cloudevent",
+            "native_event_ack",
+            "native_event_gap",
+            "native_receipt",
+            "native_receipt_signature"
+          ]
+        },
+        "object_profile": {
+          "enum": [
+            "agent_surface_manifest",
+            "semantic_agent_grant",
+            "asp_cloudevent",
+            "event_acknowledgement",
+            "event_gap",
+            "receipt",
+            "receipt_signature"
+          ]
+        },
+        "applicability": { "enum": ["required", "not_applicable"] },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "unavailable",
+            "not_evaluated",
+            "not_applicable"
+          ]
+        },
+        "reason": {
+          "enum": [
+            "validated",
+            "provider_rejected",
+            "provider_not_implemented",
+            "provider_error",
+            "bounded_replay_rejected",
+            "not_applicable"
+          ]
+        },
+        "provider_name": { "$ref": "#/$defs/nullableProviderIdentity" },
+        "provider_version": { "$ref": "#/$defs/nullableProviderIdentity" },
+        "evidence": {
+          "oneOf": [
+            { "$ref": "#/$defs/providerEvidence" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "applicability": { "const": "not_applicable" },
+            "status": { "const": "not_applicable" },
+            "reason": { "const": "not_applicable" },
+            "provider_name": { "type": "null" },
+            "provider_version": { "type": "null" },
+            "evidence": { "type": "null" }
+          },
+          "required": [
+            "applicability",
+            "status",
+            "reason",
+            "provider_name",
+            "provider_version",
+            "evidence"
+          ]
+        },
+        {
+          "properties": {
+            "applicability": { "const": "required" },
+            "status": { "const": "passed" },
+            "reason": { "const": "validated" },
+            "provider_name": { "type": "string", "minLength": 1 },
+            "provider_version": { "type": "string", "minLength": 1 },
+            "evidence": { "$ref": "#/$defs/providerEvidence" }
+          },
+          "required": [
+            "applicability",
+            "status",
+            "reason",
+            "provider_name",
+            "provider_version",
+            "evidence"
+          ]
+        },
+        {
+          "properties": {
+            "applicability": { "const": "required" },
+            "status": { "const": "failed" },
+            "reason": { "const": "provider_rejected" },
+            "provider_name": { "type": "string", "minLength": 1 },
+            "provider_version": { "type": "string", "minLength": 1 },
+            "evidence": { "$ref": "#/$defs/providerEvidence" }
+          },
+          "required": [
+            "applicability",
+            "status",
+            "reason",
+            "provider_name",
+            "provider_version",
+            "evidence"
+          ]
+        },
+        {
+          "properties": {
+            "applicability": { "const": "required" },
+            "status": { "const": "unavailable" },
+            "reason": {
+              "enum": ["provider_not_implemented", "provider_error"]
+            },
+            "evidence": { "type": "null" }
+          },
+          "required": ["applicability", "status", "reason"]
+        },
+        {
+          "properties": {
+            "applicability": { "const": "required" },
+            "status": { "const": "not_evaluated" },
+            "reason": { "const": "bounded_replay_rejected" },
+            "provider_name": { "type": "null" },
+            "provider_version": { "type": "null" },
+            "evidence": { "type": "null" }
+          },
+          "required": [
+            "applicability",
+            "status",
+            "reason",
+            "provider_name",
+            "provider_version",
+            "evidence"
+          ]
+        }
+      ]
+    },
+    "providerEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleset_id",
+        "ruleset_version",
+        "ruleset_sha256",
+        "subject_bundle_hash"
+      ],
+      "properties": {
+        "ruleset_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "ruleset_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "ruleset_sha256": { "$ref": "#/$defs/digest" },
+        "subject_bundle_hash": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

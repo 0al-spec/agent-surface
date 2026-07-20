@@ -10,7 +10,8 @@ use crate::rehash::rehash_bundle;
 use crate::strict_json::parse_strict;
 use crate::{
     BUNDLE_SCHEMA, CASE_REGISTRY, CASES_SCHEMA, CHECK_PROFILE, CHECK_REGISTRY, CHECKS_SCHEMA,
-    PROFILE, REPORT_SCHEMA, ReplayError, verify,
+    COMPOSITION_REPORT_SCHEMA, PROFILE, REPORT_SCHEMA, ReplayError, compose,
+    validate_composition_report, verify,
 };
 
 fn read(path: &Path) -> Result<String, ReplayError> {
@@ -188,6 +189,10 @@ pub(crate) fn run(repository_root: &Path) -> Result<(), ReplayError> {
     let artifacts = [
         (crate_root.join("schema/bundle.schema.json"), BUNDLE_SCHEMA),
         (crate_root.join("schema/report.schema.json"), REPORT_SCHEMA),
+        (
+            crate_root.join("schema/composition-report.schema.json"),
+            COMPOSITION_REPORT_SCHEMA,
+        ),
         (crate_root.join("schema/checks.schema.json"), CHECKS_SCHEMA),
         (crate_root.join("schema/cases.schema.json"), CASES_SCHEMA),
         (crate_root.join("checks/v1/checks.json"), CHECK_REGISTRY),
@@ -205,6 +210,8 @@ pub(crate) fn run(repository_root: &Path) -> Result<(), ReplayError> {
         .map_err(|error| ReplayError::SelfCheck(error.to_string()))?;
     let report_schema: Value = serde_json::from_str(REPORT_SCHEMA)
         .map_err(|error| ReplayError::SelfCheck(error.to_string()))?;
+    let composition_report_schema: Value = serde_json::from_str(COMPOSITION_REPORT_SCHEMA)
+        .map_err(|error| ReplayError::SelfCheck(error.to_string()))?;
     let checks_schema: Value = serde_json::from_str(CHECKS_SCHEMA)
         .map_err(|error| ReplayError::SelfCheck(error.to_string()))?;
     let cases_schema: Value = serde_json::from_str(CASES_SCHEMA)
@@ -212,6 +219,7 @@ pub(crate) fn run(repository_root: &Path) -> Result<(), ReplayError> {
     for (label, schema) in [
         ("bundle", &bundle_schema),
         ("report", &report_schema),
+        ("composition report", &composition_report_schema),
         ("checks", &checks_schema),
         ("cases", &cases_schema),
     ] {
@@ -245,6 +253,31 @@ pub(crate) fn run(repository_root: &Path) -> Result<(), ReplayError> {
             "case registry metadata is not canonical".to_owned(),
         ));
     }
+    let composition_source = "tests/fixtures/complete-session.json";
+    let composition_path = crate_root.join(composition_source);
+    let composition_bytes = fs::read(&composition_path).map_err(|source| ReplayError::Io {
+        path: composition_path.display().to_string(),
+        source,
+    })?;
+    let composition_report = compose(composition_source, &composition_bytes)
+        .map_err(|error| ReplayError::SelfCheck(format!("composition fixture: {error}")))?;
+    if composition_report.composition_state != "blocked"
+        || composition_report.complete_claim_eligible
+    {
+        return Err(ReplayError::SelfCheck(
+            "built-in composition must remain blocked and ineligible for a complete claim"
+                .to_owned(),
+        ));
+    }
+    let composition_value = serde_json::to_value(&composition_report)
+        .map_err(|error| ReplayError::SelfCheck(error.to_string()))?;
+    validate_instance(
+        &composition_report_schema,
+        &composition_value,
+        "composition report",
+    )?;
+    validate_composition_report(&composition_bytes, &composition_report)
+        .map_err(|error| ReplayError::SelfCheck(format!("composition contract: {error}")))?;
     let mut ids = HashSet::new();
     let mut executable_check_coverage = HashSet::new();
     for case in cases.cases {
