@@ -14,7 +14,7 @@ REPLAY_FUZZ_TIMEOUT_CMD ?= timeout
 REPLAY_FUZZ_PARSE_MAX_LEN ?= 262144
 REPLAY_FUZZ_STRUCTURED_MAX_LEN ?= 4096
 
-.PHONY: conformance-validate conformance-test conformance-check mock-validate mock-test mock-check rust-workspace-fmt rust-workspace-clippy rust-workspace-test rust-workspace-check rust-tooling-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check api-import-self-check api-import-check replay-self-check replay-check replay-fuzz-smoke review-build review-data-check review-test review-js-test review-check
+.PHONY: conformance-validate conformance-test conformance-check mock-validate mock-test mock-check rust-workspace-fmt rust-workspace-clippy rust-workspace-test rust-workspace-check rust-tooling-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check api-import-self-check api-import-check replay-self-check replay-check replay-fuzz-smoke rfc-toc rfc-toc-check review-build review-data-check review-test review-js-test review-check
 
 conformance-validate:
 	$(PYTHON) -B conformance/check.py validate
@@ -66,6 +66,12 @@ replay-self-check:
 
 replay-check: rust-workspace-check replay-self-check
 
+rfc-toc:
+	$(PYTHON) -B review/rfc_toc.py
+
+rfc-toc-check:
+	$(PYTHON) -B review/rfc_toc.py --check
+
 replay-fuzz-smoke:
 	@set -eu; \
 	for target in $(REPLAY_FUZZ_TARGETS); do \
@@ -88,7 +94,7 @@ replay-fuzz-smoke:
 				-print_final_stats=1); \
 	done
 
-review-build:
+review-build: rfc-toc
 	$(PYTHON) -B review/build_review.py
 
 review-data-check:
@@ -100,6 +106,6 @@ review-test:
 review-js-test:
 	node --test review/dashboard-state.test.mjs
 
-review-check: conformance-check mock-check rust-tooling-check review-data-check review-test review-js-test
+review-check: conformance-check mock-check rust-tooling-check rfc-toc-check review-data-check review-test review-js-test
 	$(PYTHON) -B review/build_review.py --check
 	node review/check_review.mjs

@@ -38,6 +38,59 @@ https://github.com/0al-spec/agent-surface
 This is not an IETF document and is not subject to BCP 78 or the IETF Trust.
 However, it follows similar principles of openness and community participation.
 
+<!-- BEGIN GENERATED RFC TOC -->
+<details>
+<summary>Table of Contents</summary>
+
+- [Authors' Contact Information](#authors-contact-information)
+- [Status of this Memo](#status-of-this-memo)
+- [Copyright Notice and Licensing](#copyright-notice-and-licensing)
+- [Abstract](#abstract)
+- [Normative and Informative Sections](#normative-and-informative-sections)
+- [Motivation](#motivation)
+- [Goals](#goals)
+- [Non-Goals](#non-goals)
+- [Conventions](#conventions)
+- [Terminology](#terminology)
+- [Design Principles](#design-principles)
+- [Relationship to Existing Protocols](#relationship-to-existing-protocols)
+- [Conceptual Architecture](#conceptual-architecture)
+- [Protocol Layers](#protocol-layers)
+- [Canonical Integrity and Provenance](#canonical-integrity-and-provenance)
+- [Agent Surface Manifest](#agent-surface-manifest-1)
+- [Action Execution Model](#action-execution-model)
+- [Risk Taxonomy](#risk-taxonomy)
+- [Effect Model](#effect-model)
+- [Approval Semantics](#approval-semantics)
+- [Idempotency](#idempotency)
+- [Minimal Agent Passport Grant-Issuance Profile](#minimal-agent-passport-grant-issuance-profile)
+- [Runtime Identity Profile](#runtime-identity-profile)
+- [Remote Processing Privacy Profile](#remote-processing-privacy-profile)
+- [Agent Training Use Policy Profile](#agent-training-use-policy-profile)
+- [Runtime Attestation Optional Profile](#runtime-attestation-optional-profile)
+- [Agent Grant](#agent-grant-1)
+- [Capability Matching](#capability-matching)
+- [Observability Context](#observability-context)
+- [Sessions and Actions](#sessions-and-actions)
+- [Receipts](#receipts)
+- [Portable Replay Bundle Profile](#portable-replay-bundle-profile)
+- [Revocation Semantics](#revocation-semantics)
+- [Error Model](#error-model)
+- [Versioning and Compatibility](#versioning-and-compatibility)
+- [Security Considerations](#security-considerations)
+- [Privacy Considerations](#privacy-considerations)
+- [Conformance](#conformance)
+- [Application MVP Mapping](#application-mvp-mapping)
+- [Example End-to-End Flow](#example-end-to-end-flow)
+- [Open Questions](#open-questions)
+- [References](#references)
+- [Appendix A: Why This Is Not Just an API Token](#appendix-a-why-this-is-not-just-an-api-token)
+- [Appendix B: Why This Is Not Just Computer Use](#appendix-b-why-this-is-not-just-computer-use)
+- [Appendix C: Product Positioning](#appendix-c-product-positioning)
+
+</details>
+<!-- END GENERATED RFC TOC -->
+
 ## Abstract
 
 This proposal defines **Agent Surface Protocol**, a user-mediated delegation
