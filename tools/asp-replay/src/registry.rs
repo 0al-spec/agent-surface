@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use serde::Deserialize;
 
 use crate::{CHECK_REGISTRY, ReplayError};
@@ -31,7 +33,13 @@ pub(crate) struct CheckDefinition {
     pub(crate) title: String,
 }
 
-pub(crate) fn registry() -> Result<CheckRegistry, ReplayError> {
-    serde_json::from_str(CHECK_REGISTRY)
-        .map_err(|error| ReplayError::SelfCheck(format!("check registry: {error}")))
+static CHECK_REGISTRY_CACHE: OnceLock<Result<CheckRegistry, String>> = OnceLock::new();
+
+pub(crate) fn registry() -> Result<&'static CheckRegistry, ReplayError> {
+    CHECK_REGISTRY_CACHE
+        .get_or_init(|| {
+            serde_json::from_str(CHECK_REGISTRY).map_err(|error| format!("check registry: {error}"))
+        })
+        .as_ref()
+        .map_err(|error| ReplayError::SelfCheck(error.clone()))
 }

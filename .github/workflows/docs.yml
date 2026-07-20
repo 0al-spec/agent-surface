@@ -61,10 +61,10 @@ jobs:
         shell: bash
         run: make mock-check
 
-      - name: Check ASP Manifest Linter
-        timeout-minutes: 8
+      - name: Check stable Rust tooling
+        timeout-minutes: 12
         shell: bash
-        run: make manifest-lint-check
+        run: make rust-tooling-check
 
       - name: Check RFC review data
         timeout-minutes: 5

@@ -7,11 +7,16 @@ use thiserror::Error;
 
 mod hash;
 mod registry;
+mod rehash;
 mod selfcheck;
 mod specifications;
 mod strict_json;
 mod validation;
 mod value;
+
+#[cfg(fuzzing)]
+#[doc(hidden)]
+pub mod fuzz_support;
 
 pub const MAX_INPUT_BYTES: usize = 16 * 1024 * 1024;
 pub const MAX_RECORDS: usize = 4096;
