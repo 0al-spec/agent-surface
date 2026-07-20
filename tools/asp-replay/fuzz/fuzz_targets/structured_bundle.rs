@@ -394,9 +394,13 @@ fuzz_target!(|input: StructuredInput| {
 
     let composition = asp_replay::fuzz_support::compose_rehashed(&bundle)
         .expect("rehashed bundle composition must remain evaluable");
+    let built_in_required_failed = composition
+        .providers
+        .iter()
+        .any(|provider| provider.applicability == "required" && provider.status == "failed");
     assert_eq!(
         composition.composition_state,
-        if report.verdict == "invalid" {
+        if report.verdict == "invalid" || built_in_required_failed {
             "rejected"
         } else {
             "blocked"

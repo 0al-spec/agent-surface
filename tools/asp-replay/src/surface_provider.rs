@@ -104,7 +104,7 @@ fn endpoints_are_https(surface: &Value) -> bool {
     }) {
         return false;
     }
-    ["auth", "agent_api"].iter().all(|section| {
+    ["auth", "agent_api", "revocation"].iter().all(|section| {
         surface
             .get(section)
             .and_then(Value::as_object)
@@ -149,6 +149,8 @@ fn proposal_only_is_valid(surface: &Value) -> bool {
             && (action.get("idempotency").and_then(Value::as_str) != Some("required")
                 || action
                     .get("idempotency_normalization")
+                    .and_then(Value::as_object)
+                    .and_then(|normalization| normalization.get("profile"))
                     .and_then(Value::as_str)
                     != Some("asp-json-normalization-v1")
                 || action.get("input_hash_profile").and_then(Value::as_str)
@@ -237,6 +239,57 @@ mod tests {
     fn rejects_proposal_only_surface_without_a_proposal_action() {
         let mut bundle = complete_bundle();
         bundle["context"]["surface"]["surface_mode"] = Value::String("proposal_only".to_owned());
+        rehash(&mut bundle);
+        assert_eq!(evaluate(&bundle), SurfaceVerdict::Failed);
+    }
+
+    #[test]
+    fn accepts_persisted_proposal_with_object_normalization_profile() {
+        let mut bundle = complete_bundle();
+        let mut action = serde_json::json!({
+            "id": "task.propose",
+            "scope": "tasks.write",
+            "risk": "propose",
+            "side_effect": false,
+            "execution": {
+                "mode": "propose",
+                "persisted": true,
+                "operation_id": "task.propose"
+            },
+            "input_schema": "https://example.com/schemas/task-propose-input.json",
+            "input_schema_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "output_schema": "https://example.com/schemas/task-propose-output.json",
+            "idempotency": "required",
+            "idempotency_normalization": {
+                "profile": "asp-json-normalization-v1"
+            },
+            "input_hash_profile": "asp-jcs-sha-256",
+            "risk_explanation": {
+                "default_language": "en",
+                "localizations": [{
+                    "language": "en",
+                    "summary": "Produces a persisted proposal without changing domain state.",
+                    "effect_summaries": []
+                }]
+            }
+        });
+        action
+            .as_object_mut()
+            .expect("action object")
+            .insert("receipt".to_owned(), Value::String("required".to_owned()));
+        bundle["context"]["surface"]["surface_mode"] = Value::String("proposal_only".to_owned());
+        bundle["context"]["surface"]["scopes"] = serde_json::json!([{"id": "tasks.write"}]);
+        bundle["context"]["surface"]["actions"] = Value::Array(vec![action]);
+        rehash(&mut bundle);
+        assert_eq!(evaluate(&bundle), SurfaceVerdict::Passed);
+    }
+
+    #[test]
+    fn rejects_non_https_revocation_endpoint_even_when_rehashed() {
+        let mut bundle = complete_bundle();
+        bundle["context"]["surface"]["revocation"] = serde_json::json!({
+            "grant_revocation_url": "http://code.example.com/grants/revoke"
+        });
         rehash(&mut bundle);
         assert_eq!(evaluate(&bundle), SurfaceVerdict::Failed);
     }
