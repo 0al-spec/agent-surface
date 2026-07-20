@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/api-import/v1",
+  "linter_ruleset": {
+    "id": "https://github.com/0al-spec/agent-surface/tools/asp-manifest-linter/rules/v1",
+    "version": "1.1.0"
+  },
+  "cases": [
+    {
+      "id": "positive-openapi",
+      "source": "tests/fixtures/positive-openapi.json",
+      "expect": "success",
+      "golden": "tests/golden/positive-openapi.json"
+    },
+    {
+      "id": "positive-asyncapi",
+      "source": "tests/fixtures/positive-asyncapi.json",
+      "expect": "success",
+      "golden": "tests/golden/positive-asyncapi.json"
+    },
+    {
+      "id": "missing-root",
+      "source": "tests/fixtures/invalid-missing-root.json",
+      "expect": "failure",
+      "error_contains": "root /x-agent-surface annotation is required"
+    },
+    {
+      "id": "unsupported-version",
+      "source": "tests/fixtures/invalid-version.json",
+      "expect": "failure",
+      "error_contains": "unsupported OpenAPI version"
+    },
+    {
+      "id": "unsupported-placement",
+      "source": "tests/fixtures/invalid-placement.json",
+      "expect": "failure",
+      "error_contains": "unsupported x-agent-surface placement"
+    },
+    {
+      "id": "annotated-ref",
+      "source": "tests/fixtures/invalid-ref.json",
+      "expect": "failure",
+      "error_contains": "annotated $ref object"
+    },
+    {
+      "id": "reserved-base-field",
+      "source": "tests/fixtures/invalid-reserved-base.json",
+      "expect": "failure",
+      "error_contains": "manifest_base must omit output-owned member resources"
+    },
+    {
+      "id": "duplicate-member",
+      "source": "tests/fixtures/invalid-duplicate.json",
+      "expect": "failure",
+      "error_contains": "duplicate action id"
+    },
+    {
+      "id": "incomplete-member",
+      "source": "tests/fixtures/invalid-incomplete.json",
+      "expect": "failure",
+      "error_contains": "declaration.id must be a non-empty string"
+    },
+    {
+      "id": "unknown-annotation-field",
+      "source": "tests/fixtures/invalid-unknown-field.json",
+      "expect": "failure",
+      "error_contains": "unknown root annotation member"
+    },
+    {
+      "id": "unknown-kind",
+      "source": "tests/fixtures/invalid-kind.json",
+      "expect": "failure",
+      "error_contains": "unknown member kind"
+    },
+    {
+      "id": "empty-member-set",
+      "source": "tests/fixtures/invalid-empty.json",
+      "expect": "failure",
+      "error_contains": "members must be non-empty"
+    },
+    {
+      "id": "dual-discriminator",
+      "source": "tests/fixtures/invalid-dual-discriminator.json",
+      "expect": "failure",
+      "error_contains": "exactly one of openapi or asyncapi"
+    },
+    {
+      "id": "asyncapi-receive",
+      "source": "tests/fixtures/invalid-asyncapi-receive.json",
+      "expect": "failure",
+      "error_contains": "annotated AsyncAPI operation action must be send"
+    },
+    {
+      "id": "final-lint-diagnostic",
+      "source": "tests/fixtures/invalid-final-lint.json",
+      "expect": "failure",
+      "error_contains": "ASP-LINT-SCOPE-001"
+    },
+    {
+      "id": "duplicate-json-member",
+      "source": "tests/fixtures/invalid-json-duplicate.json",
+      "expect": "failure",
+      "error_contains": "duplicate JSON object member"
+    },
+    {
+      "id": "negative-zero",
+      "source": "tests/fixtures/invalid-negative-zero.json",
+      "expect": "failure",
+      "error_contains": "JSON negative zero is forbidden"
+    },
+    {
+      "id": "unsafe-integer",
+      "source": "tests/fixtures/invalid-unsafe-integer.json",
+      "expect": "failure",
+      "error_contains": "integer is outside the I-JSON safe range"
+    },
+    {
+      "id": "unsafe-integral-float",
+      "source": "tests/fixtures/invalid-unsafe-integral-float.json",
+      "expect": "failure",
+      "error_contains": "integer is outside the I-JSON safe range"
+    },
+    {
+      "id": "unicode-noncharacter-value",
+      "source": "tests/fixtures/invalid-noncharacter-value.json",
+      "expect": "failure",
+      "error_contains": "Unicode noncharacter"
+    },
+    {
+      "id": "unicode-noncharacter-key",
+      "source": "tests/fixtures/invalid-noncharacter-key.json",
+      "expect": "failure",
+      "error_contains": "Unicode noncharacter"
+    }
+  ]
+}

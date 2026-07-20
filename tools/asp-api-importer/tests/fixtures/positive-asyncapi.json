@@ -1,0 +1,69 @@
+{
+  "asyncapi": "3.0.0",
+  "info": {"title": "Curated message API", "version": "1"},
+  "x-agent-surface": {
+    "profile": "https://github.com/0al-spec/agent-surface/profiles/api-import/v1",
+    "manifest_base": {
+      "protocol": "agent-surface/0.1",
+      "app_id": "com.example.messages",
+      "issuer": "https://messages.example",
+      "surface_mode": "standard",
+      "surface_version": "2026-07-20",
+      "surface_url": "https://messages.example/.well-known/agent-surface.json",
+      "auth": {"type": "oauth2"},
+      "agent_api": {"action_url": "https://messages.example/agent-actions"},
+      "scopes": [{"id": "messages.read"}],
+      "data_classes": [],
+      "audit": {},
+      "revocation": {}
+    },
+    "members": [
+      {
+        "kind": "action",
+        "declaration": {
+          "id": "message.list",
+          "scope": "messages.read",
+          "risk": "read",
+          "side_effect": false,
+          "execution": {"mode": "read", "operation_id": "message.list"},
+          "input_schema": "https://messages.example/schemas/message-list-input.json",
+          "output_schema": "https://messages.example/schemas/message-list-output.json",
+          "effects": []
+        }
+      },
+      {
+        "kind": "resource",
+        "declaration": {
+          "id": "message",
+          "read_scope": "messages.read",
+          "schema": "https://messages.example/schemas/message.json"
+        }
+      }
+    ]
+  },
+  "channels": {
+    "messages": {"address": "messages"}
+  },
+  "operations": {
+    "x-publish": {
+      "action": "send",
+      "channel": {"$ref": "#/channels/messages"},
+      "x-agent-surface": {
+        "members": [
+          {
+            "kind": "event",
+            "declaration": {
+              "id": "message.sent",
+              "scope": "messages.read",
+              "schema": "https://messages.example/schemas/message-sent.json"
+            }
+          }
+        ]
+      }
+    },
+    "deleteEverything": {
+      "action": "send",
+      "channel": {"$ref": "#/channels/messages"}
+    }
+  }
+}

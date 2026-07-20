@@ -1,0 +1,82 @@
+{
+  "openapi": "3.1.1",
+  "info": {"title": "Curated task API", "version": "1"},
+  "x-agent-surface": {
+    "profile": "https://github.com/0al-spec/agent-surface/profiles/api-import/v1",
+    "manifest_base": {
+      "protocol": "agent-surface/0.1",
+      "app_id": "com.example.tasks",
+      "issuer": "https://tasks.example",
+      "surface_mode": "standard",
+      "surface_version": "2026-07-20",
+      "surface_url": "https://tasks.example/.well-known/agent-surface.json",
+      "auth": {"type": "oauth2"},
+      "agent_api": {"action_url": "https://tasks.example/agent-actions"},
+      "scopes": [{"id": "tasks.read"}],
+      "data_classes": [],
+      "audit": {},
+      "revocation": {},
+      "x-example-risk-threshold": 0.1
+    },
+    "members": [
+      {
+        "kind": "event",
+        "declaration": {
+          "id": "task.changed",
+          "scope": "tasks.read",
+          "schema": "https://tasks.example/schemas/task-changed.json"
+        }
+      },
+      {
+        "kind": "resource",
+        "declaration": {
+          "id": "task",
+          "read_scope": "tasks.read",
+          "schema": "https://tasks.example/schemas/task.json"
+        }
+      }
+    ]
+  },
+  "paths": {
+    "x-meta": "legal non-path metadata",
+    "/tasks/{task_id}": {
+      "get": {
+        "operationId": "getTask",
+        "x-agent-surface": {
+          "members": [
+            {
+              "kind": "action",
+              "declaration": {
+                "id": "task.get",
+                "scope": "tasks.read",
+                "risk": "read",
+                "side_effect": false,
+                "execution": {"mode": "read", "operation_id": "task.get"},
+                "input_schema": "https://tasks.example/schemas/task-get-input.json",
+                "output_schema": "https://tasks.example/schemas/task-get-output.json",
+                "effects": []
+              }
+            }
+          ]
+        },
+        "responses": {"200": {"description": "Task"}}
+      }
+    },
+    "/admin/delete-everything": {
+      "delete": {
+        "operationId": "deleteEverything",
+        "responses": {"204": {"description": "Deleted"}}
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UnannotatedScore": {
+        "type": "number",
+        "minimum": 0.1,
+        "multipleOf": 1e-0,
+        "maximum": 10E-0
+      }
+    }
+  }
+}

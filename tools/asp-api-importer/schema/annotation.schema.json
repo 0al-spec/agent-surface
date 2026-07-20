@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/tools/asp-api-importer/api-import/v1",
+  "title": "ASP API import annotation profile",
+  "type": "object",
+  "required": ["profile", "manifest_base"],
+  "properties": {
+    "profile": {
+      "const": "https://github.com/0al-spec/agent-surface/profiles/api-import/v1"
+    },
+    "manifest_base": {
+      "type": "object",
+      "required": [
+        "protocol",
+        "app_id",
+        "issuer",
+        "surface_mode",
+        "surface_version",
+        "surface_url",
+        "auth",
+        "agent_api",
+        "scopes",
+        "data_classes",
+        "audit",
+        "revocation"
+      ],
+      "not": {
+        "anyOf": [
+          {"required": ["surface_hash"]},
+          {"required": ["resources"]},
+          {"required": ["actions"]},
+          {"required": ["events"]}
+        ]
+      }
+    },
+    "members": {
+      "$ref": "#/$defs/members"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "members": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/member"
+      }
+    },
+    "member": {
+      "type": "object",
+      "required": ["kind", "declaration"],
+      "properties": {
+        "kind": {
+          "enum": ["resource", "action", "event"]
+        },
+        "declaration": {
+          "type": "object",
+          "required": ["id"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "local_annotation": {
+      "type": "object",
+      "required": ["members"],
+      "properties": {
+        "members": {
+          "$ref": "#/$defs/members"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

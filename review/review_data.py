@@ -61,6 +61,15 @@ LINTER_IMPLEMENTATIONS = {
     Path("tools/asp-manifest-linter/src/lib.rs"),
     Path("tools/asp-manifest-linter/src/main.rs"),
 }
+API_IMPORTER_SCHEMAS = {
+    Path("tools/asp-api-importer/schema/annotation.schema.json"),
+    Path("tools/asp-api-importer/schema/cases.schema.json"),
+}
+API_IMPORTER_REGISTRY = Path("tools/asp-api-importer/cases/v1/cases.json")
+API_IMPORTER_IMPLEMENTATIONS = {
+    Path("tools/asp-api-importer/src/lib.rs"),
+    Path("tools/asp-api-importer/src/main.rs"),
+}
 MOCK_SCHEMA = Path("mocks/v1/manifest.schema.json")
 MOCK_REGISTRY = Path("mocks/v1/manifest.json")
 MOCK_IMPLEMENTATIONS = {
@@ -95,6 +104,29 @@ RISK_EXPLANATION_IMPLEMENTATIONS = {
     Path("mocks/mock_runtime.py"),
 }
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
+    17: {
+        "rfc_anchor": {
+            "curated-surface-boundary",
+            "openapi-and-asyncapi-import-profile",
+            "canonical-object-hash-profile",
+            "required-top-level-fields",
+            "surface-hash",
+            "resources",
+            "actions",
+            "events",
+            "versioning-and-compatibility",
+            "reference-api-importer",
+            "surface-publisher-profile",
+            "application-mvp-mapping",
+        },
+        "schema": {
+            path.as_posix() for path in API_IMPORTER_SCHEMAS
+        },
+        "registry": {API_IMPORTER_REGISTRY.as_posix()},
+        "implementation": {
+            path.as_posix() for path in API_IMPORTER_IMPLEMENTATIONS
+        },
+    },
     27: {
         "rfc_anchor": {
             "asp-over-ahp-binding-profile",
@@ -299,7 +331,7 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         },
     },
 }
-EXACT_MACHINE_VALIDATED_REVIEW_IDS = {27, 29, 47, 48, 53, 57, 58, 61, 62}
+EXACT_MACHINE_VALIDATED_REVIEW_IDS = {17, 27, 29, 47, 48, 53, 57, 58, 61, 62}
 MATURITY_ORDER = (
     "proposal",
     "specified",
@@ -616,10 +648,14 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
         schema_path.parent == CONFORMANCE_V1_DIR
         and schema_path.name.endswith(".schema.json")
     )
+    is_bound_api_importer_schema = (
+        review_id == 17 and relative_path in API_IMPORTER_SCHEMAS
+    )
     is_bound_linter_schema = review_id == 57 and relative_path in LINTER_SCHEMAS
     is_bound_mock_schema = review_id == 58 and relative_path == MOCK_SCHEMA
     if (
         not is_conformance_schema
+        and not is_bound_api_importer_schema
         and not is_bound_linter_schema
         and not is_bound_mock_schema
     ):
@@ -648,6 +684,9 @@ def _validate_schema_document(schema_path: Path) -> None:
 def _validate_registry_evidence(review_id: int, ref: str) -> None:
     registry_path = _resolve_repository_evidence_file(review_id, "registry", ref)
     relative_path = registry_path.relative_to(REPO_ROOT)
+    if review_id == 17 and relative_path == API_IMPORTER_REGISTRY:
+        _validate_api_importer_bundle_evidence(review_id, "registry", ref)
+        return
     if review_id == 57 and relative_path == LINTER_REGISTRY:
         _validate_linter_bundle_evidence(review_id, "registry", ref)
         return
@@ -696,6 +735,9 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         review_id, "implementation", ref
     )
     relative_path = implementation_path.relative_to(REPO_ROOT)
+    if review_id == 17 and relative_path in API_IMPORTER_IMPLEMENTATIONS:
+        _validate_api_importer_bundle_evidence(review_id, "implementation", ref)
+        return
     if review_id == 57 and relative_path in LINTER_IMPLEMENTATIONS:
         _validate_linter_bundle_evidence(review_id, "implementation", ref)
         return
@@ -724,6 +766,50 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         f"Review #{review_id} implementation evidence must reference an exact "
         f"bound tooling entry point: {ref!r}"
     )
+
+
+def _validate_api_importer_bundle_evidence(
+    review_id: int, kind: str, ref: str
+) -> None:
+    try:
+        _run_api_importer_self_check()
+    except Exception as error:
+        raise ValueError(
+            f"Review #{review_id} {kind} evidence failed canonical Rust API "
+            f"importer self-check: {ref!r}: {error}"
+        ) from error
+
+
+@lru_cache(maxsize=1)
+def _run_api_importer_self_check() -> None:
+    cargo_command = _cargo_command()
+    environment = dict(os.environ)
+    environment["CARGO_TERM_COLOR"] = "never"
+    process = subprocess.run(
+        [
+            *cargo_command,
+            "run",
+            "--quiet",
+            "--locked",
+            "-p",
+            "asp-api-importer",
+            "--",
+            "self-check",
+            "--root",
+            str(REPO_ROOT),
+        ],
+        cwd=REPO_ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        check=False,
+    )
+    if process.returncode != 0:
+        details = process.stderr.strip() or process.stdout.strip() or "unknown error"
+        raise ValueError(
+            f"cargo importer self-check exited {process.returncode}: {details}"
+        )
 
 
 def _validate_linter_bundle_evidence(review_id: int, kind: str, ref: str) -> None:

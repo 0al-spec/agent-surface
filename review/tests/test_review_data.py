@@ -200,6 +200,61 @@ class ReviewDataValidationTests(unittest.TestCase):
                 ]
                 self.assert_invalid(payload, "missing bound evidence")
 
+    def test_api_importer_machine_validation_requires_exact_evidence(self) -> None:
+        for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.machine_validated_payload()
+                review = next(item for item in payload["reviews"] if item["id"] == 17)
+                removed = False
+                retained = []
+                for item in review["evidence"]:
+                    if item["kind"] == missing_kind and not removed:
+                        removed = True
+                        continue
+                    retained.append(item)
+                review["evidence"] = retained
+                self.assertTrue(removed)
+                self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    def test_api_importer_machine_validation_rejects_extra_evidence(self) -> None:
+        payload = self.machine_validated_payload()
+        review = next(item for item in payload["reviews"] if item["id"] == 17)
+        review["anchors"].append(
+            {
+                "heading": "Conceptual Architecture",
+                "anchorId": "conceptual-architecture",
+            }
+        )
+        review["evidence"].append(
+            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+        )
+        self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    def test_other_review_cannot_borrow_api_importer_evidence(self) -> None:
+        cases = (
+            (
+                "schema",
+                "tools/asp-api-importer/schema/annotation.schema.json",
+                "exact bound tooling schema",
+            ),
+            (
+                "registry",
+                "tools/asp-api-importer/cases/v1/cases.json",
+                "conformance/v1/suite.json",
+            ),
+            (
+                "implementation",
+                "tools/asp-api-importer/src/main.rs",
+                "exact bound tooling entry point",
+            ),
+        )
+        for kind, ref, message in cases:
+            with self.subTest(kind=kind):
+                payload = self.machine_validated_payload()
+                review = payload["reviews"][0]
+                review["evidence"].append({"kind": kind, "ref": ref})
+                self.assert_invalid(payload, message)
+
     def test_linter_machine_validation_requires_the_exact_bound_evidence(self) -> None:
         for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
             with self.subTest(missing_kind=missing_kind):
@@ -515,16 +570,16 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 62)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 434)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 451)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 50, "proposal": 2, "machine_validated": 10}),
+            Counter({"specified": 50, "proposal": 1, "machine_validated": 11}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 60, "missing": 2}),
+            Counter({"present": 61, "missing": 1}),
         )
-        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 139)
+        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 140)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
         self.assertEqual(
             [
@@ -589,7 +644,39 @@ class ReviewDataValidationTests(unittest.TestCase):
                 "application-mvp-mapping",
             ],
         )
+        self.assertEqual(reviews_by_id[17]["status"], "present")
+        self.assertEqual(reviews_by_id[17]["maturity"], "machine_validated")
+        self.assertEqual(reviews_by_id[17]["depends_on"], [16, 57])
         self.assertEqual(reviews_by_id[17]["readiness"], "ready")
+        self.assertEqual(len(reviews_by_id[17]["evidence"]), 17)
+        self.assertEqual(
+            Counter(item["kind"] for item in reviews_by_id[17]["evidence"]),
+            Counter(
+                {
+                    "rfc_anchor": 12,
+                    "schema": 2,
+                    "registry": 1,
+                    "implementation": 2,
+                }
+            ),
+        )
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[17]["anchors"]],
+            [
+                "curated-surface-boundary",
+                "openapi-and-asyncapi-import-profile",
+                "canonical-object-hash-profile",
+                "required-top-level-fields",
+                "surface-hash",
+                "resources",
+                "actions",
+                "events",
+                "versioning-and-compatibility",
+                "reference-api-importer",
+                "surface-publisher-profile",
+                "application-mvp-mapping",
+            ],
+        )
         self.assertEqual(reviews_by_id[26]["readiness"], "ready")
         self.assertEqual(reviews_by_id[27]["status"], "present")
         self.assertEqual(reviews_by_id[27]["maturity"], "machine_validated")

@@ -854,13 +854,27 @@ fn lint_scopes(manifest: &Value, context: &mut Context<'_>) -> Result<(), LintEr
 
 pub fn lint_manifest(source: &str, document: &str) -> Result<LintReport, LintError> {
     let manifest = parse_strict_json(document)?;
+    lint_manifest_value(source, &manifest)
+}
+
+/// Run the current lint rules against an already parsed exact JSON value.
+///
+/// This entry point does not relax or replace the strict parser used by the
+/// CLI. It lets an upstream duplicate-safe I-JSON parser preserve finite
+/// binary64 extension values that no current lint rule consumes.
+pub fn lint_manifest_value(source: &str, manifest: &Value) -> Result<LintReport, LintError> {
+    if !manifest.is_object() {
+        return Err(LintError::Structure(
+            "manifest root must be a JSON object".to_owned(),
+        ));
+    }
     let registry = registry()?;
     let mut context = Context::new(&registry);
-    lint_schema_declarations(&manifest, &mut context)?;
-    lint_risk_labels(&manifest, &mut context)?;
-    lint_risk_explanations(&manifest, &mut context)?;
-    lint_idempotency(&manifest, &mut context)?;
-    lint_scopes(&manifest, &mut context)?;
+    lint_schema_declarations(manifest, &mut context)?;
+    lint_risk_labels(manifest, &mut context)?;
+    lint_risk_explanations(manifest, &mut context)?;
+    lint_idempotency(manifest, &mut context)?;
+    lint_scopes(manifest, &mut context)?;
     let errors = context
         .diagnostics
         .iter()
@@ -1024,6 +1038,17 @@ mod tests {
                 warnings: 0
             }
         );
+    }
+
+    #[test]
+    fn value_api_preserves_finite_extension_numbers() {
+        let mut manifest: Value = serde_json::from_str(fixture("valid")).unwrap();
+        manifest["x-example-threshold"] = Value::Number(serde_json::Number::from_f64(0.1).unwrap());
+        let before = manifest.clone();
+        let report = lint_manifest_value("value-api.json", &manifest).unwrap();
+        assert!(report.diagnostics.is_empty());
+        assert_eq!(manifest, before);
+        assert_eq!(manifest["x-example-threshold"].as_f64(), Some(0.1));
     }
 
     #[test]

@@ -1,3 +1,3 @@
 [workspace]
-members = ["tools/asp-manifest-linter"]
+members = ["tools/asp-api-importer", "tools/asp-manifest-linter"]
 resolver = "3"
