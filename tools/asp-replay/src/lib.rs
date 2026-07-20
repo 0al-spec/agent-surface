@@ -1240,6 +1240,41 @@ fn check_event(
         );
         return Ok(());
     }
+    let mut occurrence_shape_valid = true;
+    for name in ["source", "id", "aspeventhash"] {
+        if string(event, name).is_none() {
+            validator.error(
+                "ASP-REPLAY-EVENT-001",
+                ordinal,
+                format!("{path}/{name}"),
+                "event occurrence identity member must be a string",
+            );
+            occurrence_shape_valid = false;
+        }
+    }
+    let mut delivery_shape_valid = true;
+    for name in ["aspdeliveryid", "aspsubid", "aspstream", "aspcursor"] {
+        if string(event, name).is_none() {
+            validator.error(
+                "ASP-REPLAY-DELIVERY-001",
+                ordinal,
+                format!("{path}/{name}"),
+                "event delivery identity member must be a string",
+            );
+            delivery_shape_valid = false;
+        }
+    }
+    for name in ["aspattempt", "aspsequence"] {
+        if uint(event, name).is_none() {
+            validator.error(
+                "ASP-REPLAY-DELIVERY-001",
+                ordinal,
+                format!("{path}/{name}"),
+                "event attempt and stream sequence must be unsigned integers",
+            );
+            delivery_shape_valid = false;
+        }
+    }
     if string(event, "specversion") != Some("1.0")
         || string(event, "datacontenttype") != Some("application/json")
         || member(event, "data_base64").is_some()
@@ -1367,15 +1402,12 @@ fn check_event(
         }
     }
 
-    let Some(source) = string(event, "source") else {
+    if !occurrence_shape_valid {
         return Ok(());
-    };
-    let Some(event_id) = string(event, "id") else {
-        return Ok(());
-    };
-    let Some(event_hash) = string(event, "aspeventhash") else {
-        return Ok(());
-    };
+    }
+    let source = string(event, "source").expect("validated event source");
+    let event_id = string(event, "id").expect("validated event id");
+    let event_hash = string(event, "aspeventhash").expect("validated event occurrence hash");
     let occurrence = (source.to_owned(), event_id.to_owned());
     if let Some(previous) = validator.occurrence_hashes.get(&occurrence) {
         if previous != event_hash {
@@ -1392,24 +1424,15 @@ fn check_event(
             .insert(occurrence, event_hash.to_owned());
     }
 
-    let Some(delivery_id) = string(event, "aspdeliveryid") else {
+    if !delivery_shape_valid {
         return Ok(());
-    };
-    let Some(subscription_id) = string(event, "aspsubid") else {
-        return Ok(());
-    };
-    let Some(stream) = string(event, "aspstream") else {
-        return Ok(());
-    };
-    let Some(sequence) = uint(event, "aspsequence") else {
-        return Ok(());
-    };
-    let Some(cursor) = string(event, "aspcursor") else {
-        return Ok(());
-    };
-    let Some(attempt) = uint(event, "aspattempt") else {
-        return Ok(());
-    };
+    }
+    let delivery_id = string(event, "aspdeliveryid").expect("validated delivery id");
+    let subscription_id = string(event, "aspsubid").expect("validated subscription id");
+    let stream = string(event, "aspstream").expect("validated event stream");
+    let sequence = uint(event, "aspsequence").expect("validated event sequence");
+    let cursor = string(event, "aspcursor").expect("validated event cursor");
+    let attempt = uint(event, "aspattempt").expect("validated delivery attempt");
     if attempt == 0 || sequence == 0 || attempt > i32::MAX as u64 || sequence > i32::MAX as u64 {
         validator.error(
             "ASP-REPLAY-DELIVERY-001",
@@ -1631,10 +1654,33 @@ fn check_ack(body: &Value, ordinal: usize, validator: &mut Validator) {
             "event acknowledgement payload contains an unknown member",
         );
     }
-    let Some(delivery_id) = string(payload, "delivery_id") else {
+    let payload_path = format!("{path}/payload");
+    let mut payload_shape_valid = true;
+    for name in ["subscription_id", "delivery_id", "cursor", "outcome"] {
+        if string(payload, name).is_none() {
+            validator.error(
+                "ASP-REPLAY-ACK-001",
+                ordinal,
+                format!("{payload_path}/{name}"),
+                "event acknowledgement identity and outcome members must be strings",
+            );
+            payload_shape_valid = false;
+        }
+    }
+    if member(payload, "reason").is_some() && string(payload, "reason").is_none() {
+        validator.error(
+            "ASP-REPLAY-ACK-001",
+            ordinal,
+            format!("{payload_path}/reason"),
+            "event acknowledgement reason must be a string when present",
+        );
+        payload_shape_valid = false;
+    }
+    if !payload_shape_valid {
         return;
-    };
-    let outcome = string(payload, "outcome").unwrap_or_default();
+    }
+    let delivery_id = string(payload, "delivery_id").expect("validated acknowledgement delivery");
+    let outcome = string(payload, "outcome").expect("validated acknowledgement outcome");
     if !["processed", "discarded", "retry"].contains(&outcome)
         || (outcome == "discarded" && string(payload, "reason").is_none())
     {
@@ -4928,6 +4974,84 @@ mod tests {
                 && diagnostic.message.chars().count() <= MAX_DIAGNOSTIC_MESSAGE_CHARS
         }));
         assert_eq!(validator.diagnostics[0].path, "/<truncated>");
+    }
+
+    fn verify_rehashed_event_flow_mutation(pointer: &str, replacement: Value) -> Report {
+        let mut bundle =
+            parse_strict(include_bytes!("../tests/fixtures/event-receipt-flow.json")).unwrap();
+        *bundle
+            .pointer_mut(pointer)
+            .expect("test mutation pointer must resolve") = replacement;
+        rehash_bundle(&mut bundle).unwrap();
+        verify("mutated-event-flow", &serde_json::to_vec(&bundle).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn non_integer_event_attempt_is_a_delivery_error_after_rehashing() {
+        let report = verify_rehashed_event_flow_mutation(
+            "/records/1/body/aspattempt",
+            Value::String("1".to_owned()),
+        );
+        assert_eq!(report.evaluation_state, "semantic_invalid");
+        assert!(report.checks.iter().any(|check| {
+            check.check_id == "ASP-REPLAY-DELIVERY-001"
+                && check.status == "fail"
+                && check.findings >= 1
+        }));
+        assert!(report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.check_id == "ASP-REPLAY-DELIVERY-001"
+                && diagnostic.path == "/records/1/body/aspattempt"
+        }));
+    }
+
+    #[test]
+    fn non_string_event_id_is_an_event_error_after_rehashing() {
+        let report = verify_rehashed_event_flow_mutation("/records/1/body/id", Value::from(123));
+        assert_eq!(report.evaluation_state, "semantic_invalid");
+        assert!(report.checks.iter().any(|check| {
+            check.check_id == "ASP-REPLAY-EVENT-001"
+                && check.status == "fail"
+                && check.findings >= 1
+        }));
+        assert!(report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.check_id == "ASP-REPLAY-EVENT-001" && diagnostic.path == "/records/1/body/id"
+        }));
+    }
+
+    #[test]
+    fn malformed_event_occurrence_identity_members_are_rejected() {
+        let (scope, surface, grant) = event_scope();
+        for name in ["source", "id", "aspeventhash"] {
+            let mut event = event_fixture("delivery_1", "event_1", 1, 1);
+            event[name] = Value::from(123);
+            let mut validator = Validator::new(false);
+            validator.session_generation = 1;
+            validator.session_state = "active".to_owned();
+            check_event(&event, 1, &scope, &surface, &grant, &mut validator).unwrap();
+            assert!(
+                validator.diagnostics.iter().any(|diagnostic| {
+                    diagnostic.check_id == "ASP-REPLAY-EVENT-001"
+                        && diagnostic.path == format!("/records/1/body/{name}")
+                }),
+                "malformed event occurrence member {name:?} must be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn malformed_acknowledgement_delivery_id_is_an_ack_error_after_rehashing() {
+        let report = verify_rehashed_event_flow_mutation(
+            "/records/2/body/payload/delivery_id",
+            Value::from(123),
+        );
+        assert_eq!(report.evaluation_state, "semantic_invalid");
+        assert!(report.checks.iter().any(|check| {
+            check.check_id == "ASP-REPLAY-ACK-001" && check.status == "fail" && check.findings >= 1
+        }));
+        assert!(report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.check_id == "ASP-REPLAY-ACK-001"
+                && diagnostic.path == "/records/2/body/payload/delivery_id"
+        }));
     }
 
     #[test]
