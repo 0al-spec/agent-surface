@@ -114,6 +114,7 @@ dependencies = [
 name = "asp-replay-tool"
 version = "0.1.0"
 dependencies = [
+ "asp-manifest-linter",
  "assert_cmd",
  "base64",
  "clap",

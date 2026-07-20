@@ -91,6 +91,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "asp-manifest-linter"
+version = "0.2.0"
+dependencies = [
+ "clap",
+ "fluent-uri",
+ "jsonschema",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "asp-replay-fuzz"
 version = "0.0.0"
 dependencies = [
@@ -104,6 +116,7 @@ dependencies = [
 name = "asp-replay-tool"
 version = "0.1.0"
 dependencies = [
+ "asp-manifest-linter",
  "base64",
  "clap",
  "jsonschema",

@@ -16,6 +16,7 @@ const DIGEST_E: &str = "sha-256:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE";
 #[derive(Arbitrary, Debug)]
 struct StructuredInput {
     fixture: u8,
+    provider_outcomes: [u8; 7],
     mutations: Vec<Mutation>,
 }
 
@@ -390,4 +391,49 @@ fuzz_target!(|input: StructuredInput| {
         report.diagnostics.len() + report.diagnostics_omitted
     );
     assert_eq!(report.claim_effect, "descriptive_only");
+
+    let composition = asp_replay::fuzz_support::compose_rehashed(&bundle)
+        .expect("rehashed bundle composition must remain evaluable");
+    assert_eq!(
+        composition.composition_state,
+        if report.verdict == "invalid" {
+            "rejected"
+        } else {
+            "blocked"
+        }
+    );
+    assert!(!composition.complete_claim_eligible);
+    assert_eq!(composition.providers.len(), 7);
+    assert_eq!(composition.supplemental_checks.len(), 1);
+    let value = serde_json::to_value(composition).expect("composition report serialization");
+    assert!(value.get("verdict").is_none());
+
+    let planned =
+        asp_replay::fuzz_support::compose_rehashed_with_plan(&bundle, &input.provider_outcomes)
+            .expect("planned composition must remain evaluable");
+    let required_failed = planned
+        .providers
+        .iter()
+        .any(|provider| provider.applicability == "required" && provider.status == "failed");
+    let required_unavailable = planned
+        .providers
+        .iter()
+        .any(|provider| provider.applicability == "required" && provider.status == "unavailable");
+    let expected_state = if report.verdict == "invalid" || required_failed {
+        "rejected"
+    } else if required_unavailable {
+        "blocked"
+    } else if report.verdict == "incomplete" {
+        "eligible_incomplete"
+    } else {
+        "eligible_valid"
+    };
+    assert_eq!(planned.composition_state, expected_state);
+    assert_eq!(
+        planned.complete_claim_eligible,
+        matches!(expected_state, "eligible_incomplete" | "eligible_valid")
+    );
+    assert!(asp_replay::fuzz_support::composition_contract_holds(
+        &bundle, &planned
+    ));
 });

@@ -35,7 +35,11 @@ regression input.
   fixtures, applies at most sixteen typed mutations, recomputes the replay hash
   chain through the fuzz-only bridge, and then verifies the result. This keeps
   semantic lifecycle, event, acknowledgement, gap, and receipt paths reachable
-  instead of spending the campaign only on preflight hashes.
+  instead of spending the campaign only on preflight hashes. The same rehashed
+  bundle also exercises fail-closed full-profile composition. A synthetic
+  seven-provider plan makes `eligible_valid`, `eligible_incomplete`, native
+  rejection, and unavailable-coverage paths reachable while the target checks
+  the report schema, composition digest, and provider evidence binding.
 
 Both targets call `asp_replay::fuzz_support`, which is available only under
 `cfg(fuzzing)`. The bridge is linked statically by cargo-fuzz; there is no

@@ -5,6 +5,7 @@ use std::path::Path;
 use serde::Serialize;
 use thiserror::Error;
 
+mod composition;
 mod hash;
 mod registry;
 mod rehash;
@@ -14,7 +15,7 @@ mod strict_json;
 mod validation;
 mod value;
 
-#[cfg(fuzzing)]
+#[cfg(any(test, fuzzing))]
 #[doc(hidden)]
 pub mod fuzz_support;
 
@@ -30,13 +31,25 @@ pub const REPORT_PROFILE: &str =
     "https://github.com/0al-spec/agent-surface/tools/asp-replay/report/v1";
 pub const CHECK_PROFILE: &str =
     "https://github.com/0al-spec/agent-surface/tools/asp-replay/checks/v1";
+pub const COMPOSITION_REPORT_PROFILE: &str =
+    "https://github.com/0al-spec/agent-surface/tools/asp-replay/composition-report/v1";
+pub const COMPOSITION_POLICY_PROFILE: &str =
+    "https://github.com/0al-spec/agent-surface/tools/asp-replay/composition-policy/v1";
 
 pub const BUNDLE_SCHEMA: &str = include_str!("../schema/bundle.schema.json");
 pub const REPORT_SCHEMA: &str = include_str!("../schema/report.schema.json");
+pub const COMPOSITION_REPORT_SCHEMA: &str =
+    include_str!("../schema/composition-report.schema.json");
 pub const CHECKS_SCHEMA: &str = include_str!("../schema/checks.schema.json");
 pub const CASES_SCHEMA: &str = include_str!("../schema/cases.schema.json");
 pub const CHECK_REGISTRY: &str = include_str!("../checks/v1/checks.json");
 pub const CASE_REGISTRY: &str = include_str!("../cases/v1/cases.json");
+
+pub use composition::{
+    BoundedReplayCoverage, CompositionInput, CompositionReport, CompositionTool,
+    NativeProviderCoverage, NativeProviderEvidence, SupplementalCoverage, compose,
+    validate_composition_report,
+};
 
 #[derive(Debug, Error)]
 pub enum ReplayError {
@@ -50,6 +63,8 @@ pub enum ReplayError {
     },
     #[error("self-check failed: {0}")]
     SelfCheck(String),
+    #[error("composition report validation failed: {0}")]
+    Composition(String),
     #[error("cannot serialize canonical JSON: {0}")]
     Canonical(String),
 }

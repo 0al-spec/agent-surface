@@ -3,7 +3,7 @@ use std::io::{self, Read};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use asp_replay::{MAX_INPUT_BYTES, self_check, verify};
+use asp_replay::{MAX_INPUT_BYTES, compose, self_check, verify};
 use clap::{Parser, Subcommand};
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
@@ -12,7 +12,7 @@ use std::os::unix::fs::OpenOptionsExt;
 #[command(
     name = "asp-replay",
     version,
-    about = "Verify and deterministically replay one inert ASP evidence bundle"
+    about = "Verify or compose validation for one inert ASP evidence bundle"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -23,6 +23,8 @@ struct Cli {
 enum Command {
     /// Verify one replay bundle and emit a deterministic JSON report. Use - for stdin.
     Verify { bundle: String },
+    /// Compose bounded replay with available native-profile validators. Use - for stdin.
+    Compose { bundle: String },
     /// Validate compiled schemas, registries, cases, fixtures, and golden reports.
     SelfCheck {
         #[arg(long, default_value = ".")]
@@ -64,6 +66,15 @@ fn read_bounded(source: &str) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
+fn composition_exit_code(state: &str) -> Option<u8> {
+    match state {
+        "eligible_valid" => Some(0),
+        "eligible_incomplete" | "rejected" => Some(1),
+        "blocked" => Some(2),
+        _ => None,
+    }
+}
+
 fn main() -> ExitCode {
     match Cli::parse().command {
         Command::Verify { bundle } => {
@@ -94,6 +105,38 @@ fn main() -> ExitCode {
                 ExitCode::from(1)
             }
         }
+        Command::Compose { bundle } => {
+            let bytes = match read_bounded(&bundle) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    eprintln!("asp-replay: {error}");
+                    return ExitCode::from(2);
+                }
+            };
+            let report = match compose(&bundle, &bytes) {
+                Ok(report) => report,
+                Err(error) => {
+                    eprintln!("asp-replay: {error}");
+                    return ExitCode::from(2);
+                }
+            };
+            let exit_status = match composition_exit_code(report.composition_state.as_str()) {
+                Some(code) => ExitCode::from(code),
+                None => {
+                    let state = &report.composition_state;
+                    eprintln!("asp-replay: unknown composition state {state:?}");
+                    return ExitCode::from(2);
+                }
+            };
+            match serde_json::to_string_pretty(&report) {
+                Ok(output) => println!("{output}"),
+                Err(error) => {
+                    eprintln!("asp-replay: cannot serialize composition report: {error}");
+                    return ExitCode::from(2);
+                }
+            }
+            exit_status
+        }
         Command::SelfCheck { root } => match self_check(&root) {
             Ok(()) => {
                 println!("ASP replay tool self-check passed");
@@ -104,5 +147,23 @@ fn main() -> ExitCode {
                 ExitCode::from(2)
             }
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::composition_exit_code;
+
+    #[test]
+    fn composition_states_map_to_stable_exit_codes() {
+        assert_eq!(composition_exit_code("eligible_valid"), Some(0));
+        assert_eq!(composition_exit_code("eligible_incomplete"), Some(1));
+        assert_eq!(composition_exit_code("rejected"), Some(1));
+        assert_eq!(composition_exit_code("blocked"), Some(2));
+    }
+
+    #[test]
+    fn unknown_composition_state_is_an_internal_tool_error() {
+        assert_eq!(composition_exit_code("future_state"), None);
     }
 }

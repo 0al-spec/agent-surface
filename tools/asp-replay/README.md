@@ -1,11 +1,15 @@
 # ASP Replay Tool
 
-`asp-replay` performs a deterministic, offline consistency and integrity replay
-of one portable ASP session evidence bundle.
+`asp-replay` performs deterministic, offline validation of one portable ASP
+session evidence bundle. `verify` evaluates the bounded replay profile;
+`compose` additionally accounts for the available native-profile validators
+without turning missing validation coverage into a conformance claim.
 
 ```sh
 cargo run --locked -p asp-replay-tool -- verify bundle.json
 cargo run --locked -p asp-replay-tool -- verify - < bundle.json
+cargo run --locked -p asp-replay-tool -- compose bundle.json
+cargo run --locked -p asp-replay-tool -- compose - < bundle.json
 cargo run --locked -p asp-replay-tool -- self-check --root .
 ```
 
@@ -15,10 +19,10 @@ checks event delivery and acknowledgement identity, and verifies receipt
 hashes and links. It never follows a URI, opens a socket, invokes an action,
 sends a replay request, changes a session, or resolves remote schema content.
 
-Exit status `0` means the present evidence is valid and complete. Status `1`
-means the deterministic report is incomplete or invalid. Status `2` means the
-input or tool could not be evaluated safely; no report is written to standard
-output.
+For `verify`, exit status `0` means the present evidence is valid and complete.
+Status `1` means the deterministic report is incomplete or invalid. Status `2`
+means the input or tool could not be evaluated safely; no report is written to
+standard output.
 
 Every emitted report has one exact `evaluation_state`:
 
@@ -37,6 +41,41 @@ Both invalid states use a neutral replay summary and empty
 report. Diagnostics are capped at 256 entries. `diagnostics_truncated` and
 `diagnostics_omitted` make any path/message truncation or omitted findings
 explicit without hiding the check-level failure counts.
+
+## Composed validation
+
+`compose` first runs the same bounded replay validation, then evaluates whether
+the statically linked local provider set supplies the native-profile coverage
+required for a complete-profile conclusion. Composition is fail-closed: an
+unavailable, unsupported, or non-authoritative required provider produces
+`blocked`; it is never treated as a successful validation.
+
+Every successfully produced composition report has one `composition_state`:
+
+- `eligible_valid`: every required validation role was authoritatively evaluated
+  and the bounded replay was valid; exit status `0`.
+- `eligible_incomplete`: every required validation role was authoritatively
+  evaluated, but the bounded replay was incomplete; exit status `1`.
+- `rejected`: an evaluated bounded or native-profile check rejected the input;
+  exit status `1`.
+- `blocked`: required authoritative coverage was unavailable; exit status `2`.
+
+A `blocked` result still writes its machine-readable composition report.
+Strict parse, input-read, serialization, and internal tool failures also use
+status `2`, but write no report to standard output.
+
+The built-in provider set includes a supplemental local Surface manifest lint,
+but that lint is not an authoritative complete-profile validator. The built-in
+set therefore cannot currently issue `eligible_valid` or
+`eligible_incomplete`; a structurally valid bundle remains `blocked` until the
+required authoritative providers are supplied.
+
+Rust consumers should call `validate_composition_report(bundle, report)` before
+using a deserialized report. JSON Schema validates the closed report shape and
+state tuples; the bound validator additionally replays the exact bundle bytes,
+recomputes native-provider applicability, checks the report digest, and requires
+each evaluated provider evidence object to reference that bundle's hash. This
+still does not decide whether a named provider or ruleset is authoritative.
 
 ## Evidence boundary
 
