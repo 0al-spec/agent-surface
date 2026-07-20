@@ -3,7 +3,8 @@ use std::collections::{BTreeMap, HashSet};
 use serde_json::Value;
 
 use crate::hash::{EVENT_DOMAIN, RECORD_DOMAIN, object_hash};
-use crate::selfcheck::{rehash_bundle, validate_instance};
+use crate::rehash::rehash_bundle;
+use crate::selfcheck::validate_instance;
 use crate::strict_json::parse_strict;
 use crate::{
     CASE_REGISTRY, CASES_SCHEMA, MAX_DIAGNOSTIC_MESSAGE_CHARS, MAX_DIAGNOSTIC_PATH_CHARS,

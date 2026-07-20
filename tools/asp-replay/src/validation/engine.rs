@@ -263,8 +263,8 @@ pub(crate) fn verify_document(_source: &str, document: &[u8]) -> Result<Report, 
         tool: ReportTool {
             name: TOOL_NAME.to_owned(),
             version: TOOL_VERSION.to_owned(),
-            check_profile: check_registry.profile,
-            check_version: check_registry.version,
+            check_profile: check_registry.profile.clone(),
+            check_version: check_registry.version.clone(),
             check_registry_sha256: raw_sha256(CHECK_REGISTRY.as_bytes()),
         },
         input: ReportInput {

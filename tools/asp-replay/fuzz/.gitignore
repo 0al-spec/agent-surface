@@ -1,0 +1,9 @@
+/artifacts/
+/coverage/
+/target/
+
+/corpus/parse_verify/*
+!/corpus/parse_verify/seed-*.json
+
+/corpus/structured_bundle/*
+!/corpus/structured_bundle/seed-*.txt

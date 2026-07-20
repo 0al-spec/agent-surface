@@ -1,0 +1,34 @@
+[package]
+name = "asp-replay-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+rust-version = "1.97"
+license = "MIT"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+arbitrary = { version = "=1.4.2", features = ["derive"] }
+asp-replay-tool = { path = "..", version = "=0.1.0" }
+libfuzzer-sys = "=0.4.13"
+serde_json = "=1.0.150"
+
+[[bin]]
+name = "parse_verify"
+path = "fuzz_targets/parse_verify.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "structured_bundle"
+path = "fuzz_targets/structured_bundle.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]
+members = ["."]
+resolver = "3"

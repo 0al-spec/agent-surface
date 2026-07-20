@@ -1,0 +1,68 @@
+name: Replay fuzz smoke
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/replay-fuzz.yml'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'Makefile'
+      - 'tools/asp-replay/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/replay-fuzz.yml'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'Makefile'
+      - 'tools/asp-replay/**'
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_FUZZ_VERSION: '0.13.2'
+  REPLAY_FUZZ_TOOLCHAIN: nightly-2026-07-01
+  REPLAY_FUZZ_SEED: '1095979603'
+  REPLAY_FUZZ_RUNS: '1000'
+  REPLAY_FUZZ_MAX_TOTAL_TIME: '30'
+  REPLAY_FUZZ_INPUT_TIMEOUT: '5'
+  REPLAY_FUZZ_RSS_LIMIT_MB: '1024'
+  REPLAY_FUZZ_OUTER_TIMEOUT: '300'
+
+concurrency:
+  group: replay-fuzz-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Bounded cargo-fuzz smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pinned nightly Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "${REPLAY_FUZZ_TOOLCHAIN}" --profile minimal
+
+      - name: Install pinned cargo-fuzz
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +"${REPLAY_FUZZ_TOOLCHAIN}" install cargo-fuzz \
+            --version "${CARGO_FUZZ_VERSION}" \
+            --locked
+
+      - name: Run bounded replay fuzz smoke
+        timeout-minutes: 10
+        shell: bash
+        run: make replay-fuzz-smoke

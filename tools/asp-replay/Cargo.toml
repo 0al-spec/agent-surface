@@ -7,6 +7,9 @@ description = "Deterministic offline integrity replay for Agent Surface Protocol
 repository = "https://github.com/0al-spec/agent-surface"
 rust-version = "1.97"
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(fuzzing)"] }
+
 [lib]
 name = "asp_replay"
 path = "src/lib.rs"
@@ -30,3 +33,4 @@ thiserror = "2.0"
 [dev-dependencies]
 assert_cmd = "2.1"
 predicates = "3.1"
+proptest = { version = "=1.11.0", default-features = false, features = ["std"] }
