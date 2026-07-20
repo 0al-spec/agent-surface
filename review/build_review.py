@@ -13,6 +13,7 @@ from pathlib import Path
 
 from markdown_it import MarkdownIt
 
+from rfc_toc import dashboard_markdown
 from review_data import (
     MATURITY_ORDER,
     load_review_payload,
@@ -40,7 +41,8 @@ def slugify(value: str) -> str:
 
 def render_rfc() -> tuple[str, dict[str, str]]:
     markdown = MarkdownIt("commonmark", {"html": False, "linkify": True})
-    tokens = markdown.parse(RFC_PATH.read_text(encoding="utf-8"))
+    source = dashboard_markdown(RFC_PATH.read_text(encoding="utf-8"))
+    tokens = markdown.parse(source)
     occurrences: Counter[str] = Counter()
     headings: defaultdict[str, list[tuple[int, str]]] = defaultdict(list)
 
