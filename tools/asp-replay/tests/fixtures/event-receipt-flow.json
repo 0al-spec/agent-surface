@@ -1,0 +1,348 @@
+{
+  "$schema": "./bundle.schema.json",
+  "schema_version": 1,
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/replay-bundle/v1",
+  "protocol_version": "agent-surface/0.1",
+  "claim_effect": "descriptive_only",
+  "bundle_id": "bundle-event-receipt-flow",
+  "created_at": "2026-07-20T10:03:00Z",
+  "scope": {
+    "subject_user": "user_abc",
+    "issuer": "https://code.example.com",
+    "app_id": "code.example.com",
+    "surface_version": "2026-07-20",
+    "surface_hash": "sha-256:tANVIpX1J7pXH-sF53mkcP9EhSShar8htWxpYruAB9s",
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:AhMqdkuCQVEA1YOjp1DLUKOlaVKi9gbF1mJ60Hvon8w",
+    "runtime_id": "runtime_456",
+    "agent_id": "agent_789",
+    "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "session_id": "sess_456",
+    "session_generation": 1
+  },
+  "context": {
+    "surface": {
+      "protocol": "agent-surface/0.1",
+      "app_id": "code.example.com",
+      "issuer": "https://code.example.com",
+      "surface_mode": "standard",
+      "surface_version": "2026-07-20",
+      "surface_url": "https://code.example.com/.well-known/agent-surface.json",
+      "auth": {},
+      "agent_api": {},
+      "scopes": ["task.read"],
+      "data_classes": [],
+      "resources": [],
+      "actions": [
+        {
+          "id": "comment.create",
+          "execution": {
+            "mode": "commit",
+            "operation_id": "comment-create"
+          }
+        }
+      ],
+      "events": [
+        {
+          "id": "task.created",
+          "scope": "task.read",
+          "schema": "https://code.example.com/schemas/task-created.json"
+        }
+      ],
+      "audit": {},
+      "revocation": {},
+      "surface_hash": "sha-256:tANVIpX1J7pXH-sF53mkcP9EhSShar8htWxpYruAB9s"
+    },
+    "grant": {
+      "grant_id": "grant_123",
+      "subject": { "user": "user_abc" },
+      "delegate": {
+        "runtime": "runtime_456",
+        "agent": "agent_789",
+        "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "resource_server": {
+        "app_id": "code.example.com",
+        "issuer": "https://code.example.com",
+        "surface_version": "2026-07-20",
+        "surface_hash": "sha-256:tANVIpX1J7pXH-sF53mkcP9EhSShar8htWxpYruAB9s"
+      },
+      "locations": ["https://code.example.com/agent-actions"],
+      "actions": ["comment.create"],
+      "scopes": ["task.read"],
+      "constraints": { "expires_at": "2026-07-20T11:00:00Z" },
+      "data_exposure": [],
+      "credential_profile": "proof_bound",
+      "credential_binding": {},
+      "audit": {
+        "local_receipt": "required",
+        "app_receipt": "required"
+      },
+      "grant_hash": "sha-256:AhMqdkuCQVEA1YOjp1DLUKOlaVKi9gbF1mJ60Hvon8w"
+    }
+  },
+  "capture": {
+    "started_at": "2026-07-20T10:00:00Z",
+    "ended_at": "2026-07-20T10:03:00Z",
+    "completeness": "complete"
+  },
+  "records": [
+    {
+      "ordinal": 0,
+      "record_id": "record-session-start",
+      "recorded_at": "2026-07-20T10:00:00Z",
+      "kind": "session_transition",
+      "name": "session.transition",
+      "representation": "exact",
+      "elisions": [],
+      "body": {
+        "session_generation": 1,
+        "prior_state": "absent",
+        "next_state": "active",
+        "reason": "start_accepted"
+      },
+      "record_hash": "sha-256:xI2TiwYlceWG-HgVHkB-xauSYbIQicPQxHHFDd_JqHk"
+    },
+    {
+      "ordinal": 1,
+      "record_id": "record-event-one",
+      "recorded_at": "2026-07-20T10:00:30Z",
+      "kind": "event_delivery",
+      "name": "event.delivery",
+      "representation": "exact",
+      "elisions": [],
+      "body": {
+        "specversion": "1.0",
+        "id": "event_1",
+        "source": "https://code.example.com",
+        "type": "task.created",
+        "time": "2026-07-20T10:00:29Z",
+        "dataschema": "https://code.example.com/schemas/task-created.json",
+        "datacontenttype": "application/json",
+        "data": { "task_id": "task_1", "score": 0.1 },
+        "aspscope": "task.read",
+        "aspcontrol": false,
+        "aspsurfacehash": "sha-256:tANVIpX1J7pXH-sF53mkcP9EhSShar8htWxpYruAB9s",
+        "aspeventhash": "sha-256:lr7tROc5tiXQCVrlWwtfnG45tloXtbRUepuy6qnCXtE",
+        "aspsubid": "sub_1",
+        "aspdeliveryid": "delivery_1",
+        "aspattempt": 1,
+        "aspstream": "stream_1",
+        "aspsequence": 1,
+        "aspcursor": "cursor_1",
+        "aspsessionid": "sess_456",
+        "aspsessiongen": 1
+      },
+      "previous_record_hash": "sha-256:xI2TiwYlceWG-HgVHkB-xauSYbIQicPQxHHFDd_JqHk",
+      "record_hash": "sha-256:4RjSsTETaTKv0qdV1fToPfz_kfPQgWyIGJxONNdaWvg"
+    },
+    {
+      "ordinal": 2,
+      "record_id": "record-event-one-ack",
+      "recorded_at": "2026-07-20T10:00:31Z",
+      "kind": "event_ack",
+      "name": "event.ack",
+      "representation": "exact",
+      "elisions": [],
+      "body": {
+        "type": "event.ack",
+        "payload": {
+          "subscription_id": "sub_1",
+          "delivery_id": "delivery_1",
+          "cursor": "cursor_1",
+          "outcome": "processed",
+          "reason": "durably_recorded"
+        }
+      },
+      "previous_record_hash": "sha-256:4RjSsTETaTKv0qdV1fToPfz_kfPQgWyIGJxONNdaWvg",
+      "record_hash": "sha-256:jmjsiZpLhyF6GzWP-I1uX9eFE0nz_mboKCYsuoyRDbA"
+    },
+    {
+      "ordinal": 3,
+      "record_id": "record-event-two",
+      "recorded_at": "2026-07-20T10:01:00Z",
+      "kind": "event_delivery",
+      "name": "event.delivery",
+      "representation": "exact",
+      "elisions": [],
+      "body": {
+        "specversion": "1.0",
+        "id": "event_2",
+        "source": "https://code.example.com",
+        "type": "task.created",
+        "time": "2026-07-20T10:00:59Z",
+        "dataschema": "https://code.example.com/schemas/task-created.json",
+        "datacontenttype": "application/json",
+        "data": { "task_id": "task_2" },
+        "aspscope": "task.read",
+        "aspcontrol": false,
+        "aspsurfacehash": "sha-256:tANVIpX1J7pXH-sF53mkcP9EhSShar8htWxpYruAB9s",
+        "aspeventhash": "sha-256:td_aDMOcwm_QnYkuR2T9x7D84n7gnk1Dy1FAzMgFEug",
+        "aspsubid": "sub_1",
+        "aspdeliveryid": "delivery_2",
+        "aspattempt": 1,
+        "aspstream": "stream_1",
+        "aspsequence": 2,
+        "aspcursor": "cursor_2",
+        "aspsessionid": "sess_456",
+        "aspsessiongen": 1
+      },
+      "previous_record_hash": "sha-256:jmjsiZpLhyF6GzWP-I1uX9eFE0nz_mboKCYsuoyRDbA",
+      "record_hash": "sha-256:ZJA8dQqlJpsykT1s_BW-isMDQ1rkfPi0Kft-RtQk0Sk"
+    },
+    {
+      "ordinal": 4,
+      "record_id": "record-runtime-receipt",
+      "recorded_at": "2026-07-20T10:01:30Z",
+      "kind": "receipt",
+      "name": "receipt.runtime",
+      "representation": "exact",
+      "elisions": [],
+      "body": {
+        "receipt_id": "receipt_runtime_1",
+        "receipt_type": "runtime",
+        "receipt_hash": "sha-256:8HLCebkrqHPHSHSePa4y_9XxEvnkGn-Du8w3rmuZfvY",
+        "grant_id": "grant_123",
+        "grant_hash": "sha-256:AhMqdkuCQVEA1YOjp1DLUKOlaVKi9gbF1mJ60Hvon8w",
+        "session_id": "sess_456",
+        "session_generation": 1,
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "b7ad6b7169203331",
+        "action_id": "comment.create",
+        "app_id": "code.example.com",
+        "surface_version": "2026-07-20",
+        "surface_hash": "sha-256:tANVIpX1J7pXH-sF53mkcP9EhSShar8htWxpYruAB9s",
+        "subject": { "user": "user_abc" },
+        "runtime": { "runtime_id": "runtime_456" },
+        "actor_agent": {
+          "agent_id": "agent_789",
+          "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "idempotency_key": "idem_comment_1",
+        "input_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "execution": {
+          "mode": "commit",
+          "execution_id": "exec_comment_1"
+        },
+        "execution_hash": "sha-256:-hpmIEyOCxcLjqIcalh2U-Zk-j1YYqmjQE-BvPwZ_z8",
+        "policy_decision_hash": "sha-256:6b2Qs2nYLb6J9pBVOfy9QzNbgpdVJ8VTGBqMfaEqfAg",
+        "policy_decision": {
+          "type": "policy.decision",
+          "decision_id": "pdec_runtime_1",
+          "enforcer": {
+            "type": "runtime",
+            "id": "runtime_456"
+          },
+          "outcome": "allow",
+          "policy": {
+            "id": "local-agent-action-policy",
+            "version": "2026-07-20"
+          },
+          "reason_code": "policy_allowed",
+          "matched_rules": ["grant.active"],
+          "safe_to_show": "The request satisfied local policy.",
+          "evaluated_at": "2026-07-20T10:01:29Z",
+          "policy_decision_hash": "sha-256:6b2Qs2nYLb6J9pBVOfy9QzNbgpdVJ8VTGBqMfaEqfAg"
+        },
+        "timestamp": "2026-07-20T10:01:30Z",
+        "result": "authorized_for_forwarding"
+      },
+      "previous_record_hash": "sha-256:ZJA8dQqlJpsykT1s_BW-isMDQ1rkfPi0Kft-RtQk0Sk",
+      "record_hash": "sha-256:7xfZkAE-TYbZ2M5sLNOv7faS8HRNECpb3soS2sFDUXQ"
+    },
+    {
+      "ordinal": 5,
+      "record_id": "record-app-receipt",
+      "recorded_at": "2026-07-20T10:01:31Z",
+      "kind": "receipt",
+      "name": "receipt.app",
+      "representation": "exact",
+      "elisions": [],
+      "body": {
+        "receipt_id": "receipt_app_1",
+        "receipt_type": "app",
+        "receipt_hash": "sha-256:ReAmK9uLQxHcRT5B8eoeyDwRlyWejsZCsivvO9fAVXk",
+        "parent_receipt_hash": "sha-256:8HLCebkrqHPHSHSePa4y_9XxEvnkGn-Du8w3rmuZfvY",
+        "grant_id": "grant_123",
+        "grant_hash": "sha-256:AhMqdkuCQVEA1YOjp1DLUKOlaVKi9gbF1mJ60Hvon8w",
+        "session_id": "sess_456",
+        "session_generation": 1,
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "action_id": "comment.create",
+        "app_id": "code.example.com",
+        "surface_version": "2026-07-20",
+        "surface_hash": "sha-256:tANVIpX1J7pXH-sF53mkcP9EhSShar8htWxpYruAB9s",
+        "subject": { "user": "user_abc" },
+        "runtime": { "runtime_id": "runtime_456" },
+        "actor_agent": {
+          "agent_id": "agent_789",
+          "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "idempotency_key": "idem_comment_1",
+        "input_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "execution": {
+          "mode": "commit",
+          "execution_id": "exec_comment_1"
+        },
+        "execution_hash": "sha-256:-hpmIEyOCxcLjqIcalh2U-Zk-j1YYqmjQE-BvPwZ_z8",
+        "output_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "actual_effects": [
+          {
+            "effect_id": "comment-publish",
+            "operation": "publish",
+            "resource_type": "comment",
+            "resource_key": "comment_1",
+            "visibility": "shared",
+            "boundary": "internal",
+            "reversibility": "irreversible",
+            "domain": "communication"
+          }
+        ],
+        "actual_effects_hash": "sha-256:B4g6704m8vK3Hq5545o1d-Gheu7N7r1epW8S0oAEh6g",
+        "effect_outcome": "applied",
+        "policy_decision_hash": "sha-256:5_MIw_5JWxTBPLW-V-JWTI99ij4_OnpStToW_E4p1NY",
+        "policy_decision": {
+          "type": "policy.decision",
+          "decision_id": "pdec_app_1",
+          "enforcer": {
+            "type": "application",
+            "id": "code.example.com"
+          },
+          "outcome": "allow",
+          "policy": {
+            "id": "agent-action-policy",
+            "version": "2026-07-20"
+          },
+          "reason_code": "policy_allowed",
+          "matched_rules": ["grant.active", "action.comment.create"],
+          "safe_to_show": "The application accepted the request.",
+          "evaluated_at": "2026-07-20T10:01:31Z",
+          "policy_decision_hash": "sha-256:5_MIw_5JWxTBPLW-V-JWTI99ij4_OnpStToW_E4p1NY"
+        },
+        "timestamp": "2026-07-20T10:01:31Z",
+        "result": "success"
+      },
+      "previous_record_hash": "sha-256:7xfZkAE-TYbZ2M5sLNOv7faS8HRNECpb3soS2sFDUXQ",
+      "record_hash": "sha-256:bIS86AgljdbQZ_sOksjgvdGjfx8aSwv3WstzGJptNJI"
+    },
+    {
+      "ordinal": 6,
+      "record_id": "record-session-complete",
+      "recorded_at": "2026-07-20T10:03:00Z",
+      "kind": "session_transition",
+      "name": "session.transition",
+      "representation": "exact",
+      "elisions": [],
+      "body": {
+        "session_generation": 1,
+        "prior_state": "active",
+        "next_state": "completed",
+        "reason": "task_completed"
+      },
+      "previous_record_hash": "sha-256:bIS86AgljdbQZ_sOksjgvdGjfx8aSwv3WstzGJptNJI",
+      "record_hash": "sha-256:ALxvsM-iFmPyp3oC0LuRg3nPcikhYbh6guuZWlTqOMw"
+    }
+  ],
+  "bundle_hash": "sha-256:MvgMpr-MUkkMWixyG22xSt872u62H7L2t_llcew-Hro"
+}

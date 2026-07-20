@@ -70,6 +70,20 @@ API_IMPORTER_IMPLEMENTATIONS = {
     Path("tools/asp-api-importer/src/lib.rs"),
     Path("tools/asp-api-importer/src/main.rs"),
 }
+REPLAY_SCHEMAS = {
+    Path("tools/asp-replay/schema/bundle.schema.json"),
+    Path("tools/asp-replay/schema/report.schema.json"),
+    Path("tools/asp-replay/schema/checks.schema.json"),
+    Path("tools/asp-replay/schema/cases.schema.json"),
+}
+REPLAY_REGISTRIES = {
+    Path("tools/asp-replay/checks/v1/checks.json"),
+    Path("tools/asp-replay/cases/v1/cases.json"),
+}
+REPLAY_IMPLEMENTATIONS = {
+    Path("tools/asp-replay/src/lib.rs"),
+    Path("tools/asp-replay/src/main.rs"),
+}
 MOCK_SCHEMA = Path("mocks/v1/manifest.schema.json")
 MOCK_REGISTRY = Path("mocks/v1/manifest.json")
 MOCK_IMPLEMENTATIONS = {
@@ -281,6 +295,27 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
             path.as_posix() for path in MOCK_IMPLEMENTATIONS
         },
     },
+    59: {
+        "rfc_anchor": {
+            "portable-replay-bundle-profile",
+            "bundle-scope-and-historical-context",
+            "replay-record-object",
+            "deterministic-replay-and-ordering",
+            "integrity-completeness-and-validation-report",
+            "failure-privacy-and-non-authority-rules",
+            "canonical-object-hash-profile",
+            "replay-cursors-and-gaps",
+            "session-authority-and-lifecycle",
+            "receipt-hash-chain",
+            "reference-replay-tool",
+            "application-mvp-mapping",
+        },
+        "schema": {path.as_posix() for path in REPLAY_SCHEMAS},
+        "registry": {path.as_posix() for path in REPLAY_REGISTRIES},
+        "implementation": {
+            path.as_posix() for path in REPLAY_IMPLEMENTATIONS
+        },
+    },
     60: {
         "rfc_anchor": {"interoperability-test-suite"},
         "schema": {path.as_posix() for path in CONFORMANCE_SCHEMAS},
@@ -331,7 +366,19 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         },
     },
 }
-EXACT_MACHINE_VALIDATED_REVIEW_IDS = {17, 27, 29, 47, 48, 53, 57, 58, 61, 62}
+EXACT_MACHINE_VALIDATED_REVIEW_IDS = {
+    17,
+    27,
+    29,
+    47,
+    48,
+    53,
+    57,
+    58,
+    59,
+    61,
+    62,
+}
 MATURITY_ORDER = (
     "proposal",
     "specified",
@@ -652,11 +699,13 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
         review_id == 17 and relative_path in API_IMPORTER_SCHEMAS
     )
     is_bound_linter_schema = review_id == 57 and relative_path in LINTER_SCHEMAS
+    is_bound_replay_schema = review_id == 59 and relative_path in REPLAY_SCHEMAS
     is_bound_mock_schema = review_id == 58 and relative_path == MOCK_SCHEMA
     if (
         not is_conformance_schema
         and not is_bound_api_importer_schema
         and not is_bound_linter_schema
+        and not is_bound_replay_schema
         and not is_bound_mock_schema
     ):
         raise ValueError(
@@ -671,6 +720,8 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
             f"Review #{review_id} schema evidence is not a valid Draft 2020-12 schema: "
             f"{ref!r}"
         ) from error
+    if is_bound_replay_schema:
+        _validate_replay_bundle_evidence(review_id, "schema", ref)
 
 
 @lru_cache(maxsize=None)
@@ -689,6 +740,9 @@ def _validate_registry_evidence(review_id: int, ref: str) -> None:
         return
     if review_id == 57 and relative_path == LINTER_REGISTRY:
         _validate_linter_bundle_evidence(review_id, "registry", ref)
+        return
+    if review_id == 59 and relative_path in REPLAY_REGISTRIES:
+        _validate_replay_bundle_evidence(review_id, "registry", ref)
         return
     if review_id == 58 and relative_path == MOCK_REGISTRY:
         _validate_mock_bundle_evidence(review_id, "registry", ref)
@@ -740,6 +794,9 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         return
     if review_id == 57 and relative_path in LINTER_IMPLEMENTATIONS:
         _validate_linter_bundle_evidence(review_id, "implementation", ref)
+        return
+    if review_id == 59 and relative_path in REPLAY_IMPLEMENTATIONS:
+        _validate_replay_bundle_evidence(review_id, "implementation", ref)
         return
     if review_id == 58 and relative_path in MOCK_IMPLEMENTATIONS:
         _validate_mock_bundle_evidence(review_id, "implementation", ref)
@@ -850,6 +907,48 @@ def _run_linter_self_check() -> None:
     if process.returncode != 0:
         details = process.stderr.strip() or process.stdout.strip() or "unknown error"
         raise ValueError(f"cargo self-check exited {process.returncode}: {details}")
+
+
+def _validate_replay_bundle_evidence(
+    review_id: int, kind: str, ref: str
+) -> None:
+    try:
+        _run_replay_self_check()
+    except Exception as error:
+        raise ValueError(
+            f"Review #{review_id} {kind} evidence failed canonical Rust replay "
+            f"self-check: {ref!r}: {error}"
+        ) from error
+
+
+@lru_cache(maxsize=1)
+def _run_replay_self_check() -> None:
+    cargo_command = _cargo_command()
+    environment = dict(os.environ)
+    environment["CARGO_TERM_COLOR"] = "never"
+    process = subprocess.run(
+        [
+            *cargo_command,
+            "run",
+            "--quiet",
+            "--locked",
+            "-p",
+            "asp-replay-tool",
+            "--",
+            "self-check",
+            "--root",
+            str(REPO_ROOT),
+        ],
+        cwd=REPO_ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        check=False,
+    )
+    if process.returncode != 0:
+        details = process.stderr.strip() or process.stdout.strip() or "unknown error"
+        raise ValueError(f"cargo replay self-check exited {process.returncode}: {details}")
 
 
 def _cargo_command() -> list[str]:

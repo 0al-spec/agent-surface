@@ -4278,26 +4278,58 @@
       "description": "добавить формат, позволяющий воспроизвести session/events/receipts для debugging и audit.",
       "category": "Conformance / tooling / adoption",
       "side": "left",
-      "status": "missing",
+      "status": "present",
       "anchors": [
         {
-          "heading": "Events",
-          "anchorId": "events"
+          "heading": "Portable Replay Bundle Profile",
+          "anchorId": "portable-replay-bundle-profile"
         },
         {
-          "heading": "Sessions and Actions",
-          "anchorId": "sessions-and-actions"
+          "heading": "Bundle Scope and Historical Context",
+          "anchorId": "bundle-scope-and-historical-context"
         },
         {
-          "heading": "Receipts",
-          "anchorId": "receipts"
+          "heading": "Replay Record Object",
+          "anchorId": "replay-record-object"
+        },
+        {
+          "heading": "Deterministic Replay and Ordering",
+          "anchorId": "deterministic-replay-and-ordering"
+        },
+        {
+          "heading": "Integrity, Completeness, and Validation Report",
+          "anchorId": "integrity-completeness-and-validation-report"
+        },
+        {
+          "heading": "Failure, Privacy, and Non-Authority Rules",
+          "anchorId": "failure-privacy-and-non-authority-rules"
+        },
+        {
+          "heading": "Canonical Object Hash Profile",
+          "anchorId": "canonical-object-hash-profile"
+        },
+        {
+          "heading": "Replay Cursors and Gaps",
+          "anchorId": "replay-cursors-and-gaps"
+        },
+        {
+          "heading": "Session Authority and Lifecycle",
+          "anchorId": "session-authority-and-lifecycle"
+        },
+        {
+          "heading": "Receipt Hash Chain",
+          "anchorId": "receipt-hash-chain"
+        },
+        {
+          "heading": "Reference Replay Tool",
+          "anchorId": "reference-replay-tool"
         },
         {
           "heading": "Application MVP Mapping",
           "anchorId": "application-mvp-mapping"
         }
       ],
-      "rationale": "Session/event/receipt primitives есть, но portable replay bundle format и tool отсутствуют.",
+      "rationale": "RFC определяет closed Portable Replay Bundle Profile для детерминированной offline-проверки ровно одной пары session_id и session_generation: historical Surface/Grant bindings, ordered record hash chain, session transitions, event delivery/ack/gaps, receipts и explicit capture gaps. Integrity и completeness выводятся раздельно, а bundle и report остаются passive descriptive evidence без network, action dispatch, authority или effect semantics. Reference Rust CLI, четыре JSON Schemas, два versioned registries и executable self-check реализуют и проверяют этот bounded contract, не объявляя его шестым role-conformance profile или mock participant.",
       "priority": "P3",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -4309,8 +4341,89 @@
         55
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "machine_validated",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "portable-replay-bundle-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "bundle-scope-and-historical-context"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "replay-record-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "deterministic-replay-and-ordering"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "integrity-completeness-and-validation-report"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "failure-privacy-and-non-authority-rules"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "canonical-object-hash-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "replay-cursors-and-gaps"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "session-authority-and-lifecycle"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "receipt-hash-chain"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-replay-tool"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-mvp-mapping"
+        },
+        {
+          "kind": "schema",
+          "ref": "tools/asp-replay/schema/bundle.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "tools/asp-replay/schema/report.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "tools/asp-replay/schema/checks.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "tools/asp-replay/schema/cases.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "tools/asp-replay/checks/v1/checks.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "tools/asp-replay/cases/v1/cases.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "tools/asp-replay/src/lib.rs"
+        },
+        {
+          "kind": "implementation",
+          "ref": "tools/asp-replay/src/main.rs"
+        }
+      ]
     },
     {
       "id": 60,

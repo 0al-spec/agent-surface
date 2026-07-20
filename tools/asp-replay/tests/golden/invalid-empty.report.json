@@ -1,0 +1,22 @@
+{
+  "evaluation_state": "preflight_failed",
+  "integrity_verdict": "invalid",
+  "replay_completeness": "not_evaluated",
+  "verdict": "invalid",
+  "diagnostic_check_ids": [
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001",
+    "ASP-REPLAY-SCHEMA-001"
+  ],
+  "report_hash": "sha-256:wxo4ztaQv2sSf6hP9B_MHapjljzE24T7nvO2PyJL0sw"
+}
