@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "profile": "https://github.com/0al-spec/agent-surface/tools/asp-replay/checks/v1",
+  "version": "1.0.0",
+  "checks": [
+    {
+      "check_id": "ASP-REPLAY-SCHEMA-001",
+      "title": "Validate the closed replay bundle and record envelopes"
+    },
+    {
+      "check_id": "ASP-REPLAY-CONTEXT-001",
+      "title": "Bind the exact historical Surface and Grant to replay scope"
+    },
+    {
+      "check_id": "ASP-REPLAY-ORDER-001",
+      "title": "Verify record identity, ordering, hashes, and prior links"
+    },
+    {
+      "check_id": "ASP-REPLAY-SESSION-001",
+      "title": "Reduce one session generation without illegal lifecycle changes"
+    },
+    {
+      "check_id": "ASP-REPLAY-EVENT-001",
+      "title": "Verify ASP CloudEvent structure, declaration binding, and occurrence hash"
+    },
+    {
+      "check_id": "ASP-REPLAY-DELIVERY-001",
+      "title": "Preserve event occurrence and delivery identity across attempts"
+    },
+    {
+      "check_id": "ASP-REPLAY-ACK-001",
+      "title": "Bind acknowledgements to earlier deliveries and terminal outcomes"
+    },
+    {
+      "check_id": "ASP-REPLAY-GAP-001",
+      "title": "Represent protocol and capture gaps without inventing history"
+    },
+    {
+      "check_id": "ASP-REPLAY-RECEIPT-HASH-001",
+      "title": "Recompute available receipt and embedded object hashes"
+    },
+    {
+      "check_id": "ASP-REPLAY-RECEIPT-CHAIN-001",
+      "title": "Verify receipt identities, parent order, and scope bindings"
+    },
+    {
+      "check_id": "ASP-REPLAY-RECEIPT-LINK-001",
+      "title": "Resolve approval and recovery side links without deriving authority"
+    },
+    {
+      "check_id": "ASP-REPLAY-SECRETS-001",
+      "title": "Reject known raw protocol secret fields without echoing values"
+    }
+  ]
+}

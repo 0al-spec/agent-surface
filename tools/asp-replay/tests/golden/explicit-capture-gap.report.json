@@ -1,0 +1,10 @@
+{
+  "evaluation_state": "incomplete",
+  "integrity_verdict": "valid",
+  "replay_completeness": "incomplete",
+  "verdict": "incomplete",
+  "diagnostic_check_ids": [
+    "ASP-REPLAY-GAP-001"
+  ],
+  "report_hash": "sha-256:fwKuN_SPKMXov4vFh3_MdAEMMFTk7mq0AvgfJabkoks"
+}

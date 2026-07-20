@@ -1,0 +1,348 @@
+{
+  "schema_version": 1,
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/replay-bundle/v1",
+  "cases": [
+    {
+      "id": "complete-session",
+      "expect": "report",
+      "source": "tests/fixtures/complete-session.json",
+      "golden": "tests/golden/complete-session.report.json",
+      "evaluation_state": "valid",
+      "verdict": "valid",
+      "integrity_verdict": "valid",
+      "replay_completeness": "complete",
+      "diagnostic_check_ids": []
+    },
+    {
+      "id": "explicit-capture-gap",
+      "expect": "report",
+      "source": "tests/fixtures/explicit-capture-gap.json",
+      "golden": "tests/golden/explicit-capture-gap.report.json",
+      "evaluation_state": "incomplete",
+      "verdict": "incomplete",
+      "integrity_verdict": "valid",
+      "replay_completeness": "incomplete",
+      "diagnostic_check_ids": ["ASP-REPLAY-GAP-001"]
+    },
+    {
+      "id": "event-receipt-flow",
+      "expect": "report",
+      "source": "tests/fixtures/event-receipt-flow.json",
+      "golden": "tests/golden/event-receipt-flow.report.json",
+      "evaluation_state": "valid",
+      "verdict": "valid",
+      "integrity_verdict": "valid",
+      "replay_completeness": "complete",
+      "diagnostic_check_ids": []
+    },
+    {
+      "id": "invalid-empty",
+      "expect": "report",
+      "source": "tests/fixtures/invalid-empty.json",
+      "golden": "tests/golden/invalid-empty.report.json",
+      "evaluation_state": "preflight_failed",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-SCHEMA-001"]
+    },
+    {
+      "id": "wrong-context-hash",
+      "expect": "report",
+      "source": "tests/fixtures/complete-session.json",
+      "evaluation_state": "preflight_failed",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-CONTEXT-001"],
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/scope/surface_hash",
+          "value": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      ]
+    },
+    {
+      "id": "broken-record-name",
+      "expect": "report",
+      "source": "tests/fixtures/complete-session.json",
+      "evaluation_state": "preflight_failed",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-SCHEMA-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/records/0/name",
+          "value": "event.delivery"
+        }
+      ]
+    },
+    {
+      "id": "illegal-session-transition",
+      "expect": "report",
+      "source": "tests/fixtures/complete-session.json",
+      "evaluation_state": "semantic_invalid",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-SESSION-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/records/1/body/next_state",
+          "value": "active"
+        }
+      ]
+    },
+    {
+      "id": "next-sequence-before-terminal-ack",
+      "expect": "report",
+      "source": "tests/fixtures/event-receipt-flow.json",
+      "evaluation_state": "semantic_invalid",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-DELIVERY-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/records/2/body/payload/outcome",
+          "value": "retry"
+        }
+      ]
+    },
+    {
+      "id": "forbidden-secret",
+      "expect": "report",
+      "source": "tests/fixtures/complete-session.json",
+      "evaluation_state": "preflight_failed",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-SECRETS-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/records/0/body/Authorization",
+          "value": "Bearer secret-must-not-appear"
+        }
+      ]
+    },
+    {
+      "id": "receipt-parent-missing",
+      "expect": "report",
+      "source": "tests/fixtures/event-receipt-flow.json",
+      "evaluation_state": "semantic_invalid",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-RECEIPT-CHAIN-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/records/5/body/parent_receipt_hash",
+          "value": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      ]
+    },
+    {
+      "id": "capture-time-reversed",
+      "expect": "report",
+      "source": "tests/fixtures/complete-session.json",
+      "evaluation_state": "semantic_invalid",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-GAP-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/capture/started_at",
+          "value": "2026-07-20T11:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "duplicate-record-id",
+      "expect": "report",
+      "source": "tests/fixtures/event-receipt-flow.json",
+      "evaluation_state": "preflight_failed",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-ORDER-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/records/1/record_id",
+          "value": "record-session-start"
+        }
+      ]
+    },
+    {
+      "id": "invalid-event-scope",
+      "expect": "report",
+      "source": "tests/fixtures/event-receipt-flow.json",
+      "evaluation_state": "semantic_invalid",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-EVENT-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/records/1/body/aspscope",
+          "value": "unknown.scope"
+        }
+      ]
+    },
+    {
+      "id": "ack-cursor-mismatch",
+      "expect": "report",
+      "source": "tests/fixtures/event-receipt-flow.json",
+      "evaluation_state": "semantic_invalid",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-ACK-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/records/2/body/payload/cursor",
+          "value": "cursor_mismatch"
+        }
+      ]
+    },
+    {
+      "id": "invalid-receipt-timestamp",
+      "expect": "report",
+      "source": "tests/fixtures/event-receipt-flow.json",
+      "evaluation_state": "semantic_invalid",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-RECEIPT-HASH-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/records/4/body/timestamp",
+          "value": "not-a-time"
+        }
+      ]
+    },
+    {
+      "id": "approval-side-link-wrong-type",
+      "expect": "report",
+      "source": "tests/fixtures/event-receipt-flow.json",
+      "evaluation_state": "semantic_invalid",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-RECEIPT-LINK-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "add",
+          "path": "/records/5/body/approval_receipt_hashes",
+          "value": {
+            "application": "sha-256:8HLCebkrqHPHSHSePa4y_9XxEvnkGn-Du8w3rmuZfvY"
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid-relative-issuer",
+      "expect": "report",
+      "source": "tests/fixtures/complete-session.json",
+      "evaluation_state": "preflight_failed",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-SCHEMA-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/scope/issuer",
+          "value": "relative/issuer"
+        },
+        {
+          "op": "replace",
+          "path": "/context/surface/issuer",
+          "value": "relative/issuer"
+        },
+        {
+          "op": "replace",
+          "path": "/context/grant/resource_server/issuer",
+          "value": "relative/issuer"
+        }
+      ]
+    },
+    {
+      "id": "invalid-noncanonical-passport-digest",
+      "expect": "report",
+      "source": "tests/fixtures/complete-session.json",
+      "evaluation_state": "preflight_failed",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-SCHEMA-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/scope/passport_hash",
+          "value": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB"
+        },
+        {
+          "op": "replace",
+          "path": "/context/grant/delegate/passport_hash",
+          "value": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB"
+        }
+      ]
+    },
+    {
+      "id": "invalid-capture-calendar-date",
+      "expect": "report",
+      "source": "tests/fixtures/complete-session.json",
+      "evaluation_state": "preflight_failed",
+      "verdict": "invalid",
+      "integrity_verdict": "invalid",
+      "replay_completeness": "not_evaluated",
+      "diagnostic_check_ids": ["ASP-REPLAY-SCHEMA-001"],
+      "rehash_after_mutations": true,
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "/capture/started_at",
+          "value": "2026-02-30T10:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "duplicate-member",
+      "expect": "parse_error",
+      "source": "tests/fixtures/invalid-duplicate.json",
+      "error_contains": "duplicate JSON object member"
+    },
+    {
+      "id": "negative-zero",
+      "expect": "parse_error",
+      "source": "tests/fixtures/invalid-negative-zero.json",
+      "error_contains": "negative zero"
+    }
+  ]
+}

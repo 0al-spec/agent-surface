@@ -1,0 +1,109 @@
+{
+  "$schema": "./bundle.schema.json",
+  "schema_version": 1,
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/replay-bundle/v1",
+  "protocol_version": "agent-surface/0.1",
+  "claim_effect": "descriptive_only",
+  "bundle_id": "bundle-explicit-gap",
+  "created_at": "2026-07-20T10:02:00Z",
+  "scope": {
+    "subject_user": "user_abc",
+    "issuer": "https://code.example.com",
+    "app_id": "code.example.com",
+    "surface_version": "2026-07-20",
+    "surface_hash": "sha-256:1NaXlme2iawiReZ5lnIjGk7BE8UKxbQDWtyXLpiB9S4",
+    "grant_id": "grant_123",
+    "grant_hash": "sha-256:fTvGuhgQ8CujkBIcD0eAhLVSzl2r91eoV48hj8I-gVY",
+    "runtime_id": "runtime_456",
+    "agent_id": "agent_789",
+    "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "session_id": "sess_456",
+    "session_generation": 1
+  },
+  "context": {
+    "surface": {
+      "protocol": "agent-surface/0.1",
+      "app_id": "code.example.com",
+      "issuer": "https://code.example.com",
+      "surface_mode": "standard",
+      "surface_version": "2026-07-20",
+      "surface_url": "https://code.example.com/.well-known/agent-surface.json",
+      "auth": {},
+      "agent_api": {},
+      "scopes": [],
+      "data_classes": [],
+      "resources": [],
+      "actions": [],
+      "events": [],
+      "audit": {},
+      "revocation": {},
+      "surface_hash": "sha-256:1NaXlme2iawiReZ5lnIjGk7BE8UKxbQDWtyXLpiB9S4"
+    },
+    "grant": {
+      "grant_id": "grant_123",
+      "subject": { "user": "user_abc" },
+      "delegate": {
+        "runtime": "runtime_456",
+        "agent": "agent_789",
+        "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "resource_server": {
+        "app_id": "code.example.com",
+        "issuer": "https://code.example.com",
+        "surface_version": "2026-07-20",
+        "surface_hash": "sha-256:1NaXlme2iawiReZ5lnIjGk7BE8UKxbQDWtyXLpiB9S4"
+      },
+      "actions": [],
+      "scopes": [],
+      "constraints": { "expires_at": "2026-07-20T11:00:00Z" },
+      "data_exposure": [],
+      "credential_profile": "proof_bound",
+      "credential_binding": {},
+      "audit": {
+        "local_receipt": "required",
+        "app_receipt": "required"
+      },
+      "grant_hash": "sha-256:fTvGuhgQ8CujkBIcD0eAhLVSzl2r91eoV48hj8I-gVY"
+    }
+  },
+  "capture": {
+    "started_at": "2026-07-20T10:00:00Z",
+    "ended_at": "2026-07-20T10:02:00Z",
+    "completeness": "partial"
+  },
+  "records": [
+    {
+      "ordinal": 0,
+      "record_id": "record-capture-gap",
+      "recorded_at": "2026-07-20T10:00:00Z",
+      "kind": "capture_gap",
+      "name": "capture.gap",
+      "representation": "exact",
+      "elisions": [],
+      "body": {
+        "reason": "not_captured",
+        "started_at": "2026-07-20T09:59:00Z",
+        "ended_at": "2026-07-20T10:00:00Z"
+      },
+      "record_hash": "sha-256:slLd9fSkaGQv-SxxRaynxZa4RZiSXhvBs-CgSLTaH5M"
+    },
+    {
+      "ordinal": 1,
+      "record_id": "record-session-interrupt",
+      "recorded_at": "2026-07-20T10:02:00Z",
+      "kind": "session_transition",
+      "name": "session.transition",
+      "representation": "exact",
+      "elisions": [],
+      "body": {
+        "session_generation": 1,
+        "prior_state": "active",
+        "next_state": "interrupted",
+        "reason": "channel_loss"
+      },
+      "previous_record_hash": "sha-256:slLd9fSkaGQv-SxxRaynxZa4RZiSXhvBs-CgSLTaH5M",
+      "record_hash": "sha-256:Url1SOBhAJg9z_EzdAgnShh73uopAk_1CyZM90b29Io"
+    }
+  ],
+  "bundle_hash": "sha-256:Q7qvSgCZfwQoV5pap03fqwRO596iXiKW0QPtM3XQpps"
+}

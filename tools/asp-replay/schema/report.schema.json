@@ -1,0 +1,711 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/tools/asp-replay/schemas/report/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "report_profile",
+    "claim_effect",
+    "tool",
+    "input",
+    "evaluation_state",
+    "integrity_verdict",
+    "replay_completeness",
+    "verdict",
+    "checks",
+    "diagnostics",
+    "diagnostics_truncated",
+    "diagnostics_omitted",
+    "replay",
+    "assurance",
+    "report_hash"
+  ],
+  "properties": {
+    "$schema": { "const": "./report.schema.json" },
+    "schema_version": { "const": 1 },
+    "report_profile": {
+      "const": "https://github.com/0al-spec/agent-surface/tools/asp-replay/report/v1"
+    },
+    "claim_effect": { "const": "descriptive_only" },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "check_profile",
+        "check_version",
+        "check_registry_sha256"
+      ],
+      "properties": {
+        "name": { "const": "asp-replay" },
+        "version": { "type": "string", "minLength": 1 },
+        "check_profile": {
+          "const": "https://github.com/0al-spec/agent-surface/tools/asp-replay/checks/v1"
+        },
+        "check_version": { "const": "1.0.0" },
+        "check_registry_sha256": {
+          "const": "sha-256:S41nMjkRfHi4GZPr3_2WWAbCmt--MnKcd55lXLc_aXo"
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_sha256", "bundle_id", "bundle_hash"],
+      "properties": {
+        "source_sha256": { "$ref": "#/$defs/digest" },
+        "bundle_id": {
+          "oneOf": [
+            { "$ref": "#/$defs/id" },
+            { "type": "null" }
+          ]
+        },
+        "bundle_hash": {
+          "oneOf": [
+            { "$ref": "#/$defs/digest" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "evaluation_state": {
+      "enum": ["preflight_failed", "semantic_invalid", "incomplete", "valid"]
+    },
+    "integrity_verdict": { "enum": ["valid", "invalid"] },
+    "replay_completeness": { "enum": ["complete", "incomplete", "not_evaluated"] },
+    "verdict": { "enum": ["valid", "incomplete", "invalid"] },
+    "checks": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "prefixItems": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-SCHEMA-001" },
+                "title": {
+                  "const": "Validate the closed replay bundle and record envelopes"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-CONTEXT-001" },
+                "title": {
+                  "const": "Bind the exact historical Surface and Grant to replay scope"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-ORDER-001" },
+                "title": {
+                  "const": "Verify record identity, ordering, hashes, and prior links"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-SESSION-001" },
+                "title": {
+                  "const": "Reduce one session generation without illegal lifecycle changes"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-EVENT-001" },
+                "title": {
+                  "const": "Verify ASP CloudEvent structure, declaration binding, and occurrence hash"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-DELIVERY-001" },
+                "title": {
+                  "const": "Preserve event occurrence and delivery identity across attempts"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-ACK-001" },
+                "title": {
+                  "const": "Bind acknowledgements to earlier deliveries and terminal outcomes"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-GAP-001" },
+                "title": {
+                  "const": "Represent protocol and capture gaps without inventing history"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-RECEIPT-HASH-001" },
+                "title": {
+                  "const": "Recompute available receipt and embedded object hashes"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-RECEIPT-CHAIN-001" },
+                "title": {
+                  "const": "Verify receipt identities, parent order, and scope bindings"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-RECEIPT-LINK-001" },
+                "title": {
+                  "const": "Resolve approval and recovery side links without deriving authority"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/checkResult" },
+            {
+              "properties": {
+                "check_id": { "const": "ASP-REPLAY-SECRETS-001" },
+                "title": {
+                  "const": "Reject known raw protocol secret fields without echoing values"
+                }
+              },
+              "required": ["check_id", "title"]
+            }
+          ]
+        }
+      ],
+      "items": false
+    },
+    "diagnostics": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check_id", "severity", "path", "message"],
+        "properties": {
+          "check_id": {
+            "enum": [
+              "ASP-REPLAY-SCHEMA-001",
+              "ASP-REPLAY-CONTEXT-001",
+              "ASP-REPLAY-ORDER-001",
+              "ASP-REPLAY-SESSION-001",
+              "ASP-REPLAY-EVENT-001",
+              "ASP-REPLAY-DELIVERY-001",
+              "ASP-REPLAY-ACK-001",
+              "ASP-REPLAY-GAP-001",
+              "ASP-REPLAY-RECEIPT-HASH-001",
+              "ASP-REPLAY-RECEIPT-CHAIN-001",
+              "ASP-REPLAY-RECEIPT-LINK-001",
+              "ASP-REPLAY-SECRETS-001"
+            ]
+          },
+          "severity": { "enum": ["error", "incomplete"] },
+          "path": {
+            "type": "string",
+            "maxLength": 512,
+            "pattern": "^(?:|(?:/(?:[^~/]|~[01])*)+)$"
+          },
+          "message": { "type": "string", "minLength": 1, "maxLength": 256 }
+        }
+      }
+    },
+    "diagnostics_truncated": { "type": "boolean" },
+    "diagnostics_omitted": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "final_session_state",
+        "session_generation",
+        "session_transitions",
+        "event_occurrences",
+        "event_deliveries",
+        "event_attempts",
+        "event_acknowledgements",
+        "event_gaps",
+        "capture_gaps",
+        "receipts",
+        "receipt_roots",
+        "receipt_heads"
+      ],
+      "properties": {
+        "status": { "enum": ["evaluated", "not_evaluated"] },
+        "final_session_state": {
+          "enum": [
+            "unknown",
+            "absent",
+            "active",
+            "interrupted",
+            "cancelled",
+            "completed",
+            "failed"
+          ]
+        },
+        "session_generation": { "type": "integer", "minimum": 0 },
+        "session_transitions": { "$ref": "#/$defs/count" },
+        "event_occurrences": { "$ref": "#/$defs/count" },
+        "event_deliveries": { "$ref": "#/$defs/count" },
+        "event_attempts": { "$ref": "#/$defs/count" },
+        "event_acknowledgements": { "$ref": "#/$defs/count" },
+        "event_gaps": { "$ref": "#/$defs/count" },
+        "capture_gaps": { "$ref": "#/$defs/count" },
+        "receipts": { "$ref": "#/$defs/count" },
+        "receipt_roots": { "$ref": "#/$defs/count" },
+        "receipt_heads": { "$ref": "#/$defs/count" }
+      }
+    },
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verified", "not_verified"],
+      "properties": {
+        "verified": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 4,
+          "items": {
+            "enum": [
+              "canonical_integrity",
+              "historical_context_consistency",
+              "recorded_lifecycle",
+              "recorded_linkage"
+            ]
+          }
+        },
+        "not_verified": {
+          "const": [
+            "producer_authentication",
+            "signature_validity",
+            "current_authority",
+            "trusted_time",
+            "effect_occurrence",
+            "remote_schemas",
+            "complete_native_object_semantics"
+          ]
+        }
+      }
+    },
+    "report_hash": { "$ref": "#/$defs/digest" }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "evaluation_state": { "const": "preflight_failed" },
+        "integrity_verdict": { "const": "invalid" },
+        "replay_completeness": { "const": "not_evaluated" },
+        "verdict": { "const": "invalid" },
+        "replay": { "$ref": "#/$defs/neutralReplay" },
+        "assurance": {
+          "properties": { "verified": { "maxItems": 0 } },
+          "required": ["verified"]
+        },
+        "checks": {
+          "prefixItems": [
+            { "$ref": "#/$defs/preflightCheckState" },
+            { "$ref": "#/$defs/preflightCheckState" },
+            { "$ref": "#/$defs/preflightCheckState" },
+            { "$ref": "#/$defs/notEvaluatedCheckState" },
+            { "$ref": "#/$defs/notEvaluatedCheckState" },
+            { "$ref": "#/$defs/notEvaluatedCheckState" },
+            { "$ref": "#/$defs/notEvaluatedCheckState" },
+            { "$ref": "#/$defs/notEvaluatedCheckState" },
+            { "$ref": "#/$defs/notEvaluatedCheckState" },
+            { "$ref": "#/$defs/notEvaluatedCheckState" },
+            { "$ref": "#/$defs/notEvaluatedCheckState" },
+            { "$ref": "#/$defs/preflightCheckState" }
+          ],
+          "allOf": [
+            {
+              "contains": {
+                "properties": { "status": { "const": "fail" } },
+                "required": ["status"]
+              }
+            }
+          ]
+        },
+        "diagnostics": {
+          "contains": {
+            "properties": { "severity": { "const": "error" } },
+            "required": ["severity"]
+          }
+        }
+      },
+      "required": [
+        "evaluation_state",
+        "integrity_verdict",
+        "replay_completeness",
+        "verdict"
+      ]
+    },
+    {
+      "properties": {
+        "evaluation_state": { "const": "semantic_invalid" },
+        "integrity_verdict": { "const": "invalid" },
+        "replay_completeness": { "const": "not_evaluated" },
+        "verdict": { "const": "invalid" },
+        "input": { "$ref": "#/$defs/evaluatedInput" },
+        "replay": { "$ref": "#/$defs/neutralReplay" },
+        "assurance": {
+          "properties": { "verified": { "maxItems": 0 } },
+          "required": ["verified"]
+        },
+        "checks": {
+          "prefixItems": [
+            { "$ref": "#/$defs/passCheckState" },
+            { "$ref": "#/$defs/passCheckState" },
+            { "$ref": "#/$defs/passCheckState" },
+            { "$ref": "#/$defs/semanticCheckState" },
+            { "$ref": "#/$defs/semanticCheckState" },
+            { "$ref": "#/$defs/semanticCheckState" },
+            { "$ref": "#/$defs/semanticCheckState" },
+            { "$ref": "#/$defs/semanticCheckState" },
+            { "$ref": "#/$defs/semanticCheckState" },
+            { "$ref": "#/$defs/semanticCheckState" },
+            { "$ref": "#/$defs/semanticCheckState" },
+            { "$ref": "#/$defs/passCheckState" }
+          ],
+          "contains": {
+            "properties": { "status": { "const": "fail" } },
+            "required": ["status"]
+          }
+        },
+        "diagnostics": {
+          "contains": {
+            "properties": { "severity": { "const": "error" } },
+            "required": ["severity"]
+          }
+        }
+      },
+      "required": [
+        "evaluation_state",
+        "integrity_verdict",
+        "replay_completeness",
+        "verdict"
+      ]
+    },
+    {
+      "properties": {
+        "evaluation_state": { "const": "incomplete" },
+        "integrity_verdict": { "const": "valid" },
+        "replay_completeness": { "const": "incomplete" },
+        "verdict": { "const": "incomplete" },
+        "input": { "$ref": "#/$defs/evaluatedInput" },
+        "replay": {
+          "properties": { "status": { "const": "evaluated" } },
+          "required": ["status"]
+        },
+        "assurance": {
+          "properties": {
+            "verified": {
+              "const": [
+                "canonical_integrity",
+                "historical_context_consistency"
+              ]
+            }
+          },
+          "required": ["verified"]
+        },
+        "checks": {
+          "prefixItems": [
+            { "$ref": "#/$defs/passCheckState" },
+            { "$ref": "#/$defs/passCheckState" },
+            { "$ref": "#/$defs/passCheckState" },
+            { "$ref": "#/$defs/incompleteCheckState" },
+            { "$ref": "#/$defs/incompleteCheckState" },
+            { "$ref": "#/$defs/incompleteCheckState" },
+            { "$ref": "#/$defs/incompleteCheckState" },
+            { "$ref": "#/$defs/incompleteCheckState" },
+            { "$ref": "#/$defs/incompleteCheckState" },
+            { "$ref": "#/$defs/incompleteCheckState" },
+            { "$ref": "#/$defs/incompleteCheckState" },
+            { "$ref": "#/$defs/passCheckState" }
+          ],
+          "contains": {
+            "properties": { "status": { "const": "incomplete" } },
+            "required": ["status"]
+          }
+        },
+        "diagnostics": {
+          "minItems": 1,
+          "items": {
+            "properties": { "severity": { "const": "incomplete" } },
+            "required": ["severity"]
+          }
+        }
+      },
+      "required": [
+        "evaluation_state",
+        "integrity_verdict",
+        "replay_completeness",
+        "verdict"
+      ]
+    },
+    {
+      "properties": {
+        "evaluation_state": { "const": "valid" },
+        "integrity_verdict": { "const": "valid" },
+        "replay_completeness": { "const": "complete" },
+        "verdict": { "const": "valid" },
+        "input": { "$ref": "#/$defs/evaluatedInput" },
+        "replay": {
+          "properties": { "status": { "const": "evaluated" } },
+          "required": ["status"]
+        },
+        "assurance": {
+          "properties": {
+            "verified": {
+              "const": [
+                "canonical_integrity",
+                "historical_context_consistency",
+                "recorded_lifecycle",
+                "recorded_linkage"
+              ]
+            }
+          },
+          "required": ["verified"]
+        },
+        "checks": {
+          "items": {
+            "properties": { "status": { "const": "pass" } },
+            "required": ["status"]
+          }
+        },
+        "diagnostics": { "maxItems": 0 },
+        "diagnostics_truncated": { "const": false },
+        "diagnostics_omitted": { "const": 0 }
+      },
+      "required": [
+        "evaluation_state",
+        "integrity_verdict",
+        "replay_completeness",
+        "verdict"
+      ]
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": { "diagnostics_truncated": { "const": false } },
+        "required": ["diagnostics_truncated"]
+      },
+      "then": {
+        "properties": { "diagnostics_omitted": { "const": 0 } },
+        "required": ["diagnostics_omitted"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "diagnostics_omitted": { "minimum": 1 } },
+        "required": ["diagnostics_omitted"]
+      },
+      "then": {
+        "properties": { "diagnostics_truncated": { "const": true } },
+        "required": ["diagnostics_truncated"]
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*(?![\\s\\S])"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048](?![\\s\\S])"
+    },
+    "checkResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check_id", "title", "status", "findings"],
+      "properties": {
+        "check_id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["pass", "fail", "incomplete", "not_evaluated"] },
+        "findings": { "type": "integer", "minimum": 0 }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "status": { "enum": ["pass", "not_evaluated"] },
+            "findings": { "const": 0 }
+          },
+          "required": ["status", "findings"]
+        },
+        {
+          "properties": {
+            "status": { "enum": ["fail", "incomplete"] },
+            "findings": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["status", "findings"]
+        }
+      ]
+    },
+    "passCheckState": {
+      "type": "object",
+      "properties": {
+        "status": { "const": "pass" },
+        "findings": { "const": 0 }
+      },
+      "required": ["status", "findings"]
+    },
+    "notEvaluatedCheckState": {
+      "type": "object",
+      "properties": {
+        "status": { "const": "not_evaluated" },
+        "findings": { "const": 0 }
+      },
+      "required": ["status", "findings"]
+    },
+    "preflightCheckState": {
+      "type": "object",
+      "properties": {
+        "status": { "enum": ["pass", "fail"] }
+      },
+      "required": ["status"]
+    },
+    "semanticCheckState": {
+      "type": "object",
+      "properties": {
+        "status": { "enum": ["pass", "fail", "incomplete"] }
+      },
+      "required": ["status"]
+    },
+    "incompleteCheckState": {
+      "type": "object",
+      "properties": {
+        "status": { "enum": ["pass", "incomplete"] }
+      },
+      "required": ["status"]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4096
+    },
+    "evaluatedInput": {
+      "type": "object",
+      "properties": {
+        "bundle_id": { "$ref": "#/$defs/id" },
+        "bundle_hash": { "$ref": "#/$defs/digest" }
+      },
+      "required": ["bundle_id", "bundle_hash"]
+    },
+    "neutralReplay": {
+      "type": "object",
+      "properties": {
+        "status": { "const": "not_evaluated" },
+        "final_session_state": { "const": "unknown" },
+        "session_generation": { "const": 0 },
+        "session_transitions": { "const": 0 },
+        "event_occurrences": { "const": 0 },
+        "event_deliveries": { "const": 0 },
+        "event_attempts": { "const": 0 },
+        "event_acknowledgements": { "const": 0 },
+        "event_gaps": { "const": 0 },
+        "capture_gaps": { "const": 0 },
+        "receipts": { "const": 0 },
+        "receipt_roots": { "const": 0 },
+        "receipt_heads": { "const": 0 }
+      },
+      "required": [
+        "status",
+        "final_session_state",
+        "session_generation",
+        "session_transitions",
+        "event_occurrences",
+        "event_deliveries",
+        "event_attempts",
+        "event_acknowledgements",
+        "event_gaps",
+        "capture_gaps",
+        "receipts",
+        "receipt_roots",
+        "receipt_heads"
+      ]
+    }
+  }
+}

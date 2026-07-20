@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/tools/asp-replay/schemas/cases/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile", "cases"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "profile": {
+      "const": "https://github.com/0al-spec/agent-surface/profiles/replay-bundle/v1"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/reportCase" },
+          { "$ref": "#/$defs/parseErrorCase" }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,63}(?![\\s\\S])"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9._/-]+(?![\\s\\S])"
+    },
+    "reportCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "expect",
+        "source",
+        "evaluation_state",
+        "verdict",
+        "integrity_verdict",
+        "replay_completeness",
+        "diagnostic_check_ids"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "expect": { "const": "report" },
+        "source": { "$ref": "#/$defs/path" },
+        "golden": { "$ref": "#/$defs/path" },
+        "evaluation_state": {
+          "enum": ["preflight_failed", "semantic_invalid", "incomplete", "valid"]
+        },
+        "verdict": { "enum": ["valid", "incomplete", "invalid"] },
+        "integrity_verdict": { "enum": ["valid", "invalid"] },
+        "replay_completeness": {
+          "enum": ["complete", "incomplete", "not_evaluated"]
+        },
+        "diagnostic_check_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "mutations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["op", "path"],
+            "properties": {
+              "op": { "enum": ["add", "replace", "remove"] },
+              "path": { "type": "string", "pattern": "^/" },
+              "value": true
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": { "op": { "enum": ["add", "replace"] } }
+                },
+                "then": { "required": ["value"] }
+              }
+            ]
+          }
+        },
+        "rehash_after_mutations": { "type": "boolean" }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "evaluation_state": { "const": "preflight_failed" },
+            "verdict": { "const": "invalid" },
+            "integrity_verdict": { "const": "invalid" },
+            "replay_completeness": { "const": "not_evaluated" }
+          },
+          "required": [
+            "evaluation_state",
+            "verdict",
+            "integrity_verdict",
+            "replay_completeness"
+          ]
+        },
+        {
+          "properties": {
+            "evaluation_state": { "const": "semantic_invalid" },
+            "verdict": { "const": "invalid" },
+            "integrity_verdict": { "const": "invalid" },
+            "replay_completeness": { "const": "not_evaluated" }
+          },
+          "required": [
+            "evaluation_state",
+            "verdict",
+            "integrity_verdict",
+            "replay_completeness"
+          ]
+        },
+        {
+          "properties": {
+            "evaluation_state": { "const": "incomplete" },
+            "verdict": { "const": "incomplete" },
+            "integrity_verdict": { "const": "valid" },
+            "replay_completeness": { "const": "incomplete" }
+          },
+          "required": [
+            "evaluation_state",
+            "verdict",
+            "integrity_verdict",
+            "replay_completeness"
+          ]
+        },
+        {
+          "properties": {
+            "evaluation_state": { "const": "valid" },
+            "verdict": { "const": "valid" },
+            "integrity_verdict": { "const": "valid" },
+            "replay_completeness": { "const": "complete" }
+          },
+          "required": [
+            "evaluation_state",
+            "verdict",
+            "integrity_verdict",
+            "replay_completeness"
+          ]
+        }
+      ]
+    },
+    "parseErrorCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "expect", "source", "error_contains"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "expect": { "const": "parse_error" },
+        "source": { "$ref": "#/$defs/path" },
+        "error_contains": { "type": "string", "minLength": 1, "maxLength": 160 }
+      }
+    }
+  }
+}

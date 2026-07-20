@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/tools/asp-replay/schemas/bundle/v1",
+  "title": "ASP Portable Replay Bundle v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "profile",
+    "protocol_version",
+    "claim_effect",
+    "bundle_id",
+    "created_at",
+    "scope",
+    "context",
+    "capture",
+    "records",
+    "bundle_hash"
+  ],
+  "properties": {
+    "$schema": { "const": "./bundle.schema.json" },
+    "schema_version": { "const": 1 },
+    "profile": {
+      "const": "https://github.com/0al-spec/agent-surface/profiles/replay-bundle/v1"
+    },
+    "protocol_version": { "const": "agent-surface/0.1" },
+    "claim_effect": { "const": "descriptive_only" },
+    "bundle_id": { "$ref": "#/$defs/id" },
+    "created_at": { "$ref": "#/$defs/timestamp" },
+    "scope": { "$ref": "#/$defs/scope" },
+    "context": { "$ref": "#/$defs/context" },
+    "capture": { "$ref": "#/$defs/capture" },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": { "$ref": "#/$defs/record" }
+    },
+    "bundle_hash": { "$ref": "#/$defs/digest" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*(?![\\s\\S])"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048](?![\\s\\S])"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z(?![\\s\\S])"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject_user",
+        "issuer",
+        "app_id",
+        "surface_version",
+        "surface_hash",
+        "grant_id",
+        "grant_hash",
+        "runtime_id",
+        "agent_id",
+        "passport_hash",
+        "session_id",
+        "session_generation"
+      ],
+      "properties": {
+        "subject_user": { "$ref": "#/$defs/id" },
+        "issuer": { "type": "string", "format": "uri", "maxLength": 2048 },
+        "app_id": { "$ref": "#/$defs/id" },
+        "surface_version": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "surface_hash": { "$ref": "#/$defs/digest" },
+        "grant_id": { "$ref": "#/$defs/id" },
+        "grant_hash": { "$ref": "#/$defs/digest" },
+        "runtime_id": { "$ref": "#/$defs/id" },
+        "agent_id": { "$ref": "#/$defs/id" },
+        "passport_hash": { "$ref": "#/$defs/digest" },
+        "session_id": { "$ref": "#/$defs/id" },
+        "session_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface", "grant"],
+      "properties": {
+        "surface": { "type": "object" },
+        "grant": { "type": "object" }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["started_at", "ended_at", "completeness"],
+      "properties": {
+        "started_at": { "$ref": "#/$defs/timestamp" },
+        "ended_at": { "$ref": "#/$defs/timestamp" },
+        "completeness": { "enum": ["complete", "partial"] }
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ordinal",
+        "record_id",
+        "recorded_at",
+        "kind",
+        "name",
+        "representation",
+        "elisions",
+        "body",
+        "record_hash"
+      ],
+      "properties": {
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4095
+        },
+        "record_id": { "$ref": "#/$defs/id" },
+        "recorded_at": { "$ref": "#/$defs/timestamp" },
+        "kind": {
+          "enum": [
+            "session_transition",
+            "event_delivery",
+            "event_ack",
+            "event_gap",
+            "receipt",
+            "capture_gap"
+          ]
+        },
+        "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "representation": { "const": "exact" },
+        "elisions": { "const": [] },
+        "body": { "type": "object" },
+        "previous_record_hash": { "$ref": "#/$defs/digest" },
+        "record_hash": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

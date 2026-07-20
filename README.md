@@ -64,7 +64,7 @@ agent-surface/
     workflows/docs.yml       Markdown, RFC, and dashboard checks.
   conformance/             Versioned executable matrix, vectors, schemas, and runner.
   mocks/                   Synthetic Mock App and Mock Runtime suite fixtures.
-  tools/                   Rust API importer and ASP manifest linter.
+  tools/                   Rust API importer, manifest linter, and passive replay verifier.
   drafts/                  Source RFCs written in Markdown.
   review/                  Source data, template, and generated RFC review dashboard.
   LICENSE                  MIT license for repository source code.
@@ -204,6 +204,47 @@ The canonical rules, diagnostic schemas, fixtures, and implementation live in
 ambiguous JSON before linting. A clean result is static declaration evidence
 only; it does not verify remote schema bytes, authority, runtime behavior,
 interoperability, or deployment security.
+
+## Portable Replay Bundle Verifier
+
+The Rust `asp-replay` CLI validates one portable, passive ASP
+session-generation evidence bundle:
+
+```sh
+make replay-check
+cargo run --locked -p asp-replay-tool -- verify bundle.json
+cargo run --locked -p asp-replay-tool -- self-check --root .
+```
+
+The bundle contains an exact historical Surface, semantic Grant, and a bounded
+ordered record chain containing only session transitions, event deliveries,
+event acknowledgements, event gaps, receipts, and explicit capture gaps. It
+never contains a Grant Credential, raw token, prompt, Action Request, Action
+Response, or executable content.
+
+Verification is deterministic and offline. The tool never follows a URI, opens
+a network connection, requests online event replay, acknowledges an event,
+changes or resumes a session, dispatches an action, invokes an agent, or
+performs an effect.
+
+For safely parsed input, the report has exactly one evaluation state:
+`preflight_failed`, `semantic_invalid`, `incomplete`, or `valid`. Strict parse,
+local resource, serialization, and tool-integrity failures occur outside that
+report state machine. They return status `2` and emit no report. Invalid and
+incomplete reports return status `1`; only a valid report returns status `0`.
+
+`valid` means only that every check in the report's exact
+`tool.check_profile` ran and passed and that the bounded checker found no replay
+gap. It is not, by itself, complete Portable Replay Bundle Profile validation
+or native-object conformance. A complete profile validator must also apply the
+authoritative Surface, Grant, CloudEvent, acknowledgement, gap, receipt, and
+required-signature rules. It must combine those gates fail closed.
+
+The report does not authenticate the exporter or receipt producer, establish
+current authority or state, verify remote schemas or keys, or prove that an
+external effect occurred. Its assurance values cover only claims supported by
+passed prerequisite checks; an unevaluated or incomplete check is never
+silently promoted to verified assurance.
 
 ## Status
 

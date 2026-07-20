@@ -22,6 +22,7 @@ from build_review import (  # noqa: E402
 )
 from review_data import (  # noqa: E402
     _cargo_command,
+    _run_replay_self_check,
     _validate_canonical_conformance_catalog,
     _validate_canonical_mock_bundle,
     load_review_payload,
@@ -79,6 +80,32 @@ class ReviewDataValidationTests(unittest.TestCase):
                 os.environ.pop("CARGO", None)
             else:
                 os.environ["CARGO"] = previous
+
+    def test_replay_self_check_is_cached_and_uses_the_bound_package(self) -> None:
+        _run_replay_self_check.cache_clear()
+        try:
+            completed = mock.Mock(returncode=0, stdout="", stderr="")
+            with mock.patch("review_data.subprocess.run", return_value=completed) as run:
+                _run_replay_self_check()
+                _run_replay_self_check()
+            self.assertEqual(run.call_count, 1)
+            command = run.call_args.args[0]
+            self.assertEqual(
+                command[-8:],
+                [
+                    "--quiet",
+                    "--locked",
+                    "-p",
+                    "asp-replay-tool",
+                    "--",
+                    "self-check",
+                    "--root",
+                    str(REVIEW_DIR.parent),
+                ],
+            )
+            self.assertEqual(run.call_args.kwargs["cwd"], REVIEW_DIR.parent)
+        finally:
+            _run_replay_self_check.cache_clear()
 
     def test_valid_v2_planning_bundle_is_accepted(self) -> None:
         validate_review_payload(self.valid_payload(), self.heading_ids)
@@ -300,6 +327,70 @@ class ReviewDataValidationTests(unittest.TestCase):
             (
                 "implementation",
                 "tools/asp-manifest-linter/src/main.rs",
+                "exact bound tooling entry point",
+            ),
+        )
+        for kind, ref, message in cases:
+            with self.subTest(kind=kind):
+                payload = self.machine_validated_payload()
+                review = payload["reviews"][0]
+                review["evidence"].append({"kind": kind, "ref": ref})
+                self.assert_invalid(payload, message)
+
+    @mock.patch("review_data._run_replay_self_check")
+    def test_replay_machine_validation_requires_the_exact_bound_evidence(
+        self, _replay_self_check: mock.Mock
+    ) -> None:
+        for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.machine_validated_payload()
+                review = next(item for item in payload["reviews"] if item["id"] == 59)
+                removed = False
+                retained = []
+                for item in review["evidence"]:
+                    if item["kind"] == missing_kind and not removed:
+                        removed = True
+                        continue
+                    retained.append(item)
+                review["evidence"] = retained
+                self.assertTrue(removed)
+                self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    @mock.patch("review_data._run_replay_self_check")
+    def test_replay_machine_validation_rejects_extra_evidence(
+        self, _replay_self_check: mock.Mock
+    ) -> None:
+        payload = self.machine_validated_payload()
+        review = next(item for item in payload["reviews"] if item["id"] == 59)
+        review["anchors"].append(
+            {
+                "heading": "Conceptual Architecture",
+                "anchorId": "conceptual-architecture",
+            }
+        )
+        review["evidence"].append(
+            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+        )
+        self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    @mock.patch("review_data._run_replay_self_check")
+    def test_other_review_cannot_borrow_replay_evidence(
+        self, _replay_self_check: mock.Mock
+    ) -> None:
+        cases = (
+            (
+                "schema",
+                "tools/asp-replay/schema/bundle.schema.json",
+                "exact bound tooling schema",
+            ),
+            (
+                "registry",
+                "tools/asp-replay/cases/v1/cases.json",
+                "conformance/v1/suite.json",
+            ),
+            (
+                "implementation",
+                "tools/asp-replay/src/main.rs",
                 "exact bound tooling entry point",
             ),
         )
@@ -570,14 +661,14 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 62)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 451)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 471)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 50, "proposal": 1, "machine_validated": 11}),
+            Counter({"specified": 50, "machine_validated": 12}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 61, "missing": 1}),
+            Counter({"present": 62}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 140)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -881,6 +972,40 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(
             [anchor["anchorId"] for anchor in reviews_by_id[58]["anchors"]],
             ["reference-mock-participants"],
+        )
+        self.assertEqual(reviews_by_id[59]["status"], "present")
+        self.assertEqual(reviews_by_id[59]["maturity"], "machine_validated")
+        self.assertEqual(reviews_by_id[59]["profile"], "conformance-tooling")
+        self.assertEqual(reviews_by_id[59]["depends_on"], [25, 26, 28, 30, 32, 55])
+        self.assertEqual(reviews_by_id[59]["readiness"], "ready")
+        self.assertEqual(len(reviews_by_id[59]["evidence"]), 20)
+        self.assertEqual(
+            Counter(item["kind"] for item in reviews_by_id[59]["evidence"]),
+            Counter(
+                {
+                    "rfc_anchor": 12,
+                    "schema": 4,
+                    "registry": 2,
+                    "implementation": 2,
+                }
+            ),
+        )
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[59]["anchors"]],
+            [
+                "portable-replay-bundle-profile",
+                "bundle-scope-and-historical-context",
+                "replay-record-object",
+                "deterministic-replay-and-ordering",
+                "integrity-completeness-and-validation-report",
+                "failure-privacy-and-non-authority-rules",
+                "canonical-object-hash-profile",
+                "replay-cursors-and-gaps",
+                "session-authority-and-lifecycle",
+                "receipt-hash-chain",
+                "reference-replay-tool",
+                "application-mvp-mapping",
+            ],
         )
         self.assertEqual(reviews_by_id[60]["readiness"], "ready")
         self.assertEqual(len(reviews_by_id[60]["evidence"]), 21)

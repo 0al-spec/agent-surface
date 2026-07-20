@@ -1,0 +1,8 @@
+{
+  "evaluation_state": "valid",
+  "integrity_verdict": "valid",
+  "replay_completeness": "complete",
+  "verdict": "valid",
+  "diagnostic_check_ids": [],
+  "report_hash": "sha-256:dtzK9SXmLoykUv39tJMCEFUdNqd4mOdVa3tOSD0reSg"
+}
