@@ -665,14 +665,14 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 77)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 500)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 501)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 50, "machine_validated": 12, "proposal": 15}),
+            Counter({"specified": 51, "machine_validated": 12, "proposal": 14}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 63, "partial": 6, "missing": 8}),
+            Counter({"present": 64, "partial": 5, "missing": 8}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 224)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -683,7 +683,7 @@ class ReviewDataValidationTests(unittest.TestCase):
                 if review["priority"] in {"P0", "P1"}
                 and review["status"] != "present"
             ],
-            [63, 65, 69, 76],
+            [65, 69, 76],
         )
         self.assertEqual(
             Counter(review["profile"] for review in reviews),
@@ -1033,9 +1033,20 @@ class ReviewDataValidationTests(unittest.TestCase):
                 "reference-mock-participants",
             ],
         )
-        self.assertEqual(reviews_by_id[63]["status"], "partial")
+        self.assertEqual(reviews_by_id[63]["status"], "present")
+        self.assertEqual(reviews_by_id[63]["maturity"], "specified")
         self.assertEqual(reviews_by_id[63]["depends_on"], [14, 15, 16, 36])
         self.assertEqual(reviews_by_id[63]["readiness"], "ready")
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[63]["anchors"]],
+            [
+                "authorized-surface-projection-profile",
+                "discovery",
+                "curated-surface-boundary",
+                "surface-hash",
+                "data-exposure-contract",
+            ],
+        )
         self.assertEqual(reviews_by_id[64]["status"], "partial")
         self.assertEqual(
             reviews_by_id[64]["depends_on"], [2, 5, 6, 10, 28, 35, 46]

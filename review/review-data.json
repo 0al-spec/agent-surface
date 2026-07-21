@@ -4750,8 +4750,12 @@
       "description": "определить public base snapshot и авторизованную, минимизированную projection для конкретного tenant/user/agent context без раскрытия скрытых affordances.",
       "category": "Discovery / selective disclosure",
       "side": "left",
-      "status": "partial",
+      "status": "present",
       "anchors": [
+        {
+          "heading": "Authorized Surface Projection Profile",
+          "anchorId": "authorized-surface-projection-profile"
+        },
         {
           "heading": "Discovery",
           "anchorId": "discovery"
@@ -4779,8 +4783,12 @@
         36
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "authorized-surface-projection-profile"
+        },
         {
           "kind": "rfc_anchor",
           "ref": "discovery"

@@ -309,6 +309,14 @@ A discoverable document, typically published at a well-known URL such as:
 
 The manifest describes the Agent Surface in a machine-readable format.
 
+### Authorized Surface Projection
+
+A complete Agent Surface Manifest derived for one server-authenticated
+authorization context by removing affordances from one issuer-authoritative
+base snapshot. A projection is discovery metadata, not authority. It cannot add
+or rewrite an affordance, and it does not replace an Agent Grant or any
+application-side authorization check.
+
 ### User-Owned Agent
 
 An agent selected by the user. It can run locally, in a company-controlled
@@ -1623,14 +1631,318 @@ For surface lifecycle decisions, the application MUST define a surface
 lifecycle key as (server-authenticated tenant context or a public-context
 marker, `issuer`, `app_id`, canonical `surface_url`) and maintain exactly one
 issuer-authoritative current discovery snapshot for that key. Tenant context
-is server state, never a caller-supplied selector. The authenticated object
-served at the canonical URL MUST be the designated snapshot. This designation
+is server state, never a caller-supplied selector. Except for the Authorized
+Discovery Bootstrap Descriptor defined below, an Agent Surface Manifest served
+at the canonical URL MUST be the designated snapshot. This designation
 is application state shared with the authorization server; it is not inferred
 by ordering opaque `surface_version` values. Changing the canonical URL for the
 same tenant, issuer, and app id MUST atomically migrate the lifecycle state and
 supersede the prior location; it MUST NOT create an independent issuance
 history. A cached or retained object can remain valid for an already-issued
 Grant without remaining eligible for new issuance.
+
+The snapshot above is the **base snapshot** for its lifecycle key. The
+application MAY serve that complete base directly when its inventory is safe
+for the authenticated or public context at the canonical URL. When disclosing
+the complete base would reveal affordances that are not appropriate for a
+particular user, runtime, or agent context, the application MUST either deny
+that discovery request or use the Authorized Surface Projection Profile below.
+When it uses the profile while withholding the base, it serves the profile's
+non-inventory bootstrap descriptor at the canonical URL. It MUST NOT improvise
+an unmarked partial manifest.
+
+#### Authorized Surface Projection Profile
+
+The optional Authorized Surface Projection Profile defines a minimized
+manifest for one server-authenticated authorization context. Its identifier is:
+
+```text
+https://github.com/0al-spec/agent-surface/profiles/authorized-discovery/v1
+```
+
+The profile preserves exactly one issuer-authoritative base snapshot for each
+ordinary surface lifecycle key. A projection never becomes another base and
+never creates an independent issuance history.
+
+A base manifest advertises support only by including the exact identifier above
+in `compatibility.authorized_discovery_profiles` and by publishing an absolute
+HTTPS `agent_api.authorized_surface_url`. Absence of either member in the base
+means that the profile is unsupported. A client learns those values either from
+a complete base it is permitted to receive or from the bootstrap descriptor
+below. It MUST NOT infer support from an authentication challenge, a
+tenant-specific origin, a filtered response, an OAuth scope, or ordinary
+application behavior.
+
+When the complete base is not disclosed, an authenticated or public `GET` of
+its canonical `surface_url` returns this closed **Authorized Discovery
+Bootstrap Descriptor** instead:
+
+```json
+{
+  "document_type": "agent-surface-authorized-discovery-bootstrap/1",
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/authorized-discovery/v1",
+  "surface_url": "https://example.com/.well-known/agent-surface.json",
+  "authorized_surface_url": "https://example.com/agent-surfaces/authorized",
+  "base": {
+    "issuer": "https://example.com",
+    "app_id": "com.example.project-tool",
+    "surface_version": "2026-06-25",
+    "surface_hash": "sha-256:<base64url-digest>"
+  }
+}
+```
+
+`document_type` and `profile` MUST equal the literals above. Descriptor
+retrieval in version 1 MUST NOT redirect, and `surface_url` MUST equal the exact
+canonical HTTPS URL requested by the client.
+`authorized_surface_url` MUST be the absolute HTTPS endpoint declared as
+`agent_api.authorized_surface_url` in the exact base. `base` MUST identify the
+issuer-authoritative current base selected from the server-authenticated
+lifecycle key and MUST be structurally identical to the corresponding base
+manifest fields. A mismatch between the descriptor and base is
+`surface_incompatible` and makes the descriptor unusable for issuance.
+
+The descriptor contains no resources, actions, events, scopes, data classes,
+schemas, operational limits, compatibility inventory, policy names, subject or
+tenant identifiers, runtime or agent identifiers, entitlement facts, alternate
+URLs, or counts. Unknown or additional members are invalid. It is discovery
+metadata only: HTTPS and issuer binding remain required, and the descriptor,
+its base hash, and possession of its endpoint grant no ASP authority and do not
+prove that a later projection is an attenuation.
+
+The descriptor response MUST send `Content-Type: application/json`,
+`Cache-Control: private, no-store`, and `Referrer-Policy: no-referrer`. A public
+descriptor still uses `private, no-store` so one URL cannot become a shared
+cache path when the deployment later requires an authenticated tenant context.
+The application selects its lifecycle key only from authenticated server state
+or the public marker; a query parameter, path template supplied by the caller,
+request header, or untrusted cookie MUST NOT select another tenant, subject, or
+base. If no descriptor is available for the applicable context, the endpoint
+returns `404 Not Found` without stating whether another base or context exists.
+
+The client copies `profile`, `authorized_surface_url`, and the complete `base`
+object verbatim into the projection request below. A descriptor becomes stale
+as soon as its base is no longer current. The application MUST compare the
+request with current server state and MUST NOT redirect, upgrade, or substitute
+the request to another base. A client MAY repeat canonical discovery after a
+generic stale failure, but it MUST NOT enumerate candidate base versions or
+projection endpoints.
+
+The projection endpoint accepts an authenticated `POST` with
+`Content-Type: application/json`. The request is the following closed object:
+
+```json
+{
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/authorized-discovery/v1",
+  "base": {
+    "issuer": "https://example.com",
+    "app_id": "com.example.project-tool",
+    "surface_version": "2026-06-25",
+    "surface_hash": "sha-256:<base64url-digest>"
+  }
+}
+```
+
+`profile` MUST equal the identifier above. `base` MUST identify the exact
+current base snapshot for the server-derived surface lifecycle key. The request
+MUST NOT contain a tenant id, user id, runtime id, agent id, role, group,
+affordance name, desired projection id, or another authorization selector. The
+application derives the applicable tenant and application subject from its
+authenticated session and derives runtime and agent bindings only from the
+independently authenticated or verified state used by its Grant flow. A
+caller-supplied header, query value, cookie value not issued by the
+application, request-body extension, display label, or previous projection is
+not such state.
+
+Version 1 does not define a new discovery credential. The deployment uses its
+ordinary authenticated application-subject session and independently
+authenticated runtime or verified agent state when available. Those mechanisms
+identify the projection context but do not themselves grant an ASP action. If
+the application cannot authenticate a dimension required by its projection
+policy, it fails or uses the explicit `unbound` behavior below; it MUST NOT
+trust the requested base tuple as identity evidence.
+
+For this profile, the application defines the **projection lifecycle key** as:
+
+```text
+(
+  base surface lifecycle key,
+  server-side application-subject key,
+  authenticated runtime-binding key,
+  verified agent-evidence key,
+  authorized-discovery profile identifier
+)
+```
+
+The keys are application state and MUST NOT be serialized into the manifest.
+The application maintains at most one current projection snapshot for that
+complete key. It MUST use a distinct key when any element differs or is
+unknown; it MUST NOT substitute a public marker, another subject, another
+runtime, or another agent merely to obtain a cache hit. If the deployment does
+not distinguish one of the runtime or agent dimensions before Grant issuance,
+it uses an explicit server-side `unbound` marker for that dimension and MUST
+re-evaluate the projection when the dimension becomes bound.
+
+A successful response is a complete Agent Surface Manifest with this REQUIRED
+top-level member:
+
+```json
+{
+  "authorized_projection": {
+    "profile": "https://github.com/0al-spec/agent-surface/profiles/authorized-discovery/v1",
+    "projection_id": "prj_V7pQ2uQ0gVM7mVnR3Dck2w",
+    "base_surface_version": "2026-06-25",
+    "base_surface_hash": "sha-256:<base64url-digest>",
+    "expires_at": "2026-07-21T21:00:00Z"
+  }
+}
+```
+
+`authorized_projection` is a closed object and part of the projected manifest
+hashing view. `profile` MUST equal the identifier above. `projection_id` is an
+opaque, non-empty, issuer-generated identifier for exactly one materialized
+projection snapshot. It MUST contain at least 128 bits of unpredictable output
+from a cryptographically secure generator, MUST NOT encode a tenant, subject,
+runtime, agent, role, entitlement, or affordance, and MUST NOT be treated as a
+credential. `base_surface_version` and `base_surface_hash` MUST equal the exact
+base snapshot used to derive the projection. `expires_at` is a required RFC
+3339 UTC timestamp with no fractional seconds and MUST be later than issuance.
+
+The projected manifest has its own opaque `surface_version` and computed
+`surface_hash`. The publisher MUST allocate a new projection id, surface
+version, and surface hash whenever the projection hashing view, base snapshot,
+projection lifecycle key, or authorization result changes. It MUST NOT reuse a
+base or another projection's surface version for different bytes. The
+projection retains the base manifest's `protocol`, `issuer`, `app_id`,
+`surface_url`, and `surface_mode` exactly.
+
+Version 1 permits attenuation only by omission:
+
+1. `resources`, `actions`, and non-control `events` MAY contain only complete
+   entries structurally identical to entries in the exact base snapshot;
+2. every base control event remains present and structurally identical;
+3. `scopes` and `data_classes` MAY remove only entries no retained declaration
+   references;
+4. when base `operational_limits` is present, its `actions` and `events` arrays
+   remove every entry for an omitted affordance and retain every other entry
+   structurally unchanged; if both projected arrays are empty, the projection
+   omits the complete `operational_limits` object;
+5. every retained reference, companion-action relationship, schema,
+   operational-limit relationship, endpoint requirement, receipt requirement,
+   and selected-profile dependency MUST remain closed and valid; and
+6. every other base member remains structurally identical except the projected
+   manifest's `surface_version`, `surface_hash`, and the added
+   `authorized_projection` member.
+
+A projection MUST NOT add an affordance absent from the base; change an id,
+schema, scope, risk, approval, execution, effect, exposure, retention,
+redaction, endpoint, audit, revocation, or compatibility semantic; weaken
+`surface_mode`; or retain a declaration whose references are no longer closed.
+Data exposure is narrowed only by omitting whole sources and their now-unused
+classes. Version 1 does not permit rewriting a retained source to claim a
+smaller class set, stronger redaction, or shorter retention; the publisher must
+define a distinct base affordance when those semantics differ.
+
+The Grant Issuer MUST possess and verify the complete exact base before it
+accepts a projection for issuance. It recomputes both hashes, applies the
+omission rules, verifies that the base and projection are current for their
+respective lifecycle keys, and verifies that the authenticated context still
+maps to `projection_id`. A runtime that also possesses the base SHOULD perform
+the same verification. A runtime that possesses only the projection can verify
+its manifest hash and authenticated issuer binding, but MUST NOT represent
+`base_surface_hash` alone as a cryptographic proof that attenuation was
+correct.
+
+When this profile is selected, the Agent Grant `resource_server` object MUST
+contain the following closed object copied exactly from the retained projected
+manifest:
+
+```json
+{
+  "authorized_projection": {
+    "profile": "https://github.com/0al-spec/agent-surface/profiles/authorized-discovery/v1",
+    "projection_id": "prj_V7pQ2uQ0gVM7mVnR3Dck2w",
+    "base_surface_version": "2026-06-25",
+    "base_surface_hash": "sha-256:<base64url-digest>"
+  }
+}
+```
+
+The Grant copy omits `expires_at`; projection freshness is checked at issuance,
+renewal, exchange, and derivation rather than converted into Grant expiry. The
+complete copy is part of the Grant hashing view. The runtime, Grant Issuer, and
+Action Executor MUST require exact equality of every copied field with the
+retained projected manifest and MUST reject a missing, extra, mismatched,
+expired-at-issuance, or unknown projection as `surface_incompatible`. A child Grant can retain the
+exact projection only for the same complete projection lifecycle key and can
+only attenuate its Grant authority. A different subject, runtime, agent, or
+base requires a newly derived projection and a new Grant; copying the prior
+projection object never authorizes that transition.
+
+An authorized response MUST send:
+
+```http
+Content-Type: application/json
+Cache-Control: private, no-store
+Referrer-Policy: no-referrer
+```
+
+An intermediary, browser HTTP cache, service worker, runtime discovery cache,
+or application cache MUST NOT key an authorized response only by URL, bearer
+token, projection id, issuer, app id, or base hash. A runtime that retains the
+verified object as Grant authority state uses the complete projection cache
+key: its local authenticated tenant, subject, runtime, and agent keys plus
+`issuer`, `app_id`, canonical `surface_url`, profile, `projection_id`, projected
+surface version and hash, and base surface version and hash. Those local
+identity keys MUST remain outside agent-visible context, URLs, logs, receipts,
+and the manifest. A missing or unresolved key disables reuse. HTTP `no-store`
+does not prohibit retaining the exact verified manifest as bounded Grant state;
+it prohibits using a general HTTP response cache as that authority store.
+
+If the base is superseded, the projection expires, authenticated context
+changes, entitlement state becomes unavailable, or the projection is no longer
+current, the application MUST reject new issuance, renewal, exchange, and
+derivation through that projection. It MUST NOT fall back to a cached base,
+public surface, wider projection, or another context. Existing Grants retain
+their exact projected manifest semantics until their own expiry or revocation;
+an application policy that intends the authorization change to end existing
+authority MUST perform the Semantic Grant Revocation Transition.
+
+Failure responses use `surface_projection_unavailable` and MUST NOT distinguish
+an unknown base, hidden affordance, unknown subject, wrong tenant, unauthorized
+agent, stale projection, expired projection, or unavailable entitlement state.
+They MUST contain no inventory counts, candidate ids, base diff, policy name,
+membership fact, or alternate URL and MUST send `Cache-Control: no-store` and
+`Referrer-Policy: no-referrer`. Implementations SHOULD make status, response
+shape, and observable timing as uniform as operationally practical. A semantic
+Grant request for an absent or hidden member continues to use
+`invalid_authorization_details`; an Action Request is interpreted only against
+its Grant's retained projection and returns `action_unknown` for an absent
+action without searching the base or another projection.
+
+After successful transport authentication and syntactic validation, every
+profile failure above uses HTTP `404 Not Found` with the common ASP error
+envelope and `code: "surface_projection_unavailable"`. Missing or invalid
+transport authentication uses the deployment's ordinary `401` or `403`
+challenge without projection detail. Malformed JSON, duplicate members, an
+unknown member, or a value of the wrong type uses `400 Bad Request` with the
+same ASP code and no projection detail. These transport distinctions describe
+caller-correctable authentication or syntax state and MUST NOT vary according
+to whether a hidden affordance or entitlement exists.
+
+The required fail-closed outcomes are:
+
+| Condition | Required outcome |
+| --- | --- |
+| Sensitive base is withheld but no valid bootstrap descriptor is available | Return generic `404 Not Found`; do not disclose or partially filter the base. |
+| Bootstrap descriptor redirects, contains inventory, has an unknown member, or disagrees with the exact base | Reject it; do not send a projection request or infer another endpoint. |
+| Caller supplies a tenant, subject, runtime, agent, role, or affordance selector | Reject the closed request as `surface_projection_unavailable`; do not use the selector. |
+| Base hash is unknown, stale, superseded, or mismatched | Return `surface_projection_unavailable`; do not derive from another base. |
+| Projection adds or rewrites a base declaration or has incomplete reference closure | Reject it as `surface_incompatible`; do not expose a partial result. |
+| Cached projection key lacks or mismatches any authenticated context component | Treat it as a cache miss and perform fresh authenticated discovery. |
+| Projection is expired or no longer current at issuance | Reject issuance without revealing which context or entitlement changed. |
+| Hidden or nonexistent member is requested for a Grant | Return the same `invalid_authorization_details` outcome and disclosure shape. |
+| Existing Grant is presented after the discovery context changes | Enforce the exact retained projection and current Grant state; revoke explicitly when policy requires existing authority to end. |
 
 ### Curated Surface Boundary
 
@@ -1902,6 +2214,13 @@ absence means that the surface publishes no standardized operational capacity
 contract; it MUST NOT be interpreted as unlimited capacity or as permission to
 ignore a `rate_limited` response.
 
+The top-level `authorized_projection` member is REQUIRED only for a manifest
+produced under the Authorized Surface Projection Profile and is otherwise
+forbidden. Its presence selects that exact profile and all of its base binding,
+attenuation, lifecycle, caching, anti-enumeration, and Grant-copy rules; a
+consumer MUST NOT ignore the member and process the object as an ordinary base
+manifest.
+
 ### Surface Hash
 
 Every manifest MUST contain `surface_hash` computed with the Canonical Object
@@ -1920,6 +2239,14 @@ manifest hashing view changes, including for a backward-compatible addition.
 If the same issuer, app id, and `surface_version` appears with a different
 `surface_hash`, the runtime MUST treat it as an integrity failure and MUST NOT
 silently replace the pinned object.
+
+For an Authorized Surface Projection, that ordinary key is necessary but not
+sufficient: the runtime MUST also apply the complete authenticated-context and
+base-snapshot cache partition defined by the selected profile. The projected
+`surface_hash` commits to `authorized_projection`, while
+`base_surface_hash` identifies the derivation source. Neither digest proves
+that the projection is an attenuation unless the verifier possesses and checks
+the exact base snapshot.
 
 The hash authenticates neither the issuer nor the transport. Runtimes MUST
 still enforce HTTPS, issuer and app-id binding, and any local pinning policy.
@@ -1979,6 +2306,15 @@ same exact grant tuple authenticate Action Requests and the closed budget and
 session safety operations without treating those control operations as granted
 actions. Changing it changes the manifest hashing view and requires a new
 `surface_version` and `surface_hash`.
+
+`agent_api.authorized_surface_url` is REQUIRED exactly when
+`compatibility.authorized_discovery_profiles` is present. It MUST be an
+absolute HTTPS URL and MUST implement only the authenticated projection
+contract defined by the selected profile. It is not an action endpoint, does
+not accept a Grant Credential as authority to widen discovery, and MUST NOT be
+included in a Grant's `locations` allow-list. Changing the URL changes the base
+manifest hashing view, invalidates every derived projection for new issuance,
+and requires a new base `surface_version` and `surface_hash`.
 
 When `event_subscription_url` is present, `agent_api.event_delivery` is
 REQUIRED. This draft defines only the `at_least_once` profile. Its
@@ -2049,6 +2385,9 @@ surface discoverable.
     "human_elicitation_profiles": [
       "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
     ],
+    "authorized_discovery_profiles": [
+      "https://github.com/0al-spec/agent-surface/profiles/authorized-discovery/v1"
+    ],
     "human_elicitation_replay_retention_seconds": 86400,
     "agent_passport_profiles": [
       {
@@ -2094,6 +2433,7 @@ surface discoverable.
   },
   "agent_api": {
     "credential_audience": "https://example.com/agent-api",
+    "authorized_surface_url": "https://example.com/agent-surfaces/authorized",
     "grant_request_url": "https://example.com/agent-grants/request",
     "grant_introspection_url": "https://example.com/agent-grants/introspect",
     "grant_revocation_url": "https://example.com/agent-grants/revoke",
@@ -2448,6 +2788,16 @@ Human Elicitation Events Profile. The retention value starts at terminal
 acceptance and changes the manifest hashing view. Absence of either member
 means that the application does not support Human Elicitation; a runtime MUST
 NOT infer support from UI capabilities, an AHP carrier, or receipt behavior.
+
+`compatibility.authorized_discovery_profiles`, when present, MUST be a
+non-empty array of unique collision-resistant profile identifiers. This draft
+defines only the exact Authorized Surface Projection Profile identifier. The
+member MUST be accompanied by an absolute HTTPS
+`agent_api.authorized_surface_url`, and that endpoint MUST implement the
+profile's closed request, attenuation, lifecycle, anti-enumeration, and cache
+rules. Advertising a filtered UI, OAuth scope, tenant endpoint, or generic
+authorization service is not support. Absence means that callers can consume
+only the ordinary manifest response permitted for their discovery context.
 
 `compatibility.agent_passport_profiles`, when present, MUST be a non-empty array
 of closed objects. Each object MUST contain `profile`, `hash_profile`,
@@ -6739,6 +7089,13 @@ select an action. The authorization server derives the issued arrays from the
 exact user-approved endpoints and stages and MUST NOT add companion actions
 implicitly.
 
+`resource_server` binds the Grant to the exact manifest used for interpretation.
+When that manifest is an Authorized Surface Projection, `resource_server` MUST
+also contain the exact `authorized_projection` Grant binding defined by that
+profile. The binding is included in `grant_hash`; omitting it, copying it from
+another projection lifecycle key, or matching only the projected
+`surface_hash` makes the Grant invalid.
+
 `locations` restricts only Action Requests; it is not an OAuth credential
 audience and does not list `budget_state_url` or `session_control_url`. Those
 endpoints accept only their closed safety operations, authenticate the same
@@ -7960,7 +8317,10 @@ are the authoritative Grant Object wire shape defined above:
   MUST NOT contain `runtime_attestation`, assurance output, appraisal state,
   hashes, raw Evidence, or raw Attestation Results.
 - `resource_server` MUST contain `app_id`, `issuer`, `surface_version`, and the
-  verified `surface_hash`.
+  verified `surface_hash`. When the selected manifest is an Authorized Surface
+  Projection, it MUST also contain that profile's exact request-visible
+  `authorized_projection` binding; the authorization server verifies and
+  preserves it in the authoritative Grant.
 - `constraints` MUST contain `expires_at`; other fields use the semantics of the
   Agent Grant object. When Remote Processing Privacy is selected, it MUST also
   contain the closed request-only `remote_processing` object with exact
@@ -11610,6 +11970,7 @@ Agent Surface Protocol SHOULD define structured errors:
 | `passport_status_unavailable` | Fresh authenticated status for the exact Passport tuple cannot currently be established. |
 | `runtime_untrusted` | Runtime authentication cannot be mapped to the exact active runtime identity projection, or a required posture, locality, or assurance is absent, stale, suspended, revoked, or mismatched. |
 | `surface_incompatible` | A required surface version, profile, or action declaration is unsupported or internally inconsistent and cannot be interpreted safely. |
+| `surface_projection_unavailable` | An authorized discovery projection cannot be returned without revealing whether its base, authenticated context, entitlement state, or requested member exists. |
 | `proposal_required` | On a standard surface, the requested state-changing action exists but the Grant authorizes only its reciprocal proposal companion for the same operation. |
 | `session_invalid` | Session is unknown, non-active, stale-generation, or not bound to the complete tuple selected by the presented credential. |
 | `session_transition_invalid` | Requested session transition, prior generation, target state, or idempotent replay binding is invalid. |
@@ -11934,6 +12295,16 @@ Compatibility rules:
   version and hash and does not widen a Grant pinned to the prior curated
   snapshot. An underlying API-only change need not change the manifest when it
   does not alter any published affordance or its implementation semantics.
+- Changing a base snapshot invalidates every Authorized Surface Projection
+  derived from the prior base for issuance, renewal, exchange, and derivation.
+  The publisher derives a new projection with a new `projection_id`, projected
+  surface version, and projected surface hash. It MUST NOT rebase the old
+  projection in place or preserve its id while changing `base_surface_hash`.
+- Changing the server-side subject, runtime, agent, or entitlement input to an
+  Authorized Surface Projection produces a new projection lifecycle key or a
+  new current projection snapshot for that key. It does not silently rewrite
+  an existing Grant. Ending authority already issued under the old projection
+  requires the ordinary Semantic Grant Revocation Transition.
 - Changing risk labels to a higher risk class can require grant renewal.
 - Changing an action's execution mode, operation id, required companion stage,
   effect envelope, precondition or effect schema, reservation policy, or
@@ -12344,6 +12715,18 @@ Runtimes SHOULD minimize agent and passport disclosure when possible. Receipts
 SHOULD support pseudonymous user references where legal and operationally
 appropriate.
 
+Authorized Surface discovery can reveal account roles, tenant membership,
+agent eligibility, and the existence of privileged or experimental
+affordances. The projection endpoint therefore accepts no caller-selected
+identity or affordance filter, returns one generic failure class, and prohibits
+shared caching. `projection_id` and projected surface versions MUST be opaque
+and non-semantic. Raw projection lifecycle keys, base-versus-projection diffs,
+hidden member ids, policy names, entitlement records, and alternate-context
+suggestions MUST NOT enter the manifest, Grant, receipt, event, trace, prompt,
+agent-visible log, URL, referrer, or public error. An implementation SHOULD
+retain the server-side projection mapping only while it is needed for active
+issuance, Grant enforcement, bounded audit, or applicable legal obligations.
+
 Approval and denial receipts reveal user decisions, timing, application and
 runtime relationships, action frequency, and policy outcomes. They MUST contain
 only an app-scoped user reference and hashes of the exact invocation, never raw
@@ -12547,11 +12930,11 @@ The role boundaries have these required fail-closed cases:
 
 | Role | Invalid claim or operation |
 | --- | --- |
-| Surface Publisher | Reusing a surface version with another hash, publishing incomplete references, or advertising semantics that the exposed surface cannot provide. |
-| Grant Issuer | Issuing against a stale or superseded surface, widening a request, returning an unclosed action set, or treating unknown Passport or selected-profile state as accepted. |
-| Action Executor | Trusting the issuer claim instead of independently validating audience, active Grant state, exact surface and delegate tuple, session generation, policy, budget, approval, idempotency, and effect preconditions. |
+| Surface Publisher | Reusing a surface version with another hash, publishing incomplete references, producing a non-attenuating or cross-context Authorized Surface Projection, or advertising semantics that the exposed surface cannot provide. |
+| Grant Issuer | Issuing against a stale or superseded base or projection, accepting a projection for another authenticated context, widening a request, returning an unclosed action set, or treating unknown Passport or selected-profile state as accepted. |
+| Action Executor | Trusting the issuer claim instead of independently validating audience, active Grant state, exact base/projection, surface and delegate tuple, session generation, policy, budget, approval, idempotency, and effect preconditions. |
 | Receipt Producer | Claiming another producer role's observation, producing a receipt outside the authoritative decision record, downgrading an invalid signature, or treating a receipt as action authority. |
-| Runtime Mediator | Using a stale match or Consent Preview, storing a wider Grant, releasing a Grant Credential, or continuing while revocation state is unknown. |
+| Runtime Mediator | Reusing an Authorized Surface Projection across cache partitions, using a stale match or Consent Preview, storing a wider Grant, releasing a Grant Credential, or continuing while revocation state is unknown. |
 | Agent Adapter | Receiving credentials, selecting stronger authority, fabricating approval/effect/receipt evidence, or blindly retrying a partial or unknown outcome. |
 
 ### Interoperability Test Suite
@@ -13022,6 +13405,12 @@ A component conforms to the Surface Publisher Profile when it:
   source versions and annotation locations, projects complete declarations
   atomically without inference, validates the complete generated manifest, and
   treats the served manifest rather than source annotations as the authority
+- when publishing an Authorized Surface Projection, derives every projection
+  from the exact current base and server-authenticated lifecycle key, permits
+  only structurally identical closed declarations or omission, allocates fresh
+  opaque projection identity on every material change, serves the exact closed
+  no-store bootstrap descriptor when withholding the base, partitions
+  retention, and exposes no cross-context or hidden-inventory oracle
 - computes and publishes a valid `surface_hash` and changes
   `surface_version` whenever the manifest hashing view changes
 - does not publish an Impact Simulation Result or feature identifier as a
@@ -13063,6 +13452,10 @@ A component conforms to the Grant Issuer Profile when it:
 - consumes the exact verified, issuer-authoritative current manifest snapshot
   for the applicable surface lifecycle key and rejects stale, superseded,
   hash-invalid, or unsupported surface semantics
+- when accepting an Authorized Surface Projection, possesses and verifies the
+  exact base, recomputes both hashes and omission closure, checks the current
+  complete projection lifecycle key and expiry, copies the exact projection
+  binding into the Grant, and fails without revealing context membership
 - authenticates the resource owner and obtains issuer-side consent from the
   exact semantic Grant request, manifest semantics, delegate tuple, effects,
   constraints, and effective data-exposure projection
@@ -13132,6 +13525,9 @@ A protected-resource component conforms to the Action Executor Profile when it:
 - consumes the exact verified manifest snapshot and current app-verifiable
   Grant state selected by the request, without trusting a Surface Publisher,
   Grant Issuer, runtime, or caller conformance claim as verification evidence
+- when the Grant selects Authorized Surface Discovery, verifies the complete
+  Grant projection binding against the retained projected manifest and current
+  app-verifiable Grant state without searching its base or another projection
 - enforces the pinned surface mode during every Action Request and rejects an
   inconsistent proposal-only inventory before idempotency lookup or any effect
 - validates the manifest-pinned `credential_audience` at every
@@ -13408,6 +13804,11 @@ An application runtime conforms to the Runtime Mediator Profile when it:
 
 - discovers and validates Agent Surface Manifests
 - recomputes `surface_hash` and pins the exact manifest snapshot
+- when selecting Authorized Surface Discovery, sends no identity or affordance
+  selector, validates a no-redirect closed bootstrap descriptor when the base
+  is withheld, verifies the projection and its base when available, partitions
+  retained state by the complete local authenticated context and both surface
+  tuples, and never represents a base hash alone as proof of attenuation
 - independently verifies the exact Agent Passport artifact, signature, issuer
   trust, lifecycle status, and local agent binding under the selected profiles
   before delegation
