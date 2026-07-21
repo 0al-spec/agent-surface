@@ -2,7 +2,7 @@
 
 - Status: active planning snapshot
 - Snapshot date: 2026-07-21
-- Snapshot base: `fb54541d8187ca2a4c6dd9da8a89b382e8916644`
+- Snapshot base: `96c89e159c0aa195a3147ef5b65c521bf8347f16`
 - Canonical machine-readable source: [`review-data.json`](review-data.json)
 
 ## Purpose and authority
@@ -28,19 +28,19 @@ The following precedence rules apply:
 
 | Coverage | Cards | Meaning |
 | --- | ---: | --- |
-| `present` | 63 | The proposal is represented in normative prose. |
-| `partial` | 6 | A precursor exists, but the interoperable contract is incomplete. |
+| `present` | 64 | The proposal is represented in normative prose. |
+| `partial` | 5 | A precursor exists, but the interoperable contract is incomplete. |
 | `missing` | 8 | The proposed contract or mapping is not specified. |
 | **Total** | **77** | |
 
-The active coverage debt is therefore **14 cards**: 4 P1, 4 P2, and 6 P3.
+The active coverage debt is therefore **13 cards**: 3 P1, 4 P2, and 6 P3.
 
 ### Delivery maturity
 
 | Maturity | Cards |
 | --- | ---: |
-| `proposal` | 15 |
-| `specified` | 50 |
+| `proposal` | 14 |
+| `specified` | 51 |
 | `machine_validated` | 12 |
 | `implementation_tested` | 0 |
 | `interop_tested` | 0 |
@@ -56,11 +56,10 @@ architecture.
 
 | Order | Card | Priority | Coverage | Required outcome |
 | ---: | --- | --- | --- | --- |
-| 1 | #63 Authorization-Dependent Surface Discovery | P1 | `partial` | Define a canonical public base snapshot and attenuating, hash-bound, cache-partitioned projections for an authorized tenant, user, agent, and Grant context. |
-| 2 | #76 Pluggable Agent Identity Evidence | P1 | `partial` | Replace Passport-specific Grant fields with a versioned identity-evidence envelope covering issuer, subject, digest, key binding, freshness, status, verification, revocation, and migration. |
-| 3 | #65 Adoption-Oriented Conformance Bundles | P1 | `partial` | Define composable adoption bundles made from complete role-profile obligations and selected optionals without creating a misleading security ladder. |
-| 4 | #64 Purpose- and Task-Bound Agent Grants | P2 | `partial` | Add optional issuer-owned purpose/task binding, attenuation, expiry, session and action enforcement, and fresh consent when authority is widened. |
-| 5 | #66 Modular RFC Publication Architecture | P2 | `partial` | Define document ownership, normative references, version pinning, registries, compatibility, and independent release lifecycles for Core and extension documents. |
+| 1 | #76 Pluggable Agent Identity Evidence | P1 | `partial` | Replace Passport-specific Grant fields with a versioned identity-evidence envelope covering issuer, subject, digest, key binding, freshness, status, verification, revocation, and migration. |
+| 2 | #65 Adoption-Oriented Conformance Bundles | P1 | `partial` | Define composable adoption bundles made from complete role-profile obligations and selected optionals without creating a misleading security ladder. |
+| 3 | #64 Purpose- and Task-Bound Agent Grants | P2 | `partial` | Add optional issuer-owned purpose/task binding, attenuation, expiry, session and action enforcement, and fresh consent when authority is widened. |
+| 4 | #66 Modular RFC Publication Architecture | P2 | `partial` | Define document ownership, normative references, version pinning, registries, compatibility, and independent release lifecycles for Core and extension documents. |
 
 ### Normative boundaries
 
@@ -104,7 +103,7 @@ ASP Grant, approval, effect claim, or receipt.
 
 ### Broader maturity debt
 
-The current 50 `specified` cards still need card-appropriate executable schemas,
+The current 51 `specified` cards still need card-appropriate executable schemas,
 registries, validators, and positive and negative vectors before they can move
 to `machine_validated`. The 12 `machine_validated` cards need evidence from
 real implementations before they can move to `implementation_tested`.
@@ -127,7 +126,7 @@ of cards.
 ### Lane A: discovery and browser projection
 
 ```text
-#63 Authorization-Dependent Surface Discovery --\
+#63 Authorization-Dependent Surface Discovery (specified) --\
                                                    +--> #70 ASP-over-WebMCP Binding
 #69 ASP-over-MCP Binding --------------------------/
 ```
@@ -174,8 +173,8 @@ of cards.
 #75 Typed SDK ------------/
 ```
 
-The immediate selected slice is **#63 Authorization-Dependent Surface
-Discovery**. The next P1 slices are #76, #65, and #69. Lower-priority mappings
+The immediate selected slice is **#76 Pluggable Agent Identity Evidence**.
+The next P1 slices are #65 and #69. Lower-priority mappings
 should advance only when their upstream specification is sufficiently stable
 and there is concrete adopter demand.
 
