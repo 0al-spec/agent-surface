@@ -114,6 +114,12 @@ target release, and readiness. Its counters and Next/Previous navigation use
 the filtered card set. Dependency chips select the referenced card and relax
 only filters that would otherwise hide it.
 
+The current human-readable execution order, normative gaps, binding work, and
+delivery-maturity debt are recorded in
+[`review/rfc-plan-and-debt.md`](review/rfc-plan-and-debt.md). The planning
+document is a maintained view; `review/review-data.json` remains the canonical
+machine-readable backlog.
+
 ## Executable Conformance Suite
 
 The versioned suite in [`conformance/v1`](conformance/v1) maps stable
