@@ -1555,8 +1555,9 @@ Cache-Control: max-age=300
 lifecycle key as (server-authenticated tenant context or a public-context
 marker, <code>issuer</code>, <code>app_id</code>, canonical <code>surface_url</code>) and maintain exactly one
 issuer-authoritative current discovery snapshot for that key. Tenant context
-is server state, never a caller-supplied selector. The authenticated object
-served at the canonical URL MUST be the designated snapshot. This designation
+is server state, never a caller-supplied selector. Except for the Authorized
+Discovery Bootstrap Descriptor defined below, an Agent Surface Manifest served
+at the canonical URL MUST be the designated snapshot. This designation
 is application state shared with the authorization server; it is not inferred
 by ordering opaque <code>surface_version</code> values. Changing the canonical URL for the
 same tenant, issuer, and app id MUST atomically migrate the lifecycle state and
@@ -1569,7 +1570,9 @@ for the authenticated or public context at the canonical URL. When disclosing
 the complete base would reveal affordances that are not appropriate for a
 particular user, runtime, or agent context, the application MUST either deny
 that discovery request or use the Authorized Surface Projection Profile below.
-It MUST NOT improvise an unmarked partial manifest.</p>
+When it uses the profile while withholding the base, it serves the profile's
+non-inventory bootstrap descriptor at the canonical URL. It MUST NOT improvise
+an unmarked partial manifest.</p>
 <h4 id="authorized-surface-projection-profile" data-asp-heading="Authorized Surface Projection Profile">Authorized Surface Projection Profile</h4>
 <p>The optional Authorized Surface Projection Profile defines a minimized
 manifest for one server-authenticated authorization context. Its identifier is:</p>
@@ -1580,10 +1583,60 @@ ordinary surface lifecycle key. A projection never becomes another base and
 never creates an independent issuance history.</p>
 <p>A base manifest advertises support only by including the exact identifier above
 in <code>compatibility.authorized_discovery_profiles</code> and by publishing an absolute
-HTTPS <code>agent_api.authorized_surface_url</code>. Absence of either member means that
-the profile is unsupported. A client MUST NOT infer support from an
-authentication challenge, a tenant-specific origin, a filtered response, an
-OAuth scope, or ordinary application behavior.</p>
+HTTPS <code>agent_api.authorized_surface_url</code>. Absence of either member in the base
+means that the profile is unsupported. A client learns those values either from
+a complete base it is permitted to receive or from the bootstrap descriptor
+below. It MUST NOT infer support from an authentication challenge, a
+tenant-specific origin, a filtered response, an OAuth scope, or ordinary
+application behavior.</p>
+<p>When the complete base is not disclosed, an authenticated or public <code>GET</code> of
+its canonical <code>surface_url</code> returns this closed <strong>Authorized Discovery
+Bootstrap Descriptor</strong> instead:</p>
+<pre><code class="language-json">{
+  &quot;document_type&quot;: &quot;agent-surface-authorized-discovery-bootstrap/1&quot;,
+  &quot;profile&quot;: &quot;https://github.com/0al-spec/agent-surface/profiles/authorized-discovery/v1&quot;,
+  &quot;surface_url&quot;: &quot;https://example.com/.well-known/agent-surface.json&quot;,
+  &quot;authorized_surface_url&quot;: &quot;https://example.com/agent-surfaces/authorized&quot;,
+  &quot;base&quot;: {
+    &quot;issuer&quot;: &quot;https://example.com&quot;,
+    &quot;app_id&quot;: &quot;com.example.project-tool&quot;,
+    &quot;surface_version&quot;: &quot;2026-06-25&quot;,
+    &quot;surface_hash&quot;: &quot;sha-256:&lt;base64url-digest&gt;&quot;
+  }
+}
+</code></pre>
+<p><code>document_type</code> and <code>profile</code> MUST equal the literals above. Descriptor
+retrieval in version 1 MUST NOT redirect, and <code>surface_url</code> MUST equal the exact
+canonical HTTPS URL requested by the client.
+<code>authorized_surface_url</code> MUST be the absolute HTTPS endpoint declared as
+<code>agent_api.authorized_surface_url</code> in the exact base. <code>base</code> MUST identify the
+issuer-authoritative current base selected from the server-authenticated
+lifecycle key and MUST be structurally identical to the corresponding base
+manifest fields. A mismatch between the descriptor and base is
+<code>surface_incompatible</code> and makes the descriptor unusable for issuance.</p>
+<p>The descriptor contains no resources, actions, events, scopes, data classes,
+schemas, operational limits, compatibility inventory, policy names, subject or
+tenant identifiers, runtime or agent identifiers, entitlement facts, alternate
+URLs, or counts. Unknown or additional members are invalid. It is discovery
+metadata only: HTTPS and issuer binding remain required, and the descriptor,
+its base hash, and possession of its endpoint grant no ASP authority and do not
+prove that a later projection is an attenuation.</p>
+<p>The descriptor response MUST send <code>Content-Type: application/json</code>,
+<code>Cache-Control: private, no-store</code>, and <code>Referrer-Policy: no-referrer</code>. A public
+descriptor still uses <code>private, no-store</code> so one URL cannot become a shared
+cache path when the deployment later requires an authenticated tenant context.
+The application selects its lifecycle key only from authenticated server state
+or the public marker; a query parameter, path template supplied by the caller,
+request header, or untrusted cookie MUST NOT select another tenant, subject, or
+base. If no descriptor is available for the applicable context, the endpoint
+returns <code>404 Not Found</code> without stating whether another base or context exists.</p>
+<p>The client copies <code>profile</code>, <code>authorized_surface_url</code>, and the complete <code>base</code>
+object verbatim into the projection request below. A descriptor becomes stale
+as soon as its base is no longer current. The application MUST compare the
+request with current server state and MUST NOT redirect, upgrade, or substitute
+the request to another base. A client MAY repeat canonical discovery after a
+generic stale failure, but it MUST NOT enumerate candidate base versions or
+projection endpoints.</p>
 <p>The projection endpoint accepts an authenticated <code>POST</code> with
 <code>Content-Type: application/json</code>. The request is the following closed object:</p>
 <pre><code class="language-json">{
@@ -1762,6 +1815,8 @@ to whether a hidden affordance or entitlement exists.</p>
 <p>The required fail-closed outcomes are:</p>
 <p>| Condition | Required outcome |
 | --- | --- |
+| Sensitive base is withheld but no valid bootstrap descriptor is available | Return generic <code>404 Not Found</code>; do not disclose or partially filter the base. |
+| Bootstrap descriptor redirects, contains inventory, has an unknown member, or disagrees with the exact base | Reject it; do not send a projection request or infer another endpoint. |
 | Caller supplies a tenant, subject, runtime, agent, role, or affordance selector | Reject the closed request as <code>surface_projection_unavailable</code>; do not use the selector. |
 | Base hash is unknown, stale, superseded, or mismatched | Return <code>surface_projection_unavailable</code>; do not derive from another base. |
 | Projection adds or rewrites a base declaration or has incomplete reference closure | Reject it as <code>surface_incompatible</code>; do not expose a partial result. |
@@ -11944,8 +11999,9 @@ treats the served manifest rather than source annotations as the authority</li>
 <li>when publishing an Authorized Surface Projection, derives every projection
 from the exact current base and server-authenticated lifecycle key, permits
 only structurally identical closed declarations or omission, allocates fresh
-opaque projection identity on every material change, partitions retention,
-and exposes no cross-context or hidden-inventory oracle</li>
+opaque projection identity on every material change, serves the exact closed
+no-store bootstrap descriptor when withholding the base, partitions
+retention, and exposes no cross-context or hidden-inventory oracle</li>
 <li>computes and publishes a valid <code>surface_hash</code> and changes
 <code>surface_version</code> whenever the manifest hashing view changes</li>
 <li>does not publish an Impact Simulation Result or feature identifier as a
@@ -12327,7 +12383,8 @@ reference values, hardware identifiers, or diagnostics.</p>
 <li>discovers and validates Agent Surface Manifests</li>
 <li>recomputes <code>surface_hash</code> and pins the exact manifest snapshot</li>
 <li>when selecting Authorized Surface Discovery, sends no identity or affordance
-selector, verifies the projection and its base when available, partitions
+selector, validates a no-redirect closed bootstrap descriptor when the base
+is withheld, verifies the projection and its base when available, partitions
 retained state by the complete local authenticated context and both surface
 tuples, and never represents a base hash alone as proof of attenuation</li>
 <li>independently verifies the exact Agent Passport artifact, signature, issuer

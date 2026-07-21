@@ -1631,8 +1631,9 @@ For surface lifecycle decisions, the application MUST define a surface
 lifecycle key as (server-authenticated tenant context or a public-context
 marker, `issuer`, `app_id`, canonical `surface_url`) and maintain exactly one
 issuer-authoritative current discovery snapshot for that key. Tenant context
-is server state, never a caller-supplied selector. The authenticated object
-served at the canonical URL MUST be the designated snapshot. This designation
+is server state, never a caller-supplied selector. Except for the Authorized
+Discovery Bootstrap Descriptor defined below, an Agent Surface Manifest served
+at the canonical URL MUST be the designated snapshot. This designation
 is application state shared with the authorization server; it is not inferred
 by ordering opaque `surface_version` values. Changing the canonical URL for the
 same tenant, issuer, and app id MUST atomically migrate the lifecycle state and
@@ -1646,7 +1647,9 @@ for the authenticated or public context at the canonical URL. When disclosing
 the complete base would reveal affordances that are not appropriate for a
 particular user, runtime, or agent context, the application MUST either deny
 that discovery request or use the Authorized Surface Projection Profile below.
-It MUST NOT improvise an unmarked partial manifest.
+When it uses the profile while withholding the base, it serves the profile's
+non-inventory bootstrap descriptor at the canonical URL. It MUST NOT improvise
+an unmarked partial manifest.
 
 #### Authorized Surface Projection Profile
 
@@ -1663,10 +1666,67 @@ never creates an independent issuance history.
 
 A base manifest advertises support only by including the exact identifier above
 in `compatibility.authorized_discovery_profiles` and by publishing an absolute
-HTTPS `agent_api.authorized_surface_url`. Absence of either member means that
-the profile is unsupported. A client MUST NOT infer support from an
-authentication challenge, a tenant-specific origin, a filtered response, an
-OAuth scope, or ordinary application behavior.
+HTTPS `agent_api.authorized_surface_url`. Absence of either member in the base
+means that the profile is unsupported. A client learns those values either from
+a complete base it is permitted to receive or from the bootstrap descriptor
+below. It MUST NOT infer support from an authentication challenge, a
+tenant-specific origin, a filtered response, an OAuth scope, or ordinary
+application behavior.
+
+When the complete base is not disclosed, an authenticated or public `GET` of
+its canonical `surface_url` returns this closed **Authorized Discovery
+Bootstrap Descriptor** instead:
+
+```json
+{
+  "document_type": "agent-surface-authorized-discovery-bootstrap/1",
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/authorized-discovery/v1",
+  "surface_url": "https://example.com/.well-known/agent-surface.json",
+  "authorized_surface_url": "https://example.com/agent-surfaces/authorized",
+  "base": {
+    "issuer": "https://example.com",
+    "app_id": "com.example.project-tool",
+    "surface_version": "2026-06-25",
+    "surface_hash": "sha-256:<base64url-digest>"
+  }
+}
+```
+
+`document_type` and `profile` MUST equal the literals above. Descriptor
+retrieval in version 1 MUST NOT redirect, and `surface_url` MUST equal the exact
+canonical HTTPS URL requested by the client.
+`authorized_surface_url` MUST be the absolute HTTPS endpoint declared as
+`agent_api.authorized_surface_url` in the exact base. `base` MUST identify the
+issuer-authoritative current base selected from the server-authenticated
+lifecycle key and MUST be structurally identical to the corresponding base
+manifest fields. A mismatch between the descriptor and base is
+`surface_incompatible` and makes the descriptor unusable for issuance.
+
+The descriptor contains no resources, actions, events, scopes, data classes,
+schemas, operational limits, compatibility inventory, policy names, subject or
+tenant identifiers, runtime or agent identifiers, entitlement facts, alternate
+URLs, or counts. Unknown or additional members are invalid. It is discovery
+metadata only: HTTPS and issuer binding remain required, and the descriptor,
+its base hash, and possession of its endpoint grant no ASP authority and do not
+prove that a later projection is an attenuation.
+
+The descriptor response MUST send `Content-Type: application/json`,
+`Cache-Control: private, no-store`, and `Referrer-Policy: no-referrer`. A public
+descriptor still uses `private, no-store` so one URL cannot become a shared
+cache path when the deployment later requires an authenticated tenant context.
+The application selects its lifecycle key only from authenticated server state
+or the public marker; a query parameter, path template supplied by the caller,
+request header, or untrusted cookie MUST NOT select another tenant, subject, or
+base. If no descriptor is available for the applicable context, the endpoint
+returns `404 Not Found` without stating whether another base or context exists.
+
+The client copies `profile`, `authorized_surface_url`, and the complete `base`
+object verbatim into the projection request below. A descriptor becomes stale
+as soon as its base is no longer current. The application MUST compare the
+request with current server state and MUST NOT redirect, upgrade, or substitute
+the request to another base. A client MAY repeat canonical discovery after a
+generic stale failure, but it MUST NOT enumerate candidate base versions or
+projection endpoints.
 
 The projection endpoint accepts an authenticated `POST` with
 `Content-Type: application/json`. The request is the following closed object:
@@ -1874,6 +1934,8 @@ The required fail-closed outcomes are:
 
 | Condition | Required outcome |
 | --- | --- |
+| Sensitive base is withheld but no valid bootstrap descriptor is available | Return generic `404 Not Found`; do not disclose or partially filter the base. |
+| Bootstrap descriptor redirects, contains inventory, has an unknown member, or disagrees with the exact base | Reject it; do not send a projection request or infer another endpoint. |
 | Caller supplies a tenant, subject, runtime, agent, role, or affordance selector | Reject the closed request as `surface_projection_unavailable`; do not use the selector. |
 | Base hash is unknown, stale, superseded, or mismatched | Return `surface_projection_unavailable`; do not derive from another base. |
 | Projection adds or rewrites a base declaration or has incomplete reference closure | Reject it as `surface_incompatible`; do not expose a partial result. |
@@ -13346,8 +13408,9 @@ A component conforms to the Surface Publisher Profile when it:
 - when publishing an Authorized Surface Projection, derives every projection
   from the exact current base and server-authenticated lifecycle key, permits
   only structurally identical closed declarations or omission, allocates fresh
-  opaque projection identity on every material change, partitions retention,
-  and exposes no cross-context or hidden-inventory oracle
+  opaque projection identity on every material change, serves the exact closed
+  no-store bootstrap descriptor when withholding the base, partitions
+  retention, and exposes no cross-context or hidden-inventory oracle
 - computes and publishes a valid `surface_hash` and changes
   `surface_version` whenever the manifest hashing view changes
 - does not publish an Impact Simulation Result or feature identifier as a
@@ -13742,7 +13805,8 @@ An application runtime conforms to the Runtime Mediator Profile when it:
 - discovers and validates Agent Surface Manifests
 - recomputes `surface_hash` and pins the exact manifest snapshot
 - when selecting Authorized Surface Discovery, sends no identity or affordance
-  selector, verifies the projection and its base when available, partitions
+  selector, validates a no-redirect closed bootstrap descriptor when the base
+  is withheld, verifies the projection and its base when available, partitions
   retained state by the complete local authenticated context and both surface
   tuples, and never represents a base hash alone as proof of attenuation
 - independently verifies the exact Agent Passport artifact, signature, issuer
