@@ -610,7 +610,11 @@ class ReviewDataValidationTests(unittest.TestCase):
         ):
             with self.subTest(maturity=maturity):
                 payload = self.machine_validated_payload()
-                review = payload["reviews"][-1]
+                review = next(
+                    item
+                    for item in payload["reviews"]
+                    if item["maturity"] == "machine_validated"
+                )
                 review["maturity"] = maturity
                 self.assert_invalid(payload, "authoritative evidence resolvers")
 
@@ -660,17 +664,17 @@ class ReviewDataValidationTests(unittest.TestCase):
     def test_canonical_migration_counts_and_defaults(self) -> None:
         payload = load_review_payload()
         reviews = payload["reviews"]
-        self.assertEqual(len(reviews), 62)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 471)
+        self.assertEqual(len(reviews), 77)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 500)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 50, "machine_validated": 12}),
+            Counter({"specified": 50, "machine_validated": 12, "proposal": 15}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 62}),
+            Counter({"present": 63, "partial": 6, "missing": 8}),
         )
-        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 140)
+        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 224)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
         self.assertEqual(
             [
@@ -679,22 +683,22 @@ class ReviewDataValidationTests(unittest.TestCase):
                 if review["priority"] in {"P0", "P1"}
                 and review["status"] != "present"
             ],
-            [],
+            [63, 65, 69, 76],
         )
         self.assertEqual(
             Counter(review["profile"] for review in reviews),
             Counter(
                 {
                     "core": 4,
-                    "oauth-grants": 8,
-                    "manifest": 6,
-                    "action-execution": 6,
+                    "oauth-grants": 9,
+                    "manifest": 8,
+                    "action-execution": 7,
                     "events-sessions": 5,
                     "receipts-provenance": 6,
                     "privacy-consent": 10,
-                    "identity-passport": 5,
+                    "identity-passport": 7,
                     "operations-safety": 5,
-                    "conformance-tooling": 7,
+                    "conformance-tooling": 16,
                 }
             ),
         )
@@ -717,8 +721,8 @@ class ReviewDataValidationTests(unittest.TestCase):
         reviews_by_id = {review["id"]: review for review in reviews}
         ready_ids = {review["id"] for review in reviews if review["readiness"] == "ready"}
         blocked_ids = set(reviews_by_id) - ready_ids
-        self.assertEqual(blocked_ids, set())
-        self.assertEqual(len(ready_ids), 62)
+        self.assertEqual(blocked_ids, {70, 73, 74, 77})
+        self.assertEqual(len(ready_ids), 73)
         self.assertEqual(reviews_by_id[16]["status"], "present")
         self.assertEqual(reviews_by_id[16]["maturity"], "specified")
         self.assertEqual(reviews_by_id[16]["readiness"], "ready")
@@ -1029,6 +1033,50 @@ class ReviewDataValidationTests(unittest.TestCase):
                 "reference-mock-participants",
             ],
         )
+        self.assertEqual(reviews_by_id[63]["status"], "partial")
+        self.assertEqual(reviews_by_id[63]["depends_on"], [14, 15, 16, 36])
+        self.assertEqual(reviews_by_id[63]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[64]["status"], "partial")
+        self.assertEqual(
+            reviews_by_id[64]["depends_on"], [2, 5, 6, 10, 28, 35, 46]
+        )
+        self.assertEqual(reviews_by_id[64]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[65]["status"], "partial")
+        self.assertEqual(reviews_by_id[65]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[66]["status"], "partial")
+        self.assertEqual(reviews_by_id[66]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[67]["status"], "missing")
+        self.assertEqual(reviews_by_id[67]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[68]["status"], "missing")
+        self.assertEqual(reviews_by_id[68]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[69]["status"], "missing")
+        self.assertEqual(reviews_by_id[69]["readiness"], "ready")
+        self.assertEqual(
+            reviews_by_id[70]["depends_on"],
+            [6, 13, 14, 15, 16, 19, 36, 46, 63, 69],
+        )
+        self.assertEqual(reviews_by_id[70]["readiness"], "blocked")
+        self.assertEqual(reviews_by_id[71]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[72]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[73]["depends_on"], [2, 5, 41, 44, 76])
+        self.assertEqual(reviews_by_id[73]["readiness"], "blocked")
+        self.assertEqual(reviews_by_id[74]["status"], "present")
+        self.assertEqual(reviews_by_id[74]["maturity"], "proposal")
+        self.assertEqual(reviews_by_id[74]["depends_on"], [56, 58, 60, 65])
+        self.assertEqual(reviews_by_id[74]["readiness"], "blocked")
+        self.assertEqual(reviews_by_id[75]["status"], "partial")
+        self.assertEqual(
+            reviews_by_id[75]["depends_on"], [17, 19, 20, 22, 56, 60]
+        )
+        self.assertEqual(reviews_by_id[75]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[76]["status"], "partial")
+        self.assertEqual(reviews_by_id[76]["depends_on"], [2, 41, 42, 43, 44])
+        self.assertEqual(reviews_by_id[76]["readiness"], "ready")
+        self.assertEqual(
+            reviews_by_id[77]["depends_on"],
+            [67, 68, 69, 70, 71, 72, 73, 75],
+        )
+        self.assertEqual(reviews_by_id[77]["readiness"], "blocked")
         for review in reviews:
             for dependency_id in review["depends_on"]:
                 self.assertIn(review["id"], reviews_by_id[dependency_id]["blocks"])
@@ -1044,7 +1092,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(len(dashboard_data["profiles"]), 10)
         self.assertEqual(len(dashboard_data["releases"]), 1)
         self.assertEqual(len(dashboard_data["maturity_order"]), 6)
-        self.assertEqual(len(dashboard_data["reviews"]), 62)
+        self.assertEqual(len(dashboard_data["reviews"]), 77)
         self.assertIn("blocks", dashboard_data["reviews"][0])
         self.assertIn("readiness", dashboard_data["reviews"][0])
 

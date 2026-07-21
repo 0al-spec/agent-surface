@@ -4743,6 +4743,731 @@
           "ref": "mocks/mock_runtime.py"
         }
       ]
+    },
+    {
+      "id": 63,
+      "title": "Authorization-Dependent Surface Discovery",
+      "description": "определить public base snapshot и авторизованную, минимизированную projection для конкретного tenant/user/agent context без раскрытия скрытых affordances.",
+      "category": "Discovery / selective disclosure",
+      "side": "left",
+      "status": "partial",
+      "anchors": [
+        {
+          "heading": "Discovery",
+          "anchorId": "discovery"
+        },
+        {
+          "heading": "Curated Surface Boundary",
+          "anchorId": "curated-surface-boundary"
+        },
+        {
+          "heading": "Surface Hash",
+          "anchorId": "surface-hash"
+        },
+        {
+          "heading": "Data Exposure Contract",
+          "anchorId": "data-exposure-contract"
+        }
+      ],
+      "rationale": "RFC уже различает public tenant-independent discovery и authenticated tenant-specific manifests, но не задаёт interoperable filtered projection для конкретной authority context. Единственный issuer-authoritative current base snapshot сохраняет существующий lifecycle key. Каждая projection получает отдельные projection_id/key, связывается с exact base surface hash и может только сужать его inventory/data exposure. Профиль должен определить cache partitioning, redaction, anti-enumeration и fail-closed invalidation; caller-supplied tenant или скрытый member не могут становиться authority либо отдельной issuance history.",
+      "priority": "P1",
+      "profile": "manifest",
+      "depends_on": [
+        14,
+        15,
+        16,
+        36
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "discovery"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "curated-surface-boundary"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-hash"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "data-exposure-contract"
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "title": "Purpose- and Task-Bound Agent Grants",
+      "description": "добавить optional issuer-owned purpose/task binding в Agent Grant и проверять его в sessions и каждом app-side action admission.",
+      "category": "OAuth / grants / purpose limitation",
+      "side": "right",
+      "status": "partial",
+      "anchors": [
+        {
+          "heading": "Grant Object",
+          "anchorId": "grant-object"
+        },
+        {
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        },
+        {
+          "heading": "Session Start",
+          "anchorId": "session-start"
+        },
+        {
+          "heading": "Subdelegation",
+          "anchorId": "subdelegation"
+        },
+        {
+          "heading": "Policy Decision Object",
+          "anchorId": "policy-decision-object"
+        },
+        {
+          "heading": "Grant Verification",
+          "anchorId": "grant-verification"
+        }
+      ],
+      "rationale": "RFC связывает sessions с goal и использует task-purpose для Human Elicitation, но это не ограничивает сам Grant. Digest связывает bytes, а не доказывает semantic purpose. Профиль должен определить issuer-owned purpose/task identity и semantics, exact request/session binding, expiry, Policy Decision input и application-side equality/enforcement на каждом action. Subdelegation может только сохранить или сузить binding; человекочитаемое описание остаётся informational. Изменение binding создаёт новый Grant и при расширении authority требует fresh consent.",
+      "priority": "P2",
+      "profile": "oauth-grants",
+      "depends_on": [
+        2,
+        5,
+        6,
+        10,
+        28,
+        35,
+        46
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "consent-preview-contract"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "session-start"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "subdelegation"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "policy-decision-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "title": "Adoption-Oriented Conformance Bundles",
+      "description": "определить небольшие non-linear feature bundles для поэтапного внедрения ASP поверх существующих role profiles без ложной шкалы «Level 1–5».",
+      "category": "Conformance / adoption",
+      "side": "left",
+      "status": "partial",
+      "anchors": [
+        {
+          "heading": "Conformance",
+          "anchorId": "conformance"
+        },
+        {
+          "heading": "Conformance Claim and Composition Rules",
+          "anchorId": "conformance-claim-and-composition-rules"
+        },
+        {
+          "heading": "Interoperability Test Suite",
+          "anchorId": "interoperability-test-suite"
+        }
+      ],
+      "rationale": "Шесть role profiles уже отделяют responsibility boundaries, но не дают малому implementer готовый минимальный набор features. Простая линейная шкала опасна: высокий номер выглядел бы как уровень безопасности. Нужны именованные composable bundles из целых role profiles и selected optional features с executable vectors. Bundle MUST NOT исключать unconditional либо applicable requirements и не заменяет atomic role conformance.",
+      "priority": "P1",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        56,
+        60
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "conformance"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "conformance-claim-and-composition-rules"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "interoperability-test-suite"
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "title": "Modular RFC Publication Architecture",
+      "description": "спроектировать разбиение монолитного draft на versioned Core, authorization, safe-effects, evidence, privacy и binding documents с общей registry policy.",
+      "category": "Specification architecture",
+      "side": "right",
+      "status": "partial",
+      "anchors": [
+        {
+          "heading": "Protocol Layers",
+          "anchorId": "protocol-layers"
+        },
+        {
+          "heading": "Versioning and Compatibility",
+          "anchorId": "versioning-and-compatibility"
+        },
+        {
+          "heading": "Conformance",
+          "anchorId": "conformance"
+        }
+      ],
+      "rationale": "RFC уже имеет слои и самостоятельные profiles, однако их publication, references, version pinning и registry ownership остаются единым документом. Разбиение должно сохранить canonical semantics и hash identifiers, исключить circular normative references и разрешить независимый lifecycle bindings; механическое дробление файла без этих правил не считается выполнением.",
+      "priority": "P2",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        15,
+        56
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "protocol-layers"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "versioning-and-compatibility"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "conformance"
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "title": "WoT Thing Description Mapping",
+      "description": "определить version-pinned mapping между ASP resources/actions/events/endpoints и W3C WoT Thing Description 1.1 с явным loss report.",
+      "category": "External mappings / WoT",
+      "side": "left",
+      "status": "missing",
+      "anchors": [
+        {
+          "heading": "Relationship to Existing Protocols",
+          "anchorId": "relationship-to-existing-protocols"
+        },
+        {
+          "heading": "Curated Surface Boundary",
+          "anchorId": "curated-surface-boundary"
+        },
+        {
+          "heading": "Resources",
+          "anchorId": "resources"
+        },
+        {
+          "heading": "Events",
+          "anchorId": "events"
+        }
+      ],
+      "rationale": "WoT TD 1.1 является стабильной W3C Recommendation и даёт зрелую affordance/form модель, но его security metadata не является ASP Grant, approval или receipt authority. Mapping должен различать lossless и lossy поля и явно запрещать автоматическое ASP resource ↔ TD PropertyAffordance преобразование: ASP Resource — domain object с query actions, а WoT Property — state interaction. Importer принимает только supplied documents, не dereference JSON-LD contexts/forms и не выполняет I/O; negative vectors покрывают SSRF, remote contexts и unsafe schemes. Автоматическое расширение curated surface запрещено; TD 2.0 остаётся non-normative work-in-progress.",
+      "priority": "P3",
+      "profile": "manifest",
+      "depends_on": [
+        13,
+        14,
+        16,
+        17,
+        60
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
+    },
+    {
+      "id": 68,
+      "title": "Arazzo Workflow Mapping",
+      "description": "определить ASP → Arazzo projection и fail-closed Arazzo 1.1 import только при наличии explicit ASP extension metadata для stages и contracts.",
+      "category": "External mappings / workflows",
+      "side": "right",
+      "status": "missing",
+      "anchors": [
+        {
+          "heading": "OpenAPI and AsyncAPI Import Profile",
+          "anchorId": "openapi-and-asyncapi-import-profile"
+        },
+        {
+          "heading": "Static Execution Modes",
+          "anchorId": "static-execution-modes"
+        },
+        {
+          "heading": "Companion Actions and Transitions",
+          "anchorId": "companion-actions-and-transitions"
+        },
+        {
+          "heading": "Preconditions and Effect Preview",
+          "anchorId": "preconditions-and-effect-preview"
+        }
+      ],
+      "rationale": "Arazzo описывает sequences, steps, dependencies, criteria и success/failure actions, но не содержит ASP modes, Grants, approvals, effects, receipts или idempotency semantics. Без explicit ASP extension metadata importer MUST fail, а не выводить stage либо contract из generic workflow. Importer принимает только supplied documents, не dereference sourceDescriptions и не выполняет runtime expressions или workflow actions; SSRF и accidental-execution cases входят в negative vectors. При export каждый ASP stage сохраняет собственные authority checks; workflow не агрегирует authority и не разрешает implicit commit.",
+      "priority": "P3",
+      "profile": "action-execution",
+      "depends_on": [
+        17,
+        19,
+        22,
+        23,
+        24,
+        60
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
+    },
+    {
+      "id": 69,
+      "title": "ASP-over-MCP Binding",
+      "description": "определить executable binding ASP discovery, action requests/results и receipts через MCP resources/tools без ослабления app-side authority checks.",
+      "category": "Protocol bindings / MCP",
+      "side": "left",
+      "status": "missing",
+      "anchors": [
+        {
+          "heading": "Model Context Protocol",
+          "anchorId": "model-context-protocol"
+        },
+        {
+          "heading": "Curated Surface Boundary",
+          "anchorId": "curated-surface-boundary"
+        },
+        {
+          "heading": "Action Request",
+          "anchorId": "action-request"
+        },
+        {
+          "heading": "App Receipt",
+          "anchorId": "app-receipt"
+        },
+        {
+          "heading": "Grant Verification",
+          "anchorId": "grant-verification"
+        }
+      ],
+      "rationale": "Текущий RFC объясняет композицию с MCP, но не определяет wire mapping. Binding должен pin MCP revision 2025-11-25, role placement, schemas, error mapping, streaming/cancellation и credential custody; negative vectors покрывают revision downgrade и surface-version confusion. MCP tool annotations и transport authentication остаются hints/substrate и не заменяют ASP Grant, exact surface binding, approval, application enforcement или receipt provenance.",
+      "priority": "P1",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        1,
+        4,
+        5,
+        13,
+        14,
+        15,
+        19,
+        30,
+        36,
+        40
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
+    },
+    {
+      "id": 70,
+      "title": "ASP-over-WebMCP Binding",
+      "description": "определить experimental browser binding, который проецирует manifest-pinned ASP actions в document-scoped WebMCP tools и корректно обрабатывает page lifecycle.",
+      "category": "Protocol bindings / web",
+      "side": "right",
+      "status": "missing",
+      "anchors": [
+        {
+          "heading": "Discovery",
+          "anchorId": "discovery"
+        },
+        {
+          "heading": "Curated Surface Boundary",
+          "anchorId": "curated-surface-boundary"
+        },
+        {
+          "heading": "Model Context Protocol",
+          "anchorId": "model-context-protocol"
+        },
+        {
+          "heading": "Consent Preview Contract",
+          "anchorId": "consent-preview-contract"
+        }
+      ],
+      "rationale": "WebMCP на 2026-07-21 остаётся Draft Community Group Report, поэтому binding должен быть source-revision-pinned experimental profile. Он обязан определить origin/document/user context, execution-mode mapping, registration invalidation, stale-page handling и projection minimization. Browser или registered tool не становятся authority; application-side verification остаётся обязательной, а скрытый либо неавторизованный ASP member не должен регистрироваться.",
+      "priority": "P2",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        6,
+        13,
+        14,
+        15,
+        16,
+        19,
+        36,
+        46,
+        63,
+        69
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
+    },
+    {
+      "id": 71,
+      "title": "Apple App Intents Mapping",
+      "description": "описать informative mapping ASP resources/actions/effects/approvals к AppEntity, AppIntent, schemas и platform authentication policy.",
+      "category": "Platform mappings / Apple",
+      "side": "left",
+      "status": "missing",
+      "anchors": [
+        {
+          "heading": "Relationship to Existing Protocols",
+          "anchorId": "relationship-to-existing-protocols"
+        },
+        {
+          "heading": "Resources",
+          "anchorId": "resources"
+        },
+        {
+          "heading": "Actions",
+          "anchorId": "actions"
+        },
+        {
+          "heading": "Approval Semantics",
+          "anchorId": "approval-semantics"
+        }
+      ],
+      "rationale": "App Intents — production platform API и сильный semantic-action precedent, но Apple-controlled discovery, authentication и confirmation не эквивалентны vendor-neutral ASP authority. Mapping должен pin exact OS/SDK generation, отмечать unsupported/lossy semantics и не считать platform execution доказательством Agent Grant, exact effect approval или portable App Receipt без отдельного named profile.",
+      "priority": "P3",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        16,
+        19,
+        20,
+        22,
+        46
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
+    },
+    {
+      "id": 72,
+      "title": "Android AppFunctions Mapping",
+      "description": "описать experimental mapping ASP actions/resources к Android AppFunctions declarations, registry discovery и authorized caller execution.",
+      "category": "Platform mappings / Android",
+      "side": "right",
+      "status": "missing",
+      "anchors": [
+        {
+          "heading": "Relationship to Existing Protocols",
+          "anchorId": "relationship-to-existing-protocols"
+        },
+        {
+          "heading": "Resources",
+          "anchorId": "resources"
+        },
+        {
+          "heading": "Actions",
+          "anchorId": "actions"
+        },
+        {
+          "heading": "Grant Verification",
+          "anchorId": "grant-verification"
+        }
+      ],
+      "rationale": "Android AppFunctions всё ещё experimental preview и доступен через OS-level privileged callers, поэтому это exploratory adapter, а не stable ASP binding. Mapping должен быть version-gated, описывать schema loss и lifecycle, и запрещать трактовать Android permission, registry visibility или caller identity как замену ASP Grant и application-side enforcement.",
+      "priority": "P3",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        16,
+        19,
+        20,
+        22,
+        46
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
+    },
+    {
+      "id": 73,
+      "title": "A2A Agent Card and Task Mapping",
+      "description": "определить mapping A2A Agent Card/Task metadata к ASP identity evidence, adapter routing и session correlation без переноса authority.",
+      "category": "Agent interoperability / A2A",
+      "side": "left",
+      "status": "missing",
+      "anchors": [
+        {
+          "heading": "Relationship to Existing Protocols",
+          "anchorId": "relationship-to-existing-protocols"
+        },
+        {
+          "heading": "Grant Object",
+          "anchorId": "grant-object"
+        },
+        {
+          "heading": "Subdelegation",
+          "anchorId": "subdelegation"
+        },
+        {
+          "heading": "Session Start",
+          "anchorId": "session-start"
+        }
+      ],
+      "rationale": "A2A Agent Card описывает discovery, capabilities и interfaces, а Task — agent-to-agent work state; ни один объект сам по себе не предоставляет application authority. Даже JWS-signed Agent Card остаётся набором claims, пока отдельно не проверены issuer/key trust, freshness и status. Mapping должен использовать pluggable identity-evidence framework, pin A2A version, трактовать taskId/contextId только как correlation inputs — не ASP session, idempotency или authority identifiers — и подчинить secondary-agent execution правилам subdelegation.",
+      "priority": "P3",
+      "profile": "identity-passport",
+      "depends_on": [
+        2,
+        5,
+        41,
+        44,
+        76
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
+    },
+    {
+      "id": 74,
+      "title": "Independent Reference Vertical Slice",
+      "description": "реализовать один убедительный end-to-end scenario с реальным app surface, local и remote runtimes, двумя независимыми agents и verifier reports.",
+      "category": "Conformance / reference implementation",
+      "side": "right",
+      "status": "present",
+      "anchors": [
+        {
+          "heading": "Application MVP Mapping",
+          "anchorId": "application-mvp-mapping"
+        },
+        {
+          "heading": "Reference Mock Participants",
+          "anchorId": "reference-mock-participants"
+        },
+        {
+          "heading": "Interoperability Test Suite",
+          "anchorId": "interoperability-test-suite"
+        },
+        {
+          "heading": "Conformance Claim and Composition Rules",
+          "anchorId": "conformance-claim-and-composition-rules"
+        }
+      ],
+      "rationale": "RFC уже нормативно определяет independent counterpart evidence и запрещает считать fixtures либо same-artifact processes interoperability, поэтому coverage present. Delivery maturity остаётся proposal: vertical slice должен реализовать exact bundle из #65, фиксировать разные implementation artifacts/deployment boundaries, positive и negative paths, reports и reproducible setup; два процесса из одного mock codebase не считаются независимыми implementations.",
+      "priority": "P1",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        56,
+        58,
+        60,
+        65
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-mvp-mapping"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-mock-participants"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "interoperability-test-suite"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "conformance-claim-and-composition-rules"
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "title": "ASP Typed SDK and Core Code Generation",
+      "description": "создать typed authoring SDK, canonical intermediate model и deterministic generators для ASP manifests, schemas и validators с secure defaults.",
+      "category": "Tooling / SDK / code generation",
+      "side": "left",
+      "status": "partial",
+      "anchors": [
+        {
+          "heading": "OpenAPI and AsyncAPI Import Profile",
+          "anchorId": "openapi-and-asyncapi-import-profile"
+        },
+        {
+          "heading": "Required Top-Level Fields",
+          "anchorId": "required-top-level-fields"
+        },
+        {
+          "heading": "Actions",
+          "anchorId": "actions"
+        },
+        {
+          "heading": "Interoperability Test Suite",
+          "anchorId": "interoperability-test-suite"
+        },
+        {
+          "heading": "Application MVP Mapping",
+          "anchorId": "application-mvp-mapping"
+        }
+      ],
+      "rationale": "Manifest linter и API importer дают часть generation pipeline, но не typed application-authoring SDK. Core generator должен иметь один canonical validated IR, reproducible output, explicit loss reports, safe proposal-first defaults и conformance fixtures; он не выводит authority, risk или effects из API names и не принимает output без полного ASP validation. External platform adapters вынесены в #77 и не блокируют core SDK.",
+      "priority": "P2",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        17,
+        19,
+        20,
+        22,
+        56,
+        60
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "openapi-and-asyncapi-import-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "required-top-level-fields"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "actions"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "interoperability-test-suite"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "application-mvp-mapping"
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "title": "Pluggable Agent Identity Evidence",
+      "description": "заменить hard dependency на Agent Passport универсальным versioned identity-evidence envelope с selectable verification, status и migration profiles.",
+      "category": "Identity / evidence abstraction",
+      "side": "right",
+      "status": "partial",
+      "anchors": [
+        {
+          "heading": "Minimal Agent Passport Grant-Issuance Profile",
+          "anchorId": "minimal-agent-passport-grant-issuance-profile"
+        },
+        {
+          "heading": "Grant Object",
+          "anchorId": "grant-object"
+        },
+        {
+          "heading": "Grant Verification",
+          "anchorId": "grant-verification"
+        },
+        {
+          "heading": "Agent Passport Revoked or Expired",
+          "anchorId": "agent-passport-revoked-or-expired"
+        }
+      ],
+      "rationale": "RFC сейчас hard-binds every Agent Grant к Passport-specific delegate fields; selected Passport verification и optional runtime attestation не делают сам agent identity format replaceable. Generic envelope должен фиксировать evidence profile, issuer/subject, artifact digest, key binding, freshness, status resolver и verification result, а Grant — exact verified projection. Agent Passport становится одним named profile. Unknown, stale, revoked или unmigratable evidence fails closed и никогда не является authority само по себе.",
+      "priority": "P1",
+      "profile": "identity-passport",
+      "depends_on": [
+        2,
+        41,
+        42,
+        43,
+        44
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "minimal-agent-passport-grant-issuance-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-object"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-passport-revoked-or-expired"
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "title": "External Mapping Adapter Generators",
+      "description": "генерировать version-pinned WoT, Arazzo, MCP, WebMCP, App Intents, AppFunctions и A2A adapters только из утверждённых mapping profiles.",
+      "category": "Tooling / external adapter generation",
+      "side": "left",
+      "status": "missing",
+      "anchors": [
+        {
+          "heading": "Curated Surface Boundary",
+          "anchorId": "curated-surface-boundary"
+        },
+        {
+          "heading": "OpenAPI and AsyncAPI Import Profile",
+          "anchorId": "openapi-and-asyncapi-import-profile"
+        },
+        {
+          "heading": "Conformance",
+          "anchorId": "conformance"
+        },
+        {
+          "heading": "Application MVP Mapping",
+          "anchorId": "application-mvp-mapping"
+        }
+      ],
+      "rationale": "Platform adapter generation has different versioning, lifecycle and loss semantics from the core typed SDK. Each generator waits for its exact mapping profile, emits explicit unsupported/lossy-field reports, pins upstream versions, performs no network I/O during generation and never upgrades discovery metadata into ASP authority. Generated adapters require complete ASP validation and mapping-specific negative vectors.",
+      "priority": "P3",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        75
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": []
     }
   ]
 }
