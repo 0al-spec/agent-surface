@@ -2,7 +2,7 @@
 
 - Status: active planning snapshot
 - Snapshot date: 2026-07-22
-- Snapshot base: `7fdc9f73b50a0aa493eb448504bfddcd455765f7`
+- Snapshot base: `0bff3b754ad9ee540d2c20a3eb2471d13c160ec0`
 - Canonical machine-readable source: [`review-data.json`](review-data.json)
 
 ## Purpose and authority
@@ -28,20 +28,20 @@ The following precedence rules apply:
 
 | Coverage | Cards | Meaning |
 | --- | ---: | --- |
-| `present` | 65 | The proposal is represented in normative prose. |
-| `partial` | 4 | A precursor exists, but the interoperable contract is incomplete. |
-| `missing` | 8 | The proposed contract or mapping is not specified. |
+| `present` | 67 | The proposal is represented in normative prose. |
+| `partial` | 3 | A precursor exists, but the interoperable contract is incomplete. |
+| `missing` | 7 | The proposed contract or mapping is not specified. |
 | **Total** | **77** | |
 
-The active coverage debt is therefore **12 cards**: 2 P1, 4 P2, and 6 P3.
+The active coverage debt is therefore **10 cards**: 4 P2 and 6 P3.
 
 ### Delivery maturity
 
 | Maturity | Cards |
 | --- | ---: |
-| `proposal` | 13 |
+| `proposal` | 11 |
 | `specified` | 52 |
-| `machine_validated` | 12 |
+| `machine_validated` | 14 |
 | `implementation_tested` | 0 |
 | `interop_tested` | 0 |
 | `stable` | 0 |
@@ -79,7 +79,7 @@ documents rather than expand ASP Core indefinitely.
 
 | Card | Priority | Coverage | Dependencies | Required boundary |
 | --- | --- | --- | --- | --- |
-| #69 ASP-over-MCP Binding | P1 | `missing` | #1, #4, #5, #13, #14, #15, #19, #30, #36, #40 | Pin MCP revision `2025-11-25`; map discovery, calls, results, and receipts; test downgrade and version confusion; preserve ASP Grant and app-side verification. |
+| #69 ASP-over-MCP Binding | P1 | `present` | #1, #4, #5, #13, #14, #15, #19, #30, #36, #40, #60, #63 | MCP revision `2025-11-25`, manifest-pinned discovery, Grant location issuance, dedicated session lifecycle, schema-bound calls, credential custody, cancellation/recovery, app-side verification, receipts, and executable negative vectors are machine-validated. |
 | #70 ASP-over-WebMCP Binding | P2 | `missing` | #6, #13, #14, #15, #16, #19, #36, #46, #63, #69 | Keep the binding experimental and source-revision-pinned; define origin and document lifecycle, projection, execution-mode mapping, and app-side enforcement. |
 | #67 WoT Thing Description Mapping | P3 | `missing` | #13, #14, #16, #17, #60 | Map ASP affordances to TD 1.1 without inferring authority or automatically converting Resource and Property semantics. |
 | #68 Arazzo Workflow Mapping | P3 | `missing` | #17, #19, #22, #23, #24, #60 | Require explicit ASP metadata for import; do not infer modes, Grants, approvals, effects, or receipts from a generic workflow. |
@@ -103,7 +103,7 @@ ASP Grant, approval, effect claim, or receipt.
 
 The current 52 `specified` cards still need card-appropriate executable schemas,
 registries, validators, and positive and negative vectors before they can move
-to `machine_validated`. The 12 `machine_validated` cards need evidence from
+to `machine_validated`. The 14 `machine_validated` cards need evidence from
 real implementations before they can move to `implementation_tested`.
 
 The project still needs:
@@ -129,7 +129,8 @@ of cards.
 #69 ASP-over-MCP Binding --------------------------/
 ```
 
-#69 can begin independently of #63, but #70 requires both contracts.
+#69 is machine-validated, so #70 is now structurally ready on top of the
+completed #63 and #69 contracts.
 
 ### Lane B: identity evidence and A2A
 
@@ -171,10 +172,13 @@ of cards.
 #75 Typed SDK ------------/
 ```
 
-The next selected P1 slice is **#69 ASP-over-MCP Binding**. #74 is now
-structurally unblocked by the machine-validated #65 bundle registry. Lower-priority mappings
-should advance only when their upstream specification is sufficiently stable
-and there is concrete adopter demand.
+The next selected P1 delivery slice is **#74 Independent Reference Vertical
+Slice**. It is structurally unblocked by the machine-validated #65 bundle
+registry and can exercise the new #69 MCP binding across independently deployed
+application and runtime participants. The next specification binding is #70,
+which is now ready but remains P2 while WebMCP is still experimental.
+Lower-priority mappings should advance only when their upstream specification
+is sufficiently stable and there is concrete adopter demand.
 
 ## Definition of done for a protocol slice
 

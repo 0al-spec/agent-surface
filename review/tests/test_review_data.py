@@ -494,6 +494,16 @@ class ReviewDataValidationTests(unittest.TestCase):
                 ]
                 self.assert_invalid(payload, "exact authoritative evidence binding")
 
+    def test_asp_over_mcp_binding_requires_the_exact_bound_evidence(self) -> None:
+        for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.machine_validated_payload()
+                review = next(item for item in payload["reviews"] if item["id"] == 69)
+                review["evidence"] = [
+                    item for item in review["evidence"] if item["kind"] != missing_kind
+                ]
+                self.assert_invalid(payload, "exact authoritative evidence binding")
+
     def test_human_elicitation_requires_the_exact_bound_evidence(self) -> None:
         for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
             with self.subTest(missing_kind=missing_kind):
@@ -665,16 +675,16 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 77)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 507)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 541)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 52, "machine_validated": 13, "proposal": 12}),
+            Counter({"specified": 52, "machine_validated": 14, "proposal": 11}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 66, "partial": 3, "missing": 8}),
+            Counter({"present": 67, "partial": 3, "missing": 7}),
         )
-        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 224)
+        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 226)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
         self.assertEqual(
             [
@@ -683,7 +693,7 @@ class ReviewDataValidationTests(unittest.TestCase):
                 if review["priority"] in {"P0", "P1"}
                 and review["status"] != "present"
             ],
-            [69],
+            [],
         )
         self.assertEqual(
             Counter(review["profile"] for review in reviews),
@@ -721,8 +731,8 @@ class ReviewDataValidationTests(unittest.TestCase):
         reviews_by_id = {review["id"]: review for review in reviews}
         ready_ids = {review["id"] for review in reviews if review["readiness"] == "ready"}
         blocked_ids = set(reviews_by_id) - ready_ids
-        self.assertEqual(blocked_ids, {70, 77})
-        self.assertEqual(len(ready_ids), 75)
+        self.assertEqual(blocked_ids, {77})
+        self.assertEqual(len(ready_ids), 76)
         self.assertEqual(reviews_by_id[16]["status"], "present")
         self.assertEqual(reviews_by_id[16]["maturity"], "specified")
         self.assertEqual(reviews_by_id[16]["readiness"], "ready")
@@ -1012,7 +1022,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             ],
         )
         self.assertEqual(reviews_by_id[60]["readiness"], "ready")
-        self.assertEqual(len(reviews_by_id[60]["evidence"]), 23)
+        self.assertEqual(len(reviews_by_id[60]["evidence"]), 24)
         self.assertEqual(reviews_by_id[61]["status"], "present")
         self.assertEqual(reviews_by_id[61]["maturity"], "machine_validated")
         self.assertEqual(reviews_by_id[61]["depends_on"], [53, 58, 60])
@@ -1061,13 +1071,57 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(reviews_by_id[67]["readiness"], "ready")
         self.assertEqual(reviews_by_id[68]["status"], "missing")
         self.assertEqual(reviews_by_id[68]["readiness"], "ready")
-        self.assertEqual(reviews_by_id[69]["status"], "missing")
+        self.assertEqual(reviews_by_id[69]["status"], "present")
+        self.assertEqual(reviews_by_id[69]["maturity"], "machine_validated")
+        self.assertEqual(
+            reviews_by_id[69]["depends_on"],
+            [1, 4, 5, 13, 14, 15, 19, 30, 36, 40, 60, 63],
+        )
         self.assertEqual(reviews_by_id[69]["readiness"], "ready")
+        self.assertEqual(len(reviews_by_id[69]["evidence"]), 33)
+        self.assertEqual(
+            Counter(item["kind"] for item in reviews_by_id[69]["evidence"]),
+            Counter(
+                {
+                    "rfc_anchor": 22,
+                    "schema": 4,
+                    "registry": 4,
+                    "implementation": 3,
+                }
+            ),
+        )
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[69]["anchors"]],
+            [
+                "model-context-protocol",
+                "asp-over-mcp-binding-profile",
+                "canonical-object-hash-profile",
+                "curated-surface-boundary",
+                "endpoints",
+                "agent-grant-2",
+                "action-request",
+                "action-response",
+                "idempotency",
+                "session-authority-and-lifecycle",
+                "runtime-disconnected",
+                "grant-verification",
+                "app-receipt",
+                "error-model",
+                "http-capacity-error-binding",
+                "interoperability-test-suite",
+                "reference-mock-participants",
+                "surface-publisher-profile",
+                "grant-issuer-profile",
+                "action-executor-profile",
+                "agent-adapter-profile",
+                "runtime-mediator-profile",
+            ],
+        )
         self.assertEqual(
             reviews_by_id[70]["depends_on"],
             [6, 13, 14, 15, 16, 19, 36, 46, 63, 69],
         )
-        self.assertEqual(reviews_by_id[70]["readiness"], "blocked")
+        self.assertEqual(reviews_by_id[70]["readiness"], "ready")
         self.assertEqual(reviews_by_id[71]["readiness"], "ready")
         self.assertEqual(reviews_by_id[72]["readiness"], "ready")
         self.assertEqual(reviews_by_id[73]["depends_on"], [2, 5, 41, 44, 76])

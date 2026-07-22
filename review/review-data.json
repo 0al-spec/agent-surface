@@ -4511,6 +4511,10 @@
         },
         {
           "kind": "schema",
+          "ref": "conformance/v1/mcp-binding.schema.json"
+        },
+        {
+          "kind": "schema",
           "ref": "conformance/v1/observation.schema.json"
         },
         {
@@ -5080,30 +5084,98 @@
       "description": "определить executable binding ASP discovery, action requests/results и receipts через MCP resources/tools без ослабления app-side authority checks.",
       "category": "Protocol bindings / MCP",
       "side": "left",
-      "status": "missing",
+      "status": "present",
       "anchors": [
         {
           "heading": "Model Context Protocol",
           "anchorId": "model-context-protocol"
         },
         {
+          "heading": "ASP-over-MCP Binding Profile",
+          "anchorId": "asp-over-mcp-binding-profile"
+        },
+        {
+          "heading": "Canonical Object Hash Profile",
+          "anchorId": "canonical-object-hash-profile"
+        },
+        {
           "heading": "Curated Surface Boundary",
           "anchorId": "curated-surface-boundary"
+        },
+        {
+          "heading": "Endpoints",
+          "anchorId": "endpoints"
+        },
+        {
+          "heading": "Agent Grant",
+          "anchorId": "agent-grant-2"
         },
         {
           "heading": "Action Request",
           "anchorId": "action-request"
         },
         {
-          "heading": "App Receipt",
-          "anchorId": "app-receipt"
+          "heading": "Action Response",
+          "anchorId": "action-response"
+        },
+        {
+          "heading": "Idempotency",
+          "anchorId": "idempotency"
+        },
+        {
+          "heading": "Session Authority and Lifecycle",
+          "anchorId": "session-authority-and-lifecycle"
+        },
+        {
+          "heading": "Runtime Disconnected",
+          "anchorId": "runtime-disconnected"
         },
         {
           "heading": "Grant Verification",
           "anchorId": "grant-verification"
+        },
+        {
+          "heading": "App Receipt",
+          "anchorId": "app-receipt"
+        },
+        {
+          "heading": "Error Model",
+          "anchorId": "error-model"
+        },
+        {
+          "heading": "HTTP Capacity Error Binding",
+          "anchorId": "http-capacity-error-binding"
+        },
+        {
+          "heading": "Interoperability Test Suite",
+          "anchorId": "interoperability-test-suite"
+        },
+        {
+          "heading": "Reference Mock Participants",
+          "anchorId": "reference-mock-participants"
+        },
+        {
+          "heading": "Surface Publisher Profile",
+          "anchorId": "surface-publisher-profile"
+        },
+        {
+          "heading": "Grant Issuer Profile",
+          "anchorId": "grant-issuer-profile"
+        },
+        {
+          "heading": "Action Executor Profile",
+          "anchorId": "action-executor-profile"
+        },
+        {
+          "heading": "Agent Adapter Profile",
+          "anchorId": "agent-adapter-profile"
+        },
+        {
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         }
       ],
-      "rationale": "Текущий RFC объясняет композицию с MCP, но не определяет wire mapping. Binding должен pin MCP revision 2025-11-25, role placement, schemas, error mapping, streaming/cancellation и credential custody; negative vectors покрывают revision downgrade и surface-version confusion. MCP tool annotations и transport authentication остаются hints/substrate и не заменяют ASP Grant, exact surface binding, approval, application enforcement или receipt provenance.",
+      "rationale": "RFC теперь определяет version-pinned ASP-over-MCP profile для MCP 2025-11-25: application-facing Surface Publisher и Action Executor выступают MCP server, а Runtime Mediator — MCP client и credential custodian. Exact Surface projection передаётся через resources/tools, runtime-owned binding metadata связывает вызов с полным ASP tuple, typed result и App Receipt проверяются независимо. MCP annotations, OAuth success alone, request IDs, progress, cancellation и Tasks не становятся authority или evidence; downgrade, surface/action/input/result confusion, credential exposure, unverified receipts и blind retry покрыты executable negative vectors.",
       "priority": "P1",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -5116,11 +5188,146 @@
         19,
         30,
         36,
-        40
+        40,
+        60,
+        63
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "machine_validated",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "model-context-protocol"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "asp-over-mcp-binding-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "canonical-object-hash-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "curated-surface-boundary"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "endpoints"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-grant-2"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-request"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-response"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "idempotency"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "session-authority-and-lifecycle"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-disconnected"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "app-receipt"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "error-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "http-capacity-error-binding"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "interoperability-test-suite"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-mock-participants"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-publisher-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-issuer-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-executor-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-adapter-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-mediator-profile"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/mcp-binding.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/fixtures.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/observation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/vectors.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/suite.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/vectors.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/fixtures.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/schema-cases.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/behavior.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_app.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_runtime.py"
+        }
+      ]
     },
     {
       "id": 70,
