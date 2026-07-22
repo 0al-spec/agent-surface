@@ -10,6 +10,8 @@ use crate::specifications::{BundleId, CanonicalDigest};
 pub(crate) const MANIFEST_DOMAIN: &str =
     "https://github.com/0al-spec/agent-surface/hash/manifest/v1";
 pub(crate) const GRANT_DOMAIN: &str = "https://github.com/0al-spec/agent-surface/hash/grant/v1";
+pub(crate) const IDENTITY_EVIDENCE_DOMAIN: &str =
+    "https://github.com/0al-spec/agent-surface/hash/agent-identity-evidence/v1";
 pub(crate) const EVENT_DOMAIN: &str = "https://github.com/0al-spec/agent-surface/hash/event/v1";
 pub(crate) const POLICY_DOMAIN: &str =
     "https://github.com/0al-spec/agent-surface/hash/policy-decision/v1";

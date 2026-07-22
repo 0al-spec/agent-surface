@@ -67,7 +67,7 @@
         "grant_hash",
         "runtime_id",
         "agent_id",
-        "passport_hash",
+        "identity_evidence_hash",
         "session_id",
         "session_generation"
       ],
@@ -81,7 +81,7 @@
         "grant_hash": { "$ref": "#/$defs/digest" },
         "runtime_id": { "$ref": "#/$defs/id" },
         "agent_id": { "$ref": "#/$defs/id" },
-        "passport_hash": { "$ref": "#/$defs/digest" },
+        "identity_evidence_hash": { "$ref": "#/$defs/digest" },
         "session_id": { "$ref": "#/$defs/id" },
         "session_generation": {
           "type": "integer",

@@ -304,6 +304,7 @@ actions.</p>
 <li>Approval Semantics</li>
 <li>Approval Receipt Profile</li>
 <li>Idempotency</li>
+<li>Pluggable Agent Identity Evidence Profile</li>
 <li>Minimal Agent Passport Grant-Issuance Profile</li>
 <li>Runtime Identity Profile</li>
 <li>Remote Processing Privacy Profile</li>
@@ -10524,7 +10525,8 @@ a Grant Credential. A validator MUST recompute both hashes and require:</p>
 <li>the manifest <code>issuer</code>, <code>app_id</code>, <code>surface_version</code>, and <code>surface_hash</code> to
 match <code>scope</code>;</li>
 <li>the Grant id, subject user, Grant hash, resource-server issuer, app, Surface
-version and hash, runtime id, agent id, and Passport hash to match <code>scope</code>;</li>
+version and hash, runtime id, agent id, and identity-evidence hash to match
+<code>scope</code>;</li>
 <li>every carried event and receipt binding that applies to the same tuple to
 match <code>scope</code> and those exact historical objects.</li>
 </ul>

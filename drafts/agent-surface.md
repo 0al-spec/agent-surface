@@ -138,6 +138,7 @@ Unless otherwise stated, the following sections are **normative**:
 - Approval Semantics
 - Approval Receipt Profile
 - Idempotency
+- Pluggable Agent Identity Evidence Profile
 - Minimal Agent Passport Grant-Issuance Profile
 - Runtime Identity Profile
 - Remote Processing Privacy Profile
@@ -11740,7 +11741,8 @@ a Grant Credential. A validator MUST recompute both hashes and require:
 - the manifest `issuer`, `app_id`, `surface_version`, and `surface_hash` to
   match `scope`;
 - the Grant id, subject user, Grant hash, resource-server issuer, app, Surface
-  version and hash, runtime id, agent id, and Passport hash to match `scope`;
+  version and hash, runtime id, agent id, and identity-evidence hash to match
+  `scope`;
 - every carried event and receipt binding that applies to the same tuple to
   match `scope` and those exact historical objects.
 

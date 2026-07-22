@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use crate::ReplayError;
-use crate::hash::{GRANT_DOMAIN, MANIFEST_DOMAIN, object_hash};
+use crate::hash::{GRANT_DOMAIN, IDENTITY_EVIDENCE_DOMAIN, MANIFEST_DOMAIN, object_hash};
 use crate::value::{member, string};
 
 use super::state::Validator;
@@ -252,11 +252,6 @@ pub(super) fn check_context(bundle: &Value, validator: &mut Validator) -> Result
             "/scope/agent_id",
         ),
         (
-            string(scope, "passport_hash"),
-            member(grant, "delegate").and_then(|value| string(value, "passport_hash")),
-            "/scope/passport_hash",
-        ),
-        (
             string(scope, "issuer"),
             member(grant, "resource_server").and_then(|value| string(value, "issuer")),
             "/context/grant/resource_server/issuer",
@@ -286,6 +281,20 @@ pub(super) fn check_context(bundle: &Value, validator: &mut Validator) -> Result
                 "historical context conflicts with the replay scope",
             );
         }
+    }
+
+    let identity_evidence =
+        member(grant, "delegate").and_then(|delegate| member(delegate, "identity_evidence"));
+    let identity_evidence_hash = identity_evidence
+        .map(|evidence| object_hash(IDENTITY_EVIDENCE_DOMAIN, evidence, &[]))
+        .transpose()?;
+    if identity_evidence_hash.as_deref() != string(scope, "identity_evidence_hash") {
+        validator.error(
+            "ASP-REPLAY-CONTEXT-001",
+            0,
+            "/scope/identity_evidence_hash",
+            "identity-evidence binding conflicts with the historical Grant",
+        );
     }
     Ok(())
 }

@@ -5,7 +5,8 @@ use serde_json::Value;
 use crate::ReplayError;
 use crate::hash::{
     ACTUAL_EFFECTS_DOMAIN, BUNDLE_DOMAIN, EVENT_DOMAIN, EXECUTION_DOMAIN, GRANT_DOMAIN,
-    MANIFEST_DOMAIN, POLICY_DOMAIN, RECEIPT_DOMAIN, RECORD_DOMAIN, object_hash,
+    IDENTITY_EVIDENCE_DOMAIN, MANIFEST_DOMAIN, POLICY_DOMAIN, RECEIPT_DOMAIN, RECORD_DOMAIN,
+    object_hash,
 };
 use crate::value::{member, string};
 
@@ -21,6 +22,24 @@ fn set_string(value: &mut Value, name: &str, new_value: String) {
 /// supplied JSON value and never reads files, resolves URIs, or performs
 /// network operations.
 pub(crate) fn rehash_bundle(bundle: &mut Value) -> Result<(), ReplayError> {
+    let identity_evidence_hash = {
+        let evidence = bundle
+            .pointer("/context/grant/delegate/identity_evidence")
+            .ok_or_else(|| {
+                ReplayError::SelfCheck(
+                    "rehash requires context.grant.delegate.identity_evidence".to_owned(),
+                )
+            })?;
+        object_hash(IDENTITY_EVIDENCE_DOMAIN, evidence, &[])?
+    };
+    set_string(
+        bundle
+            .pointer_mut("/scope")
+            .ok_or_else(|| ReplayError::SelfCheck("rehash requires scope".to_owned()))?,
+        "identity_evidence_hash",
+        identity_evidence_hash.clone(),
+    );
+
     let surface_hash = {
         let surface = bundle
             .pointer("/context/surface")
@@ -119,6 +138,13 @@ pub(crate) fn rehash_bundle(bundle: &mut Value) -> Result<(), ReplayError> {
                 "receipt" => {
                     set_string(body, "grant_hash", grant_hash.clone());
                     set_string(body, "surface_hash", surface_hash.clone());
+                    if let Some(actor_agent) = body.get_mut("actor_agent") {
+                        set_string(
+                            actor_agent,
+                            "identity_evidence_hash",
+                            identity_evidence_hash.clone(),
+                        );
+                    }
                     if let Some(parent) = string(body, "parent_receipt_hash")
                         .and_then(|hash| receipt_hash_replacements.get(hash))
                         .cloned()

@@ -1,110 +1,133 @@
 {
   "$schema": "./bundle.schema.json",
-  "schema_version": 1,
-  "profile": "https://github.com/0al-spec/agent-surface/profiles/replay-bundle/v1",
-  "protocol_version": "agent-surface/0.1",
-  "claim_effect": "descriptive_only",
+  "bundle_hash": "sha-256:A0p0jLalomH_bkV0L5bQQfoYZQVzVzBVTIrqSb1szrU",
   "bundle_id": "bundle-complete-session",
-  "created_at": "2026-07-20T10:02:00Z",
-  "scope": {
-    "subject_user": "user_abc",
-    "issuer": "https://code.example.com",
-    "app_id": "code.example.com",
-    "surface_version": "2026-07-20",
-    "surface_hash": "sha-256:1NaXlme2iawiReZ5lnIjGk7BE8UKxbQDWtyXLpiB9S4",
-    "grant_id": "grant_123",
-    "grant_hash": "sha-256:fTvGuhgQ8CujkBIcD0eAhLVSzl2r91eoV48hj8I-gVY",
-    "runtime_id": "runtime_456",
-    "agent_id": "agent_789",
-    "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "session_id": "sess_456",
-    "session_generation": 1
+  "capture": {
+    "completeness": "complete",
+    "ended_at": "2026-07-20T10:02:00Z",
+    "started_at": "2026-07-20T10:00:00Z"
   },
+  "claim_effect": "descriptive_only",
   "context": {
-    "surface": {
-      "protocol": "agent-surface/0.1",
-      "app_id": "code.example.com",
-      "issuer": "https://code.example.com",
-      "surface_mode": "standard",
-      "surface_version": "2026-07-20",
-      "surface_url": "https://code.example.com/.well-known/agent-surface.json",
-      "auth": {},
-      "agent_api": {},
-      "scopes": [],
-      "data_classes": [],
-      "resources": [],
-      "actions": [],
-      "events": [],
-      "audit": {},
-      "revocation": {},
-      "surface_hash": "sha-256:1NaXlme2iawiReZ5lnIjGk7BE8UKxbQDWtyXLpiB9S4"
-    },
     "grant": {
-      "grant_id": "grant_123",
-      "subject": { "user": "user_abc" },
-      "delegate": {
-        "runtime": "runtime_456",
-        "agent": "agent_789",
-        "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      "actions": [],
+      "audit": {
+        "app_receipt": "required",
+        "local_receipt": "required"
       },
+      "constraints": {
+        "expires_at": "2026-07-20T11:00:00Z"
+      },
+      "credential_binding": {},
+      "credential_profile": "proof_bound",
+      "data_exposure": [],
+      "delegate": {
+        "agent": "agent_789",
+        "identity_evidence": {
+          "artifact_digest": {
+            "profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
+            "value": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "format_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+          "issuer": "https://issuer.example/agents",
+          "key_binding": {
+            "profile": "https://example.com/profiles/issuer-key-thumbprint/v1",
+            "value": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "lifecycle": {
+            "freshness_profile": "https://example.com/profiles/status-max-age/2026-01",
+            "status_profile": "https://example.com/profiles/agent-passport-status/2026-01",
+            "status_ref": "app-status-subject-4c18"
+          },
+          "profile": "https://github.com/0al-spec/agent-surface/profiles/agent-identity-evidence/v1",
+          "subject": "agent-subject-opaque-7f3a",
+          "verification_profile": "https://example.com/profiles/agent-passport-verification/2026-01"
+        },
+        "runtime": "runtime_456"
+      },
+      "grant_hash": "sha-256:yQnYROsJd30z5TyY-p4KP7BHTgdS0UDbz4NPViNdmLo",
+      "grant_id": "grant_123",
       "resource_server": {
         "app_id": "code.example.com",
         "issuer": "https://code.example.com",
-        "surface_version": "2026-07-20",
-        "surface_hash": "sha-256:1NaXlme2iawiReZ5lnIjGk7BE8UKxbQDWtyXLpiB9S4"
+        "surface_hash": "sha-256:1NaXlme2iawiReZ5lnIjGk7BE8UKxbQDWtyXLpiB9S4",
+        "surface_version": "2026-07-20"
       },
-      "actions": [],
       "scopes": [],
-      "constraints": { "expires_at": "2026-07-20T11:00:00Z" },
-      "data_exposure": [],
-      "credential_profile": "proof_bound",
-      "credential_binding": {},
-      "audit": {
-        "local_receipt": "required",
-        "app_receipt": "required"
-      },
-      "grant_hash": "sha-256:fTvGuhgQ8CujkBIcD0eAhLVSzl2r91eoV48hj8I-gVY"
+      "subject": {
+        "user": "user_abc"
+      }
+    },
+    "surface": {
+      "actions": [],
+      "agent_api": {},
+      "app_id": "code.example.com",
+      "audit": {},
+      "auth": {},
+      "data_classes": [],
+      "events": [],
+      "issuer": "https://code.example.com",
+      "protocol": "agent-surface/0.1",
+      "resources": [],
+      "revocation": {},
+      "scopes": [],
+      "surface_hash": "sha-256:1NaXlme2iawiReZ5lnIjGk7BE8UKxbQDWtyXLpiB9S4",
+      "surface_mode": "standard",
+      "surface_url": "https://code.example.com/.well-known/agent-surface.json",
+      "surface_version": "2026-07-20"
     }
   },
-  "capture": {
-    "started_at": "2026-07-20T10:00:00Z",
-    "ended_at": "2026-07-20T10:02:00Z",
-    "completeness": "complete"
-  },
+  "created_at": "2026-07-20T10:02:00Z",
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/replay-bundle/v1",
+  "protocol_version": "agent-surface/0.1",
   "records": [
     {
+      "body": {
+        "next_state": "active",
+        "prior_state": "absent",
+        "reason": "start_accepted",
+        "session_generation": 1
+      },
+      "elisions": [],
+      "kind": "session_transition",
+      "name": "session.transition",
       "ordinal": 0,
+      "record_hash": "sha-256:xI2TiwYlceWG-HgVHkB-xauSYbIQicPQxHHFDd_JqHk",
       "record_id": "record-session-start",
       "recorded_at": "2026-07-20T10:00:00Z",
-      "kind": "session_transition",
-      "name": "session.transition",
-      "representation": "exact",
-      "elisions": [],
-      "body": {
-        "session_generation": 1,
-        "prior_state": "absent",
-        "next_state": "active",
-        "reason": "start_accepted"
-      },
-      "record_hash": "sha-256:xI2TiwYlceWG-HgVHkB-xauSYbIQicPQxHHFDd_JqHk"
+      "representation": "exact"
     },
     {
-      "ordinal": 1,
-      "record_id": "record-session-complete",
-      "recorded_at": "2026-07-20T10:02:00Z",
+      "body": {
+        "next_state": "completed",
+        "prior_state": "active",
+        "reason": "task_completed",
+        "session_generation": 1
+      },
+      "elisions": [],
       "kind": "session_transition",
       "name": "session.transition",
-      "representation": "exact",
-      "elisions": [],
-      "body": {
-        "session_generation": 1,
-        "prior_state": "active",
-        "next_state": "completed",
-        "reason": "task_completed"
-      },
+      "ordinal": 1,
       "previous_record_hash": "sha-256:xI2TiwYlceWG-HgVHkB-xauSYbIQicPQxHHFDd_JqHk",
-      "record_hash": "sha-256:LyXJhestCoSLzXDZ7sJwMwUggzcEjDu0dZEdiQ0dLu4"
+      "record_hash": "sha-256:LyXJhestCoSLzXDZ7sJwMwUggzcEjDu0dZEdiQ0dLu4",
+      "record_id": "record-session-complete",
+      "recorded_at": "2026-07-20T10:02:00Z",
+      "representation": "exact"
     }
   ],
-  "bundle_hash": "sha-256:M2xLdTwt4AjcQNlTpQGnOD2GhbAeB1NQx-Dsx05wIQM"
+  "schema_version": 1,
+  "scope": {
+    "agent_id": "agent_789",
+    "app_id": "code.example.com",
+    "grant_hash": "sha-256:yQnYROsJd30z5TyY-p4KP7BHTgdS0UDbz4NPViNdmLo",
+    "grant_id": "grant_123",
+    "identity_evidence_hash": "sha-256:EY1X2q-mSGjZ4goRzPeCeowGDeUY22b9oUT4MvTnOfM",
+    "issuer": "https://code.example.com",
+    "runtime_id": "runtime_456",
+    "session_generation": 1,
+    "session_id": "sess_456",
+    "subject_user": "user_abc",
+    "surface_hash": "sha-256:1NaXlme2iawiReZ5lnIjGk7BE8UKxbQDWtyXLpiB9S4",
+    "surface_version": "2026-07-20"
+  }
 }

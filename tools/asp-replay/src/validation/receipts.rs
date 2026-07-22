@@ -856,9 +856,10 @@ pub(super) fn check_receipt(
             "actor_agent/agent_id",
         ),
         (
-            member(receipt, "actor_agent").and_then(|value| string(value, "passport_hash")),
-            string(scope, "passport_hash"),
-            "actor_agent/passport_hash",
+            member(receipt, "actor_agent")
+                .and_then(|value| string(value, "identity_evidence_hash")),
+            string(scope, "identity_evidence_hash"),
+            "actor_agent/identity_evidence_hash",
         ),
     ];
     for (actual, expected, member_path) in nested_bindings {
