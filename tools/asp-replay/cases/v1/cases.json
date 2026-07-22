@@ -292,24 +292,22 @@
       ]
     },
     {
-      "id": "invalid-noncanonical-passport-digest",
+      "id": "invalid-noncanonical-identity-evidence-digest",
       "expect": "report",
       "source": "tests/fixtures/complete-session.json",
       "evaluation_state": "preflight_failed",
       "verdict": "invalid",
       "integrity_verdict": "invalid",
       "replay_completeness": "not_evaluated",
-      "diagnostic_check_ids": ["ASP-REPLAY-SCHEMA-001"],
-      "rehash_after_mutations": true,
+      "diagnostic_check_ids": [
+        "ASP-REPLAY-SCHEMA-001",
+        "ASP-REPLAY-CONTEXT-001"
+      ],
+      "rehash_after_mutations": false,
       "mutations": [
         {
           "op": "replace",
-          "path": "/scope/passport_hash",
-          "value": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB"
-        },
-        {
-          "op": "replace",
-          "path": "/context/grant/delegate/passport_hash",
+          "path": "/scope/identity_evidence_hash",
           "value": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB"
         }
       ]

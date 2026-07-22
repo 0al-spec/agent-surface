@@ -1,8 +1,8 @@
 # Agent Surface RFC Plan and Debt
 
 - Status: active planning snapshot
-- Snapshot date: 2026-07-21
-- Snapshot base: `96c89e159c0aa195a3147ef5b65c521bf8347f16`
+- Snapshot date: 2026-07-22
+- Snapshot base: `7fdc9f73b50a0aa493eb448504bfddcd455765f7`
 - Canonical machine-readable source: [`review-data.json`](review-data.json)
 
 ## Purpose and authority
@@ -28,19 +28,19 @@ The following precedence rules apply:
 
 | Coverage | Cards | Meaning |
 | --- | ---: | --- |
-| `present` | 64 | The proposal is represented in normative prose. |
-| `partial` | 5 | A precursor exists, but the interoperable contract is incomplete. |
+| `present` | 65 | The proposal is represented in normative prose. |
+| `partial` | 4 | A precursor exists, but the interoperable contract is incomplete. |
 | `missing` | 8 | The proposed contract or mapping is not specified. |
 | **Total** | **77** | |
 
-The active coverage debt is therefore **13 cards**: 3 P1, 4 P2, and 6 P3.
+The active coverage debt is therefore **12 cards**: 2 P1, 4 P2, and 6 P3.
 
 ### Delivery maturity
 
 | Maturity | Cards |
 | --- | ---: |
-| `proposal` | 14 |
-| `specified` | 51 |
+| `proposal` | 13 |
+| `specified` | 52 |
 | `machine_validated` | 12 |
 | `implementation_tested` | 0 |
 | `interop_tested` | 0 |
@@ -56,10 +56,9 @@ architecture.
 
 | Order | Card | Priority | Coverage | Required outcome |
 | ---: | --- | --- | --- | --- |
-| 1 | #76 Pluggable Agent Identity Evidence | P1 | `partial` | Replace Passport-specific Grant fields with a versioned identity-evidence envelope covering issuer, subject, digest, key binding, freshness, status, verification, revocation, and migration. |
-| 2 | #65 Adoption-Oriented Conformance Bundles | P1 | `partial` | Define composable adoption bundles made from complete role-profile obligations and selected optionals without creating a misleading security ladder. |
-| 3 | #64 Purpose- and Task-Bound Agent Grants | P2 | `partial` | Add optional issuer-owned purpose/task binding, attenuation, expiry, session and action enforcement, and fresh consent when authority is widened. |
-| 4 | #66 Modular RFC Publication Architecture | P2 | `partial` | Define document ownership, normative references, version pinning, registries, compatibility, and independent release lifecycles for Core and extension documents. |
+| 1 | #65 Adoption-Oriented Conformance Bundles | P1 | `partial` | Define composable adoption bundles made from complete role-profile obligations and selected optionals without creating a misleading security ladder. |
+| 2 | #64 Purpose- and Task-Bound Agent Grants | P2 | `partial` | Add optional issuer-owned purpose/task binding, attenuation, expiry, session and action enforcement, and fresh consent when authority is widened. |
+| 3 | #66 Modular RFC Publication Architecture | P2 | `partial` | Define document ownership, normative references, version pinning, registries, compatibility, and independent release lifecycles for Core and extension documents. |
 
 ### Normative boundaries
 
@@ -103,7 +102,7 @@ ASP Grant, approval, effect claim, or receipt.
 
 ### Broader maturity debt
 
-The current 51 `specified` cards still need card-appropriate executable schemas,
+The current 52 `specified` cards still need card-appropriate executable schemas,
 registries, validators, and positive and negative vectors before they can move
 to `machine_validated`. The 12 `machine_validated` cards need evidence from
 real implementations before they can move to `implementation_tested`.
@@ -136,7 +135,7 @@ of cards.
 ### Lane B: identity evidence and A2A
 
 ```text
-#76 Pluggable Agent Identity Evidence
+#76 Pluggable Agent Identity Evidence (specified)
   -> #73 A2A Agent Card and Task Mapping
 ```
 
@@ -173,8 +172,8 @@ of cards.
 #75 Typed SDK ------------/
 ```
 
-The immediate selected slice is **#76 Pluggable Agent Identity Evidence**.
-The next P1 slices are #65 and #69. Lower-priority mappings
+The immediate selected slice is **#65 Adoption-Oriented Conformance Bundles**.
+The next P1 slice after it is #69. Lower-priority mappings
 should advance only when their upstream specification is sufficiently stable
 and there is concrete adopter demand.
 

@@ -538,18 +538,9 @@ class ConformanceSuiteTests(unittest.TestCase):
         projection["source"]["matched_candidate"] = {
             "bindings": copy.deepcopy(projection["source"]["bindings"]),
             "agent_id": "wrong-agent",
-            "passport_profile": projection["source"]["bindings"]["delegate"][
-                "passport_profile"
-            ],
-            "passport_hash_profile": projection["source"]["bindings"][
+            "identity_evidence_hash": projection["source"]["bindings"][
                 "delegate"
-            ]["passport_hash_profile"],
-            "passport_hash": projection["source"]["bindings"]["delegate"][
-                "passport_hash"
-            ],
-            "passport_verification_profile": projection["source"]["bindings"][
-                "delegate"
-            ]["passport_verification_profile"],
+            ]["identity_evidence_hash"],
             "grant_request_hash": projection["source"]["bindings"][
                 "grant_request_hash"
             ],

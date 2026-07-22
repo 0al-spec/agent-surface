@@ -101,10 +101,7 @@
       "required": [
         "runtime_id",
         "agent_id",
-        "passport_profile",
-        "passport_hash_profile",
-        "passport_hash",
-        "passport_verification_profile"
+        "identity_evidence_hash"
       ],
       "properties": {
         "runtime_id": {
@@ -113,17 +110,8 @@
         "agent_id": {
           "$ref": "#/$defs/nonEmptyString"
         },
-        "passport_profile": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "passport_hash_profile": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "passport_hash": {
+        "identity_evidence_hash": {
           "$ref": "#/$defs/digest"
-        },
-        "passport_verification_profile": {
-          "$ref": "#/$defs/nonEmptyString"
         }
       }
     },
@@ -653,10 +641,10 @@
             "effect_unsupported",
             "execution_stage_unsupported",
             "input_unknown",
-            "passport_invalid",
-            "passport_missing",
-            "passport_profile_unsupported",
-            "passport_status_unavailable",
+            "identity_evidence_invalid",
+            "identity_evidence_missing",
+            "identity_evidence_profile_unsupported",
+            "identity_evidence_status_unavailable",
             "policy_denied",
             "recovery_unsupported",
             "remote_processing_unsupported",

@@ -459,12 +459,7 @@ class MockBehaviorSecurityTests(unittest.TestCase):
         projection["source"]["matched_candidate"] = {
             "bindings": copy.deepcopy(projection["source"]["bindings"]),
             "agent_id": delegate["agent_id"],
-            "passport_profile": delegate["passport_profile"],
-            "passport_hash_profile": delegate["passport_hash_profile"],
-            "passport_hash": delegate["passport_hash"],
-            "passport_verification_profile": delegate[
-                "passport_verification_profile"
-            ],
+            "identity_evidence_hash": delegate["identity_evidence_hash"],
             "grant_request_hash": projection["source"]["bindings"][
                 "grant_request_hash"
             ],

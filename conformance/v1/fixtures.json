@@ -1874,10 +1874,7 @@
             "delegate": {
               "runtime_id": "runtime_a",
               "agent_id": "agent_a",
-              "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
-              "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
-              "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-              "passport_verification_profile": "https://example.com/passport-verification/v1"
+              "identity_evidence_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
             },
             "capability_match": null,
             "agent_inventory_revision": "agents-1",
@@ -1898,10 +1895,7 @@
               "delegate": {
                 "runtime_id": "runtime_a",
                 "agent_id": "agent_a",
-                "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
-                "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
-                "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                "passport_verification_profile": "https://example.com/passport-verification/v1"
+                "identity_evidence_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
               },
               "capability_match": null,
               "agent_inventory_revision": "agents-1",
@@ -1911,7 +1905,7 @@
               "user_preferences_revision": null
             },
             "freshness_deadlines": {
-              "passport_status": "2026-07-19T10:05:00Z",
+              "identity_evidence_status": "2026-07-19T10:05:00Z",
               "capability_match": null,
               "agent_inventory": "2026-07-19T10:05:00Z",
               "adapter_inventory": "2026-07-19T10:05:00Z",
@@ -1931,10 +1925,10 @@
               { "check_id": "data_exposure", "state": "satisfied", "subject": { "kind": "exposure", "id": "item.content" } },
               { "check_id": "effect", "state": "satisfied", "subject": { "kind": "effect", "id": "item-update" } },
               { "check_id": "execution_stage", "state": "satisfied", "subject": { "kind": "action", "id": "action.write" } },
-              { "check_id": "passport_integrity", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
-              { "check_id": "passport_presence", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
-              { "check_id": "passport_profile", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
-              { "check_id": "passport_status", "state": "satisfied", "subject": { "kind": "passport", "id": "agent_a" } },
+              { "check_id": "identity_evidence_integrity", "state": "satisfied", "subject": { "kind": "identity_evidence", "id": "agent_a" } },
+              { "check_id": "identity_evidence_presence", "state": "satisfied", "subject": { "kind": "identity_evidence", "id": "agent_a" } },
+              { "check_id": "identity_evidence_profile", "state": "satisfied", "subject": { "kind": "identity_evidence", "id": "agent_a" } },
+              { "check_id": "identity_evidence_status", "state": "satisfied", "subject": { "kind": "identity_evidence", "id": "agent_a" } },
               { "check_id": "policy", "state": "satisfied", "subject": { "kind": "policy", "id": "policy-1" } },
               { "check_id": "recovery", "state": "satisfied", "subject": { "kind": "recovery", "id": "action.revert" } },
               { "check_id": "remote_processing", "state": "satisfied", "subject": { "kind": "policy", "id": "local" } },
@@ -2107,10 +2101,7 @@
               "delegate": {
                 "runtime_id": "runtime_a",
                 "agent_id": "agent_a",
-                "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
-                "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
-                "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                "passport_verification_profile": "https://example.com/passport-verification/v1"
+                "identity_evidence_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
               },
               "capability_match": null,
               "agent_inventory_revision": "agents-1",
@@ -3259,10 +3250,7 @@
               "delegate": {
                 "runtime_id": "runtime_a",
                 "agent_id": "agent_a",
-                "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
-                "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
-                "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                "passport_verification_profile": "https://example.com/passport-verification/v1"
+                "identity_evidence_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
               },
               "capability_match": {
                 "match_id": "match_late",
@@ -3276,10 +3264,7 @@
               "user_preferences_revision": null
             },
             "agent_id": "agent_a",
-            "passport_profile": "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
-            "passport_hash_profile": "https://github.com/0al-spec/agent-surface/hash/agent-passport-artifact/v1",
-            "passport_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            "passport_verification_profile": "https://example.com/passport-verification/v1",
+            "identity_evidence_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
             "grant_request_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
             "status": "compatible",
             "reasons": []

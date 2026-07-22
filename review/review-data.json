@@ -2875,8 +2875,8 @@
           "anchorId": "grant-verification"
         },
         {
-          "heading": "Agent Passport Revoked or Expired",
-          "anchorId": "agent-passport-revoked-or-expired"
+          "heading": "Agent Identity Evidence Invalid or Unavailable",
+          "anchorId": "agent-identity-evidence-invalid-or-unavailable"
         },
         {
           "heading": "Error Model",
@@ -2922,7 +2922,7 @@
         },
         {
           "kind": "rfc_anchor",
-          "ref": "agent-passport-revoked-or-expired"
+          "ref": "agent-identity-evidence-invalid-or-unavailable"
         },
         {
           "kind": "rfc_anchor",
@@ -2943,8 +2943,8 @@
       "status": "present",
       "anchors": [
         {
-          "heading": "Agent Passport Revoked or Expired",
-          "anchorId": "agent-passport-revoked-or-expired"
+          "heading": "Agent Identity Evidence Invalid or Unavailable",
+          "anchorId": "agent-identity-evidence-invalid-or-unavailable"
         },
         {
           "heading": "Grant Revoked",
@@ -2967,7 +2967,7 @@
       "evidence": [
         {
           "kind": "rfc_anchor",
-          "ref": "agent-passport-revoked-or-expired"
+          "ref": "agent-identity-evidence-invalid-or-unavailable"
         },
         {
           "kind": "rfc_anchor",
@@ -5385,23 +5385,27 @@
       "description": "заменить hard dependency на Agent Passport универсальным versioned identity-evidence envelope с selectable verification, status и migration profiles.",
       "category": "Identity / evidence abstraction",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
-          "heading": "Minimal Agent Passport Grant-Issuance Profile",
-          "anchorId": "minimal-agent-passport-grant-issuance-profile"
+          "heading": "Pluggable Agent Identity Evidence Profile",
+          "anchorId": "pluggable-agent-identity-evidence-profile"
         },
         {
-          "heading": "Grant Object",
-          "anchorId": "grant-object"
+          "heading": "Agent Identity Evidence Envelope",
+          "anchorId": "agent-identity-evidence-envelope"
         },
         {
-          "heading": "Grant Verification",
-          "anchorId": "grant-verification"
+          "heading": "Grant, Credential, Consent, and Projection Binding",
+          "anchorId": "grant-credential-consent-and-projection-binding"
         },
         {
-          "heading": "Agent Passport Revoked or Expired",
-          "anchorId": "agent-passport-revoked-or-expired"
+          "heading": "Migration and Legacy Passport Wire Shape",
+          "anchorId": "migration-and-legacy-passport-wire-shape"
+        },
+        {
+          "heading": "Agent Identity Evidence Invalid or Unavailable",
+          "anchorId": "agent-identity-evidence-invalid-or-unavailable"
         }
       ],
       "rationale": "RFC сейчас hard-binds every Agent Grant к Passport-specific delegate fields; selected Passport verification и optional runtime attestation не делают сам agent identity format replaceable. Generic envelope должен фиксировать evidence profile, issuer/subject, artifact digest, key binding, freshness, status resolver и verification result, а Grant — exact verified projection. Agent Passport становится одним named profile. Unknown, stale, revoked или unmigratable evidence fails closed и никогда не является authority само по себе.",
@@ -5415,23 +5419,27 @@
         44
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
         {
           "kind": "rfc_anchor",
-          "ref": "minimal-agent-passport-grant-issuance-profile"
+          "ref": "pluggable-agent-identity-evidence-profile"
         },
         {
           "kind": "rfc_anchor",
-          "ref": "grant-object"
+          "ref": "agent-identity-evidence-envelope"
         },
         {
           "kind": "rfc_anchor",
-          "ref": "grant-verification"
+          "ref": "grant-credential-consent-and-projection-binding"
         },
         {
           "kind": "rfc_anchor",
-          "ref": "agent-passport-revoked-or-expired"
+          "ref": "migration-and-legacy-passport-wire-shape"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "agent-identity-evidence-invalid-or-unavailable"
         }
       ]
     },
