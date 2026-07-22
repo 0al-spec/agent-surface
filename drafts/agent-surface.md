@@ -1471,12 +1471,19 @@ sanitized `execution` and matching `execution_hash` together; otherwise both
 are absent. If an effect was attempted or might have occurred, it MUST carry
 the complete `effect_outcome`, `actual_effects`, and `actual_effects_hash`
 triple; a definite pre-effect rejection omits all three. An application
-`approval_denied` carries the paired `approval_receipt_id` and
+error produced after valid request-side Approval Receipt evidence was accepted
+MUST repeat the request's exact role-indexed `approval_receipt_hashes` map. It
+MAY add the `application` role only when application approval completed and the
+final application action receipt contains that same final map. The
+pre-admission `rate_limited`, `capacity_state_unavailable`, and
+`service_unavailable` errors MUST omit `approval_receipt_hashes`. An application
+`approval_denied` separately carries the paired `approval_receipt_id` and
 `approval_receipt_hash`; other errors omit them. A failure receipt required or
 produced by ordinary ASP policy appears as paired `receipt_id` and
 `receipt_hash`, with its complete resource URI in the outer envelope; when no
 receipt exists, all three references are absent. No error contains `output` or
-another member. The error object contains exactly a registered ASP `code`, a
+any payload member not enumerated here. The error object contains exactly a
+registered ASP `code`, a
 non-empty description of at most 1024 Unicode scalar values safe for the
 authenticated caller, and boolean `retryable`, plus only these code-specific
 members:
