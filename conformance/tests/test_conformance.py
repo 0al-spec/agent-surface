@@ -174,14 +174,61 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.7.0")
+        self.assertEqual(self.catalog.suite["suite_version"], "1.8.0")
         self.assertEqual(len(self.catalog.features), 13)
         self.assertEqual(len(self.catalog.requirements), 46)
         self.assertEqual(len(self.catalog.vectors), 137)
+        self.assertEqual(len(self.catalog.bundles), 8)
         self.assertEqual(len(self.catalog.fixtures), 39)
         self.assertEqual(len(self.catalog.mutations), 96)
         self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 65)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
+
+    def test_adoption_bundles_are_non_linear_closed_vector_plans(self) -> None:
+        self.assertEqual(
+            {bundle["kind"] for bundle in self.catalog.bundles.values()},
+            {"foundation", "feature_overlay"},
+        )
+        self.assertIn(
+            "https://github.com/0al-spec/agent-surface/conformance/bundles/mediated-proposal/v1",
+            self.catalog.bundles,
+        )
+        serialized = json.dumps(self.catalog.bundle_registry, sort_keys=True)
+        for forbidden in ("level", "rank", "assurance_score", "supersedes"):
+            self.assertNotIn(f'"{forbidden}"', serialized)
+        for bundle in self.catalog.bundles.values():
+            for claim in bundle["claims"]:
+                polarities = {
+                    self.catalog.vectors[vector_id]["polarity"]
+                    for vector_id in claim["vector_ids"]
+                }
+                self.assertEqual(polarities, {"positive", "negative"})
+
+    def test_bundle_registry_rejects_omitted_requirement_and_vector(self) -> None:
+        for member, message in (
+            ("requirement_ids", "omits or reorders applicable requirements"),
+            ("vector_ids", "omits or reorders executable vectors"),
+        ):
+            with self.subTest(member=member):
+                root = self.catalog_copy()
+                path = root / "conformance" / "v1" / "bundles.json"
+                registry = json.loads(path.read_text(encoding="utf-8"))
+                registry["bundles"][0]["claims"][1][member].pop()
+                path.write_text(json.dumps(registry), encoding="utf-8")
+                with self.assertRaisesRegex(ConformanceError, message):
+                    validate_catalog(root)
+
+    def test_bundle_registry_rejects_uncovered_role_feature_pair(self) -> None:
+        root = self.catalog_copy()
+        path = root / "conformance" / "v1" / "bundles.json"
+        registry = json.loads(path.read_text(encoding="utf-8"))
+        grant_claim = registry["bundles"][0]["claims"][1]
+        grant_claim["feature_ids"] = ["agent-surface/feature/impact-simulation"]
+        path.write_text(json.dumps(registry), encoding="utf-8")
+        with self.assertRaisesRegex(
+            ConformanceError, "selects features without matrix coverage"
+        ):
+            validate_catalog(root)
 
     def test_feature_vocabularies_match_the_catalog(self) -> None:
         expected = set(self.catalog.features)

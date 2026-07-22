@@ -56,9 +56,8 @@ architecture.
 
 | Order | Card | Priority | Coverage | Required outcome |
 | ---: | --- | --- | --- | --- |
-| 1 | #65 Adoption-Oriented Conformance Bundles | P1 | `partial` | Define composable adoption bundles made from complete role-profile obligations and selected optionals without creating a misleading security ladder. |
-| 2 | #64 Purpose- and Task-Bound Agent Grants | P2 | `partial` | Add optional issuer-owned purpose/task binding, attenuation, expiry, session and action enforcement, and fresh consent when authority is widened. |
-| 3 | #66 Modular RFC Publication Architecture | P2 | `partial` | Define document ownership, normative references, version pinning, registries, compatibility, and independent release lifecycles for Core and extension documents. |
+| 1 | #64 Purpose- and Task-Bound Agent Grants | P2 | `partial` | Add optional issuer-owned purpose/task binding, attenuation, expiry, session and action enforcement, and fresh consent when authority is widened. |
+| 2 | #66 Modular RFC Publication Architecture | P2 | `partial` | Define document ownership, normative references, version pinning, registries, compatibility, and independent release lifecycles for Core and extension documents. |
 
 ### Normative boundaries
 
@@ -142,7 +141,7 @@ of cards.
 ### Lane C: adoption proof
 
 ```text
-#65 Adoption-Oriented Conformance Bundles
+#65 Adoption-Oriented Conformance Bundles (machine-validated)
   -> #74 Independent Reference Vertical Slice
 ```
 
@@ -172,8 +171,8 @@ of cards.
 #75 Typed SDK ------------/
 ```
 
-The immediate selected slice is **#65 Adoption-Oriented Conformance Bundles**.
-The next P1 slice after it is #69. Lower-priority mappings
+The next selected P1 slice is **#69 ASP-over-MCP Binding**. #74 is now
+structurally unblocked by the machine-validated #65 bundle registry. Lower-priority mappings
 should advance only when their upstream specification is sufficiently stable
 and there is concrete adopter demand.
 

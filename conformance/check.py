@@ -42,7 +42,9 @@ SUITE_PATH = V1_DIR / "suite.json"
 VECTORS_PATH = V1_DIR / "vectors.json"
 FIXTURES_PATH = V1_DIR / "fixtures.json"
 SCHEMA_CASES_PATH = V1_DIR / "schema-cases.json"
+BUNDLES_PATH = V1_DIR / "bundles.json"
 SCHEMA_NAMES = (
+    "bundles",
     "capacity-error",
     "fixtures",
     "human-elicitation",
@@ -65,6 +67,7 @@ CATALOG_RELATIVE_PATHS = tuple(
         (
             *(f"conformance/v1/{name}.schema.json" for name in SCHEMA_NAMES),
             "conformance/v1/fixtures.json",
+            "conformance/v1/bundles.json",
             "conformance/v1/schema-cases.json",
             "conformance/v1/suite.json",
             "conformance/v1/vectors.json",
@@ -389,12 +392,14 @@ class Catalog:
     vector_catalog: dict[str, Any]
     fixture_catalog: dict[str, Any]
     schema_case_catalog: dict[str, Any]
+    bundle_registry: dict[str, Any]
     requirements: dict[str, dict[str, Any]]
     vectors: dict[str, dict[str, Any]]
     profiles: dict[str, dict[str, Any]]
     features: dict[str, dict[str, Any]]
     fixtures: dict[str, dict[str, Any]]
     mutations: dict[str, dict[str, Any]]
+    bundles: dict[str, dict[str, Any]]
 
 
 def _reject_float(value: str) -> None:
@@ -2988,12 +2993,14 @@ def _semantic_validate_catalog(
     vector_catalog: dict[str, Any],
     fixture_catalog: dict[str, Any],
     schema_case_catalog: dict[str, Any],
+    bundle_registry: dict[str, Any],
 ) -> Catalog:
     if (
         suite["suite_id"] != SUITE_ID
         or vector_catalog["suite_id"] != SUITE_ID
         or fixture_catalog["suite_id"] != SUITE_ID
         or schema_case_catalog["suite_id"] != SUITE_ID
+        or bundle_registry["suite_id"] != SUITE_ID
     ):
         raise ConformanceError("catalog suite_id must be the exact ASP v1 suite identifier")
     if len(
@@ -3002,9 +3009,10 @@ def _semantic_validate_catalog(
             vector_catalog["suite_version"],
             fixture_catalog["suite_version"],
             schema_case_catalog["suite_version"],
+            bundle_registry["suite_version"],
         }
     ) != 1:
-        raise ConformanceError("suite, vector, and fixture catalog versions differ")
+        raise ConformanceError("suite, vector, fixture, case, and bundle versions differ")
     if suite["protocol_version"] != PROTOCOL_VERSION:
         raise ConformanceError("suite protocol_version must be exactly agent-surface/0.1")
     specification = suite["specification"]
@@ -3456,6 +3464,106 @@ def _semantic_validate_catalog(
             raise ConformanceError(
                 f"Receipt Producer role {producer_role} requires positive and negative vectors"
             )
+
+    if bundle_registry["protocol_version"] != PROTOCOL_VERSION:
+        raise ConformanceError(
+            "bundle registry protocol_version must be exactly agent-surface/0.1"
+        )
+    if bundle_registry["claim_effect"] != "descriptive_only":
+        raise ConformanceError("bundle registry claim_effect must remain descriptive_only")
+    bundles = _unique_index(bundle_registry["bundles"], "bundle_id", "bundle")
+    if list(bundles) != sorted(bundles):
+        raise ConformanceError("bundle ids must use canonical lexicographic order")
+    profile_order = {profile_id: index for index, profile_id in enumerate(profiles)}
+    bundle_shapes: set[str] = set()
+    bundle_kinds: set[str] = set()
+    for bundle_id, bundle in bundles.items():
+        bundle_kinds.add(bundle["kind"])
+        claim_keys: list[tuple[str, str]] = []
+        for claim in bundle["claims"]:
+            profile_id = claim["profile_id"]
+            if profile_id not in profiles:
+                raise ConformanceError(
+                    f"bundle {bundle_id} references unknown profile {profile_id}"
+                )
+            producer_role = claim.get("producer_role", "")
+            claim_key = (profile_id, producer_role)
+            if claim_key in claim_keys:
+                raise ConformanceError(f"bundle {bundle_id} repeats a role claim")
+            claim_keys.append(claim_key)
+            if claim["feature_ids"] != sorted(claim["feature_ids"]):
+                raise ConformanceError(
+                    f"bundle {bundle_id} feature ids are not canonical"
+                )
+            unknown_features = set(claim["feature_ids"]) - set(features)
+            if unknown_features:
+                raise ConformanceError(
+                    f"bundle {bundle_id} references unknown features: "
+                    + ", ".join(sorted(unknown_features))
+                )
+
+            expected_requirement_ids: list[str] = []
+            covered_feature_ids: set[str] = set()
+            for requirement_id in profiles[profile_id]["requirement_ids"]:
+                requirement = requirements[requirement_id]
+                applicability = requirement["applicability"]
+                applies = applicability["kind"] == "always"
+                if applicability["kind"] == "feature":
+                    feature_id = applicability["feature_id"]
+                    applies = feature_id in claim["feature_ids"]
+                    if applies:
+                        covered_feature_ids.add(feature_id)
+                elif applicability["kind"] == "producer_role":
+                    applies = applicability["producer_role"] == producer_role
+                if applies:
+                    expected_requirement_ids.append(requirement_id)
+            uncovered_features = set(claim["feature_ids"]) - covered_feature_ids
+            if uncovered_features:
+                raise ConformanceError(
+                    f"bundle {bundle_id} selects features without matrix coverage for "
+                    f"{profile_id}: " + ", ".join(sorted(uncovered_features))
+                )
+            if claim["requirement_ids"] != expected_requirement_ids:
+                raise ConformanceError(
+                    f"bundle {bundle_id} omits or reorders applicable requirements for "
+                    f"{profile_id}"
+                )
+            expected_vector_ids: list[str] = []
+            for requirement_id in expected_requirement_ids:
+                for vector_id in requirements[requirement_id]["vector_ids"]:
+                    if vector_id not in expected_vector_ids:
+                        expected_vector_ids.append(vector_id)
+            if claim["vector_ids"] != expected_vector_ids:
+                raise ConformanceError(
+                    f"bundle {bundle_id} omits or reorders executable vectors for "
+                    f"{profile_id}"
+                )
+            claim_polarities = {
+                vectors[vector_id]["polarity"] for vector_id in expected_vector_ids
+            }
+            if claim_polarities != {"positive", "negative"}:
+                raise ConformanceError(
+                    f"bundle {bundle_id} claim {profile_id} requires positive and "
+                    "negative vectors"
+                )
+
+        expected_claim_order = sorted(
+            claim_keys,
+            key=lambda item: (
+                profile_order[item[0]],
+                {"": 0, "application": 1, "runtime": 2}[item[1]],
+            ),
+        )
+        if claim_keys != expected_claim_order:
+            raise ConformanceError(f"bundle {bundle_id} claims are not canonically ordered")
+        shape = json.dumps(bundle["claims"], sort_keys=True, separators=(",", ":"))
+        if shape in bundle_shapes:
+            raise ConformanceError(f"bundle {bundle_id} duplicates another bundle")
+        bundle_shapes.add(shape)
+    if bundle_kinds != {"foundation", "feature_overlay"}:
+        raise ConformanceError(
+            "bundle registry requires both foundation and feature_overlay entries"
+        )
     if used_fixtures != set(fixtures):
         raise ConformanceError("fixture catalog contains unused or unreferenced fixtures")
     if used_mutations != set(mutations):
@@ -3467,12 +3575,14 @@ def _semantic_validate_catalog(
         vector_catalog=vector_catalog,
         fixture_catalog=fixture_catalog,
         schema_case_catalog=schema_case_catalog,
+        bundle_registry=bundle_registry,
         requirements=requirements,
         vectors=vectors,
         profiles=profiles,
         features=features,
         fixtures=fixtures,
         mutations=mutations,
+        bundles=bundles,
     )
 
 
@@ -3494,11 +3604,18 @@ def validate_catalog(root: Path = ROOT) -> Catalog:
     vector_catalog = load_strict_json(v1_dir / "vectors.json")
     fixture_catalog = load_strict_json(v1_dir / "fixtures.json")
     schema_case_catalog = load_schema_case_json(v1_dir / "schema-cases.json")
+    bundle_registry = load_strict_json(v1_dir / "bundles.json")
     registry = _schema_registry(root)
     _validate_schema_ref_closure(schemas, registry)
     _validate_with_schema(suite, schemas["suite"], "suite.json", registry=registry)
     _validate_with_schema(
         vector_catalog, schemas["vectors"], "vectors.json", registry=registry
+    )
+    _validate_with_schema(
+        bundle_registry,
+        schemas["bundles"],
+        "bundles.json",
+        registry=registry,
     )
     _validate_with_schema(
         fixture_catalog, schemas["fixtures"], "fixtures.json", registry=registry
@@ -3511,7 +3628,12 @@ def validate_catalog(root: Path = ROOT) -> Catalog:
     )
     _validate_schema_cases(root, schema_case_catalog, schemas, registry)
     return _semantic_validate_catalog(
-        root, suite, vector_catalog, fixture_catalog, schema_case_catalog
+        root,
+        suite,
+        vector_catalog,
+        fixture_catalog,
+        schema_case_catalog,
+        bundle_registry,
     )
 
 
@@ -4074,7 +4196,7 @@ def run_suite(
     started_at = _utc_now()
     runner = {
         "runner_id": "asp-reference-conformance-runner",
-        "runner_version": "1.7.0",
+        "runner_version": "1.8.0",
         "runner_artifact_sha256": file_digest(
             "ASP-CONFORMANCE-RUNNER-V1", root / "conformance" / "check.py"
         ),
@@ -4518,6 +4640,7 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 "Conformance catalog is valid: "
                 f"{len(catalog.profiles)} profiles, "
+                f"{len(catalog.bundles)} bundles, "
                 f"{len(catalog.requirements)} requirements, "
                 f"{len(catalog.vectors)} vectors"
             )
