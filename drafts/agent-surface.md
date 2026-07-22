@@ -3287,9 +3287,11 @@ the ASP-over-MCP Binding Profile contains exactly one entry for that profile
 with `transport: "streamable-http"`, `mcp_protocol_version: "2025-11-25"`,
 `authorization_composition` equal to `asp-native` or
 `mcp-oauth-dual-use`, and an absolute HTTPS `endpoint` without a fragment.
-The endpoint MUST NOT contain URI userinfo. That exact URI string is the
-canonical MCP server URI for this profile; implementations MUST NOT normalize
-it into a different comparison or credential audience value. A DPoP-bound
+The endpoint MUST NOT contain a query component or URI userinfo. These
+restrictions make that exact URI string both the canonical MCP server URI and,
+when DPoP is selected, the RFC 9449 `htu` request target for this profile;
+implementations MUST NOT drop a query or otherwise normalize it into a
+different comparison or credential audience value. A DPoP-bound
 Grant requires `asp-native`; `mcp-oauth-dual-use` is valid only under the
 Bearer and audience-equality rules in the binding profile. The runtime discovers and verifies
 the manifest through ordinary ASP HTTPS discovery before opening MCP; MCP
