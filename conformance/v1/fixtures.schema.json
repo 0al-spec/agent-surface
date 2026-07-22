@@ -1045,7 +1045,7 @@
               "enum": [
                 "candidate",
                 "runtime",
-                "passport",
+                "identity_evidence",
                 "capability",
                 "adapter",
                 "action",
@@ -1081,10 +1081,10 @@
                 "data_exposure",
                 "effect",
                 "execution_stage",
-                "passport_integrity",
-                "passport_presence",
-                "passport_profile",
-                "passport_status",
+                "identity_evidence_integrity",
+                "identity_evidence_presence",
+                "identity_evidence_profile",
+                "identity_evidence_status",
                 "policy",
                 "recovery",
                 "remote_processing",
@@ -1118,7 +1118,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "passport_status",
+        "identity_evidence_status",
         "capability_match",
         "agent_inventory",
         "adapter_inventory",
@@ -1130,7 +1130,7 @@
         "local_maximum"
       ],
       "properties": {
-        "passport_status": {
+        "identity_evidence_status": {
           "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp"
         },
         "capability_match": {
@@ -1201,10 +1201,7 @@
           "required": [
             "bindings",
             "agent_id",
-            "passport_profile",
-            "passport_hash_profile",
-            "passport_hash",
-            "passport_verification_profile",
+            "identity_evidence_hash",
             "grant_request_hash",
             "status",
             "reasons"
@@ -1214,12 +1211,9 @@
               "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/bindings"
             },
             "agent_id": { "type": "string", "minLength": 1 },
-            "passport_profile": { "type": "string", "minLength": 1 },
-            "passport_hash_profile": { "type": "string", "minLength": 1 },
-            "passport_hash": {
+            "identity_evidence_hash": {
               "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/digest"
             },
-            "passport_verification_profile": { "type": "string", "minLength": 1 },
             "grant_request_hash": {
               "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/digest"
             },

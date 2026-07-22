@@ -169,8 +169,8 @@ IMPACT_EXTENSION_URI_PATTERN = re.compile(
 )
 IMPACT_INDETERMINATE_REASONS = frozenset(
     {
-        "passport_profile_unsupported",
-        "passport_status_unavailable",
+        "identity_evidence_profile_unsupported",
+        "identity_evidence_status_unavailable",
         "runtime_attestation_unavailable",
         "runtime_identity_unavailable",
         "input_unknown",
@@ -185,8 +185,8 @@ IMPACT_DEFINITIVE_REASONS = frozenset(
         "data_exposure_unsupported",
         "effect_unsupported",
         "execution_stage_unsupported",
-        "passport_invalid",
-        "passport_missing",
+        "identity_evidence_invalid",
+        "identity_evidence_missing",
         "policy_denied",
         "recovery_unsupported",
         "remote_processing_unsupported",
@@ -210,7 +210,7 @@ IMPACT_REASON_SUBJECT_KINDS = frozenset(
     {
         "candidate",
         "runtime",
-        "passport",
+        "identity_evidence",
         "capability",
         "adapter",
         "action",
@@ -271,17 +271,25 @@ IMPACT_CANDIDATE_CHECKS = {
         "definitive",
         "action",
     ),
-    "passport_integrity": ("passport_invalid", "definitive", "passport"),
-    "passport_presence": ("passport_missing", "definitive", "passport"),
-    "passport_profile": (
-        "passport_profile_unsupported",
-        "indeterminate",
-        "passport",
+    "identity_evidence_integrity": (
+        "identity_evidence_invalid",
+        "definitive",
+        "identity_evidence",
     ),
-    "passport_status": (
-        "passport_status_unavailable",
+    "identity_evidence_presence": (
+        "identity_evidence_missing",
+        "definitive",
+        "identity_evidence",
+    ),
+    "identity_evidence_profile": (
+        "identity_evidence_profile_unsupported",
         "indeterminate",
-        "passport",
+        "identity_evidence",
+    ),
+    "identity_evidence_status": (
+        "identity_evidence_status_unavailable",
+        "indeterminate",
+        "identity_evidence",
     ),
     "policy": ("policy_denied", "definitive", "policy"),
     "recovery": ("recovery_unsupported", "definitive", "recovery"),
@@ -1216,10 +1224,7 @@ def _impact_candidate_projection(
         matched_fields = {
             "bindings",
             "agent_id",
-            "passport_profile",
-            "passport_hash_profile",
-            "passport_hash",
-            "passport_verification_profile",
+            "identity_evidence_hash",
             "grant_request_hash",
             "status",
             "reasons",
@@ -1230,13 +1235,8 @@ def _impact_candidate_projection(
             or set(matched_candidate) != matched_fields
             or matched_candidate["bindings"] != bindings
             or matched_candidate["agent_id"] != delegate["agent_id"]
-            or matched_candidate["passport_profile"]
-            != delegate["passport_profile"]
-            or matched_candidate["passport_hash_profile"]
-            != delegate["passport_hash_profile"]
-            or matched_candidate["passport_hash"] != delegate["passport_hash"]
-            or matched_candidate["passport_verification_profile"]
-            != delegate["passport_verification_profile"]
+            or matched_candidate["identity_evidence_hash"]
+            != delegate["identity_evidence_hash"]
             or matched_candidate["grant_request_hash"]
             != bindings["grant_request_hash"]
             or {
@@ -1729,7 +1729,8 @@ def validate_impact_simulation(
     _validate_digest(value["bindings"]["surface"]["surface_hash"], "surface_hash")
     _validate_digest(value["bindings"]["grant_request_hash"], "grant_request_hash")
     _validate_digest(
-        value["bindings"]["delegate"]["passport_hash"], "delegate.passport_hash"
+        value["bindings"]["delegate"]["identity_evidence_hash"],
+        "delegate.identity_evidence_hash",
     )
 
     evaluated_at = _parse_timestamp(value["evaluated_at"])
@@ -1745,7 +1746,7 @@ def validate_impact_simulation(
         )
     freshness_deadlines = context["freshness_deadlines"]
     deadline_fields = {
-        "passport_status",
+        "identity_evidence_status",
         "capability_match",
         "agent_inventory",
         "adapter_inventory",
@@ -1775,7 +1776,7 @@ def validate_impact_simulation(
             )
         parsed_deadlines[name] = parsed
     for required_deadline in {
-        "passport_status",
+        "identity_evidence_status",
         "agent_inventory",
         "adapter_inventory",
         "local_policy",
