@@ -8,10 +8,14 @@ object.
 
 ## Version 1 artifacts
 
-`conformance/v1/suite.json` is the authoritative Suite 1.7.0 role, feature,
+`conformance/v1/suite.json` is the authoritative Suite 1.8.0 role, feature,
 requirement, and vector matrix: six profiles, 46 requirements, and 137 closed
 declarative scenarios. `conformance/v1/fixtures.json` resolves them through 39
 exact semantic baselines and 96 closed mutation patches.
+`conformance/v1/bundles.json` defines eight non-linear adoption bundles as
+closed plans over those existing role requirements and vectors; its schema and
+semantic validator reject omitted unconditional requirements, unsupported
+role-feature pairs, missing vectors, duplicate claims, and non-canonical order.
 `conformance/v1/schema-cases.json` carries 65 executable positive and negative
 cases for the Operational Limits declaration, capacity-error envelope, Human
 Elicitation messages, Impact Simulation results, and Risk Explanation hints.
@@ -110,30 +114,51 @@ independently. A Receipt Producer run additionally names exactly one
 scenario are fixtures or separately identified implementations; their presence
 does not give them, or the target, another role claim.
 
+## Adoption bundles
+
+Bundles are convenience plans, not new conformance roles or security levels.
+Each claim names one exact role profile, an optional Receipt Producer role, a
+selected feature set, and the exact requirement/vector closure derived from the
+suite. A foundation does not rank above an overlay, and an omitted role makes
+no claim that an actual protocol operation can proceed without that role.
+
+The registry currently provides Surface Catalog, Mediated Proposal,
+Application-Audited Effects, Operational Capacity, Human Elicitation, Risk
+Communication, Impact Planning, and Remote Data Governance. Composing entries
+means grouping claims by profile and producer role, unioning their features,
+and deriving closure again; stored requirement and vector arrays are never
+concatenated as an authority shortcut.
+
+A satisfied bundle describes only the exact suite revision's executable
+high-risk subset. It is not complete role conformance, certification,
+production readiness, or arbitrary-implementation interoperability.
+
 ## Digest domains
 
 All digests use SHA-256 and the text representation
 `sha-256:<base64url-without-padding>`. The single `catalog_sha256` digest uses
 the exact RFC-defined `ASP-CONFORMANCE-CATALOG-V1` domain. Hash the ASCII domain
-string, one zero octet, and then each of these sixteen canonical repo-relative
+string, one zero octet, and then each of these eighteen canonical repo-relative
 paths in lexicographic order:
 
-1. `conformance/v1/capacity-error.schema.json`
-2. `conformance/v1/fixtures.json`
-3. `conformance/v1/fixtures.schema.json`
-4. `conformance/v1/human-elicitation.schema.json`
-5. `conformance/v1/impact-simulation.schema.json`
-6. `conformance/v1/observation.schema.json`
-7. `conformance/v1/operational-limits.schema.json`
-8. `conformance/v1/report.schema.json`
-9. `conformance/v1/risk-explanation.schema.json`
-10. `conformance/v1/schema-cases.json`
-11. `conformance/v1/schema-cases.schema.json`
-12. `conformance/v1/subject.schema.json`
-13. `conformance/v1/suite.json`
-14. `conformance/v1/suite.schema.json`
-15. `conformance/v1/vectors.json`
-16. `conformance/v1/vectors.schema.json`
+1. `conformance/v1/bundles.json`
+2. `conformance/v1/bundles.schema.json`
+3. `conformance/v1/capacity-error.schema.json`
+4. `conformance/v1/fixtures.json`
+5. `conformance/v1/fixtures.schema.json`
+6. `conformance/v1/human-elicitation.schema.json`
+7. `conformance/v1/impact-simulation.schema.json`
+8. `conformance/v1/observation.schema.json`
+9. `conformance/v1/operational-limits.schema.json`
+10. `conformance/v1/report.schema.json`
+11. `conformance/v1/risk-explanation.schema.json`
+12. `conformance/v1/schema-cases.json`
+13. `conformance/v1/schema-cases.schema.json`
+14. `conformance/v1/subject.schema.json`
+15. `conformance/v1/suite.json`
+16. `conformance/v1/suite.schema.json`
+17. `conformance/v1/vectors.json`
+18. `conformance/v1/vectors.schema.json`
 
 For each file, hash its path as UTF-8, a zero octet, its exact raw bytes, and a
 final zero octet. No newline, whitespace, Unicode, or JSON member-order

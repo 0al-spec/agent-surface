@@ -13419,15 +13419,109 @@ The role boundaries have these required fail-closed cases:
 | Runtime Mediator | Reusing an Authorized Surface Projection across cache partitions, using a stale match or Consent Preview, storing a wider Grant, releasing a Grant Credential, or continuing while revocation state is unknown. |
 | Agent Adapter | Receiving credentials, selecting stronger authority, fabricating approval/effect/receipt evidence, or blindly retrying a partial or unknown outcome. |
 
+### Adoption-Oriented Conformance Bundles
+
+An adoption-oriented conformance bundle is a small, named, machine-readable
+test plan assembled from the atomic role profiles and optional features above.
+It does not create a seventh role, a partial role claim, a deployment profile,
+or a linear conformance level. In particular, bundle names, array order, and
+the labels `foundation` and `feature_overlay` express adoption intent only.
+They are not security ranks, maturity levels, prerequisites, certification,
+or authority to perform an ASP operation.
+
+The versioned bundle registry identifier is:
+
+```text
+https://github.com/0al-spec/agent-surface/conformance/bundles/v1
+```
+
+Its canonical registry and closed JSON Schema are published as
+`conformance/v1/bundles.json` and `conformance/v1/bundles.schema.json`. The
+registry is bound into the Conformance Catalog digest. It contains only the
+exact `foundation` and `feature_overlay` labels defined here; implementations
+MUST NOT infer a total order, higher-is-better relationship, or implicit
+inclusion between entries.
+
+Each bundle contains a collision-resistant `bundle_id`, a human-readable title
+and description, a kind, and one or more role claims. Each role claim contains
+exactly one role-profile identifier, the complete selected `feature_ids` for
+that bundle claim, the derived `requirement_ids`, and the derived `vector_ids`.
+A Receipt Producer claim additionally contains exactly one `producer_role`.
+The same (`profile_id`, `producer_role`) pair MUST NOT occur twice in one
+bundle. Identifiers and claims use the canonical registry order.
+
+For every role claim, a validator MUST derive closure from the selected suite
+version as follows:
+
+1. Include every `always` requirement of the selected role profile.
+2. Include every requirement whose feature is selected by that claim.
+3. For a Receipt Producer, include every requirement for the exact selected
+   producer role.
+4. Reject a selected feature for which the suite has no matrix requirement for
+   that role; it cannot be represented as covered or silently skipped.
+5. Include the canonical ordered union of every vector referenced by the
+   resulting requirements and require both positive and negative coverage.
+
+The registry's `requirement_ids` and `vector_ids` MUST equal that derived
+closure exactly. An omitted, added, duplicated, or reordered applicable
+requirement or vector invalidates the complete registry. A bundle therefore
+cannot use a shorter test plan to waive an unconditional role obligation or a
+conditional obligation for a selected feature.
+
+The v1 registry defines these independent adoption targets:
+
+| Bundle | Kind | Scope |
+| --- | --- | --- |
+| Surface Catalog | `foundation` | Surface Publisher discovery and integrity without an execution-role claim. |
+| Mediated Proposal | `foundation` | Proposal-only publication plus Grant, executor, runtime, and adapter boundaries without commit, compensate, or revert authority. |
+| Application-Audited Effects | `foundation` | Mediated effect admission with an application-role Receipt Producer. |
+| Operational Capacity | `feature_overlay` | Operational Limits publication, application admission, event delivery, HTTP binding, and runtime recovery. |
+| Human Elicitation | `feature_overlay` | Action Executor, Runtime Mediator, and Agent Adapter handling of bound human input without approval authority. |
+| Risk Communication | `feature_overlay` | Effect-bound publisher hints and inert runtime presentation beside canonical risk semantics. |
+| Impact Planning | `feature_overlay` | Runtime-local deterministic Impact Simulation kept separate from execution and authority. |
+| Remote Data Governance | `feature_overlay` | Runtime enforcement of Remote Processing Privacy and Agent Training Use constraints. |
+
+Omission of a role from a bundle makes no statement about whether that role is
+needed by a deployment operation. For example, Surface Catalog does not grant
+action authority, and Application-Audited Effects does not imply a runtime-role
+Receipt Producer. The ordinary protocol and composition rules still determine
+which roles and producer boundaries an actual operation requires.
+
+A deployment satisfies one bundle only through separate current conformance
+reports for every role claim in that bundle. Each report MUST bind the same
+suite version, catalog digest, specification digest, protocol version, and the
+named implementation boundary; MUST use the exact profile and producer role;
+MUST select at least the claim's feature set; and MUST pass every applicable
+vector for its complete reported feature scope. A suite-fixture, incomplete,
+stale, failed, uncovered-feature, wrong-boundary, or self-asserted report does
+not satisfy a bundle claim. Reports remain descriptive evidence and MUST NOT be
+embedded in a Grant, credential, approval, receipt, or action request as
+authority.
+
+Satisfying a bundle means only that the exact catalog revision's selected
+high-risk vectors passed for those reports. It MUST NOT be represented as
+complete role-profile conformance, arbitrary-implementation interoperability,
+certification, production readiness, or proof that an untested normative
+requirement is implemented.
+
+Bundles compose only by grouping claims with the same (`profile_id`,
+`producer_role`) key, taking the set union of their selected features, and
+re-deriving the complete requirement and vector closure from the exact suite
+version. A composer MUST NOT concatenate stale stored closures or drop a
+shared unconditional requirement. The resulting composition is not another
+registered bundle, does not inherit a new name, and does not imply that one
+source bundle is stronger than another.
+
 ### Interoperability Test Suite
 
 The versioned suite identifier
 `https://github.com/0al-spec/agent-surface/conformance/suite/v1` targets the
 exact protocol identifier `agent-surface/0.1` and the six role-profile
 identifiers above. Its canonical matrix, vectors, semantic fixtures, schemas,
-and runner contract are published under `conformance/v1/` in this specification
-repository. Stable requirement, vector, fixture, and mutation identifiers MUST
-NOT be reused with different semantics.
+adoption bundle registry, and runner contract are published under
+`conformance/v1/` in this specification repository. Stable bundle,
+requirement, vector, fixture, and mutation identifiers MUST NOT be reused with
+different semantics.
 
 The v1 matrix is an executable high-risk coverage subset. It covers manifest
 integrity and proposal-only bounds, exact Grant attenuation and revocation,
@@ -13614,7 +13708,8 @@ The catalog digest is SHA-256 over the ASCII domain
 `ASP-CONFORMANCE-CATALOG-V1` followed by a zero octet, then each canonical
 catalog path in lexicographic order as UTF-8, a zero octet, its raw file bytes,
 and a final zero octet. The canonical set is exactly
-`capacity-error.schema.json`, `fixtures.json`, `fixtures.schema.json`,
+`bundles.json`, `bundles.schema.json`, `capacity-error.schema.json`,
+`fixtures.json`, `fixtures.schema.json`,
 `human-elicitation.schema.json`, `impact-simulation.schema.json`,
 `observation.schema.json`,
 `operational-limits.schema.json`,

@@ -24,7 +24,7 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.7.0"
+      "const": "1.8.0"
     },
     "fixture_catalog_id": {
       "const": "agent-surface/conformance/fixtures/v1"

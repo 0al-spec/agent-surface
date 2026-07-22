@@ -2,7 +2,7 @@
   "$schema": "./fixtures.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.7.0",
+  "suite_version": "1.8.0",
   "fixture_catalog_id": "agent-surface/conformance/fixtures/v1",
   "fixtures": [
     {

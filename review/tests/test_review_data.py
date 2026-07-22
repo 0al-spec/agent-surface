@@ -665,14 +665,14 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 77)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 502)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 507)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 52, "machine_validated": 12, "proposal": 13}),
+            Counter({"specified": 52, "machine_validated": 13, "proposal": 12}),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 65, "partial": 4, "missing": 8}),
+            Counter({"present": 66, "partial": 3, "missing": 8}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 224)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -683,7 +683,7 @@ class ReviewDataValidationTests(unittest.TestCase):
                 if review["priority"] in {"P0", "P1"}
                 and review["status"] != "present"
             ],
-            [65, 69],
+            [69],
         )
         self.assertEqual(
             Counter(review["profile"] for review in reviews),
@@ -721,8 +721,8 @@ class ReviewDataValidationTests(unittest.TestCase):
         reviews_by_id = {review["id"]: review for review in reviews}
         ready_ids = {review["id"] for review in reviews if review["readiness"] == "ready"}
         blocked_ids = set(reviews_by_id) - ready_ids
-        self.assertEqual(blocked_ids, {70, 74, 77})
-        self.assertEqual(len(ready_ids), 74)
+        self.assertEqual(blocked_ids, {70, 77})
+        self.assertEqual(len(ready_ids), 75)
         self.assertEqual(reviews_by_id[16]["status"], "present")
         self.assertEqual(reviews_by_id[16]["maturity"], "specified")
         self.assertEqual(reviews_by_id[16]["readiness"], "ready")
@@ -1012,7 +1012,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             ],
         )
         self.assertEqual(reviews_by_id[60]["readiness"], "ready")
-        self.assertEqual(len(reviews_by_id[60]["evidence"]), 21)
+        self.assertEqual(len(reviews_by_id[60]["evidence"]), 23)
         self.assertEqual(reviews_by_id[61]["status"], "present")
         self.assertEqual(reviews_by_id[61]["maturity"], "machine_validated")
         self.assertEqual(reviews_by_id[61]["depends_on"], [53, 58, 60])
@@ -1052,7 +1052,8 @@ class ReviewDataValidationTests(unittest.TestCase):
             reviews_by_id[64]["depends_on"], [2, 5, 6, 10, 28, 35, 46]
         )
         self.assertEqual(reviews_by_id[64]["readiness"], "ready")
-        self.assertEqual(reviews_by_id[65]["status"], "partial")
+        self.assertEqual(reviews_by_id[65]["status"], "present")
+        self.assertEqual(reviews_by_id[65]["maturity"], "machine_validated")
         self.assertEqual(reviews_by_id[65]["readiness"], "ready")
         self.assertEqual(reviews_by_id[66]["status"], "partial")
         self.assertEqual(reviews_by_id[66]["readiness"], "ready")
@@ -1074,7 +1075,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(reviews_by_id[74]["status"], "present")
         self.assertEqual(reviews_by_id[74]["maturity"], "proposal")
         self.assertEqual(reviews_by_id[74]["depends_on"], [56, 58, 60, 65])
-        self.assertEqual(reviews_by_id[74]["readiness"], "blocked")
+        self.assertEqual(reviews_by_id[74]["readiness"], "ready")
         self.assertEqual(reviews_by_id[75]["status"], "partial")
         self.assertEqual(
             reviews_by_id[75]["depends_on"], [17, 19, 20, 22, 56, 60]

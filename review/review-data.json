@@ -4491,6 +4491,10 @@
         },
         {
           "kind": "schema",
+          "ref": "conformance/v1/bundles.schema.json"
+        },
+        {
+          "kind": "schema",
           "ref": "conformance/v1/capacity-error.schema.json"
         },
         {
@@ -4536,6 +4540,10 @@
         {
           "kind": "schema",
           "ref": "conformance/v1/vectors.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/bundles.json"
         },
         {
           "kind": "registry",
@@ -4887,7 +4895,7 @@
       "description": "определить небольшие non-linear feature bundles для поэтапного внедрения ASP поверх существующих role profiles без ложной шкалы «Level 1–5».",
       "category": "Conformance / adoption",
       "side": "left",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
           "heading": "Conformance",
@@ -4898,11 +4906,15 @@
           "anchorId": "conformance-claim-and-composition-rules"
         },
         {
+          "heading": "Adoption-Oriented Conformance Bundles",
+          "anchorId": "adoption-oriented-conformance-bundles"
+        },
+        {
           "heading": "Interoperability Test Suite",
           "anchorId": "interoperability-test-suite"
         }
       ],
-      "rationale": "Шесть role profiles уже отделяют responsibility boundaries, но не дают малому implementer готовый минимальный набор features. Простая линейная шкала опасна: высокий номер выглядел бы как уровень безопасности. Нужны именованные composable bundles из целых role profiles и selected optional features с executable vectors. Bundle MUST NOT исключать unconditional либо applicable requirements и не заменяет atomic role conformance.",
+      "rationale": "RFC определяет bundles как non-linear descriptive test plans, а не уровни безопасности или новые роли. Версионированный registry содержит восемь foundation/feature-overlay targets. Для каждого role claim валидатор выводит полное always/selected-feature/producer-role requirement closure и канонический positive/negative vector closure; omission, unsupported role-feature pair, duplicate claim и stale ordering fail closed. Composition объединяет features по точному profile/producer key и заново выводит closure, не превращая bundle reports в authority.",
       "priority": "P1",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -4910,7 +4922,7 @@
         60
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "machine_validated",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -4922,7 +4934,19 @@
         },
         {
           "kind": "rfc_anchor",
+          "ref": "adoption-oriented-conformance-bundles"
+        },
+        {
+          "kind": "rfc_anchor",
           "ref": "interoperability-test-suite"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/bundles.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/bundles.json"
         }
       ]
     },

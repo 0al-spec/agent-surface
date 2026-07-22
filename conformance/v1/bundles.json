@@ -1,0 +1,589 @@
+{
+  "$schema": "./bundles.schema.json",
+  "schema_version": 1,
+  "registry_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/v1",
+  "registry_version": "1.0.0",
+  "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
+  "suite_version": "1.8.0",
+  "protocol_version": "agent-surface/0.1",
+  "claim_effect": "descriptive_only",
+  "bundles": [
+    {
+      "bundle_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/application-audited-effects/v1",
+      "title": "Application-Audited Effects",
+      "kind": "foundation",
+      "description": "Application-side effect admission with application-authoritative receipt evidence and mediated agent access.",
+      "claims": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+          "feature_ids": [],
+          "requirement_ids": [
+            "ASP-SP-001"
+          ],
+          "vector_ids": [
+            "ASP-V-SP-001",
+            "ASP-V-SP-002",
+            "ASP-V-SP-003"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+          "feature_ids": [],
+          "requirement_ids": [
+            "ASP-GI-001",
+            "ASP-GI-002",
+            "ASP-GI-004"
+          ],
+          "vector_ids": [
+            "ASP-V-GI-001",
+            "ASP-V-GI-002",
+            "ASP-V-GI-003",
+            "ASP-V-GI-004",
+            "ASP-V-GI-006",
+            "ASP-V-GI-007"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+          "feature_ids": [],
+          "requirement_ids": [
+            "ASP-AE-001",
+            "ASP-AE-002",
+            "ASP-AE-003",
+            "ASP-AE-004",
+            "ASP-AE-008"
+          ],
+          "vector_ids": [
+            "ASP-V-AE-001",
+            "ASP-V-AE-003",
+            "ASP-V-AE-006",
+            "ASP-V-AE-011",
+            "ASP-V-AE-012",
+            "ASP-V-AE-002",
+            "ASP-V-AE-004",
+            "ASP-V-AE-005",
+            "ASP-V-AE-014",
+            "ASP-V-AE-007",
+            "ASP-V-AE-013"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+          "feature_ids": [],
+          "requirement_ids": [
+            "ASP-RP-001",
+            "ASP-RP-003",
+            "ASP-RP-005"
+          ],
+          "vector_ids": [
+            "ASP-V-RP-001",
+            "ASP-V-RP-003",
+            "ASP-V-RP-005",
+            "ASP-V-RP-007"
+          ],
+          "producer_role": "application"
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+          "feature_ids": [],
+          "requirement_ids": [
+            "ASP-RM-001",
+            "ASP-RM-002",
+            "ASP-RM-003",
+            "ASP-RM-004",
+            "ASP-RM-005"
+          ],
+          "vector_ids": [
+            "ASP-V-RM-001",
+            "ASP-V-RM-002",
+            "ASP-V-RM-003",
+            "ASP-V-RM-004",
+            "ASP-V-RM-005",
+            "ASP-V-RM-006"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+          "feature_ids": [],
+          "requirement_ids": [
+            "ASP-AA-001",
+            "ASP-AA-002",
+            "ASP-AA-003",
+            "ASP-AA-004"
+          ],
+          "vector_ids": [
+            "ASP-V-AA-001",
+            "ASP-V-AA-003",
+            "ASP-V-AA-002",
+            "ASP-V-AA-004",
+            "ASP-V-AA-005"
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/human-elicitation/v1",
+      "title": "Human Elicitation",
+      "kind": "feature_overlay",
+      "description": "Bound human clarification, choice, edit, redline, and step-up mediation without creating approval or action authority.",
+      "claims": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+          "feature_ids": [
+            "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+          ],
+          "requirement_ids": [
+            "ASP-AE-001",
+            "ASP-AE-002",
+            "ASP-AE-003",
+            "ASP-AE-004",
+            "ASP-AE-008",
+            "ASP-AE-012"
+          ],
+          "vector_ids": [
+            "ASP-V-AE-001",
+            "ASP-V-AE-003",
+            "ASP-V-AE-006",
+            "ASP-V-AE-011",
+            "ASP-V-AE-012",
+            "ASP-V-AE-002",
+            "ASP-V-AE-004",
+            "ASP-V-AE-005",
+            "ASP-V-AE-014",
+            "ASP-V-AE-007",
+            "ASP-V-AE-013",
+            "ASP-V-AE-027",
+            "ASP-V-AE-028",
+            "ASP-V-AE-029",
+            "ASP-V-AE-030",
+            "ASP-V-AE-031"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+          "feature_ids": [
+            "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+          ],
+          "requirement_ids": [
+            "ASP-RM-001",
+            "ASP-RM-002",
+            "ASP-RM-003",
+            "ASP-RM-004",
+            "ASP-RM-005",
+            "ASP-RM-012"
+          ],
+          "vector_ids": [
+            "ASP-V-RM-001",
+            "ASP-V-RM-002",
+            "ASP-V-RM-003",
+            "ASP-V-RM-004",
+            "ASP-V-RM-005",
+            "ASP-V-RM-006",
+            "ASP-V-RM-033",
+            "ASP-V-RM-034",
+            "ASP-V-RM-035",
+            "ASP-V-RM-036",
+            "ASP-V-RM-037",
+            "ASP-V-RM-038",
+            "ASP-V-RM-039",
+            "ASP-V-RM-040",
+            "ASP-V-RM-041",
+            "ASP-V-RM-042"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+          "feature_ids": [
+            "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+          ],
+          "requirement_ids": [
+            "ASP-AA-001",
+            "ASP-AA-002",
+            "ASP-AA-003",
+            "ASP-AA-004",
+            "ASP-AA-006"
+          ],
+          "vector_ids": [
+            "ASP-V-AA-001",
+            "ASP-V-AA-003",
+            "ASP-V-AA-002",
+            "ASP-V-AA-004",
+            "ASP-V-AA-005",
+            "ASP-V-AA-009",
+            "ASP-V-AA-010",
+            "ASP-V-AA-011"
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/impact-planning/v1",
+      "title": "Impact Planning",
+      "kind": "feature_overlay",
+      "description": "Current deterministic local impact projection kept separate from execution, consent, and agent authority.",
+      "claims": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+          "feature_ids": [
+            "agent-surface/feature/impact-simulation"
+          ],
+          "requirement_ids": [
+            "ASP-RM-001",
+            "ASP-RM-002",
+            "ASP-RM-003",
+            "ASP-RM-004",
+            "ASP-RM-005",
+            "ASP-RM-014"
+          ],
+          "vector_ids": [
+            "ASP-V-RM-001",
+            "ASP-V-RM-002",
+            "ASP-V-RM-003",
+            "ASP-V-RM-004",
+            "ASP-V-RM-005",
+            "ASP-V-RM-006",
+            "ASP-V-RM-051",
+            "ASP-V-RM-052",
+            "ASP-V-RM-053",
+            "ASP-V-RM-054",
+            "ASP-V-RM-055",
+            "ASP-V-RM-056",
+            "ASP-V-RM-057",
+            "ASP-V-RM-058",
+            "ASP-V-RM-059",
+            "ASP-V-RM-060",
+            "ASP-V-RM-061",
+            "ASP-V-RM-062",
+            "ASP-V-RM-063",
+            "ASP-V-RM-064",
+            "ASP-V-RM-065",
+            "ASP-V-RM-066",
+            "ASP-V-RM-067",
+            "ASP-V-RM-068",
+            "ASP-V-RM-069",
+            "ASP-V-RM-070",
+            "ASP-V-RM-071"
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/mediated-proposal/v1",
+      "title": "Mediated Proposal",
+      "kind": "foundation",
+      "description": "Proposal-only application surface with exact Grant mediation and no commit, compensate, or revert authority.",
+      "claims": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+          "feature_ids": [
+            "agent-surface/feature/proposal-only"
+          ],
+          "requirement_ids": [
+            "ASP-SP-001",
+            "ASP-SP-002"
+          ],
+          "vector_ids": [
+            "ASP-V-SP-001",
+            "ASP-V-SP-002",
+            "ASP-V-SP-003",
+            "ASP-V-SP-004"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+          "feature_ids": [],
+          "requirement_ids": [
+            "ASP-GI-001",
+            "ASP-GI-002",
+            "ASP-GI-004"
+          ],
+          "vector_ids": [
+            "ASP-V-GI-001",
+            "ASP-V-GI-002",
+            "ASP-V-GI-003",
+            "ASP-V-GI-004",
+            "ASP-V-GI-006",
+            "ASP-V-GI-007"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+          "feature_ids": [],
+          "requirement_ids": [
+            "ASP-AE-001",
+            "ASP-AE-002",
+            "ASP-AE-003",
+            "ASP-AE-004",
+            "ASP-AE-008"
+          ],
+          "vector_ids": [
+            "ASP-V-AE-001",
+            "ASP-V-AE-003",
+            "ASP-V-AE-006",
+            "ASP-V-AE-011",
+            "ASP-V-AE-012",
+            "ASP-V-AE-002",
+            "ASP-V-AE-004",
+            "ASP-V-AE-005",
+            "ASP-V-AE-014",
+            "ASP-V-AE-007",
+            "ASP-V-AE-013"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+          "feature_ids": [],
+          "requirement_ids": [
+            "ASP-RM-001",
+            "ASP-RM-002",
+            "ASP-RM-003",
+            "ASP-RM-004",
+            "ASP-RM-005"
+          ],
+          "vector_ids": [
+            "ASP-V-RM-001",
+            "ASP-V-RM-002",
+            "ASP-V-RM-003",
+            "ASP-V-RM-004",
+            "ASP-V-RM-005",
+            "ASP-V-RM-006"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+          "feature_ids": [],
+          "requirement_ids": [
+            "ASP-AA-001",
+            "ASP-AA-002",
+            "ASP-AA-003",
+            "ASP-AA-004"
+          ],
+          "vector_ids": [
+            "ASP-V-AA-001",
+            "ASP-V-AA-003",
+            "ASP-V-AA-002",
+            "ASP-V-AA-004",
+            "ASP-V-AA-005"
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/operational-capacity/v1",
+      "title": "Operational Capacity",
+      "kind": "feature_overlay",
+      "description": "Manifest, executor, and runtime enforcement of declared capacity, backpressure, and authenticated recovery behavior.",
+      "claims": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+          "feature_ids": [
+            "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+          ],
+          "requirement_ids": [
+            "ASP-SP-001",
+            "ASP-SP-003"
+          ],
+          "vector_ids": [
+            "ASP-V-SP-001",
+            "ASP-V-SP-002",
+            "ASP-V-SP-003",
+            "ASP-V-SP-005",
+            "ASP-V-SP-006"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+          "feature_ids": [
+            "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+          ],
+          "requirement_ids": [
+            "ASP-AE-001",
+            "ASP-AE-002",
+            "ASP-AE-003",
+            "ASP-AE-004",
+            "ASP-AE-008",
+            "ASP-AE-009",
+            "ASP-AE-010",
+            "ASP-AE-011"
+          ],
+          "vector_ids": [
+            "ASP-V-AE-001",
+            "ASP-V-AE-003",
+            "ASP-V-AE-006",
+            "ASP-V-AE-011",
+            "ASP-V-AE-012",
+            "ASP-V-AE-002",
+            "ASP-V-AE-004",
+            "ASP-V-AE-005",
+            "ASP-V-AE-014",
+            "ASP-V-AE-007",
+            "ASP-V-AE-013",
+            "ASP-V-AE-015",
+            "ASP-V-AE-016",
+            "ASP-V-AE-017",
+            "ASP-V-AE-018",
+            "ASP-V-AE-019",
+            "ASP-V-AE-020",
+            "ASP-V-AE-021",
+            "ASP-V-AE-022",
+            "ASP-V-AE-023",
+            "ASP-V-AE-024",
+            "ASP-V-AE-025",
+            "ASP-V-AE-026"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+          "feature_ids": [
+            "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
+          ],
+          "requirement_ids": [
+            "ASP-RM-001",
+            "ASP-RM-002",
+            "ASP-RM-003",
+            "ASP-RM-004",
+            "ASP-RM-005",
+            "ASP-RM-009",
+            "ASP-RM-010"
+          ],
+          "vector_ids": [
+            "ASP-V-RM-001",
+            "ASP-V-RM-002",
+            "ASP-V-RM-003",
+            "ASP-V-RM-004",
+            "ASP-V-RM-005",
+            "ASP-V-RM-006",
+            "ASP-V-RM-010",
+            "ASP-V-RM-011",
+            "ASP-V-RM-013",
+            "ASP-V-RM-012",
+            "ASP-V-RM-014",
+            "ASP-V-RM-015",
+            "ASP-V-RM-016",
+            "ASP-V-RM-017",
+            "ASP-V-RM-018",
+            "ASP-V-RM-019",
+            "ASP-V-RM-020",
+            "ASP-V-RM-021",
+            "ASP-V-RM-022",
+            "ASP-V-RM-023",
+            "ASP-V-RM-024",
+            "ASP-V-RM-025",
+            "ASP-V-RM-026",
+            "ASP-V-RM-027"
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/remote-data-governance/v1",
+      "title": "Remote Data Governance",
+      "kind": "feature_overlay",
+      "description": "Runtime enforcement of complete remote-processing paths and training-use constraints before disclosure.",
+      "claims": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+          "feature_ids": [
+            "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
+            "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1"
+          ],
+          "requirement_ids": [
+            "ASP-RM-001",
+            "ASP-RM-002",
+            "ASP-RM-003",
+            "ASP-RM-004",
+            "ASP-RM-005",
+            "ASP-RM-006",
+            "ASP-RM-007"
+          ],
+          "vector_ids": [
+            "ASP-V-RM-001",
+            "ASP-V-RM-002",
+            "ASP-V-RM-003",
+            "ASP-V-RM-004",
+            "ASP-V-RM-005",
+            "ASP-V-RM-006",
+            "ASP-V-RM-007",
+            "ASP-V-RM-008"
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/risk-communication/v1",
+      "title": "Risk Communication",
+      "kind": "feature_overlay",
+      "description": "Effect-bound publisher explanations rendered as inert text beside runtime-derived canonical risk semantics.",
+      "claims": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+          "feature_ids": [
+            "agent-surface/feature/risk-explanation-ui-hints"
+          ],
+          "requirement_ids": [
+            "ASP-SP-001",
+            "ASP-SP-004"
+          ],
+          "vector_ids": [
+            "ASP-V-SP-001",
+            "ASP-V-SP-002",
+            "ASP-V-SP-003",
+            "ASP-V-SP-007",
+            "ASP-V-SP-008",
+            "ASP-V-SP-009"
+          ]
+        },
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+          "feature_ids": [
+            "agent-surface/feature/risk-explanation-ui-hints"
+          ],
+          "requirement_ids": [
+            "ASP-RM-001",
+            "ASP-RM-002",
+            "ASP-RM-003",
+            "ASP-RM-004",
+            "ASP-RM-005",
+            "ASP-RM-013"
+          ],
+          "vector_ids": [
+            "ASP-V-RM-001",
+            "ASP-V-RM-002",
+            "ASP-V-RM-003",
+            "ASP-V-RM-004",
+            "ASP-V-RM-005",
+            "ASP-V-RM-006",
+            "ASP-V-RM-043",
+            "ASP-V-RM-044",
+            "ASP-V-RM-045",
+            "ASP-V-RM-046",
+            "ASP-V-RM-047",
+            "ASP-V-RM-048",
+            "ASP-V-RM-049",
+            "ASP-V-RM-050"
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/surface-catalog/v1",
+      "title": "Surface Catalog",
+      "kind": "foundation",
+      "description": "Discovery and integrity for a curated semantic surface without claiming delegated execution roles.",
+      "claims": [
+        {
+          "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+          "feature_ids": [],
+          "requirement_ids": [
+            "ASP-SP-001"
+          ],
+          "vector_ids": [
+            "ASP-V-SP-001",
+            "ASP-V-SP-002",
+            "ASP-V-SP-003"
+          ]
+        }
+      ]
+    }
+  ]
+}

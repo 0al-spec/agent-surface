@@ -28,6 +28,7 @@ CONFORMANCE_SCHEMAS = {
     Path(f"conformance/v1/{name}.schema.json")
     for name in (
         "capacity-error",
+        "bundles",
         "fixtures",
         "human-elicitation",
         "impact-simulation",
@@ -42,11 +43,13 @@ CONFORMANCE_SCHEMAS = {
     )
 }
 OPERATIONAL_LIMITS_CONFORMANCE_SCHEMAS = CONFORMANCE_SCHEMAS - {
+    Path("conformance/v1/bundles.schema.json"),
     Path("conformance/v1/human-elicitation.schema.json"),
     Path("conformance/v1/impact-simulation.schema.json"),
     Path("conformance/v1/risk-explanation.schema.json"),
 }
 CONFORMANCE_REGISTRIES = {
+    Path("conformance/v1/bundles.json"),
     Path("conformance/v1/suite.json"),
     Path("conformance/v1/vectors.json"),
     Path("conformance/v1/fixtures.json"),
@@ -277,7 +280,11 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         "schema": {
             path.as_posix() for path in OPERATIONAL_LIMITS_CONFORMANCE_SCHEMAS
         },
-        "registry": {path.as_posix() for path in CONFORMANCE_REGISTRIES},
+        "registry": {
+            path.as_posix()
+            for path in CONFORMANCE_REGISTRIES
+            if path != Path("conformance/v1/bundles.json")
+        },
     },
     57: {
         "rfc_anchor": {"reference-manifest-linter"},
@@ -320,6 +327,16 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         "rfc_anchor": {"interoperability-test-suite"},
         "schema": {path.as_posix() for path in CONFORMANCE_SCHEMAS},
         "registry": {path.as_posix() for path in CONFORMANCE_REGISTRIES},
+    },
+    65: {
+        "rfc_anchor": {
+            "conformance",
+            "conformance-claim-and-composition-rules",
+            "adoption-oriented-conformance-bundles",
+            "interoperability-test-suite",
+        },
+        "schema": {"conformance/v1/bundles.schema.json"},
+        "registry": {"conformance/v1/bundles.json"},
     },
     61: {
         "rfc_anchor": {
@@ -750,8 +767,8 @@ def _validate_registry_evidence(review_id: int, ref: str) -> None:
     if relative_path not in CONFORMANCE_REGISTRIES:
         raise ValueError(
             f"Review #{review_id} registry evidence must reference "
-            "conformance/v1/suite.json, conformance/v1/vectors.json, or "
-            "conformance/v1/fixtures.json, or conformance/v1/schema-cases.json: "
+            "a canonical conformance/v1 registry such as "
+            "conformance/v1/suite.json: "
             f"{ref!r}"
         )
 
