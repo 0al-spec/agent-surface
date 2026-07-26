@@ -18,7 +18,12 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
-from build_support import application_target_dir
+from build_support import (
+    APPLICATION_BINARIES,
+    APPLICATION_PARTICIPANT_BINARIES,
+    APPLICATION_SERVER_BINARY,
+    BUILD_CONFIG_NAME,
+)
 
 
 HERE = Path(__file__).resolve().parent
@@ -408,28 +413,113 @@ def _cargo_command() -> list[str]:
     return [cargo]
 
 
-def build_application(root: Path) -> None:
+def _cargo_artifacts(stdout: str, target_dir: Path) -> dict[str, Path]:
+    try:
+        resolved_target = target_dir.resolve(strict=True)
+    except OSError as error:
+        raise SliceError("Cargo did not create the fresh target directory") from error
+    if not resolved_target.is_dir() or target_dir.is_symlink():
+        raise SliceError("Cargo target directory is not a regular directory")
+
+    artifacts: dict[str, Path] = {}
+    for raw_line in stdout.splitlines():
+        try:
+            message = json.loads(raw_line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(message, dict):
+            continue
+        target = message.get("target")
+        executable = message.get("executable")
+        name = target.get("name") if isinstance(target, dict) else None
+        kind = target.get("kind") if isinstance(target, dict) else None
+        if (
+            message.get("reason") != "compiler-artifact"
+            or not isinstance(target, dict)
+            or not isinstance(name, str)
+            or name not in APPLICATION_BINARIES
+            or not isinstance(kind, list)
+            or "bin" not in kind
+            or not isinstance(executable, str)
+        ):
+            continue
+        if name in artifacts:
+            raise SliceError(f"Cargo emitted duplicate executable artifact: {name}")
+        candidate = Path(executable)
+        if not candidate.is_absolute() or candidate.is_symlink():
+            raise SliceError(f"Cargo executable artifact is not an absolute regular file: {name}")
+        try:
+            resolved = candidate.resolve(strict=True)
+            resolved.relative_to(resolved_target)
+        except (OSError, ValueError) as error:
+            raise SliceError(
+                f"Cargo executable artifact escapes the fresh target directory: {name}"
+            ) from error
+        if not resolved.is_file() or not os.access(resolved, os.X_OK):
+            raise SliceError(f"Cargo executable artifact is unavailable: {name}")
+        artifacts[name] = resolved
+
+    missing = sorted(APPLICATION_BINARIES - set(artifacts))
+    if missing:
+        raise SliceError(
+            "Cargo build omitted executable artifacts: " + ", ".join(missing)
+        )
+    return artifacts
+
+
+def build_application(root: Path, target_dir: Path) -> dict[str, Path]:
     environment = dict(os.environ)
     environment["CARGO_TERM_COLOR"] = "never"
-    process = subprocess.run(
-        [
-            *_cargo_command(),
-            "build",
-            "--quiet",
-            "--locked",
-            "-p",
-            APP_PACKAGE,
-            "--target-dir",
-            str(application_target_dir(root)),
-        ],
-        cwd=root,
-        env=environment,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        process = subprocess.run(
+            [
+                *_cargo_command(),
+                "build",
+                "--locked",
+                "-p",
+                APP_PACKAGE,
+                "--bins",
+                "--target-dir",
+                str(target_dir),
+                "--message-format=json-render-diagnostics",
+            ],
+            cwd=root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=180,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise SliceError("cannot execute the reference application build") from error
     if process.returncode != 0:
         raise SliceError(f"cannot build reference application: {process.stderr.strip()}")
+    return _cargo_artifacts(process.stdout, target_dir)
+
+
+def stage_adapter(
+    root: Path,
+    staging_dir: Path,
+    binaries: dict[str, Path],
+) -> tuple[Path, dict[str, Any]]:
+    staging_dir.mkdir(parents=True)
+    source = repository_file(root, ADAPTER_RELATIVE)
+    adapter = staging_dir / "adapter.py"
+    shutil.copy2(source, adapter)
+    if adapter.read_bytes() != source.read_bytes() or not os.access(adapter, os.X_OK):
+        raise SliceError("staged adapter does not match its retained source")
+    build_config = {
+        "schema_version": 1,
+        "repository_root": str(root.resolve()),
+        "entrypoints": {
+            participant_id: str(binaries[binary_name])
+            for participant_id, binary_name in APPLICATION_PARTICIPANT_BINARIES.items()
+        },
+    }
+    config_path = staging_dir / BUILD_CONFIG_NAME
+    write_json(config_path, build_config)
+    os.chmod(config_path, 0o600)
+    return adapter, build_config
 
 
 def _claim_key(claim: dict[str, Any]) -> tuple[str, str | None]:
@@ -498,6 +588,9 @@ def run_conformance(
     root: Path,
     manifest: dict[str, Any],
     participant_configs: dict[str, dict[str, Any]],
+    *,
+    adapter: Path,
+    build_config: dict[str, Any],
 ) -> list[dict[str, Any]]:
     validate_catalog, run_suite, verify_report = _catalog_modules(root)
     catalog = validate_catalog(root)
@@ -523,7 +616,6 @@ def run_conformance(
             if selected[member] != canonical[member]:
                 raise SliceError(f"claim {key} differs from canonical {member}")
 
-    adapter = repository_file(root, ADAPTER_RELATIVE)
     probe = repository_file(root, PROBE_RELATIVE)
     harness_config = manifest["harness"]["config"]
     harness_config_digest = configuration_digest(
@@ -532,6 +624,7 @@ def run_conformance(
             "artifact_sha256": artifact_digest(
                 root, manifest["harness"]["artifact_paths"]
             ),
+            "build_config_sha256": configuration_digest(build_config),
         }
     )
     reports = []
@@ -585,11 +678,27 @@ def generate_evidence(
     keep_reports: bool,
 ) -> dict[str, Any]:
     manifest, participant_configs = validate_manifest(root)
-    build_application(root)
-    reports = run_conformance(root, manifest, participant_configs)
-    from scenario import run_scenario
+    with tempfile.TemporaryDirectory(prefix="asp-reference-build-") as directory:
+        build_root = Path(directory)
+        binaries = build_application(root, build_root / "cargo-target")
+        adapter, build_config = stage_adapter(
+            root,
+            build_root / "adapter",
+            binaries,
+        )
+        reports = run_conformance(
+            root,
+            manifest,
+            participant_configs,
+            adapter=adapter,
+            build_config=build_config,
+        )
+        from scenario import run_scenario
 
-    scenario_report = run_scenario(root)
+        scenario_report = run_scenario(
+            root,
+            app_binary=binaries[APPLICATION_SERVER_BINARY],
+        )
     evidence = {
         "$schema": "./evidence.schema.json",
         "schema_version": 1,

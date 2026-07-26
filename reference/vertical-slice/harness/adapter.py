@@ -4,29 +4,81 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[3]
-SLICE = Path(__file__).resolve().parents[1]
-if str(SLICE) not in sys.path:
-    sys.path.insert(0, str(SLICE))
+BUILD_CONFIG_NAME = "asp-reference-build.json"
+APP_PARTICIPANTS = {
+    "reference-app-control",
+    "reference-app-executor",
+    "reference-app-receipt",
+}
 
-from build_support import application_binary  # noqa: E402
 
+def fail(message: str) -> "None":
+    print(message, file=sys.stderr)
+    raise SystemExit(2)
+
+
+def load_build_config() -> tuple[Path, dict[str, Path]]:
+    path = Path(__file__).with_name(BUILD_CONFIG_NAME)
+    if not path.is_file() or path.is_symlink():
+        fail("run-scoped build configuration is unavailable")
+
+    def reject_duplicates(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for name, value in pairs:
+            if name in result:
+                fail(f"duplicate build configuration member: {name}")
+            result[name] = value
+        return result
+
+    try:
+        config = json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=reject_duplicates,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        fail("run-scoped build configuration is invalid")
+    if (
+        not isinstance(config, dict)
+        or set(config) != {"schema_version", "repository_root", "entrypoints"}
+        or config.get("schema_version") != 1
+        or not isinstance(config.get("repository_root"), str)
+        or not isinstance(config.get("entrypoints"), dict)
+        or set(config["entrypoints"]) != APP_PARTICIPANTS
+    ):
+        fail("run-scoped build configuration has the wrong shape")
+    try:
+        root = Path(config["repository_root"]).resolve(strict=True)
+    except OSError:
+        fail("run-scoped repository root is unavailable")
+    if not root.is_dir():
+        fail("run-scoped repository root is invalid")
+    entrypoints: dict[str, Path] = {}
+    for participant_id, raw_entrypoint in config["entrypoints"].items():
+        if not isinstance(raw_entrypoint, str):
+            fail("run-scoped application entry point is invalid")
+        candidate = Path(raw_entrypoint)
+        if not candidate.is_absolute() or candidate.is_symlink():
+            fail("run-scoped application entry point is invalid")
+        try:
+            resolved = candidate.resolve(strict=True)
+        except OSError:
+            fail("run-scoped application entry point is unavailable")
+        if not resolved.is_file() or not os.access(resolved, os.X_OK):
+            fail("run-scoped application entry point is unavailable")
+        entrypoints[participant_id] = resolved
+    return root, entrypoints
+
+
+ROOT, APP_ENTRYPOINTS = load_build_config()
 
 ENTRYPOINTS = {
-    "reference-app-control": application_binary(
-        ROOT, "asp-reference-app-control"
-    ),
-    "reference-app-executor": application_binary(
-        ROOT, "asp-reference-app-executor"
-    ),
-    "reference-app-receipt": application_binary(
-        ROOT, "asp-reference-app-receipt"
-    ),
+    **APP_ENTRYPOINTS,
     "reference-runtime-local": ROOT / "reference" / "vertical-slice" / "runtime_local.py",
     "reference-runtime-remote": ROOT / "reference" / "vertical-slice" / "runtime_remote.py",
     "reference-agent-a": ROOT / "reference" / "vertical-slice" / "agent_a.py",
@@ -56,11 +108,6 @@ ALLOWED_PROFILES = {
         "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
     },
 }
-
-
-def fail(message: str) -> "None":
-    print(message, file=sys.stderr)
-    raise SystemExit(2)
 
 
 def load_object(stream) -> dict:

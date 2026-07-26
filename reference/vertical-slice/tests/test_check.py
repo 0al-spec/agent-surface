@@ -26,7 +26,7 @@ from check import (  # noqa: E402
     validate_participant_bindings,
     validate_suite_binding,
 )
-from build_support import application_binary, application_target_dir  # noqa: E402
+from build_support import APPLICATION_BINARIES  # noqa: E402
 
 
 def load(path: Path) -> dict:
@@ -87,35 +87,76 @@ class BindingValidationTests(unittest.TestCase):
             (root / "Cargo.lock").write_text("version = 2\n", encoding="utf-8")
             self.assertNotEqual(before, artifact_digest(root, paths))
 
-    def test_build_honors_cargo_override_and_forces_shared_target(self) -> None:
-        completed = mock.Mock(returncode=0, stdout="", stderr="")
-        with (
-            mock.patch.dict(
-                os.environ,
-                {"CARGO": 'cargo-wrapper --channel "pinned toolchain"'},
-            ),
-            mock.patch("check.subprocess.run", return_value=completed) as run,
-        ):
+    def test_build_resolves_run_scoped_artifacts_and_honors_cargo(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="asp-build-test-") as directory:
+            target = Path(directory) / "target"
+            output = []
+            for name in sorted(APPLICATION_BINARIES):
+                executable = target / "host-triple" / "debug" / name
+                executable.parent.mkdir(parents=True, exist_ok=True)
+                executable.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+                executable.chmod(0o700)
+                output.append(
+                    json.dumps(
+                        {
+                            "reason": "compiler-artifact",
+                            "target": {"name": name, "kind": ["bin"]},
+                            "executable": str(executable),
+                        }
+                    )
+                )
+            completed = mock.Mock(
+                returncode=0,
+                stdout="\n".join(output),
+                stderr="",
+            )
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"CARGO": 'cargo-wrapper --channel "pinned toolchain"'},
+                ),
+                mock.patch("check.subprocess.run", return_value=completed) as run,
+            ):
+                self.assertEqual(
+                    _cargo_command(),
+                    ["cargo-wrapper", "--channel", "pinned toolchain"],
+                )
+                artifacts = build_application(ROOT, target)
+            command = run.call_args.args[0]
             self.assertEqual(
-                _cargo_command(),
+                command[:3],
                 ["cargo-wrapper", "--channel", "pinned toolchain"],
             )
-            build_application(ROOT)
-        command = run.call_args.args[0]
-        self.assertEqual(
-            command[:3],
-            ["cargo-wrapper", "--channel", "pinned toolchain"],
-        )
-        self.assertEqual(
-            command[-2:],
-            ["--target-dir", str(application_target_dir(ROOT))],
-        )
-        self.assertEqual(
-            application_binary(ROOT, "asp-reference-app-server"),
-            application_target_dir(ROOT)
-            / "debug"
-            / "asp-reference-app-server",
-        )
+            self.assertEqual(
+                command[-3:],
+                [
+                    "--target-dir",
+                    str(target),
+                    "--message-format=json-render-diagnostics",
+                ],
+            )
+            self.assertEqual(set(artifacts), set(APPLICATION_BINARIES))
+            self.assertTrue(
+                all(
+                    path.is_relative_to(target.resolve())
+                    for path in artifacts.values()
+                )
+            )
+
+    def test_success_without_compiler_artifacts_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="asp-build-test-") as directory:
+            target = Path(directory) / "target"
+            target.mkdir()
+            completed = mock.Mock(
+                returncode=0,
+                stdout='[]\n{"reason":"compiler-artifact","target":{"name":[]}}\n',
+                stderr="",
+            )
+            with mock.patch("check.subprocess.run", return_value=completed):
+                with self.assertRaisesRegex(
+                    SliceError, "omitted executable artifacts"
+                ):
+                    build_application(ROOT, target)
 
     def test_empty_cargo_override_fails_closed(self) -> None:
         with mock.patch.dict(os.environ, {"CARGO": "  "}):
