@@ -2435,11 +2435,11 @@ The adapter layer turns a concrete agent into a runtime-mediated worker.
 
 ### Canonical Object Hash Profile
 
-ASP manifests, grants, events, action input schemas, action inputs, action
-execution contexts, policy decisions, and receipts use the
+ASP manifests, grants, events, action input schemas, action inputs and outputs,
+action execution contexts, policy decisions, and receipts use the
 `asp-jcs-sha-256` profile when a field in this draft is named `surface_hash`,
 `grant_request_hash`, `grant_hash`, `aspeventhash`, `input_schema_hash`, `input_hash`,
-`execution_hash`, `preconditions_hash`,
+`output_hash`, `execution_hash`, `preconditions_hash`,
 `expected_effects_hash`, `actual_effects_hash`, `policy_decision_hash`,
 `receipt_hash`, `parent_receipt_hash`, `record_hash`, `bundle_hash`, or
 `report_hash`. The profile identifies exact JSON content; it does not by itself
@@ -2470,6 +2470,7 @@ To compute an ASP object hash, an implementation MUST:
 | ASP CloudEvent occurrence | `https://github.com/0al-spec/agent-surface/hash/event/v1` | `aspeventhash`; delivery-only `aspsubid`, `aspdeliveryid`, `aspattempt`, `aspstream`, `aspsequence`, and `aspcursor`; diagnostic `traceparent` and `tracestate` |
 | Action Input Schema | `https://github.com/0al-spec/agent-surface/hash/action-input-schema/v1` | none; the hashing view is the complete self-contained JSON Schema document |
 | Action Request `input` | `https://github.com/0al-spec/agent-surface/hash/action-input/v1` | none; the hashing view is exactly the schema-valid `payload.input`; an idempotency-required input has already passed the action's fixed-point normalization check, and the hash performs no further transform |
+| Action Response `output` | `https://github.com/0al-spec/agent-surface/hash/action-output/v1` | none; the hashing view is exactly the schema-valid `payload.output` and the hash performs no additional transform |
 | Action Execution Context | `https://github.com/0al-spec/agent-surface/hash/action-execution/v1` | `execution_token`; the hashing view is `payload.execution` after structural validation with the confidential raw token omitted |
 | Action Preconditions | `https://github.com/0al-spec/agent-surface/hash/action-preconditions/v1` | none; the hashing view is exactly the validated `preconditions` object |
 | Expected Effects | `https://github.com/0al-spec/agent-surface/hash/expected-effects/v1` | none; the hashing view is exactly the validated `expected_effects` array |
@@ -2496,6 +2497,14 @@ Normalization profile and sends that fixed-point value as the wire input. The
 hash function itself still performs no default insertion, equivalence, or set
 ordering: it commits to the already-normalized wire value so approval,
 idempotency, execution evidence, and receipts cannot select different views.
+
+The Action Output hash commits an application receipt to the exact
+schema-valid `payload.output` carried by the corresponding Action Response.
+The producer computes it only after output-schema validation, and a consumer
+that has the complete response MUST recompute it before accepting the receipt
+as bound result evidence. The hash performs no default insertion, redaction,
+equivalence, or ordering beyond RFC 8785 canonicalization of that exact wire
+value.
 
 For an idempotency-required action, `input_schema_hash` commits to the complete
 I-JSON document retrieved from `input_schema` using the Action Input Schema

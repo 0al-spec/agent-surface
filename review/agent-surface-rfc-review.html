@@ -2303,11 +2303,11 @@ presentation metadata and MUST NOT add ASP meaning.</p>
 <p>The adapter layer turns a concrete agent into a runtime-mediated worker.</p>
 <h2 id="canonical-integrity-and-provenance" data-asp-heading="Canonical Integrity and Provenance">Canonical Integrity and Provenance</h2>
 <h3 id="canonical-object-hash-profile" data-asp-heading="Canonical Object Hash Profile">Canonical Object Hash Profile</h3>
-<p>ASP manifests, grants, events, action input schemas, action inputs, action
-execution contexts, policy decisions, and receipts use the
+<p>ASP manifests, grants, events, action input schemas, action inputs and outputs,
+action execution contexts, policy decisions, and receipts use the
 <code>asp-jcs-sha-256</code> profile when a field in this draft is named <code>surface_hash</code>,
 <code>grant_request_hash</code>, <code>grant_hash</code>, <code>aspeventhash</code>, <code>input_schema_hash</code>, <code>input_hash</code>,
-<code>execution_hash</code>, <code>preconditions_hash</code>,
+<code>output_hash</code>, <code>execution_hash</code>, <code>preconditions_hash</code>,
 <code>expected_effects_hash</code>, <code>actual_effects_hash</code>, <code>policy_decision_hash</code>,
 <code>receipt_hash</code>, <code>parent_receipt_hash</code>, <code>record_hash</code>, <code>bundle_hash</code>, or
 <code>report_hash</code>. The profile identifies exact JSON content; it does not by itself
@@ -2337,6 +2337,7 @@ and prepend the literal <code>sha-256:</code>.</li>
 | ASP CloudEvent occurrence | <code>https://github.com/0al-spec/agent-surface/hash/event/v1</code> | <code>aspeventhash</code>; delivery-only <code>aspsubid</code>, <code>aspdeliveryid</code>, <code>aspattempt</code>, <code>aspstream</code>, <code>aspsequence</code>, and <code>aspcursor</code>; diagnostic <code>traceparent</code> and <code>tracestate</code> |
 | Action Input Schema | <code>https://github.com/0al-spec/agent-surface/hash/action-input-schema/v1</code> | none; the hashing view is the complete self-contained JSON Schema document |
 | Action Request <code>input</code> | <code>https://github.com/0al-spec/agent-surface/hash/action-input/v1</code> | none; the hashing view is exactly the schema-valid <code>payload.input</code>; an idempotency-required input has already passed the action's fixed-point normalization check, and the hash performs no further transform |
+| Action Response <code>output</code> | <code>https://github.com/0al-spec/agent-surface/hash/action-output/v1</code> | none; the hashing view is exactly the schema-valid <code>payload.output</code> and the hash performs no additional transform |
 | Action Execution Context | <code>https://github.com/0al-spec/agent-surface/hash/action-execution/v1</code> | <code>execution_token</code>; the hashing view is <code>payload.execution</code> after structural validation with the confidential raw token omitted |
 | Action Preconditions | <code>https://github.com/0al-spec/agent-surface/hash/action-preconditions/v1</code> | none; the hashing view is exactly the validated <code>preconditions</code> object |
 | Expected Effects | <code>https://github.com/0al-spec/agent-surface/hash/expected-effects/v1</code> | none; the hashing view is exactly the validated <code>expected_effects</code> array |
@@ -2361,6 +2362,13 @@ Normalization profile and sends that fixed-point value as the wire input. The
 hash function itself still performs no default insertion, equivalence, or set
 ordering: it commits to the already-normalized wire value so approval,
 idempotency, execution evidence, and receipts cannot select different views.</p>
+<p>The Action Output hash commits an application receipt to the exact
+schema-valid <code>payload.output</code> carried by the corresponding Action Response.
+The producer computes it only after output-schema validation, and a consumer
+that has the complete response MUST recompute it before accepting the receipt
+as bound result evidence. The hash performs no default insertion, redaction,
+equivalence, or ordering beyond RFC 8785 canonicalization of that exact wire
+value.</p>
 <p>For an idempotency-required action, <code>input_schema_hash</code> commits to the complete
 I-JSON document retrieved from <code>input_schema</code> using the Action Input Schema
 domain above. That schema MUST be self-contained: every <code>$ref</code> or <code>$dynamicRef</code>
