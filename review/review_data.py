@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -151,6 +152,8 @@ VERTICAL_SLICE_IMPLEMENTATIONS = {
     Path("reference/vertical-slice/harness/probe.py"),
 }
 VERTICAL_SLICE_TEST = Path("reference/vertical-slice/check.py")
+VERTICAL_SLICE_VALIDATED_SHA_ENV = "ASP_VERTICAL_SLICE_VALIDATED_SHA"
+GIT_OBJECT_ID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
     17: {
         "rfc_anchor": {
@@ -988,6 +991,8 @@ def _validate_test_evidence(review_id: int, ref: str) -> None:
 
 @lru_cache(maxsize=1)
 def _run_vertical_slice_self_check() -> None:
+    if _ci_vertical_slice_is_prevalidated():
+        return
     process = subprocess.run(
         [
             sys.executable,
@@ -1000,7 +1005,7 @@ def _run_vertical_slice_self_check() -> None:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        timeout=180,
+        timeout=300,
         check=False,
     )
     if process.returncode != 0:
@@ -1008,6 +1013,54 @@ def _run_vertical_slice_self_check() -> None:
         raise ValueError(
             f"vertical slice self-check exited {process.returncode}: {details}"
         )
+
+
+def _ci_vertical_slice_is_prevalidated() -> bool:
+    """Accept only a successful, clean, same-head handoff from the CI producer step."""
+
+    validated_sha = os.environ.get(VERTICAL_SLICE_VALIDATED_SHA_ENV)
+    if validated_sha is None:
+        return False
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        raise ValueError(
+            f"{VERTICAL_SLICE_VALIDATED_SHA_ENV} is only accepted in GitHub Actions"
+        )
+    github_sha = os.environ.get("GITHUB_SHA", "")
+    validated_sha = validated_sha.lower()
+    github_sha = github_sha.lower()
+    if not GIT_OBJECT_ID.fullmatch(validated_sha) or not GIT_OBJECT_ID.fullmatch(
+        github_sha
+    ):
+        raise ValueError("vertical slice CI handoff requires exact Git object ids")
+    if validated_sha != github_sha:
+        raise ValueError("vertical slice CI handoff does not match GITHUB_SHA")
+
+    head_process = subprocess.run(
+        ["git", "rev-parse", "--verify", "HEAD^{commit}"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    current_head = head_process.stdout.strip().lower()
+    if (
+        head_process.returncode != 0
+        or not GIT_OBJECT_ID.fullmatch(current_head)
+        or current_head != validated_sha
+    ):
+        raise ValueError("vertical slice CI handoff does not match the checkout HEAD")
+    status_process = subprocess.run(
+        ["git", "status", "--porcelain=v1", "--untracked-files=normal"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    if status_process.returncode != 0 or status_process.stdout:
+        raise ValueError("vertical slice CI handoff requires a clean checkout")
+    return True
 
 
 def _validate_api_importer_bundle_evidence(

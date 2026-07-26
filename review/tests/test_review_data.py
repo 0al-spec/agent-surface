@@ -22,6 +22,7 @@ from build_review import (  # noqa: E402
 )
 from review_data import (  # noqa: E402
     _cargo_command,
+    _ci_vertical_slice_is_prevalidated,
     _run_replay_self_check,
     _run_vertical_slice_self_check,
     _validate_canonical_conformance_catalog,
@@ -193,7 +194,12 @@ class ReviewDataValidationTests(unittest.TestCase):
         _run_vertical_slice_self_check.cache_clear()
         try:
             completed = mock.Mock(returncode=0, stdout="", stderr="")
-            with mock.patch("review_data.subprocess.run", return_value=completed) as run:
+            with (
+                mock.patch.dict(os.environ, {}, clear=True),
+                mock.patch(
+                    "review_data.subprocess.run", return_value=completed
+                ) as run,
+            ):
                 _run_vertical_slice_self_check()
                 _run_vertical_slice_self_check()
             self.assertEqual(run.call_count, 1)
@@ -216,9 +222,124 @@ class ReviewDataValidationTests(unittest.TestCase):
             self.assertEqual(run.call_args.kwargs["cwd"], REVIEW_DIR.parent)
             self.assertTrue(run.call_args.kwargs["capture_output"])
             self.assertTrue(run.call_args.kwargs["text"])
+            self.assertEqual(run.call_args.kwargs["timeout"], 300)
             self.assertFalse(run.call_args.kwargs["check"])
         finally:
             _run_vertical_slice_self_check.cache_clear()
+
+    def test_vertical_slice_ci_handoff_is_cached_and_bound_to_checkout(self) -> None:
+        sha = "a" * 40
+        _run_vertical_slice_self_check.cache_clear()
+        try:
+            head = mock.Mock(returncode=0, stdout=f"{sha}\n", stderr="")
+            clean = mock.Mock(returncode=0, stdout="", stderr="")
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {
+                        "ASP_VERTICAL_SLICE_VALIDATED_SHA": sha,
+                        "GITHUB_ACTIONS": "true",
+                        "GITHUB_SHA": sha,
+                    },
+                    clear=True,
+                ),
+                mock.patch(
+                    "review_data.subprocess.run", side_effect=(head, clean)
+                ) as run,
+            ):
+                _run_vertical_slice_self_check()
+                _run_vertical_slice_self_check()
+            self.assertEqual(
+                [call.args[0] for call in run.call_args_list],
+                [
+                    ["git", "rev-parse", "--verify", "HEAD^{commit}"],
+                    [
+                        "git",
+                        "status",
+                        "--porcelain=v1",
+                        "--untracked-files=normal",
+                    ],
+                ],
+            )
+            for call in run.call_args_list:
+                self.assertEqual(call.kwargs["cwd"], REVIEW_DIR.parent)
+                self.assertTrue(call.kwargs["capture_output"])
+                self.assertTrue(call.kwargs["text"])
+                self.assertEqual(call.kwargs["timeout"], 10)
+                self.assertFalse(call.kwargs["check"])
+        finally:
+            _run_vertical_slice_self_check.cache_clear()
+
+    def test_vertical_slice_ci_handoff_fails_closed(self) -> None:
+        sha = "a" * 40
+        cases = (
+            (
+                {
+                    "ASP_VERTICAL_SLICE_VALIDATED_SHA": sha,
+                    "GITHUB_ACTIONS": "false",
+                    "GITHUB_SHA": sha,
+                },
+                "only accepted in GitHub Actions",
+            ),
+            (
+                {
+                    "ASP_VERTICAL_SLICE_VALIDATED_SHA": sha,
+                    "GITHUB_ACTIONS": "true",
+                    "GITHUB_SHA": "b" * 40,
+                },
+                "does not match GITHUB_SHA",
+            ),
+            (
+                {
+                    "ASP_VERTICAL_SLICE_VALIDATED_SHA": "not-a-sha",
+                    "GITHUB_ACTIONS": "true",
+                    "GITHUB_SHA": "not-a-sha",
+                },
+                "requires exact Git object ids",
+            ),
+        )
+        for environment, message in cases:
+            with (
+                self.subTest(message=message),
+                mock.patch.dict(os.environ, environment, clear=True),
+                self.assertRaisesRegex(ValueError, message),
+            ):
+                _ci_vertical_slice_is_prevalidated()
+
+        completed = mock.Mock(returncode=0, stdout=f"{'b' * 40}\n", stderr="")
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "ASP_VERTICAL_SLICE_VALIDATED_SHA": sha,
+                    "GITHUB_ACTIONS": "true",
+                    "GITHUB_SHA": sha,
+                },
+                clear=True,
+            ),
+            mock.patch("review_data.subprocess.run", return_value=completed),
+            self.assertRaisesRegex(ValueError, "does not match the checkout HEAD"),
+        ):
+            _ci_vertical_slice_is_prevalidated()
+
+        head = mock.Mock(returncode=0, stdout=f"{sha}\n", stderr="")
+        dirty = mock.Mock(returncode=0, stdout=" M review/review_data.py\n", stderr="")
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "ASP_VERTICAL_SLICE_VALIDATED_SHA": sha,
+                    "GITHUB_ACTIONS": "true",
+                    "GITHUB_SHA": sha,
+                },
+                clear=True,
+            ),
+            mock.patch(
+                "review_data.subprocess.run", side_effect=(head, dirty)
+            ),
+            self.assertRaisesRegex(ValueError, "requires a clean checkout"),
+        ):
+            _ci_vertical_slice_is_prevalidated()
 
     def test_valid_v2_planning_bundle_is_accepted(self) -> None:
         validate_review_payload(self.valid_payload(), self.heading_ids)

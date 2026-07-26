@@ -64,7 +64,16 @@ jobs:
       - name: Check independent reference vertical slice
         timeout-minutes: 10
         shell: bash
-        run: make vertical-slice-check
+        run: |
+          set -euo pipefail
+
+          make vertical-slice-check
+          if [[ -n "$(git status --porcelain=v1)" ]]; then
+            echo "The vertical-slice producer changed the checkout" >&2
+            git status --short >&2
+            exit 1
+          fi
+          printf 'ASP_VERTICAL_SLICE_VALIDATED_SHA=%s\n' "${GITHUB_SHA}" >> "${GITHUB_ENV}"
 
       - name: Check stable Rust tooling
         timeout-minutes: 12

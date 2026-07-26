@@ -142,6 +142,12 @@ resolved server path directly. A no-op wrapper, ambient `CARGO_TARGET_DIR`,
 Cargo `build.target-dir`, or target-triple subdirectory therefore cannot make
 the evidence run fall back to stale executables.
 
+Within one GitHub Actions job, the successful full check publishes a job-scoped
+same-head readiness handoff for later review-data consumers. The resolver
+accepts it only when `GITHUB_ACTIONS`, `GITHUB_SHA`, the checkout `HEAD`, and a
+clean worktree all agree. Standalone and mismatched runs execute the full
+validator instead; no reusable evidence marker is committed.
+
 The repository-wide quality gate also runs this self-check:
 
 ```sh
