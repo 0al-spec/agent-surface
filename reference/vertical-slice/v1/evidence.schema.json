@@ -1,0 +1,593 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/reference/vertical-slice/evidence/v1",
+  "title": "ASP Independent Reference Vertical Slice Evidence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "review_id",
+    "claim_effect",
+    "max_maturity",
+    "independence",
+    "bundle_id",
+    "participants",
+    "reports",
+    "scenario",
+    "non_claims"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./evidence.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "review_id": {
+      "const": 74
+    },
+    "claim_effect": {
+      "const": "descriptive_only"
+    },
+    "max_maturity": {
+      "const": "implementation_tested"
+    },
+    "independence": {
+      "const": "not_established"
+    },
+    "bundle_id": {
+      "const": "https://github.com/0al-spec/agent-surface/conformance/bundles/application-audited-effects/v1"
+    },
+    "participants": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "prefixItems": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/participant"
+            },
+            {
+              "properties": {
+                "participant_id": {
+                  "const": "reference-agent-a"
+                },
+                "boundary_id": {
+                  "const": "reference/agent/a"
+                },
+                "lineage_id": {
+                  "const": "reference/implementation/agent-a-python-v1"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/participant"
+            },
+            {
+              "properties": {
+                "participant_id": {
+                  "const": "reference-agent-b"
+                },
+                "boundary_id": {
+                  "const": "reference/agent/b"
+                },
+                "lineage_id": {
+                  "const": "reference/implementation/agent-b-python-v1"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/participant"
+            },
+            {
+              "properties": {
+                "participant_id": {
+                  "const": "reference-app-control"
+                },
+                "boundary_id": {
+                  "const": "reference/application/control"
+                },
+                "lineage_id": {
+                  "const": "reference/implementation/application-rust-v1"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/participant"
+            },
+            {
+              "properties": {
+                "participant_id": {
+                  "const": "reference-app-executor"
+                },
+                "boundary_id": {
+                  "const": "reference/application/executor"
+                },
+                "lineage_id": {
+                  "const": "reference/implementation/application-rust-v1"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/participant"
+            },
+            {
+              "properties": {
+                "participant_id": {
+                  "const": "reference-app-receipt"
+                },
+                "boundary_id": {
+                  "const": "reference/application/receipt"
+                },
+                "lineage_id": {
+                  "const": "reference/implementation/application-rust-v1"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/participant"
+            },
+            {
+              "properties": {
+                "participant_id": {
+                  "const": "reference-runtime-local"
+                },
+                "boundary_id": {
+                  "const": "reference/runtime/local"
+                },
+                "lineage_id": {
+                  "const": "reference/implementation/runtime-local-python-v1"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/participant"
+            },
+            {
+              "properties": {
+                "participant_id": {
+                  "const": "reference-runtime-remote"
+                },
+                "boundary_id": {
+                  "const": "reference/runtime/remote"
+                },
+                "lineage_id": {
+                  "const": "reference/implementation/runtime-remote-python-v1"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "items": false
+    },
+    "reports": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "prefixItems": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/report"
+            },
+            {
+              "properties": {
+                "profile_id": {
+                  "const": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1"
+                },
+                "subject_id": {
+                  "const": "reference-app-control"
+                },
+                "positive_count": {
+                  "const": 1
+                },
+                "negative_count": {
+                  "const": 2
+                }
+              },
+              "not": {
+                "required": [
+                  "producer_role"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/report"
+            },
+            {
+              "properties": {
+                "profile_id": {
+                  "const": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+                },
+                "subject_id": {
+                  "const": "reference-app-control"
+                },
+                "positive_count": {
+                  "const": 3
+                },
+                "negative_count": {
+                  "const": 3
+                }
+              },
+              "not": {
+                "required": [
+                  "producer_role"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/report"
+            },
+            {
+              "properties": {
+                "profile_id": {
+                  "const": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1"
+                },
+                "subject_id": {
+                  "const": "reference-app-executor"
+                },
+                "positive_count": {
+                  "const": 2
+                },
+                "negative_count": {
+                  "const": 9
+                }
+              },
+              "not": {
+                "required": [
+                  "producer_role"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/report"
+            },
+            {
+              "properties": {
+                "profile_id": {
+                  "const": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1"
+                },
+                "producer_role": {
+                  "const": "application"
+                },
+                "subject_id": {
+                  "const": "reference-app-receipt"
+                },
+                "positive_count": {
+                  "const": 1
+                },
+                "negative_count": {
+                  "const": 3
+                }
+              },
+              "required": [
+                "producer_role"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/report"
+            },
+            {
+              "properties": {
+                "profile_id": {
+                  "const": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
+                },
+                "subject_id": {
+                  "const": "reference-runtime-local"
+                },
+                "positive_count": {
+                  "const": 1
+                },
+                "negative_count": {
+                  "const": 5
+                }
+              },
+              "not": {
+                "required": [
+                  "producer_role"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/report"
+            },
+            {
+              "properties": {
+                "profile_id": {
+                  "const": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
+                },
+                "subject_id": {
+                  "const": "reference-agent-a"
+                },
+                "positive_count": {
+                  "const": 1
+                },
+                "negative_count": {
+                  "const": 4
+                }
+              },
+              "not": {
+                "required": [
+                  "producer_role"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "items": false
+    },
+    "scenario": {
+      "$ref": "#/$defs/scenario"
+    },
+    "non_claims": {
+      "const": [
+        "certification",
+        "independent_interoperability",
+        "production_readiness",
+        "security_certification",
+        "stable_maturity"
+      ]
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha-256:[A-Za-z0-9_-]{43}$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$"
+    },
+    "participant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "participant_id",
+        "boundary_id",
+        "lineage_id",
+        "artifact_sha256",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "participant_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "boundary_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "lineage_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "artifact_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "subject_id",
+        "run_id",
+        "report_sha256",
+        "verdict",
+        "positive_count",
+        "negative_count"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "format": "uri"
+        },
+        "producer_role": {
+          "const": "application"
+        },
+        "subject_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "run_id": {
+          "type": "string",
+          "format": "uri"
+        },
+        "report_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "verdict": {
+          "const": "pass"
+        },
+        "positive_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "negative_count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lane_id",
+        "runtime_participant_id",
+        "agent_participant_id",
+        "positive",
+        "negative"
+      ],
+      "properties": {
+        "lane_id": {
+          "enum": [
+            "local",
+            "remote"
+          ]
+        },
+        "runtime_participant_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "agent_participant_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "positive": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "negative": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "scenario_id",
+        "verdict",
+        "transport",
+        "lanes",
+        "effect_count",
+        "receipt_count",
+        "credentials_exposed",
+        "transcript_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "scenario_id": {
+          "const": "card-74-task-comments"
+        },
+        "verdict": {
+          "const": "pass"
+        },
+        "transport": {
+          "const": "tcp-json-lines"
+        },
+        "lanes": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/lane"
+                },
+                {
+                  "properties": {
+                    "lane_id": {
+                      "const": "local"
+                    },
+                    "runtime_participant_id": {
+                      "const": "reference-runtime-local"
+                    },
+                    "agent_participant_id": {
+                      "const": "reference-agent-a"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/lane"
+                },
+                {
+                  "properties": {
+                    "lane_id": {
+                      "const": "remote"
+                    },
+                    "runtime_participant_id": {
+                      "const": "reference-runtime-remote"
+                    },
+                    "agent_participant_id": {
+                      "const": "reference-agent-b"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "items": false
+        },
+        "effect_count": {
+          "const": 2
+        },
+        "receipt_count": {
+          "const": 2
+        },
+        "credentials_exposed": {
+          "const": false
+        },
+        "transcript_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}

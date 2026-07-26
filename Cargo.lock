@@ -111,6 +111,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "asp-reference-vertical-app"
+version = "0.1.0"
+dependencies = [
+ "assert_cmd",
+ "base64",
+ "getrandom",
+ "serde",
+ "serde_json",
+ "serde_json_canonicalizer",
+ "sha2",
+ "thiserror",
+]
+
+[[package]]
 name = "asp-replay-tool"
 version = "0.1.0"
 dependencies = [

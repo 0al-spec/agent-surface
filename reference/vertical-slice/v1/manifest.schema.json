@@ -1,0 +1,967 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/reference/vertical-slice/schemas/manifest/v1",
+  "title": "ASP Independent Reference Vertical Slice Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "slice_id",
+    "slice_version",
+    "review_id",
+    "protocol_version",
+    "suite_id",
+    "suite_version",
+    "bundle_id",
+    "claim_effect",
+    "max_maturity",
+    "independence",
+    "non_claims",
+    "path_base",
+    "harness",
+    "participants",
+    "claim_selection",
+    "scenario_selection",
+    "lanes"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./manifest.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "slice_id": {
+      "const": "https://github.com/0al-spec/agent-surface/reference/vertical-slice/v1"
+    },
+    "slice_version": {
+      "const": "1.0.0"
+    },
+    "review_id": {
+      "const": 74
+    },
+    "protocol_version": {
+      "const": "agent-surface/0.1"
+    },
+    "suite_id": {
+      "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
+    },
+    "suite_version": {
+      "const": "1.9.0"
+    },
+    "bundle_id": {
+      "const": "https://github.com/0al-spec/agent-surface/conformance/bundles/application-audited-effects/v1"
+    },
+    "claim_effect": {
+      "const": "descriptive_only"
+    },
+    "max_maturity": {
+      "const": "implementation_tested"
+    },
+    "independence": {
+      "const": "not_established"
+    },
+    "non_claims": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": "certification"
+        },
+        {
+          "const": "independent_interoperability"
+        },
+        {
+          "const": "production_readiness"
+        },
+        {
+          "const": "security_certification"
+        },
+        {
+          "const": "stable_maturity"
+        }
+      ],
+      "items": false,
+      "minItems": 5,
+      "maxItems": 5
+    },
+    "path_base": {
+      "const": "repository-root"
+    },
+    "harness": {
+      "$ref": "#/$defs/harness"
+    },
+    "participants": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "$ref": "#/$defs/participantReference"
+      },
+      "allOf": [
+        {
+          "contains": {
+            "properties": {
+              "participant_id": {
+                "const": "reference-app-control"
+              },
+              "config_path": {
+                "const": "reference/vertical-slice/v1/participants/app-control.json"
+              }
+            },
+            "required": [
+              "participant_id",
+              "config_path"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "participant_id": {
+                "const": "reference-app-executor"
+              },
+              "config_path": {
+                "const": "reference/vertical-slice/v1/participants/app-executor.json"
+              }
+            },
+            "required": [
+              "participant_id",
+              "config_path"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "participant_id": {
+                "const": "reference-app-receipt"
+              },
+              "config_path": {
+                "const": "reference/vertical-slice/v1/participants/app-receipt.json"
+              }
+            },
+            "required": [
+              "participant_id",
+              "config_path"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "participant_id": {
+                "const": "reference-runtime-local"
+              },
+              "config_path": {
+                "const": "reference/vertical-slice/v1/participants/runtime-local.json"
+              }
+            },
+            "required": [
+              "participant_id",
+              "config_path"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "participant_id": {
+                "const": "reference-runtime-remote"
+              },
+              "config_path": {
+                "const": "reference/vertical-slice/v1/participants/runtime-remote.json"
+              }
+            },
+            "required": [
+              "participant_id",
+              "config_path"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "participant_id": {
+                "const": "reference-agent-a"
+              },
+              "config_path": {
+                "const": "reference/vertical-slice/v1/participants/agent-a.json"
+              }
+            },
+            "required": [
+              "participant_id",
+              "config_path"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "participant_id": {
+                "const": "reference-agent-b"
+              },
+              "config_path": {
+                "const": "reference/vertical-slice/v1/participants/agent-b.json"
+              }
+            },
+            "required": [
+              "participant_id",
+              "config_path"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "claim_selection": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/claimSelection"
+      },
+      "allOf": [
+        {
+          "contains": {
+            "properties": {
+              "profile_id": {
+                "const": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1"
+              },
+              "participant_id": {
+                "const": "reference-app-control"
+              }
+            },
+            "required": [
+              "profile_id",
+              "participant_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "profile_id": {
+                "const": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+              },
+              "participant_id": {
+                "const": "reference-app-control"
+              }
+            },
+            "required": [
+              "profile_id",
+              "participant_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "profile_id": {
+                "const": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1"
+              },
+              "participant_id": {
+                "const": "reference-app-executor"
+              }
+            },
+            "required": [
+              "profile_id",
+              "participant_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "profile_id": {
+                "const": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1"
+              },
+              "participant_id": {
+                "const": "reference-app-receipt"
+              },
+              "producer_role": {
+                "const": "application"
+              }
+            },
+            "required": [
+              "profile_id",
+              "participant_id",
+              "producer_role"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "profile_id": {
+                "const": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
+              },
+              "participant_id": {
+                "const": "reference-runtime-local"
+              }
+            },
+            "required": [
+              "profile_id",
+              "participant_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "profile_id": {
+                "const": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
+              },
+              "participant_id": {
+                "const": "reference-agent-a"
+              }
+            },
+            "required": [
+              "profile_id",
+              "participant_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "scenario_selection": {
+      "$ref": "#/$defs/scenarioSelection"
+    },
+    "lanes": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/lane"
+      },
+      "allOf": [
+        {
+          "contains": {
+            "properties": {
+              "lane_id": {
+                "const": "local"
+              },
+              "runtime_participant_id": {
+                "const": "reference-runtime-local"
+              },
+              "agent_participant_id": {
+                "const": "reference-agent-a"
+              }
+            },
+            "required": [
+              "lane_id",
+              "runtime_participant_id",
+              "agent_participant_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "lane_id": {
+                "const": "remote"
+              },
+              "runtime_participant_id": {
+                "const": "reference-runtime-remote"
+              },
+              "agent_participant_id": {
+                "const": "reference-agent-b"
+              }
+            },
+            "required": [
+              "lane_id",
+              "runtime_participant_id",
+              "agent_participant_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$"
+    },
+    "profileId": {
+      "enum": [
+        "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+        "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
+      ]
+    },
+    "entrypoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "name",
+        "path"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "cargo_binary",
+            "python_script"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[-_][a-z0-9]+)*$"
+        },
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        }
+      }
+    },
+    "harness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_paths",
+        "entrypoints",
+        "config"
+      ],
+      "properties": {
+        "artifact_paths": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          }
+        },
+        "entrypoints": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "adapter",
+            "probe"
+          ],
+          "properties": {
+            "adapter": {
+              "$ref": "#/$defs/entrypoint"
+            },
+            "probe": {
+              "$ref": "#/$defs/entrypoint"
+            }
+          }
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "adapter_protocol",
+            "probe_protocol",
+            "subject_protocol",
+            "execution_timeout_seconds",
+            "private_evidence_file"
+          ],
+          "properties": {
+            "adapter_protocol": {
+              "const": "asp-conformance-adapter/1"
+            },
+            "probe_protocol": {
+              "const": "asp-conformance-probe/1"
+            },
+            "subject_protocol": {
+              "const": "asp-reference-subject/1"
+            },
+            "execution_timeout_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 30
+            },
+            "private_evidence_file": {
+              "const": "reference-execution.json"
+            }
+          }
+        }
+      }
+    },
+    "participantReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "participant_id",
+        "config_path"
+      ],
+      "properties": {
+        "participant_id": {
+          "enum": [
+            "reference-app-control",
+            "reference-app-executor",
+            "reference-app-receipt",
+            "reference-runtime-local",
+            "reference-runtime-remote",
+            "reference-agent-a",
+            "reference-agent-b"
+          ]
+        },
+        "config_path": {
+          "$ref": "#/$defs/relativePath"
+        }
+      }
+    },
+    "claimSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "participant_id",
+        "feature_ids",
+        "requirement_ids",
+        "vector_ids"
+      ],
+      "properties": {
+        "profile_id": {
+          "$ref": "#/$defs/profileId"
+        },
+        "participant_id": {
+          "enum": [
+            "reference-app-control",
+            "reference-app-executor",
+            "reference-app-receipt",
+            "reference-runtime-local",
+            "reference-agent-a"
+          ]
+        },
+        "producer_role": {
+          "const": "application"
+        },
+        "feature_ids": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "requirement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^ASP-(?:SP|GI|AE|RP|RM|AA)-[0-9]{3}$"
+          }
+        },
+        "vector_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^ASP-V-(?:SP|GI|AE|RP|RM|AA)-[0-9]{3}$"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "profile_id": {
+                "const": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1"
+              }
+            },
+            "required": [
+              "profile_id"
+            ]
+          },
+          "then": {
+            "required": [
+              "producer_role"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "producer_role"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "positiveVectorId": {
+      "enum": [
+        "ASP-V-SP-001",
+        "ASP-V-GI-001",
+        "ASP-V-GI-006",
+        "ASP-V-GI-007",
+        "ASP-V-AE-001",
+        "ASP-V-AE-002",
+        "ASP-V-RP-001",
+        "ASP-V-RM-001",
+        "ASP-V-AA-001"
+      ]
+    },
+    "negativeVectorId": {
+      "enum": [
+        "ASP-V-SP-002",
+        "ASP-V-SP-003",
+        "ASP-V-GI-002",
+        "ASP-V-GI-003",
+        "ASP-V-GI-004",
+        "ASP-V-AE-003",
+        "ASP-V-AE-006",
+        "ASP-V-AE-011",
+        "ASP-V-AE-012",
+        "ASP-V-AE-004",
+        "ASP-V-AE-005",
+        "ASP-V-AE-014",
+        "ASP-V-AE-007",
+        "ASP-V-AE-013",
+        "ASP-V-RP-003",
+        "ASP-V-RP-005",
+        "ASP-V-RP-007",
+        "ASP-V-RM-002",
+        "ASP-V-RM-003",
+        "ASP-V-RM-004",
+        "ASP-V-RM-005",
+        "ASP-V-RM-006",
+        "ASP-V-AA-003",
+        "ASP-V-AA-002",
+        "ASP-V-AA-004",
+        "ASP-V-AA-005"
+      ]
+    },
+    "scenarioSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_selection_id",
+        "positive_vector_ids",
+        "negative_vector_ids"
+      ],
+      "properties": {
+        "scenario_selection_id": {
+          "const": "application-audited-effects-exact"
+        },
+        "positive_vector_ids": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/positiveVectorId"
+          }
+        },
+        "negative_vector_ids": {
+          "type": "array",
+          "minItems": 26,
+          "maxItems": 26,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/negativeVectorId"
+          }
+        }
+      }
+    },
+    "lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lane_id",
+        "deployment_id",
+        "boundary_id",
+        "lineage_id",
+        "runtime_participant_id",
+        "agent_participant_id",
+        "application_participant_ids",
+        "scenario_selection_id"
+      ],
+      "properties": {
+        "lane_id": {
+          "enum": [
+            "local",
+            "remote"
+          ]
+        },
+        "deployment_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "boundary_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "lineage_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "runtime_participant_id": {
+          "enum": [
+            "reference-runtime-local",
+            "reference-runtime-remote"
+          ]
+        },
+        "agent_participant_id": {
+          "enum": [
+            "reference-agent-a",
+            "reference-agent-b"
+          ]
+        },
+        "application_participant_ids": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "reference-app-control"
+            },
+            {
+              "const": "reference-app-executor"
+            },
+            {
+              "const": "reference-app-receipt"
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "scenario_selection_id": {
+          "const": "application-audited-effects-exact"
+        }
+      }
+    },
+    "participantConfig": {
+      "$anchor": "participantConfig",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "$schema",
+        "schema_version",
+        "participant_id",
+        "participant_kind",
+        "claim_role",
+        "lane_membership",
+        "implementation",
+        "deployment",
+        "entrypoint",
+        "profiles",
+        "config"
+      ],
+      "properties": {
+        "$schema": {
+          "const": "../manifest.schema.json#/$defs/participantConfig"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "participant_id": {
+          "enum": [
+            "reference-app-control",
+            "reference-app-executor",
+            "reference-app-receipt",
+            "reference-runtime-local",
+            "reference-runtime-remote",
+            "reference-agent-a",
+            "reference-agent-b"
+          ]
+        },
+        "participant_kind": {
+          "enum": [
+            "application",
+            "runtime",
+            "agent"
+          ]
+        },
+        "claim_role": {
+          "enum": [
+            "canonical_claim_subject",
+            "additional_tested_participant"
+          ]
+        },
+        "lane_membership": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "local",
+              "remote"
+            ]
+          }
+        },
+        "implementation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "version",
+            "lineage_id",
+            "language",
+            "artifact_paths"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "version": {
+              "const": "0.1.0"
+            },
+            "lineage_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "language": {
+              "enum": [
+                "rust",
+                "python"
+              ]
+            },
+            "artifact_paths": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/relativePath"
+              }
+            }
+          }
+        },
+        "deployment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "deployment_id",
+            "boundary_id",
+            "placement"
+          ],
+          "properties": {
+            "deployment_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "boundary_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "placement": {
+              "enum": [
+                "shared-application",
+                "local",
+                "remote"
+              ]
+            }
+          }
+        },
+        "entrypoint": {
+          "$ref": "#/$defs/entrypoint"
+        },
+        "profiles": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "profile_id"
+            ],
+            "properties": {
+              "profile_id": {
+                "$ref": "#/$defs/profileId"
+              },
+              "producer_role": {
+                "const": "application"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "profile_id": {
+                      "const": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1"
+                    }
+                  },
+                  "required": [
+                    "profile_id"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "producer_role"
+                  ]
+                },
+                "else": {
+                  "not": {
+                    "required": [
+                      "producer_role"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "subject_protocol",
+            "subject_transport",
+            "scenario_protocol",
+            "scenario_transport",
+            "network_scope"
+          ],
+          "properties": {
+            "subject_protocol": {
+              "const": "asp-reference-subject/1"
+            },
+            "subject_transport": {
+              "const": "stdio-json"
+            },
+            "scenario_protocol": {
+              "enum": [
+                "asp-reference-app/1",
+                "asp-reference-runtime/1",
+                "asp-reference-agent/1"
+              ]
+            },
+            "scenario_transport": {
+              "const": "tcp-json-lines"
+            },
+            "network_scope": {
+              "const": "loopback-only"
+            }
+          }
+        }
+      }
+    }
+  }
+}

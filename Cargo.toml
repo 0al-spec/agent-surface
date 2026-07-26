@@ -1,3 +1,8 @@
 [workspace]
-members = ["tools/asp-api-importer", "tools/asp-manifest-linter", "tools/asp-replay"]
+members = [
+    "reference/vertical-slice/app",
+    "tools/asp-api-importer",
+    "tools/asp-manifest-linter",
+    "tools/asp-replay",
+]
 resolver = "3"

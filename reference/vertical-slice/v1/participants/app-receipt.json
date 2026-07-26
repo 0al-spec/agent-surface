@@ -1,0 +1,48 @@
+{
+  "$schema": "../manifest.schema.json#/$defs/participantConfig",
+  "schema_version": 1,
+  "participant_id": "reference-app-receipt",
+  "participant_kind": "application",
+  "claim_role": "canonical_claim_subject",
+  "lane_membership": [
+    "local",
+    "remote"
+  ],
+  "implementation": {
+    "name": "asp-reference-vertical-app-receipt",
+    "version": "0.1.0",
+    "lineage_id": "reference/implementation/application-rust-v1",
+    "language": "rust",
+    "artifact_paths": [
+      "Cargo.lock",
+      "Cargo.toml",
+      "reference/vertical-slice/app/Cargo.toml",
+      "reference/vertical-slice/app/src/bin/app_receipt.rs",
+      "reference/vertical-slice/app/src/bin/app_server.rs",
+      "reference/vertical-slice/app/src/lib.rs"
+    ]
+  },
+  "deployment": {
+    "deployment_id": "reference/vertical-slice/deployment/application-receipt",
+    "boundary_id": "reference/application/receipt",
+    "placement": "shared-application"
+  },
+  "entrypoint": {
+    "kind": "cargo_binary",
+    "name": "asp-reference-app-receipt",
+    "path": "reference/vertical-slice/app/src/bin/app_receipt.rs"
+  },
+  "profiles": [
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "producer_role": "application"
+    }
+  ],
+  "config": {
+    "subject_protocol": "asp-reference-subject/1",
+    "subject_transport": "stdio-json",
+    "scenario_protocol": "asp-reference-app/1",
+    "scenario_transport": "tcp-json-lines",
+    "network_scope": "loopback-only"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "../manifest.schema.json#/$defs/participantConfig",
+  "schema_version": 1,
+  "participant_id": "reference-agent-a",
+  "participant_kind": "agent",
+  "claim_role": "canonical_claim_subject",
+  "lane_membership": [
+    "local"
+  ],
+  "implementation": {
+    "name": "asp-reference-agent-a",
+    "version": "0.1.0",
+    "lineage_id": "reference/implementation/agent-a-python-v1",
+    "language": "python",
+    "artifact_paths": [
+      "reference/vertical-slice/agent_a.py"
+    ]
+  },
+  "deployment": {
+    "deployment_id": "reference/vertical-slice/deployment/agent-a",
+    "boundary_id": "reference/agent/a",
+    "placement": "local"
+  },
+  "entrypoint": {
+    "kind": "python_script",
+    "name": "reference-agent-a",
+    "path": "reference/vertical-slice/agent_a.py"
+  },
+  "profiles": [
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
+    }
+  ],
+  "config": {
+    "subject_protocol": "asp-reference-subject/1",
+    "subject_transport": "stdio-json",
+    "scenario_protocol": "asp-reference-agent/1",
+    "scenario_transport": "tcp-json-lines",
+    "network_scope": "loopback-only"
+  }
+}

@@ -1,0 +1,40 @@
+[package]
+name = "asp-reference-vertical-app"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Application-side implementation for the ASP independent reference vertical slice"
+repository = "https://github.com/0al-spec/agent-surface"
+rust-version = "1.97"
+
+[lib]
+name = "asp_reference_vertical_app"
+path = "src/lib.rs"
+
+[[bin]]
+name = "asp-reference-app-control"
+path = "src/bin/app_control.rs"
+
+[[bin]]
+name = "asp-reference-app-executor"
+path = "src/bin/app_executor.rs"
+
+[[bin]]
+name = "asp-reference-app-receipt"
+path = "src/bin/app_receipt.rs"
+
+[[bin]]
+name = "asp-reference-app-server"
+path = "src/bin/app_server.rs"
+
+[dependencies]
+base64 = "0.22"
+getrandom = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_json_canonicalizer = "=0.3.2"
+sha2 = "0.10"
+thiserror = "2.0"
+
+[dev-dependencies]
+assert_cmd = "2.1"

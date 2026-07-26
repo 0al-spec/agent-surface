@@ -1,0 +1,262 @@
+{
+  "$schema": "./manifest.schema.json",
+  "schema_version": 1,
+  "slice_id": "https://github.com/0al-spec/agent-surface/reference/vertical-slice/v1",
+  "slice_version": "1.0.0",
+  "review_id": 74,
+  "protocol_version": "agent-surface/0.1",
+  "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
+  "suite_version": "1.9.0",
+  "bundle_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/application-audited-effects/v1",
+  "claim_effect": "descriptive_only",
+  "max_maturity": "implementation_tested",
+  "independence": "not_established",
+  "non_claims": [
+    "certification",
+    "independent_interoperability",
+    "production_readiness",
+    "security_certification",
+    "stable_maturity"
+  ],
+  "path_base": "repository-root",
+  "harness": {
+    "artifact_paths": [
+      "reference/vertical-slice/harness/adapter.py",
+      "reference/vertical-slice/harness/probe.py"
+    ],
+    "entrypoints": {
+      "adapter": {
+        "kind": "python_script",
+        "name": "reference-vertical-slice-adapter",
+        "path": "reference/vertical-slice/harness/adapter.py"
+      },
+      "probe": {
+        "kind": "python_script",
+        "name": "reference-vertical-slice-probe",
+        "path": "reference/vertical-slice/harness/probe.py"
+      }
+    },
+    "config": {
+      "adapter_protocol": "asp-conformance-adapter/1",
+      "probe_protocol": "asp-conformance-probe/1",
+      "subject_protocol": "asp-reference-subject/1",
+      "execution_timeout_seconds": 8,
+      "private_evidence_file": "reference-execution.json"
+    }
+  },
+  "participants": [
+    {
+      "participant_id": "reference-app-control",
+      "config_path": "reference/vertical-slice/v1/participants/app-control.json"
+    },
+    {
+      "participant_id": "reference-app-executor",
+      "config_path": "reference/vertical-slice/v1/participants/app-executor.json"
+    },
+    {
+      "participant_id": "reference-app-receipt",
+      "config_path": "reference/vertical-slice/v1/participants/app-receipt.json"
+    },
+    {
+      "participant_id": "reference-runtime-local",
+      "config_path": "reference/vertical-slice/v1/participants/runtime-local.json"
+    },
+    {
+      "participant_id": "reference-runtime-remote",
+      "config_path": "reference/vertical-slice/v1/participants/runtime-remote.json"
+    },
+    {
+      "participant_id": "reference-agent-a",
+      "config_path": "reference/vertical-slice/v1/participants/agent-a.json"
+    },
+    {
+      "participant_id": "reference-agent-b",
+      "config_path": "reference/vertical-slice/v1/participants/agent-b.json"
+    }
+  ],
+  "claim_selection": [
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "participant_id": "reference-app-control",
+      "feature_ids": [],
+      "requirement_ids": [
+        "ASP-SP-001"
+      ],
+      "vector_ids": [
+        "ASP-V-SP-001",
+        "ASP-V-SP-002",
+        "ASP-V-SP-003"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "participant_id": "reference-app-control",
+      "feature_ids": [],
+      "requirement_ids": [
+        "ASP-GI-001",
+        "ASP-GI-002",
+        "ASP-GI-004"
+      ],
+      "vector_ids": [
+        "ASP-V-GI-001",
+        "ASP-V-GI-002",
+        "ASP-V-GI-003",
+        "ASP-V-GI-004",
+        "ASP-V-GI-006",
+        "ASP-V-GI-007"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "participant_id": "reference-app-executor",
+      "feature_ids": [],
+      "requirement_ids": [
+        "ASP-AE-001",
+        "ASP-AE-002",
+        "ASP-AE-003",
+        "ASP-AE-004",
+        "ASP-AE-008"
+      ],
+      "vector_ids": [
+        "ASP-V-AE-001",
+        "ASP-V-AE-003",
+        "ASP-V-AE-006",
+        "ASP-V-AE-011",
+        "ASP-V-AE-012",
+        "ASP-V-AE-002",
+        "ASP-V-AE-004",
+        "ASP-V-AE-005",
+        "ASP-V-AE-014",
+        "ASP-V-AE-007",
+        "ASP-V-AE-013"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1",
+      "participant_id": "reference-app-receipt",
+      "producer_role": "application",
+      "feature_ids": [],
+      "requirement_ids": [
+        "ASP-RP-001",
+        "ASP-RP-003",
+        "ASP-RP-005"
+      ],
+      "vector_ids": [
+        "ASP-V-RP-001",
+        "ASP-V-RP-003",
+        "ASP-V-RP-005",
+        "ASP-V-RP-007"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "participant_id": "reference-runtime-local",
+      "feature_ids": [],
+      "requirement_ids": [
+        "ASP-RM-001",
+        "ASP-RM-002",
+        "ASP-RM-003",
+        "ASP-RM-004",
+        "ASP-RM-005"
+      ],
+      "vector_ids": [
+        "ASP-V-RM-001",
+        "ASP-V-RM-002",
+        "ASP-V-RM-003",
+        "ASP-V-RM-004",
+        "ASP-V-RM-005",
+        "ASP-V-RM-006"
+      ]
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "participant_id": "reference-agent-a",
+      "feature_ids": [],
+      "requirement_ids": [
+        "ASP-AA-001",
+        "ASP-AA-002",
+        "ASP-AA-003",
+        "ASP-AA-004"
+      ],
+      "vector_ids": [
+        "ASP-V-AA-001",
+        "ASP-V-AA-003",
+        "ASP-V-AA-002",
+        "ASP-V-AA-004",
+        "ASP-V-AA-005"
+      ]
+    }
+  ],
+  "scenario_selection": {
+    "scenario_selection_id": "application-audited-effects-exact",
+    "positive_vector_ids": [
+      "ASP-V-SP-001",
+      "ASP-V-GI-001",
+      "ASP-V-GI-006",
+      "ASP-V-GI-007",
+      "ASP-V-AE-001",
+      "ASP-V-AE-002",
+      "ASP-V-RP-001",
+      "ASP-V-RM-001",
+      "ASP-V-AA-001"
+    ],
+    "negative_vector_ids": [
+      "ASP-V-SP-002",
+      "ASP-V-SP-003",
+      "ASP-V-GI-002",
+      "ASP-V-GI-003",
+      "ASP-V-GI-004",
+      "ASP-V-AE-003",
+      "ASP-V-AE-006",
+      "ASP-V-AE-011",
+      "ASP-V-AE-012",
+      "ASP-V-AE-004",
+      "ASP-V-AE-005",
+      "ASP-V-AE-014",
+      "ASP-V-AE-007",
+      "ASP-V-AE-013",
+      "ASP-V-RP-003",
+      "ASP-V-RP-005",
+      "ASP-V-RP-007",
+      "ASP-V-RM-002",
+      "ASP-V-RM-003",
+      "ASP-V-RM-004",
+      "ASP-V-RM-005",
+      "ASP-V-RM-006",
+      "ASP-V-AA-003",
+      "ASP-V-AA-002",
+      "ASP-V-AA-004",
+      "ASP-V-AA-005"
+    ]
+  },
+  "lanes": [
+    {
+      "lane_id": "local",
+      "deployment_id": "reference/vertical-slice/deployment/local",
+      "boundary_id": "reference/lane/local",
+      "lineage_id": "reference/vertical-slice/lineage/local-v1",
+      "runtime_participant_id": "reference-runtime-local",
+      "agent_participant_id": "reference-agent-a",
+      "application_participant_ids": [
+        "reference-app-control",
+        "reference-app-executor",
+        "reference-app-receipt"
+      ],
+      "scenario_selection_id": "application-audited-effects-exact"
+    },
+    {
+      "lane_id": "remote",
+      "deployment_id": "reference/vertical-slice/deployment/remote",
+      "boundary_id": "reference/lane/remote",
+      "lineage_id": "reference/vertical-slice/lineage/remote-v1",
+      "runtime_participant_id": "reference-runtime-remote",
+      "agent_participant_id": "reference-agent-b",
+      "application_participant_ids": [
+        "reference-app-control",
+        "reference-app-executor",
+        "reference-app-receipt"
+      ],
+      "scenario_selection_id": "application-audited-effects-exact"
+    }
+  ]
+}
