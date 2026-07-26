@@ -3884,7 +3884,10 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
                 "credential_withheld",
                 policy_reason="binding_invalid",
             )
-        if mcp.get("binding_view_use") == "retained_completed_replay":
+        if mcp.get("binding_view_use") in {
+            "current_completed_replay",
+            "retained_completed_replay",
+        }:
             try:
                 _validate_mcp_binding(document, phase="result")
             except BehaviorError:
@@ -4216,7 +4219,10 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
                 "retry_suppressed",
                 policy_reason="binding_invalid",
             )
-        if mcp.get("binding_view_use") == "retained_completed_replay":
+        if mcp.get("binding_view_use") in {
+            "current_completed_replay",
+            "retained_completed_replay",
+        }:
             try:
                 _validate_mcp_binding(document, phase="result")
             except BehaviorError:

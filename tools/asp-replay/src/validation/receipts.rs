@@ -74,21 +74,6 @@ pub(super) fn approval_links(receipt: &Value) -> Option<BTreeMap<String, String>
     )
 }
 
-fn collision_resistant_uri(value: &str) -> bool {
-    let Some((scheme, remainder)) = value.split_once(':') else {
-        return false;
-    };
-    !remainder.is_empty()
-        && scheme.chars().enumerate().all(|(index, character)| {
-            if index == 0 {
-                character.is_ascii_alphabetic()
-            } else {
-                character.is_ascii_alphanumeric() || matches!(character, '+' | '-' | '.')
-            }
-        })
-        && !value.chars().any(char::is_whitespace)
-}
-
 fn validate_policy_decision_shape(receipt: &Value, ordinal: usize, validator: &mut Validator) {
     let path = format!("/records/{ordinal}/body/policy_decision");
     let Some(decision) = member(receipt, "policy_decision") else {
@@ -225,12 +210,15 @@ fn validate_policy_decision_shape(receipt: &Value, ordinal: usize, validator: &m
         .contains(&reason),
         _ => false,
     };
-    if !reason_valid && !collision_resistant_uri(reason) {
+    // This bounded validator has no authoritative extension reason registry.
+    // Therefore it can prove outcome compatibility only for the base registry
+    // above and must fail closed for every unknown or incompatible code.
+    if !reason_valid {
         validator.error(
             "ASP-REPLAY-RECEIPT-HASH-001",
             ordinal,
             format!("{path}/reason_code"),
-            "Policy Decision outcome and standard reason code are incompatible",
+            "Policy Decision reason code is unregistered or incompatible with its outcome",
         );
     }
 

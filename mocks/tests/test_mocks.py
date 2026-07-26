@@ -834,6 +834,36 @@ class MockBehaviorSecurityTests(unittest.TestCase):
         publisher["mcp"]["session_lookup_outcome"] = "unknown_404_no_mutation"
         _validate_mcp_binding(publisher, phase="discovery")
 
+    def test_mcp_completed_replays_do_not_redispatch(self) -> None:
+        for vector_id in ("ASP-V-RM-072", "ASP-V-AE-032"):
+            vector = self.catalog.vectors[vector_id]
+            baseline = _resolved_fixture(self.catalog, vector)["document"]
+            current = copy.deepcopy(baseline)
+            current_mcp = current["mcp"]
+            current_mcp["binding_view_use"] = "current_completed_replay"
+            current_mcp["completed_record_state"] = "exact_authenticated"
+            current_mcp["replay_materialization"] = (
+                "exact_persisted_result_and_receipt"
+            )
+            current_mcp["retained_snapshot_state"] = "persisted_across_restart"
+            current_mcp["replay_disclosure_authorization"] = "allowed"
+
+            retained = copy.deepcopy(current)
+            retained_mcp = retained["mcp"]
+            retained_mcp["binding_view_use"] = "retained_completed_replay"
+            retained_mcp["resource_update_state"] = "updated"
+            retained_mcp["current_binding_view_id"] = "binding_view_b"
+            retained_mcp["tools_changed_state"] = "changed_after_snapshot"
+            retained_mcp["schema_snapshot_state"] = "retained"
+            retained_mcp["rotation_cause"] = "manifest"
+
+            for view, document in (("current", current), ("retained", retained)):
+                with self.subTest(vector_id=vector_id, view=view):
+                    result = self.evaluate_document(vector, document)
+                    self.assertEqual(result.decision, "accepted")
+                    self.assertEqual(result.state_after, result.state_before)
+                    self.assertIn("asp_authority_unchanged", result.tokens)
+
     def test_revoked_or_unknown_authority_never_dispatches(self) -> None:
         for vector_id in ("ASP-V-AE-006", "ASP-V-RM-004"):
             with self.subTest(vector_id=vector_id):

@@ -556,7 +556,7 @@ pub(crate) fn verify_receipt_resources(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hash::{RECEIPT_DOMAIN, object_hash};
+    use crate::hash::{POLICY_DOMAIN, RECEIPT_DOMAIN, object_hash};
 
     fn runtime_receipt() -> Value {
         let fixture: Value =
@@ -672,6 +672,49 @@ mod tests {
         )
         .expect("validation runs");
         assert_eq!(report.verdict, "invalid");
+    }
+
+    #[test]
+    fn unregistered_extension_policy_reason_fails_closed() {
+        let mut receipt = runtime_receipt();
+        let policy = receipt["policy_decision"]
+            .as_object_mut()
+            .expect("policy decision");
+        policy.insert(
+            "reason_code".to_owned(),
+            Value::String("https://example.com/reasons/deny-only".to_owned()),
+        );
+        let policy_hash = object_hash(
+            POLICY_DOMAIN,
+            &Value::Object(policy.clone()),
+            &["policy_decision_hash"],
+        )
+        .expect("policy hash");
+        policy.insert(
+            "policy_decision_hash".to_owned(),
+            Value::String(policy_hash.clone()),
+        );
+        receipt["policy_decision_hash"] = Value::String(policy_hash);
+        receipt["receipt_hash"] = Value::String(
+            object_hash(
+                RECEIPT_DOMAIN,
+                &receipt,
+                &["receipt_hash", "receipt_signatures"],
+            )
+            .expect("receipt hash"),
+        );
+
+        let report = verify_receipt_resources(
+            &serde_json::to_vec(&request(&receipt)).expect("serialize request"),
+        )
+        .expect("validation runs");
+        assert_eq!(report.verdict, "invalid");
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|diagnostic| { diagnostic.path.ends_with("/policy_decision/reason_code") })
+        );
     }
 
     #[test]

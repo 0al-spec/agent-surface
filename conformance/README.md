@@ -65,7 +65,10 @@ deliberately states `signatures_verified: false`; it does not establish a
 signature, trusted chain head, unresolved parent-chain completeness, or
 producer authority. The binding checker separately requires authoritative
 result, error, output, effect, and resource expectations and rejects any
-receipt substitution before exposing an action result.
+receipt substitution before exposing an action result. Because this bounded
+oracle has no authoritative extension reason-code registry, it accepts only
+the base Policy Decision reason/outcome pairs and fails closed for extension
+reason codes.
 
 Human Elicitation vectors use the standalone closed
 `human-elicitation.schema.json` wire schema plus an optional closed
