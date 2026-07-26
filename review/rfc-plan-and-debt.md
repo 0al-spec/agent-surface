@@ -1,8 +1,8 @@
 # Agent Surface RFC Plan and Debt
 
 - Status: active planning snapshot
-- Snapshot date: 2026-07-22
-- Snapshot base: `0bff3b754ad9ee540d2c20a3eb2471d13c160ec0`
+- Snapshot date: 2026-07-26
+- Snapshot base: `1fd734ecf3a4ec0e83b4f5da4f2ce18883668d24`
 - Canonical machine-readable source: [`review-data.json`](review-data.json)
 
 ## Purpose and authority
@@ -39,10 +39,10 @@ The active coverage debt is therefore **10 cards**: 4 P2 and 6 P3.
 
 | Maturity | Cards |
 | --- | ---: |
-| `proposal` | 11 |
+| `proposal` | 10 |
 | `specified` | 52 |
 | `machine_validated` | 14 |
-| `implementation_tested` | 0 |
+| `implementation_tested` | 1 |
 | `interop_tested` | 0 |
 | `stable` | 0 |
 
@@ -93,11 +93,11 @@ ASP Grant, approval, effect claim, or receipt.
 
 ## Delivery and tooling debt
 
-| Card | Priority | Coverage | Delivery outcome |
-| --- | --- | --- | --- |
-| #74 Independent Reference Vertical Slice | P1 | `present` | Run one exact #65 bundle across distinct application and runtime deployments, agents, positive and negative scenarios, and machine-readable conformance reports. This is the first independent delivery-maturity milestone. |
-| #75 ASP Typed SDK and Core Code Generation | P2 | `partial` | Build one validated canonical authoring model with deterministic manifest, schema, validator, and diagnostic generation. Keep external adapters outside the core SDK. |
-| #77 External Mapping Adapter Generators | P3 | `missing` | Generate adapters only for completed mapping profiles; pin upstream versions, report semantic loss, perform no network I/O, and never synthesize authority. |
+| Card | Priority | Coverage | Maturity | Delivery outcome |
+| --- | --- | --- | --- | --- |
+| #74 Independent Reference Vertical Slice | P1 | `present` | `implementation_tested` | Exact Application-Audited Effects reports and two executable local/remote lanes now pass through a card-specific resolver. Independent interoperability remains deliberately unclaimed. |
+| #75 ASP Typed SDK and Core Code Generation | P2 | `partial` | `proposal` | Build one validated canonical authoring model with deterministic manifest, schema, validator, and diagnostic generation. Keep external adapters outside the core SDK. |
+| #77 External Mapping Adapter Generators | P3 | `missing` | `proposal` | Generate adapters only for completed mapping profiles; pin upstream versions, report semantic loss, perform no network I/O, and never synthesize authority. |
 
 ### Broader maturity debt
 
@@ -108,8 +108,8 @@ real implementations before they can move to `implementation_tested`.
 
 The project still needs:
 
-- authoritative evidence resolvers for `implementation_tested`,
-  `interop_tested`, and `stable`;
+- reusable evidence resolvers for additional `implementation_tested` cards and
+  authoritative resolvers for `interop_tested` and `stable`;
 - at least two independent implementations for interoperability claims;
 - release assignment and exit criteria for planned cards;
 - versioned conformance reports tied to exact artifacts and configurations;
@@ -143,7 +143,7 @@ completed #63 and #69 contracts.
 
 ```text
 #65 Adoption-Oriented Conformance Bundles (machine-validated)
-  -> #74 Independent Reference Vertical Slice
+  -> #74 Independent Reference Vertical Slice (implementation-tested)
 ```
 
 ### Lane D: delegation hardening
@@ -172,13 +172,14 @@ completed #63 and #69 contracts.
 #75 Typed SDK ------------/
 ```
 
-The next selected P1 delivery slice is **#74 Independent Reference Vertical
-Slice**. It is structurally unblocked by the machine-validated #65 bundle
-registry and can exercise the new #69 MCP binding across independently deployed
-application and runtime participants. The next specification binding is #70,
-which is now ready but remains P2 while WebMCP is still experimental.
-Lower-priority mappings should advance only when their upstream specification
-is sufficiently stable and there is concrete adopter demand.
+The intake's P1 delivery lane is complete through **#74 Independent Reference
+Vertical Slice**. The next recommended security-focused slice is **#64
+Purpose- and Task-Bound Agent Grants**: it narrows long-lived delegated
+authority and is structurally independent of the publication split. **#70
+ASP-over-WebMCP Binding** is the ready transport alternative, but remains P2
+while WebMCP is experimental. Lower-priority mappings should advance only when
+their upstream specification is sufficiently stable and there is concrete
+adopter demand.
 
 ## Definition of done for a protocol slice
 

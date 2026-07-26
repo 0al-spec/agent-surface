@@ -61,6 +61,11 @@ jobs:
         shell: bash
         run: make mock-check
 
+      - name: Check independent reference vertical slice
+        timeout-minutes: 10
+        shell: bash
+        run: make vertical-slice-check
+
       - name: Check stable Rust tooling
         timeout-minutes: 12
         shell: bash

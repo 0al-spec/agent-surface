@@ -64,6 +64,7 @@ agent-surface/
     workflows/docs.yml       Markdown, RFC, and dashboard checks.
   conformance/             Versioned executable matrix, vectors, schemas, and runner.
   mocks/                   Synthetic Mock App and Mock Runtime suite fixtures.
+  reference/               Executable implementation evidence and vertical slices.
   tools/                   Rust API importer, manifest linter, and passive replay verifier.
   drafts/                  Source RFCs written in Markdown.
   review/                  Source data, template, and generated RFC review dashboard.
@@ -100,11 +101,13 @@ when every direct dependency has `present` coverage and at least `specified`
 maturity; the card's own coverage does not affect whether it is ready to be
 worked on. `machine_validated` maturity is accepted only through a card-specific
 binding whose canonical local schema, registry, and any declared implementation
-artifacts resolve through their authoritative validator. The conformance suite
-and reference mock bundle have separate bindings; mock implementation paths
-identify suite-fixture tooling and do not grant ASP implementation credit.
-Higher maturity remains fail-closed until implementation and independent
-interop evidence resolvers are added to the validation gate.
+artifacts resolve through their authoritative validator. The conformance suite,
+reference mock bundle, and card #74 vertical slice have separate bindings; mock
+implementation paths identify suite-fixture tooling and do not grant ASP
+implementation credit. `implementation_tested` is accepted only through the
+card #74 resolver that rebuilds and executes its exact artifacts, report
+closure, and two-lane scenario. Independent `interop_tested` and `stable`
+maturity remain fail-closed.
 The canonical file keeps `planning_metadata_mode` set to `required`;
 `transitional` exists only so schema v2 can validate the stacked migration
 without silently changing the v2 contract.
@@ -172,6 +175,25 @@ subject is a `suite_fixture`, so even a fully matching run remains `incomplete`
 and supplies neither implementation nor interoperability credit. The bundle
 uses deterministic synthetic data only and must never receive production
 credentials, secrets, user content, or attestation evidence.
+
+## Independent Reference Vertical Slice
+
+The [card #74 vertical slice](reference/vertical-slice) executes the exact
+Application-Audited Effects adoption bundle with a Rust task/comment
+application, distinct local and remote runtimes, two agent artifacts, and
+machine-readable role and scenario reports:
+
+```sh
+make vertical-slice-check
+```
+
+The resolver re-hashes retained source, pinned dependency, and configuration
+artifacts, verifies all six atomic role reports, and separately exercises a
+selected positive/negative composition scenario over real process boundaries.
+The role reports and TCP scenario are intentionally distinct evidence paths;
+neither substitutes for the other. Because every implementation is maintained
+in this repository, the result is capped at `implementation_tested`; it does
+not self-assert independent interoperability or production readiness.
 
 ## OpenAPI and AsyncAPI Importer
 

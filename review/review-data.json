@@ -5493,7 +5493,7 @@
     {
       "id": 74,
       "title": "Independent Reference Vertical Slice",
-      "description": "реализовать один убедительный end-to-end scenario с реальным app surface, local и remote runtimes, двумя независимыми agents и verifier reports.",
+      "description": "реализовать один убедительный end-to-end scenario с реальным app surface, local и remote runtimes, двумя отдельно реализованными agents и verifier reports.",
       "category": "Conformance / reference implementation",
       "side": "right",
       "status": "present",
@@ -5515,7 +5515,7 @@
           "anchorId": "conformance-claim-and-composition-rules"
         }
       ],
-      "rationale": "RFC уже нормативно определяет independent counterpart evidence и запрещает считать fixtures либо same-artifact processes interoperability, поэтому coverage present. Delivery maturity остаётся proposal: vertical slice должен реализовать exact bundle из #65, фиксировать разные implementation artifacts/deployment boundaries, positive и negative paths, reports и reproducible setup; два процесса из одного mock codebase не считаются независимыми implementations.",
+      "rationale": "Reference slice реализует exact Application-Audited Effects bundle из #65: шесть atomic implementation reports, 9 positive и 26 negative vectors, Rust task/comment application, local и remote Runtime processes, два отдельных Agent Adapter artifacts, exact replay, scoped idempotency, authenticated control plane, runtime-bound agent session proof, application-side delegate verification, closed input validation, Grant revocation и application-authoritative receipts. Card-specific resolver пересобирает Rust artifacts с pinned Cargo.lock, повторно хеширует retained sources/configurations, fail-closed сверяет suite/config/report bindings и запускает обе end-to-end lanes, поэтому maturity implementation_tested. Все участники всё ещё принадлежат одной repository-owned reference lineage; independence not established, поэтому interop_tested, certification, production readiness и stable не заявляются.",
       "priority": "P1",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -5525,7 +5525,7 @@
         65
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "implementation_tested",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -5542,6 +5542,102 @@
         {
           "kind": "rfc_anchor",
           "ref": "conformance-claim-and-composition-rules"
+        },
+        {
+          "kind": "schema",
+          "ref": "reference/vertical-slice/v1/manifest.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "reference/vertical-slice/v1/evidence.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/bundles.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/report.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/subject.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/observation.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "reference/vertical-slice/v1/manifest.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/bundles.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "Cargo.lock"
+        },
+        {
+          "kind": "implementation",
+          "ref": "Cargo.toml"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/app/Cargo.toml"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/app/src/lib.rs"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/app/src/bin/app_control.rs"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/app/src/bin/app_executor.rs"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/app/src/bin/app_receipt.rs"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/app/src/bin/app_server.rs"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/runtime_local.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/runtime_remote.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/agent_a.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/agent_b.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/scenario.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/harness/adapter.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "reference/vertical-slice/harness/probe.py"
+        },
+        {
+          "kind": "test",
+          "ref": "reference/vertical-slice/check.py"
         }
       ]
     },
