@@ -3,7 +3,7 @@ use std::io::{self, Read};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use asp_replay::{MAX_INPUT_BYTES, compose, self_check, verify};
+use asp_replay::{MAX_INPUT_BYTES, compose, self_check, validate_receipt_resources, verify};
 use clap::{Parser, Subcommand};
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
@@ -25,6 +25,8 @@ enum Command {
     Verify { bundle: String },
     /// Compose bounded replay with available native-profile validators. Use - for stdin.
     Compose { bundle: String },
+    /// Validate transport-authenticated receipt resources. Use - for stdin.
+    ValidateReceipts { request: String },
     /// Validate compiled schemas, registries, cases, fixtures, and golden reports.
     SelfCheck {
         #[arg(long, default_value = ".")]
@@ -136,6 +138,34 @@ fn main() -> ExitCode {
                 }
             }
             exit_status
+        }
+        Command::ValidateReceipts { request } => {
+            let bytes = match read_bounded(&request) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    eprintln!("asp-replay: {error}");
+                    return ExitCode::from(2);
+                }
+            };
+            let report = match validate_receipt_resources(&bytes) {
+                Ok(report) => report,
+                Err(error) => {
+                    eprintln!("asp-replay: {error}");
+                    return ExitCode::from(2);
+                }
+            };
+            match serde_json::to_string_pretty(&report) {
+                Ok(output) => println!("{output}"),
+                Err(error) => {
+                    eprintln!("asp-replay: cannot serialize receipt report: {error}");
+                    return ExitCode::from(2);
+                }
+            }
+            if report.verdict == "valid" {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
         }
         Command::SelfCheck { root } => match self_check(&root) {
             Ok(()) => {

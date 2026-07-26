@@ -22,12 +22,12 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.8.0"
+      "const": "1.9.0"
     },
     "cases": {
       "type": "array",
-      "minItems": 65,
-      "maxItems": 65,
+      "minItems": 124,
+      "maxItems": 124,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/case"
@@ -127,6 +127,101 @@
         }
       }
     },
+    "mcpContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requested_resource_uri": { "type": "string", "format": "uri" },
+        "resource_kind": { "enum": ["manifest", "receipt"] },
+        "expected_resource": { "type": "object" },
+        "resource_hash_domain": { "type": "string", "format": "uri" },
+        "expected_resource_hash": { "type": "string", "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$" },
+        "expected_receipt_type": { "enum": ["app", "runtime", "approval"] },
+        "expected_receipt_semantics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["result", "error", "output_hash", "actual_effects", "actual_effects_hash", "effect_outcome", "resource"],
+          "properties": {
+            "result": { "type": "string", "minLength": 1 },
+            "error": { "type": ["object", "null"] },
+            "output_hash": { "type": ["string", "null"], "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$" },
+            "actual_effects": { "type": ["array", "null"] },
+            "actual_effects_hash": { "type": ["string", "null"], "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$" },
+            "effect_outcome": { "type": ["string", "null"], "enum": ["applied", "partially_applied", "not_applied", "unknown", null] },
+            "resource": { "type": ["object", "null"] }
+          }
+        },
+        "expected_authorized_projection": { "type": "object" },
+        "authorized_projection_expected": { "type": "boolean" },
+        "expected_binding_record": { "type": "object" },
+        "expected_tool_records": { "type": "array", "items": { "type": "object" } },
+        "expected_surface_hash": { "type": "string", "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$" },
+        "expected_request_payload": { "type": "object" },
+        "expected_schema_dialect": { "type": "string", "format": "uri" },
+        "expected_input_schema": { "type": "object" },
+        "expected_input_schema_uri": { "type": "string", "format": "uri" },
+        "expected_output_schema": { "type": "object" },
+        "expected_output_schema_uri": { "type": "string", "format": "uri" },
+        "expected_output_schema_hash": { "type": "string", "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$" },
+        "expected_actual_effects": { "type": "array" },
+        "expected_preview": { "type": "object" },
+        "expected_preview_preconditions": {},
+        "expected_preview_effects": { "type": "array" },
+        "expected_revert_evidence": {},
+        "evaluation_time": { "type": "string", "format": "date-time" },
+        "expected_final_approval_receipt_hashes": { "type": "object" },
+        "expected_authenticated_receipt_resources": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["uri", "receipt", "expected"],
+            "properties": {
+              "uri": { "type": "string", "format": "uri" },
+              "receipt": { "type": "object" },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["receipt_id", "receipt_hash", "receipt_type", "approval_role", "binding", "signature_required"],
+                "properties": {
+                  "receipt_id": { "type": "string", "minLength": 1 },
+                  "receipt_hash": { "type": "string", "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$" },
+                  "receipt_type": { "enum": ["app", "runtime", "approval"] },
+                  "approval_role": { "type": ["string", "null"], "enum": ["runtime", "application", null] },
+                  "binding": { "type": "object" },
+                  "signature_required": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "expected_receipt_resource_uris": { "type": "array", "uniqueItems": true, "items": { "type": "string", "format": "uri" } },
+        "prior_tool_names": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "prior_action_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "action_mode": { "enum": ["read", "dry_run", "propose", "reserve", "commit", "compensate", "revert"] },
+        "expected_result": { "type": "string", "minLength": 1 },
+        "idempotency_required": { "type": "boolean" },
+        "receipt_required": { "type": "boolean" }
+        ,"expected_credential_audience": { "type": "string", "format": "uri" }
+        ,"expected_endpoint": { "type": "string", "format": "uri" }
+        ,"expected_proof_target_uri": { "type": "string", "format": "uri" }
+        ,"expected_manifest_resource_uri": { "type": "string", "format": "uri" }
+        ,"expected_authorization_composition": { "enum": ["asp-native", "mcp-oauth-dual-use"] }
+        ,"expected_request_id": { "oneOf": [{"type":"string"},{"type":"integer"}] }
+        ,"expected_progress_token": { "oneOf": [{"type":"string"},{"type":"integer"}] }
+        ,"expected_cancelled_request_id": { "oneOf": [{"type":"string"},{"type":"integer"}] }
+        ,"expected_cursor": { "type": "string", "minLength": 1 }
+        ,"prior_request_ids": { "type": "array", "uniqueItems": true, "items": { "oneOf": [{"type":"string"},{"type":"integer"}] } }
+        ,"prior_cursors": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+        ,"tools_list_first_page": { "type": "boolean" }
+        ,"forbidden_credential_values": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+        ,"capacity_declared_limit_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+        ,"capacity_disclosable_limit_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
     "impactSimulationContext": {
       "oneOf": [
         {
@@ -216,7 +311,7 @@
       "properties": {
         "case_id": {
           "type": "string",
-          "pattern": "^ASP-SC-(OL|CE|HE|IS|RE)-[0-9]{3}$"
+          "pattern": "^ASP-SC-(OL|CE|HE|IS|RE|MB)-[0-9]{3}$"
         },
         "schema_id": {
           "enum": [
@@ -224,7 +319,8 @@
             "https://github.com/0al-spec/agent-surface/conformance/schemas/capacity-error/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
-            "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1"
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/mcp-binding/v1"
           ]
         },
         "polarity": {
@@ -313,9 +409,22 @@
                   }
                 },
                 "else": {
-                  "properties": {
-                    "context": {
-                      "$ref": "#/$defs/emptyContext"
+                  "if": {
+                    "properties": {
+                      "schema_id": {
+                        "const": "https://github.com/0al-spec/agent-surface/conformance/schemas/mcp-binding/v1"
+                      }
+                    },
+                    "required": ["schema_id"]
+                  },
+                  "then": {
+                    "properties": {
+                      "context": { "$ref": "#/$defs/mcpContext" }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "context": { "$ref": "#/$defs/emptyContext" }
                     }
                   }
                 }

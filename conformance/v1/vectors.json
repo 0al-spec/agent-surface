@@ -2,7 +2,7 @@
   "$schema": "./vectors.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.8.0",
+  "suite_version": "1.9.0",
   "vectors": [
     {
       "vector_id": "ASP-V-SP-001",
@@ -6529,6 +6529,1751 @@
         { "state": "idempotency.record_count", "before": 0, "after": 0 },
         { "state": "budget.application_charge", "before": 0, "after": 0 }
       ]
-    }
+    },
+    {
+    "vector_id": "ASP-V-SP-010",
+      "title": "Publish one complete authorized MCP surface snapshot and deterministic action-tool mapping",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-SP-005"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "valid_manifest",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "publish_mcp_surface",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "mcp_binding_validated",
+        "mcp_surface_published",
+        "mcp_tools_published",
+        "asp_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_rejected",
+        "mcp_discovery_suppressed",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "surface.version_binding_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-SP-011",
+      "title": "Reject a tools listing that mixes another ASP surface snapshot",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-SP-010",
+      "requirement_ids": [
+        "ASP-SP-005"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "valid_manifest",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "publish_mcp_surface",
+        "input_variant": "mcp_mixed_surface_snapshot"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "mcp_discovery_suppressed",
+        "asp_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "mcp_surface_published",
+        "mcp_tools_published",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "surface.version_binding_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "surface_incompatible"
+    },
+    {
+      "vector_id": "ASP-V-SP-012",
+      "title": "Reject an MCP tool substituted for another ASP action",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-SP-010",
+      "requirement_ids": [
+        "ASP-SP-005"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": true,
+      "setup": [
+        "valid_manifest",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "publish_mcp_surface",
+        "input_variant": "mcp_tool_action_substitution"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "mcp_discovery_suppressed",
+        "asp_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "mcp_surface_published",
+        "mcp_tools_published",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "surface.version_binding_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "surface_incompatible"
+    },
+    {
+      "vector_id": "ASP-V-SP-013",
+      "title": "Reject a stale MCP tool view after a tools/list change notification",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-SP-010",
+      "requirement_ids": [
+        "ASP-SP-005"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": true,
+      "setup": [
+        "valid_manifest",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "publish_mcp_surface",
+        "input_variant": "mcp_stale_tool_view"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "mcp_discovery_suppressed",
+        "asp_authority_retained",
+        "action_dispatch_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "mcp_surface_published",
+        "mcp_tools_published",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "surface.version_binding_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "surface_incompatible"
+    },
+    {
+      "vector_id": "ASP-V-AE-032",
+      "title": "Execute one exact MCP-carried ASP action and return its structured application result",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-013"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "execute_mcp_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "mcp_binding_validated",
+        "asp_tuple_validated",
+        "action_accepted",
+        "application_receipt_emitted",
+        "mcp_structured_result_emitted"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_rejected",
+        "mcp_result_suppressed",
+        "credential_released"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-033",
+      "title": "Reject MCP OAuth authentication used as ASP Grant authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-032",
+      "requirement_ids": [
+        "ASP-AE-013"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "execute_mcp_action",
+        "input_variant": "mcp_oauth_claims_asp_authority"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "action_rejected",
+        "mcp_result_suppressed",
+        "asp_authority_retained",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "action_accepted",
+        "application_receipt_emitted",
+        "mcp_structured_result_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AE-034",
+      "title": "Reject application credential passthrough through an MCP call",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-032",
+      "requirement_ids": [
+        "ASP-AE-013"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "execute_mcp_action",
+        "input_variant": "mcp_token_passthrough"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "action_rejected",
+        "mcp_result_suppressed",
+        "asp_authority_retained",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "action_accepted",
+        "application_receipt_emitted",
+        "mcp_structured_result_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AE-035",
+      "title": "Reject MCP arguments detached from the bound ASP input hash",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-032",
+      "requirement_ids": [
+        "ASP-AE-013"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "execute_mcp_action",
+        "input_variant": "mcp_argument_input_mismatch"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "action_rejected",
+        "mcp_result_suppressed",
+        "asp_authority_retained",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "action_accepted",
+        "application_receipt_emitted",
+        "mcp_structured_result_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AE-036",
+      "title": "Reject ASP application or capacity errors collapsed into JSON-RPC or transport status",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-032",
+      "requirement_ids": [
+        "ASP-AE-013"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "execute_mcp_action",
+        "input_variant": "mcp_application_error_as_jsonrpc"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "action_accepted",
+        "application_receipt_emitted",
+        "mcp_result_suppressed",
+        "outcome_reconciliation_required",
+        "asp_authority_retained",
+        "credential_withheld",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "mcp_structured_result_emitted",
+        "capacity_response_validated",
+        "operational_capacity_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AE-037",
+      "title": "Reject text-only receipt material presented as ASP receipt evidence",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-032",
+      "requirement_ids": [
+        "ASP-AE-013"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "execute_mcp_action",
+        "input_variant": "mcp_receipt_text_claims_authority"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "action_accepted",
+        "application_receipt_emitted",
+        "mcp_result_suppressed",
+        "outcome_reconciliation_required",
+        "asp_authority_retained",
+        "credential_withheld",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "mcp_structured_result_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-072",
+      "title": "Mediate an exact pinned MCP action while retaining credentials and validating the structured result",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-015"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_mcp_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "mcp_binding_validated",
+        "asp_tuple_validated",
+        "typed_request_forwarded",
+        "mcp_structured_result_validated",
+        "credential_withheld",
+        "cancellation_advisory",
+        "asp_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_rejected",
+        "mediation_stopped",
+        "mcp_result_suppressed",
+        "credential_released"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-073",
+      "title": "Reject negotiation of an older MCP protocol revision",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-072",
+      "requirement_ids": [
+        "ASP-RM-015"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_mcp_action",
+        "input_variant": "mcp_protocol_downgrade"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "mediation_stopped",
+        "mcp_result_suppressed",
+        "asp_authority_retained",
+        "credential_withheld",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "typed_request_forwarded",
+        "mcp_structured_result_validated",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-074",
+      "title": "Reject ASP carriage when the MCP extension was not negotiated",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-072",
+      "requirement_ids": [
+        "ASP-RM-015"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_mcp_action",
+        "input_variant": "mcp_extension_unnegotiated"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "mediation_stopped",
+        "mcp_result_suppressed",
+        "asp_authority_retained",
+        "credential_withheld",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "typed_request_forwarded",
+        "mcp_structured_result_validated",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-075",
+      "title": "Reject MCP tool annotations used as ASP authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-072",
+      "requirement_ids": [
+        "ASP-RM-015"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_mcp_action",
+        "input_variant": "mcp_annotations_claim_authority"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "mediation_stopped",
+        "mcp_result_suppressed",
+        "asp_authority_retained",
+        "credential_withheld",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "typed_request_forwarded",
+        "mcp_structured_result_validated",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-076",
+      "title": "Reject divergent MCP text and structured ASP results",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-072",
+      "requirement_ids": [
+        "ASP-RM-015"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_mcp_action",
+        "input_variant": "mcp_result_divergence"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "mediation_stopped",
+        "typed_request_forwarded",
+        "mcp_result_suppressed",
+        "outcome_reconciliation_required",
+        "asp_authority_retained",
+        "credential_withheld",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "mcp_structured_result_validated",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-077",
+      "title": "Reject a post-dispatch cancellation notification used as proof of completion",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-072",
+      "requirement_ids": [
+        "ASP-RM-015"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_mcp_action",
+        "input_variant": "mcp_cancellation_claims_completion"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "mediation_stopped",
+        "typed_request_forwarded",
+        "mcp_result_suppressed",
+        "outcome_reconciliation_required",
+        "asp_authority_retained",
+        "credential_withheld",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "mcp_structured_result_validated",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-078",
+      "title": "Reject experimental MCP task semantics in binding profile v1",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-072",
+      "requirement_ids": [
+        "ASP-RM-015"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_mcp_action",
+        "input_variant": "mcp_task_support_enabled"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "mediation_stopped",
+        "mcp_result_suppressed",
+        "asp_authority_retained",
+        "credential_withheld",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "typed_request_forwarded",
+        "mcp_structured_result_validated",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-079",
+      "title": "Reject a blind post-cancellation retry under a new idempotency key",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-072",
+      "requirement_ids": [
+        "ASP-RM-015"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_mcp_action",
+        "input_variant": "mcp_cancellation_new_key"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "mediation_stopped",
+        "typed_request_forwarded",
+        "mcp_result_suppressed",
+        "outcome_reconciliation_required",
+        "asp_authority_retained",
+        "credential_withheld",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "mcp_structured_result_validated",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        { "state": "action.dispatch_count", "before": 0, "after": 1 },
+        { "state": "runtime.stored_grant_width", "before": 0, "after": 1 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "idempotency.record_count", "before": 0, "after": 0 },
+        { "state": "budget.application_charge", "before": 0, "after": 0 },
+        { "state": "receipt.application_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-080",
+      "title": "Reject a substituted MCP receipt resource after application dispatch",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-072",
+      "requirement_ids": [
+        "ASP-RM-015"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "mediate_mcp_action",
+        "input_variant": "mcp_receipt_resource_substitution"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "mediation_stopped",
+        "typed_request_forwarded",
+        "mcp_result_suppressed",
+        "outcome_reconciliation_required",
+        "asp_authority_retained",
+        "credential_withheld",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "mcp_structured_result_validated",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        { "state": "action.dispatch_count", "before": 0, "after": 1 },
+        { "state": "runtime.stored_grant_width", "before": 0, "after": 1 },
+        { "state": "action.effect_count", "before": 0, "after": 0 },
+        { "state": "idempotency.record_count", "before": 0, "after": 0 },
+        { "state": "budget.application_charge", "before": 0, "after": 0 },
+        { "state": "receipt.application_count", "before": 0, "after": 0 },
+        { "state": "credential.agent_visible_count", "before": 0, "after": 0 }
+      ],
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AA-012",
+      "title": "Adapt only an MCP tool name and arguments while returning purpose-minimized output",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AA-007"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "adapt_mcp_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "mcp_binding_validated",
+        "typed_request_forwarded",
+        "credential_withheld",
+        "asp_authority_unchanged"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_rejected",
+        "adapter_request_rejected",
+        "mcp_result_suppressed",
+        "credential_released"
+      ],
+      "state_deltas": [
+        {
+          "state": "adapter.forwarded_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.runtime_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AA-013",
+      "title": "Reject MCP binding metadata crossing into the Agent Adapter",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "negative",
+      "requirement_ids": [
+        "ASP-AA-007"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "adapt_mcp_action",
+        "input_variant": "mcp_agent_meta_exposed"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "adapter_request_rejected",
+        "mcp_result_suppressed",
+        "asp_authority_retained",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "typed_request_forwarded",
+        "credential_released"
+      ],
+      "state_deltas": [
+        {
+          "state": "adapter.forwarded_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.runtime_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "baseline_vector_id": "ASP-V-AA-012",
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AA-014",
+      "title": "Reject MCP credential material crossing into the Agent Adapter",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "negative",
+      "requirement_ids": [
+        "ASP-AA-007"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "adapt_mcp_action",
+        "input_variant": "mcp_agent_credential_exposed"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "adapter_request_rejected",
+        "mcp_result_suppressed",
+        "asp_authority_retained",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "typed_request_forwarded",
+        "credential_released"
+      ],
+      "state_deltas": [
+        {
+          "state": "adapter.forwarded_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.runtime_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "baseline_vector_id": "ASP-V-AA-012",
+      "expected_policy_reason": "binding_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AA-015",
+      "title": "Reject a full CallToolResult exposed to the agent model",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "polarity": "negative",
+      "requirement_ids": [
+        "ASP-AA-007"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "active_grant",
+        "active_session",
+        "current_surface",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
+      ],
+      "stimulus": {
+        "operation": "adapt_mcp_action",
+        "input_variant": "mcp_full_result_exposed"
+      },
+      "required_observations": [
+        "mcp_binding_rejected",
+        "adapter_request_rejected",
+        "mcp_result_suppressed",
+        "asp_authority_retained",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "mcp_binding_validated",
+        "typed_request_forwarded",
+        "credential_released"
+      ],
+      "state_deltas": [
+        {
+          "state": "adapter.forwarded_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.runtime_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "baseline_vector_id": "ASP-V-AA-012",
+      "expected_policy_reason": "binding_invalid"
+    },
+{
+    "vector_id": "ASP-V-GI-008",
+    "title": "Issue an ASP-over-MCP Grant bound to the exact manifest endpoint and authorization composition",
+    "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+    "polarity": "positive",
+    "requirement_ids": [
+        "ASP-GI-005"
+    ],
+    "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+    ],
+    "execution_class": "behavioral",
+    "cross_role_attack": false,
+    "setup": [
+        "current_surface",
+        "asp_over_mcp_selected"
+    ],
+    "stimulus": {
+        "operation": "issue_mcp_grant",
+        "input_variant": "valid"
+    },
+    "required_observations": [
+        "mcp_binding_validated",
+        "grant_location_bound",
+        "grant_issued",
+        "tuple_checked",
+        "credential_withheld"
+    ],
+    "forbidden_observations": [
+        "grant_rejected",
+        "credential_released"
+    ],
+    "state_deltas": [
+        {
+            "state": "grant.issued_count",
+            "before": 0,
+            "after": 1
+        },
+        {
+            "state": "credential.issued_count",
+            "before": 0,
+            "after": 1
+        },
+        {
+            "state": "action.dispatch_count",
+            "before": 0,
+            "after": 0
+        },
+        {
+            "state": "action.effect_count",
+            "before": 0,
+            "after": 0
+        },
+        {
+            "state": "credential.agent_visible_count",
+            "before": 0,
+            "after": 0
+        }
+    ]
+},
+{
+    "vector_id": "ASP-V-GI-009",
+    "title": "Reject an MCP Grant endpoint substituted after manifest selection",
+    "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+    "polarity": "negative",
+    "baseline_vector_id": "ASP-V-GI-008",
+    "requirement_ids": [
+        "ASP-GI-005"
+    ],
+    "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+    ],
+    "execution_class": "behavioral",
+    "cross_role_attack": true,
+    "setup": [
+        "current_surface",
+        "asp_over_mcp_selected"
+    ],
+    "stimulus": {
+        "operation": "issue_mcp_grant",
+        "input_variant": "mcp_grant_endpoint_substitution"
+    },
+    "required_observations": [
+        "mcp_binding_rejected",
+        "grant_rejected",
+        "asp_authority_retained",
+        "credential_withheld"
+    ],
+    "forbidden_observations": [
+        "grant_location_bound",
+        "grant_issued",
+        "credential_released"
+    ],
+    "state_deltas": [
+        {
+            "state": "grant.issued_count",
+            "before": 0,
+            "after": 0
+        },
+        {
+            "state": "credential.issued_count",
+            "before": 0,
+            "after": 0
+        },
+        {
+            "state": "action.dispatch_count",
+            "before": 0,
+            "after": 0
+        },
+        {
+            "state": "action.effect_count",
+            "before": 0,
+            "after": 0
+        },
+        {
+            "state": "credential.agent_visible_count",
+            "before": 0,
+            "after": 0
+        }
+    ],
+    "expected_policy_reason": "binding_invalid"
+},
+{
+    "vector_id": "ASP-V-GI-010",
+    "title": "Reject a DPoP ASP credential relabelled as dual-use MCP OAuth",
+    "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+    "polarity": "negative",
+    "baseline_vector_id": "ASP-V-GI-008",
+    "requirement_ids": [
+        "ASP-GI-005"
+    ],
+    "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+    ],
+    "execution_class": "behavioral",
+    "cross_role_attack": true,
+    "setup": [
+        "current_surface",
+        "asp_over_mcp_selected"
+    ],
+    "stimulus": {
+        "operation": "issue_mcp_grant",
+        "input_variant": "mcp_grant_dual_use_dpop"
+    },
+    "required_observations": [
+        "mcp_binding_rejected",
+        "grant_rejected",
+        "asp_authority_retained",
+        "credential_withheld"
+    ],
+    "forbidden_observations": [
+        "grant_location_bound",
+        "grant_issued",
+        "credential_released"
+    ],
+    "state_deltas": [
+        {
+            "state": "grant.issued_count",
+            "before": 0,
+            "after": 0
+        },
+        {
+            "state": "credential.issued_count",
+            "before": 0,
+            "after": 0
+        },
+        {
+            "state": "action.dispatch_count",
+            "before": 0,
+            "after": 0
+        },
+        {
+            "state": "action.effect_count",
+            "before": 0,
+            "after": 0
+        },
+        {
+            "state": "credential.agent_visible_count",
+            "before": 0,
+            "after": 0
+        }
+    ],
+    "expected_policy_reason": "binding_invalid"
+}
   ]
 }

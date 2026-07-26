@@ -14,6 +14,7 @@ import os
 import platform
 import re
 import signal
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -22,8 +23,10 @@ import uuid
 from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, unquote, urljoin, urlsplit
 
 try:
     import resource
@@ -31,6 +34,7 @@ except ImportError:  # pragma: no cover - the reference runner targets POSIX.
     resource = None
 
 from jsonschema import Draft202012Validator
+from jsonschema.validators import validator_for
 from referencing import Registry, Resource
 import rfc8785
 
@@ -49,6 +53,7 @@ SCHEMA_NAMES = (
     "fixtures",
     "human-elicitation",
     "impact-simulation",
+    "mcp-binding",
     "observation",
     "operational-limits",
     "report",
@@ -140,11 +145,28 @@ CAPACITY_ERROR_SCHEMA_ID = SCHEMA_IDS["capacity-error"]
 HUMAN_ELICITATION_SCHEMA_ID = SCHEMA_IDS["human-elicitation"]
 IMPACT_SIMULATION_SCHEMA_ID = SCHEMA_IDS["impact-simulation"]
 RISK_EXPLANATION_SCHEMA_ID = SCHEMA_IDS["risk-explanation"]
+MCP_BINDING_SCHEMA_ID = SCHEMA_IDS["mcp-binding"]
 OPERATIONAL_LIMITS_FEATURE_ID = (
     "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
 )
 ASP_OVER_AHP_FEATURE_ID = (
     "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
+)
+ASP_OVER_MCP_FEATURE_ID = (
+    "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+)
+ASP_OVER_MCP_EXTENSION_ID = "io.github.zeroal-spec/asp-over-mcp-v1"
+ASP_OVER_MCP_PROTOCOL_VERSION = "2025-11-25"
+RECEIPT_RESOURCE_REQUEST_PROFILE = (
+    "https://github.com/0al-spec/agent-surface/tools/asp-replay/"
+    "receipt-resource-request/v1"
+)
+RECEIPT_RESOURCE_REPORT_PROFILE = (
+    "https://github.com/0al-spec/agent-surface/tools/asp-replay/"
+    "receipt-resource-report/v1"
+)
+RECEIPT_RESOURCE_VALIDATION_SCOPE = (
+    "local_structure_semantics_hashes_and_correlated_binding"
 )
 HUMAN_ELICITATION_FEATURE_ID = (
     "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
@@ -2064,6 +2086,283 @@ def _canonical_object_hash(domain: str, value: Any) -> str:
     return "sha-256:" + base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
 
 
+@lru_cache(maxsize=1)
+def _receipt_resource_oracle_binary() -> Path:
+    """Build the pinned local receipt oracle once per conformance process."""
+
+    cargo = shlex.split(os.environ.get("CARGO", "cargo"))
+    if not cargo:
+        raise ConformanceError("receipt resource oracle CARGO command is empty")
+    try:
+        completed = subprocess.run(
+            [
+                *cargo,
+                "build",
+                "--locked",
+                "-p",
+                "asp-replay-tool",
+                "--bin",
+                "asp-replay",
+                "--message-format=json-render-diagnostics",
+            ],
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=180,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ConformanceError("receipt resource oracle is unavailable") from error
+    if completed.returncode != 0:
+        raise ConformanceError("receipt resource oracle could not be built")
+    executable: Path | None = None
+    for line in completed.stdout.splitlines():
+        try:
+            message = json.loads(line)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if (
+            message.get("reason") == "compiler-artifact"
+            and message.get("target", {}).get("name") == "asp-replay"
+            and isinstance(message.get("executable"), str)
+        ):
+            executable = Path(message["executable"])
+    if executable is None:
+        raise ConformanceError("receipt resource oracle build omitted its executable")
+    if not executable.is_file():
+        raise ConformanceError("receipt resource oracle binary is absent after build")
+    return executable
+
+
+@lru_cache(maxsize=128)
+def _validate_receipt_resource_batch(request_bytes: bytes) -> None:
+    """Require a valid receipt-local report without upgrading signature assurance."""
+
+    try:
+        request_text = request_bytes.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ConformanceError("receipt resource oracle request is not UTF-8") from error
+    request = loads_strict_json(
+        request_text, source="receipt resource oracle request"
+    )
+    expected_count = (
+        len(request.get("resources", [])) if isinstance(request, dict) else -1
+    )
+    try:
+        completed = subprocess.run(
+            [str(_receipt_resource_oracle_binary()), "validate-receipts", "-"],
+            cwd=ROOT,
+            input=request_bytes,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ConformanceError("receipt resource oracle is unavailable") from error
+    if completed.returncode not in {0, 1}:
+        raise ConformanceError("receipt resource oracle failed before evaluation")
+    try:
+        report = loads_strict_json(
+            completed.stdout.decode("utf-8"),
+            source="receipt resource oracle report",
+        )
+    except (UnicodeDecodeError, ConformanceError) as error:
+        raise ConformanceError("receipt resource oracle emitted an invalid report") from error
+    if (
+        not isinstance(report, dict)
+        or set(report)
+        != {
+            "profile",
+            "validation_scope",
+            "verdict",
+            "resources",
+            "signatures_verified",
+            "diagnostics",
+        }
+        or report.get("profile") != RECEIPT_RESOURCE_REPORT_PROFILE
+        or report.get("validation_scope") != RECEIPT_RESOURCE_VALIDATION_SCOPE
+        or report.get("signatures_verified") is not False
+        or report.get("verdict") not in {"valid", "invalid"}
+        or report.get("resources") != expected_count
+        or not isinstance(report.get("diagnostics"), list)
+        or len(report["diagnostics"]) > 256
+        or any(
+            not isinstance(item, dict)
+            or set(item) != {"check_id", "severity", "path", "message"}
+            or item.get("severity") != "error"
+            or not all(
+                isinstance(item.get(name), str)
+                for name in ("check_id", "path", "message")
+            )
+            for item in report.get("diagnostics", [])
+        )
+        or (report.get("verdict") == "valid" and report.get("diagnostics") != [])
+        or (completed.returncode == 0) != (report.get("verdict") == "valid")
+    ):
+        raise ConformanceError("receipt resource oracle report contract is invalid")
+    if report["verdict"] != "valid":
+        diagnostic = next(iter(report.get("diagnostics", [])), {})
+        detail = diagnostic.get("message", "receipt resource is invalid")
+        raise ConformanceError(f"receipt resource oracle rejected evidence: {detail}")
+
+
+def _validate_mcp_receipt_resource_set(
+    *,
+    inner_type: str,
+    payload: dict[str, Any],
+    linked_uris: list[str],
+    expected_records: Any,
+) -> None:
+    """Bind every response receipt reference to one exact authenticated resource."""
+
+    references_present = (
+        "receipt_id" in payload
+        or "approval_receipt_id" in payload
+        or "approval_receipt_hashes" in payload
+    )
+    if not references_present:
+        if expected_records not in (None, []):
+            raise ConformanceError(
+                "action response exposes authenticated receipts without receipt identity"
+            )
+        return
+    if not isinstance(expected_records, list) or not expected_records:
+        raise ConformanceError(
+            "action response receipt identities lack authenticated receipt resources"
+        )
+    if any(
+        not isinstance(record, dict)
+        or set(record) != {"uri", "receipt", "expected"}
+        or not isinstance(record.get("uri"), str)
+        or not isinstance(record.get("receipt"), dict)
+        or not isinstance(record.get("expected"), dict)
+        for record in expected_records
+    ):
+        raise ConformanceError("authenticated receipt resource record is invalid")
+    expected_uris = [record["uri"] for record in expected_records]
+    if expected_uris != linked_uris or len(expected_uris) != len(set(expected_uris)):
+        raise ConformanceError(
+            "authenticated receipt resources are not the exact one-to-one ResourceLink list"
+        )
+
+    referenced_indexes: set[int] = set()
+
+    def require_one(*, receipt_id: Any, receipt_hash: Any, receipt_type: str,
+                    approval_role: str | None) -> dict[str, Any]:
+        matches = [
+            (index, record)
+            for index, record in enumerate(expected_records)
+            if record["expected"].get("receipt_id") == receipt_id
+            and record["expected"].get("receipt_hash") == receipt_hash
+            and record["expected"].get("receipt_type") == receipt_type
+            and record["expected"].get("approval_role") == approval_role
+        ]
+        if len(matches) != 1:
+            raise ConformanceError(
+                "receipt response reference does not resolve to exactly one authenticated resource"
+            )
+        index, record = matches[0]
+        referenced_indexes.add(index)
+        return record
+
+    app_record: dict[str, Any] | None = None
+    if "receipt_id" in payload:
+        app_record = require_one(
+            receipt_id=payload["receipt_id"],
+            receipt_hash=payload["receipt_hash"],
+            receipt_type="app",
+            approval_role=None,
+        )
+    if "approval_receipt_id" in payload:
+        require_one(
+            receipt_id=payload["approval_receipt_id"],
+            receipt_hash=payload["approval_receipt_hash"],
+            receipt_type="approval",
+            approval_role="application",
+        )
+    approval_hashes = payload.get("approval_receipt_hashes", {})
+    if isinstance(approval_hashes, dict):
+        for role, receipt_hash in approval_hashes.items():
+            matches = [
+                (index, record)
+                for index, record in enumerate(expected_records)
+                if record["expected"].get("receipt_hash") == receipt_hash
+                and record["expected"].get("receipt_type") == "approval"
+                and record["expected"].get("approval_role") == role
+            ]
+            if len(matches) != 1:
+                raise ConformanceError(
+                    "approval role/hash does not resolve to exactly one authenticated resource"
+                )
+            referenced_indexes.add(matches[0][0])
+    if referenced_indexes != set(range(len(expected_records))):
+        raise ConformanceError(
+            "receipt ResourceLink list contains an unreferenced or substituted resource"
+        )
+
+    if app_record is not None:
+        receipt = app_record["receipt"]
+        for member in (
+            "execution",
+            "execution_hash",
+            "approval_receipt_hashes",
+            "effect_outcome",
+            "actual_effects",
+            "actual_effects_hash",
+        ):
+            if receipt.get(member) != payload.get(member) or (
+                (member in receipt) != (member in payload)
+            ):
+                raise ConformanceError(
+                    f"application receipt {member} differs from the action response"
+                )
+        if inner_type == "action.result":
+            if receipt.get("result") != payload.get("result"):
+                raise ConformanceError(
+                    "application receipt result differs from the action response"
+                )
+            policy_decision = receipt.get("policy_decision")
+            if (
+                payload.get("result") == "success"
+                and (
+                    not isinstance(policy_decision, dict)
+                    or policy_decision.get("outcome") != "allow"
+                    or policy_decision.get("reason_code")
+                    not in {"policy_allowed", "approval_satisfied"}
+                )
+            ):
+                raise ConformanceError(
+                    "successful action receipt conflicts with its Policy Decision"
+                )
+            if receipt.get("output_hash") != _canonical_object_hash(
+                MCP_ACTION_OUTPUT_HASH_DOMAIN, payload.get("output")
+            ):
+                raise ConformanceError(
+                    "application receipt output_hash differs from the exact action output"
+                )
+        else:
+            error = receipt.get("error")
+            if (
+                not isinstance(error, dict)
+                or _canonical_json_rfc8785(error)
+                != _canonical_json_rfc8785(payload.get("error"))
+            ):
+                raise ConformanceError(
+                    "application failure receipt error differs from the action response"
+                )
+            if receipt.get("result") == "success" or "output_hash" in receipt:
+                raise ConformanceError(
+                    "application failure receipt claims success or output evidence"
+                )
+
+    request = {
+        "profile": RECEIPT_RESOURCE_REQUEST_PROFILE,
+        "resources": expected_records,
+    }
+    _validate_receipt_resource_batch(_canonical_json_rfc8785(request))
+
+
 def _hash_without_member(domain: str, value: dict[str, Any], member: str) -> str:
     hashing_view = copy.deepcopy(value)
     hashing_view.pop(member, None)
@@ -2851,6 +3150,2520 @@ def validate_ahp_binding_projection(ahp: Any) -> None:
         raise ConformanceError("AHP receipt projection cannot carry ASP authority")
 
 
+def _validate_mcp_fresh_ordinary_admission(
+    document: dict[str, Any], action_id: str
+) -> None:
+    """Compose the ordinary ASP admission invariants used by MCP carriers."""
+
+    surface = document["surface"]
+    grant = document["grant"]
+    execution = document["execution"]
+    if (
+        surface["status"] != "current"
+        or surface["references"] != "complete"
+        or surface["candidate_hash"] != surface["retained_hash"]
+        or grant["status"] != "active"
+        or grant["revocation_state"] != "active"
+        or grant["claimed_issuer"] != grant["issuer"]
+        or grant["passport_status"] != "current"
+        or grant["companion_closure"] != "closed"
+        or not set(grant["issued_actions"]).issubset(grant["requested_actions"])
+        or action_id not in grant["issued_actions"]
+        or execution["input_hash"] != execution["recorded_input_hash"]
+        or execution["input_schema_hash"]
+        != execution["recorded_input_schema_hash"]
+        or execution["normalization"] != "fixed_point"
+        or execution["execution_hash"] != execution["recorded_execution_hash"]
+        or execution["approval_hash"] != execution["recorded_approval_hash"]
+        or execution["policy"] != "allow"
+        or execution["runtime_identity"] != execution["bound_runtime_identity"]
+        or execution["sender_credential_audience"]
+        != execution["bound_credential_audience"]
+        or execution["proof_session_binding"]
+        != execution["bound_session_binding"]
+        or execution["attestation"] != "current"
+    ):
+        raise ConformanceError(
+            "fresh ASP-over-MCP admission failed ordinary ASP authority checks"
+        )
+
+
+def validate_mcp_binding_projection(
+    mcp: Any,
+    document: dict[str, Any],
+    operation: str,
+) -> None:
+    """Validate one normalized ASP-over-MCP binding projection."""
+
+    authority = document.get("mcp_authority")
+    if not isinstance(authority, dict):
+        raise ConformanceError(
+            "ASP-over-MCP projection lacks an independent manifest/Grant authority record"
+        )
+    if operation == "issue_mcp_grant":
+        grant = document["grant"]
+        endpoint = authority.get("manifest_binding_endpoint")
+        endpoint_parts = urlsplit(endpoint) if isinstance(endpoint, str) else None
+        authorization_mode = authority.get("authorization_mode")
+        authorization_composition = authority.get("authorization_composition")
+        credential_binding = authority.get("credential_binding")
+        credential_audience = authority.get("manifest_credential_audience")
+        credential_audience_parts = (
+            urlsplit(credential_audience)
+            if isinstance(credential_audience, str)
+            else None
+        )
+        if (
+            credential_audience_parts is None
+            or credential_audience_parts.scheme != "https"
+            or not credential_audience_parts.netloc
+        ):
+            raise ConformanceError(
+                "ASP-over-MCP credential audience is not an absolute HTTPS URI"
+            )
+        valid_authorization = (
+            authorization_mode == "asp_native"
+            and authorization_composition == "asp-native"
+            and credential_binding in {"dpop", "compatibility_bearer", "mtls"}
+            and isinstance(credential_audience, str)
+        ) or (
+            authorization_mode == "mcp_oauth_dual_use"
+            and authorization_composition == "mcp-oauth-dual-use"
+            and credential_binding
+            in {"compatibility_bearer", "mtls_bound_bearer"}
+            and credential_audience == endpoint
+        )
+        if (
+            endpoint_parts is None
+            or endpoint_parts.scheme != "https"
+            or not endpoint_parts.netloc
+            or "?" in endpoint
+            or "#" in endpoint
+            or endpoint_parts.query
+            or endpoint_parts.fragment
+            or endpoint_parts.username is not None
+            or endpoint_parts.password is not None
+            or document["surface"]["status"] != "current"
+            or grant["passport_status"] != "current"
+            or grant["companion_closure"] != "closed"
+            or not set(grant["issued_actions"]).issubset(grant["requested_actions"])
+            or authority.get("requested_locations") != [endpoint]
+            or authority.get("issued_locations") != authority.get("requested_locations")
+            or not valid_authorization
+        ):
+            raise ConformanceError(
+                "pre-channel MCP Grant location or authorization selection is invalid"
+            )
+        return
+
+    exact_fields = {
+        "profile",
+        "negotiated_profile",
+        "extension_id",
+        "negotiated_extension",
+        "capability_container",
+        "protocol_version",
+        "negotiated_protocol_version",
+        "protocol_header",
+        "initialization_state",
+        "bootstrap_manifest_state",
+        "bootstrap_binding_declaration",
+        "binding_endpoint",
+        "grant_location_binding",
+        "endpoint_redirect_policy",
+        "http_origin_check",
+        "post_media_negotiation",
+        "listener_authentication",
+        "mcp_session_id_source",
+        "session_header_use",
+        "session_binding",
+        "asp_session_id",
+        "asp_session_generation",
+        "request_trace_id",
+        "request_span_id",
+        "result_trace_id",
+        "result_span_id",
+        "listener_state",
+        "listener_response",
+        "stream_state",
+        "stream_recovery",
+        "asp_session_state",
+        "transport_lifecycle_event",
+        "fresh_initialize_authority",
+        "session_generation_transition",
+        "session_lookup_outcome",
+        "interruption_authority",
+        "session_binding_persistence",
+        "active_mcp_session_cardinality",
+        "generation_drain_state",
+        "old_record_generation_binding",
+        "core_resume_outcome",
+        "transport",
+        "authentication",
+        "authorization_mode",
+        "authorization_composition",
+        "credential_binding",
+        "transport_credential_scheme",
+        "canonical_mcp_server_uri",
+        "token_audience",
+        "bound_token_audience",
+        "credential_proof_target_uri",
+        "credential_custody",
+        "token_forwarding",
+        "execution_token_handling",
+        "outer_idempotency_header",
+        "discovery_kind",
+        "manifest_resource_uri",
+        "manifest_content_uri",
+        "manifest_content_kind",
+        "manifest_content_mime",
+        "manifest_content_ijson",
+        "manifest_content_meta",
+        "manifest_uri_binding",
+        "manifest_subscription",
+        "resource_update_state",
+        "binding_view_id",
+        "current_binding_view_id",
+        "tool_list_state",
+        "tools_changed_state",
+        "binding_view_tool_set",
+        "page_tool_binding_records",
+        "authorized_projection_state",
+        "authorized_projection_binding",
+        "manifest_schema_dialect",
+        "mapped_input_schema_dialect",
+        "mapped_output_schema_dialect",
+        "binding_input_schema_hash",
+        "current_binding_input_schema_hash",
+        "binding_output_schema_hash",
+        "current_binding_output_schema_hash",
+        "schema_snapshot_state",
+        "schema_reference_closure",
+        "binding_view_use",
+        "completed_record_state",
+        "replay_materialization",
+        "retained_snapshot_state",
+        "rotation_cause",
+        "replay_disclosure_authorization",
+        "initialize_display_metadata",
+        "tool_display_metadata",
+        "resource_link_display_metadata",
+        "manifest_action_ids",
+        "tool_name",
+        "action_id",
+        "mapped_action_id",
+        "action_mode",
+        "mapped_action_mode",
+        "grant_id",
+        "bound_grant_id",
+        "grant_hash",
+        "bound_grant_hash",
+        "idempotency_key",
+        "bound_idempotency_key",
+        "idempotency_requirement",
+        "surface_version",
+        "surface_hash",
+        "bound_surface_hash",
+        "arguments_input_hash",
+        "bound_input_hash",
+        "asp_grant_proof",
+        "mcp_oauth_use",
+        "annotations_use",
+        "agent_request_projection",
+        "agent_meta_access",
+        "agent_credential_access",
+        "agent_result_projection",
+        "agent_transport_result_access",
+        "agent_transport_authority_use",
+        "result_channel",
+        "result_text_consistency",
+        "result_surface_version",
+        "result_surface_hash",
+        "result_action_id",
+        "result_input_hash",
+        "result_grant_id",
+        "result_grant_hash",
+        "result_idempotency_key",
+        "result_integrity",
+        "result_output_schema",
+        "result_is_error_consistency",
+        "result_delivery_boundary",
+        "error_mapping",
+        "binding_error_semantics",
+        "action_error_semantics",
+        "capacity_error_carrier",
+        "transport_status_semantics",
+        "task_support",
+        "progress_use",
+        "progress_token_source",
+        "progress_token_echo",
+        "progress_payload",
+        "progress_stream",
+        "cancellation_phase",
+        "cancellation_use",
+        "retry_behavior",
+        "receipt_channel",
+        "receipt_requirement",
+        "receipt_resource_authentication",
+        "receipt_integrity",
+        "receipt_link_binding",
+        "receipt_persistence",
+        "receipt_rematerialization",
+        "transport_error_exposure",
+    }
+    if not isinstance(mcp, dict) or set(mcp) != exact_fields:
+        raise ConformanceError(
+            "ASP-over-MCP projection must contain the exact normalized fields"
+        )
+    if (
+        mcp["profile"] != ASP_OVER_MCP_FEATURE_ID
+        or mcp["negotiated_profile"] != ASP_OVER_MCP_FEATURE_ID
+        or mcp["extension_id"] != ASP_OVER_MCP_EXTENSION_ID
+        or mcp["negotiated_extension"] != ASP_OVER_MCP_EXTENSION_ID
+        or mcp["capability_container"] != "experimental"
+    ):
+        raise ConformanceError(
+            "ASP-over-MCP projection must retain the negotiated experimental capability"
+        )
+    if any(
+        mcp[field] != ASP_OVER_MCP_PROTOCOL_VERSION
+        for field in (
+            "protocol_version",
+            "negotiated_protocol_version",
+            "protocol_header",
+        )
+    ):
+        raise ConformanceError("ASP-over-MCP projection must pin MCP 2025-11-25")
+    if mcp["initialization_state"] != "initialized_notified":
+        raise ConformanceError(
+            "ASP-over-MCP use must follow notifications/initialized"
+        )
+    if (
+        mcp["bootstrap_manifest_state"] != "verified_before_mcp"
+        or mcp["bootstrap_binding_declaration"] != "exact"
+        or mcp["binding_endpoint"] != mcp["canonical_mcp_server_uri"]
+        or mcp["binding_endpoint"] != authority["manifest_binding_endpoint"]
+        or mcp["manifest_resource_uri"] != authority["manifest_resource_uri"]
+        or mcp["grant_location_binding"] != "verified"
+        or mcp["endpoint_redirect_policy"] != "no_endpoint_changes"
+        or mcp["http_origin_check"] != "allowed_before_asp"
+        or mcp["post_media_negotiation"] != "json_and_event_stream"
+        or mcp["listener_authentication"] != "selected"
+        or mcp["mcp_session_id_source"] != "server_secure"
+        or mcp["session_header_use"] != "all_post_get_delete"
+        or mcp["session_binding"] != "exact"
+        or mcp["listener_state"] != "open_before_subscribe"
+        or mcp["listener_response"] != "text_event_stream"
+        or mcp["stream_state"] != "current"
+        or mcp["stream_recovery"] != "refetch_or_fresh_initialize"
+    ):
+        raise ConformanceError("ASP-over-MCP bootstrap endpoint is not pinned")
+    if (
+        mcp["discovery_kind"] != "complete_authorized_snapshot"
+        or mcp["manifest_subscription"] != "active"
+        or mcp["tool_list_state"] != "complete"
+        or mcp["manifest_uri_binding"] != "verified"
+        or mcp["manifest_content_uri"] != mcp["manifest_resource_uri"]
+        or mcp["manifest_content_kind"] != "text_resource_contents"
+        or mcp["manifest_content_mime"] != "application/json"
+        or mcp["manifest_content_ijson"] != "valid"
+        or mcp["manifest_content_meta"] != "omitted"
+        or mcp["mapped_input_schema_dialect"] != mcp["manifest_schema_dialect"]
+        or mcp["mapped_output_schema_dialect"] != mcp["manifest_schema_dialect"]
+        or mcp["initialize_display_metadata"] != "omitted"
+        or mcp["tool_display_metadata"] != "omitted"
+        or mcp["resource_link_display_metadata"] != "omitted"
+        or mcp["binding_view_tool_set"] != "asp_mapped_only"
+        or mcp["page_tool_binding_records"] != "identical"
+        or mcp["authorized_projection_binding"] != "absent_or_exact"
+        or mcp["authorized_projection_state"] not in {"absent", "exact"}
+        or mcp["schema_reference_closure"] != "self_contained"
+    ):
+        raise ConformanceError("ASP-over-MCP discovery snapshot is incomplete or stale")
+
+    if (
+        mcp["manifest_action_ids"] != authority["manifest_action_ids"]
+        or mcp["authorized_projection_state"]
+        != authority["authorized_projection_state"]
+        or mcp["authorized_projection_binding"]
+        != authority["authorized_projection_binding"]
+        or mcp["surface_version"] != authority["surface_version"]
+        or mcp["surface_hash"] != authority["surface_hash"]
+    ):
+        raise ConformanceError(
+            "ASP-over-MCP view differs from independent manifest authority"
+        )
+
+    current_view = (
+        mcp["binding_view_use"] == "current_admission"
+        and mcp["resource_update_state"] == "current"
+        and mcp["binding_view_id"] == mcp["current_binding_view_id"]
+        and mcp["tools_changed_state"] == "stable"
+        and mcp["binding_input_schema_hash"]
+        == mcp["current_binding_input_schema_hash"]
+        and mcp["binding_output_schema_hash"]
+        == mcp["current_binding_output_schema_hash"]
+        and mcp["schema_snapshot_state"] == "current"
+        and mcp["completed_record_state"] == "not_applicable"
+        and mcp["replay_materialization"] == "not_applicable"
+        and mcp["retained_snapshot_state"] == "not_applicable"
+        and mcp["replay_disclosure_authorization"] == "not_applicable"
+    )
+    current_completed_replay = (
+        mcp["binding_view_use"] == "current_completed_replay"
+        and operation in {"execute_mcp_action", "mediate_mcp_action"}
+        and mcp["resource_update_state"] == "current"
+        and mcp["binding_view_id"] == mcp["current_binding_view_id"]
+        and mcp["tools_changed_state"] == "stable"
+        and mcp["binding_input_schema_hash"]
+        == mcp["current_binding_input_schema_hash"]
+        and mcp["binding_output_schema_hash"]
+        == mcp["current_binding_output_schema_hash"]
+        and mcp["schema_snapshot_state"] == "current"
+        and mcp["completed_record_state"] == "exact_authenticated"
+        and mcp["replay_materialization"] == "exact_persisted_result_and_receipt"
+        and mcp["retained_snapshot_state"] == "persisted_across_restart"
+        and mcp["rotation_cause"] == "none"
+        and mcp["replay_disclosure_authorization"] == "allowed"
+        and mcp["idempotency_requirement"] == "required"
+        and mcp["idempotency_key"] != "none"
+    )
+    retained_completed_replay = (
+        mcp["binding_view_use"] == "retained_completed_replay"
+        and operation in {"execute_mcp_action", "mediate_mcp_action"}
+        and mcp["binding_view_id"] != mcp["current_binding_view_id"]
+        and mcp["tools_changed_state"] == "changed_after_snapshot"
+        and mcp["schema_snapshot_state"] == "retained"
+        and mcp["completed_record_state"] == "exact_authenticated"
+        and mcp["replay_materialization"]
+        == "exact_persisted_result_and_receipt"
+        and mcp["retained_snapshot_state"] == "persisted_across_restart"
+        and mcp["replay_disclosure_authorization"] == "allowed"
+        and mcp["idempotency_requirement"] == "required"
+        and mcp["idempotency_key"] != "none"
+        and (
+            (
+                mcp["rotation_cause"] == "manifest"
+                and mcp["resource_update_state"] == "updated"
+            )
+            or (
+                mcp["rotation_cause"] == "input_schema"
+                and mcp["binding_input_schema_hash"]
+                != mcp["current_binding_input_schema_hash"]
+            )
+            or (
+                mcp["rotation_cause"] == "output_schema"
+                and mcp["binding_output_schema_hash"]
+                != mcp["current_binding_output_schema_hash"]
+            )
+            or mcp["rotation_cause"] == "view_context"
+        )
+    )
+    if not current_view and not current_completed_replay and not retained_completed_replay:
+        raise ConformanceError(
+            "ASP-over-MCP view is neither current nor an exact retained completed replay"
+        )
+    active_session = (
+        mcp["asp_session_state"] == "active"
+        and mcp["session_generation_transition"] == "unchanged"
+        and mcp["session_lookup_outcome"] == "bound"
+        and mcp["interruption_authority"] == "not_applicable"
+        and mcp["generation_drain_state"] == "not_applicable"
+        and mcp["core_resume_outcome"] == "not_applicable"
+        and (
+            (
+                mcp["transport_lifecycle_event"] == "none"
+                and mcp["fresh_initialize_authority"] == "not_applicable"
+            )
+            or (
+                mcp["transport_lifecycle_event"]
+                == "call_or_listener_loss_recovered"
+                and mcp["fresh_initialize_authority"] == "transport_only"
+            )
+        )
+    )
+    resumed_session = (
+        mcp["asp_session_state"] == "active"
+        and mcp["transport_lifecycle_event"] == "session_terminated"
+        and mcp["fresh_initialize_authority"] == "no_asp_reactivation"
+        and mcp["session_generation_transition"] == "incremented"
+        and mcp["session_lookup_outcome"] == "bound"
+        and mcp["interruption_authority"] == "server_or_authenticated_owner"
+        and mcp["generation_drain_state"] == "drained"
+        and mcp["core_resume_outcome"] == "accepted"
+    )
+    nonmutating_session_lookup_404 = (
+        operation == "publish_mcp_surface"
+        and current_view
+        and mcp["asp_session_state"] == "active"
+        and mcp["transport_lifecycle_event"] == "session_lookup_404_recovered"
+        and mcp["fresh_initialize_authority"] == "transport_only"
+        and mcp["session_generation_transition"] == "unchanged"
+        and mcp["session_lookup_outcome"]
+        in {"unknown_404_no_mutation", "auth_mismatch_404_no_mutation"}
+        and mcp["interruption_authority"] == "not_applicable"
+        and mcp["generation_drain_state"] == "not_applicable"
+        and mcp["core_resume_outcome"] == "not_applicable"
+    )
+    interrupted_closed_path = (
+        (current_completed_replay or retained_completed_replay)
+        and mcp["asp_session_state"] == "interrupted"
+        and mcp["transport_lifecycle_event"] == "session_terminated"
+        and mcp["fresh_initialize_authority"] == "no_asp_reactivation"
+        and mcp["session_generation_transition"] == "unchanged"
+        and mcp["session_lookup_outcome"] == "bound"
+        and mcp["interruption_authority"] == "server_or_authenticated_owner"
+        and mcp["generation_drain_state"] == "closed_path_in_progress"
+        and mcp["core_resume_outcome"] == "not_applicable"
+    )
+    if (
+        mcp["session_binding_persistence"] != "durable"
+        or mcp["active_mcp_session_cardinality"] != "one"
+        or mcp["old_record_generation_binding"] != "original_generation"
+    ):
+        raise ConformanceError("ASP-over-MCP session-generation binding is not durable")
+    if (
+        not active_session
+        and not resumed_session
+        and not nonmutating_session_lookup_404
+        and not interrupted_closed_path
+    ):
+        raise ConformanceError(
+            "ASP-over-MCP transport lifecycle did not preserve or explicitly resume the ASP session"
+        )
+    manifest_uri = urlsplit(mcp["manifest_resource_uri"])
+    if not manifest_uri.scheme:
+        raise ConformanceError("ASP-over-MCP manifest resource URI is not absolute")
+    endpoint_value = mcp["canonical_mcp_server_uri"]
+    endpoint = urlsplit(endpoint_value)
+    if (
+        endpoint.scheme != "https"
+        or not endpoint.netloc
+        or "?" in endpoint_value
+        or "#" in endpoint_value
+        or endpoint.query
+        or endpoint.fragment
+        or endpoint.username is not None
+        or endpoint.password is not None
+    ):
+        raise ConformanceError(
+            "ASP-over-MCP canonical endpoint is not credential-free fragmentless HTTPS"
+        )
+
+    credential_audience = authority["manifest_credential_audience"]
+    credential_audience_parts = urlsplit(credential_audience)
+    if (
+        credential_audience_parts.scheme != "https"
+        or not credential_audience_parts.netloc
+    ):
+        raise ConformanceError(
+            "ASP-over-MCP credential audience is not an absolute HTTPS URI"
+        )
+    if (
+        authority["issued_locations"] != authority["requested_locations"]
+        or endpoint_value not in authority["issued_locations"]
+    ):
+        raise ConformanceError(
+            "ASP-over-MCP endpoint is outside independent Grant locations"
+        )
+
+    action_id = mcp["action_id"]
+    expected_tool_name = "asp.action." + hashlib.sha256(
+        action_id.encode("utf-8")
+    ).hexdigest()
+    if (
+        action_id != mcp["mapped_action_id"]
+        or action_id != authority["selected_action_id"]
+        or mcp["tool_name"] != expected_tool_name
+        or mcp["action_mode"] != mcp["mapped_action_mode"]
+        or mcp["action_mode"] != authority["selected_action_mode"]
+        or mcp["manifest_schema_dialect"] != authority["schema_dialect"]
+        or mcp["mapped_input_schema_dialect"] != authority["schema_dialect"]
+        or mcp["mapped_output_schema_dialect"] != authority["schema_dialect"]
+        or mcp["binding_input_schema_hash"] != authority["input_schema_hash"]
+        or mcp["binding_output_schema_hash"] != authority["output_schema_hash"]
+        or mcp["action_mode"]
+        not in {"read", "dry_run", "propose", "reserve", "commit", "compensate", "revert"}
+        or not isinstance(mcp["manifest_action_ids"], list)
+        or mcp["manifest_action_ids"]
+        != sorted(set(mcp["manifest_action_ids"]), key=lambda item: item.encode("utf-8"))
+        or action_id not in mcp["manifest_action_ids"]
+    ):
+        raise ConformanceError("MCP tool does not map to one exact manifest ASP action")
+
+    if (
+        mcp["transport"] != "streamable_http"
+        or mcp["authentication"] != "authenticated"
+        or mcp["token_audience"] != mcp["bound_token_audience"]
+        or mcp["token_audience"] != authority["manifest_credential_audience"]
+        or mcp["credential_proof_target_uri"]
+        != authority["credential_proof_target_uri"]
+        or mcp["credential_proof_target_uri"]
+        != mcp["canonical_mcp_server_uri"]
+        or mcp["authorization_mode"] != authority["authorization_mode"]
+        or mcp["authorization_composition"] != authority["authorization_composition"]
+        or mcp["credential_custody"] != "runtime"
+        or mcp["token_forwarding"] != "prohibited"
+        or mcp["execution_token_handling"] != "runtime_injected_meta_only"
+        or mcp["outer_idempotency_header"] != "omitted"
+    ):
+        raise ConformanceError(
+            "ASP-over-MCP credential or execution-token custody is invalid"
+        )
+    if mcp["authorization_mode"] == "asp_native":
+        valid_auth = (
+            mcp["authorization_composition"] == "asp-native"
+            and mcp["mcp_oauth_use"] == "not_selected"
+            and (
+                (
+                    mcp["credential_binding"] == "dpop"
+                    and mcp["transport_credential_scheme"] == "dpop"
+                )
+                or (
+                    mcp["credential_binding"] == "compatibility_bearer"
+                    and mcp["transport_credential_scheme"] == "bearer"
+                )
+                or (
+                    mcp["credential_binding"] == "mtls"
+                    and mcp["transport_credential_scheme"] == "mtls"
+                )
+            )
+        )
+    elif mcp["authorization_mode"] == "mcp_oauth_dual_use":
+        valid_auth = (
+            mcp["authorization_composition"] == "mcp-oauth-dual-use"
+            and mcp["mcp_oauth_use"] == "dual_use_verified"
+            and mcp["transport_credential_scheme"] == "bearer"
+            and mcp["token_audience"] == mcp["canonical_mcp_server_uri"]
+            and mcp["credential_binding"]
+            in {"compatibility_bearer", "mtls_bound_bearer"}
+        )
+    else:
+        valid_auth = False
+    if not valid_auth:
+        raise ConformanceError("ASP-over-MCP authorization composition is invalid")
+
+    if current_view and (
+        document["surface"]["status"] != "current"
+        or document["surface"]["references"] != "complete"
+        or document["surface"]["candidate_hash"]
+        != document["surface"]["retained_hash"]
+        or mcp["surface_version"] != document["surface"]["version"]
+        or mcp["surface_hash"] != document["surface"]["retained_hash"]
+    ):
+        raise ConformanceError(
+            "ASP-over-MCP current view differs from the authoritative surface"
+        )
+
+    if operation == "publish_mcp_surface":
+        if not current_view:
+            raise ConformanceError("surface publication cannot use a retained MCP view")
+        return
+
+    if operation == "adapt_mcp_action":
+        if not current_view:
+            raise ConformanceError("Agent Adapter cannot consume a retained MCP view")
+        if (
+            mcp["agent_request_projection"] != "tool_and_arguments_only"
+            or mcp["agent_meta_access"] != "none"
+            or mcp["agent_credential_access"] != "none"
+            or mcp["agent_result_projection"] != "purpose_minimized_output"
+            or mcp["agent_transport_result_access"] != "none"
+            or mcp["agent_transport_authority_use"] != "none"
+        ):
+            raise ConformanceError(
+                "Agent Adapter crossed the ASP-over-MCP authority boundary"
+            )
+        return
+
+    if operation not in {"execute_mcp_action", "mediate_mcp_action"}:
+        raise ConformanceError(f"unknown ASP-over-MCP operation {operation!r}")
+
+    if action_id not in document["grant"]["issued_actions"]:
+        raise ConformanceError("MCP execution is outside the issued ASP Grant")
+
+    pair_fields = (
+        ("grant_id", "bound_grant_id"),
+        ("grant_hash", "bound_grant_hash"),
+        ("idempotency_key", "bound_idempotency_key"),
+        ("surface_hash", "bound_surface_hash"),
+        ("arguments_input_hash", "bound_input_hash"),
+    )
+    if any(mcp[current] != mcp[bound] for current, bound in pair_fields):
+        raise ConformanceError("ASP-over-MCP request authority tuple is detached")
+    if (
+        mcp["grant_id"] != authority["grant_id"]
+        or mcp["grant_hash"] != authority["grant_hash"]
+        or mcp["idempotency_key"] != authority["idempotency_key"]
+        or mcp["asp_session_id"] != authority["asp_session_id"]
+        or mcp["asp_session_generation"] != authority["asp_session_generation"]
+        or mcp["request_trace_id"] != authority["trace_id"]
+        or mcp["request_span_id"] != authority["request_span_id"]
+        or mcp["result_trace_id"] != authority["trace_id"]
+        or mcp["result_span_id"] != authority["result_span_id"]
+        or mcp["result_span_id"] == mcp["request_span_id"]
+    ):
+        raise ConformanceError(
+            "ASP-over-MCP request/result tuple differs from independent authority"
+        )
+    if (current_view or current_completed_replay) and (
+        mcp["surface_version"] != document["surface"]["version"]
+        or mcp["surface_hash"] != document["surface"]["retained_hash"]
+        or mcp["arguments_input_hash"] != document["execution"]["input_hash"]
+    ):
+        raise ConformanceError("ASP-over-MCP request differs from authoritative ASP state")
+
+    if mcp["asp_grant_proof"] != "verified" or mcp["task_support"] != "forbidden":
+        raise ConformanceError("MCP transport state did not establish ASP authority")
+
+    if not (current_completed_replay or retained_completed_replay):
+        _validate_mcp_fresh_ordinary_admission(document, action_id)
+        if (
+            mcp["binding_input_schema_hash"]
+            != document["execution"]["input_schema_hash"]
+        ):
+            raise ConformanceError(
+                "fresh ASP-over-MCP binding schema differs from ordinary ASP admission"
+            )
+
+    result_pairs = (
+        ("result_surface_version", "surface_version"),
+        ("result_surface_hash", "surface_hash"),
+        ("result_action_id", "action_id"),
+        ("result_input_hash", "arguments_input_hash"),
+        ("result_grant_id", "grant_id"),
+        ("result_grant_hash", "grant_hash"),
+        ("result_idempotency_key", "idempotency_key"),
+    )
+    if any(mcp[result] != mcp[request] for result, request in result_pairs):
+        raise ConformanceError("ASP-over-MCP result tuple differs from its request")
+    if (
+        mcp["annotations_use"] != "omitted"
+        or mcp["result_channel"] != "structured_content"
+        or mcp["result_text_consistency"] != "deep_equal"
+        or mcp["result_integrity"] != "valid"
+        or mcp["result_output_schema"] != "valid"
+        or mcp["result_is_error_consistency"] != "matched"
+        or mcp["result_delivery_boundary"] != "runtime_only"
+        or mcp["error_mapping"] != "layered"
+        or mcp["binding_error_semantics"] != "closed_pre_effect_non_authoritative"
+        or mcp["action_error_semantics"] != "closed_asp_error"
+        or mcp["capacity_error_carrier"] != "tool_result"
+        or mcp["transport_status_semantics"] != "mcp_http_success"
+        or mcp["progress_use"] != "advisory"
+        or mcp["progress_token_source"] != "runtime"
+        or mcp["progress_token_echo"] != "matched"
+        or mcp["progress_payload"] != "bounded_numeric_only"
+        or mcp["progress_stream"] != "call_post_sse"
+        or mcp["receipt_link_binding"] != "exact_one_to_one"
+        or mcp["transport_error_exposure"] != "internal_safe_classification_only"
+    ):
+        raise ConformanceError("ASP-over-MCP transport semantics weaken ASP authority")
+    if mcp["cancellation_phase"] == "after_dispatch_ambiguous":
+        if (
+            mcp["cancellation_use"] != "wait_only"
+            or mcp["retry_behavior"] != "reconcile_same_key"
+        ):
+            raise ConformanceError(
+                "post-dispatch MCP cancellation must reconcile with the same key"
+            )
+    elif (
+        mcp["cancellation_phase"] != "pre_admission_proven"
+        or mcp["cancellation_use"] != "honored_pre_admission"
+        or mcp["retry_behavior"] != "not_applicable"
+    ):
+        raise ConformanceError("MCP cancellation state is not fail-closed")
+    if mcp["idempotency_requirement"] == "required":
+        if mcp["idempotency_key"] == "none":
+            raise ConformanceError("MCP action lacks required idempotency identity")
+    elif mcp["idempotency_requirement"] != "optional":
+        raise ConformanceError("MCP action has an invalid idempotency requirement")
+    if mcp["receipt_requirement"] == "required":
+        if (
+            mcp["receipt_channel"] != "authenticated_resource"
+            or mcp["receipt_resource_authentication"] != "authenticated"
+            or mcp["receipt_integrity"] != "verified"
+            or mcp["receipt_persistence"] != "immutable_before_result"
+            or mcp["receipt_rematerialization"] != "exact_after_fresh_session"
+        ):
+            raise ConformanceError("ASP-over-MCP receipt evidence is not authenticated")
+    elif mcp["receipt_requirement"] != "not_required" or (
+        mcp["receipt_channel"] != "not_applicable"
+        or mcp["receipt_resource_authentication"] != "not_applicable"
+        or mcp["receipt_integrity"] != "not_applicable"
+        or mcp["receipt_persistence"] != "not_applicable"
+        or mcp["receipt_rematerialization"] != "not_applicable"
+    ):
+        raise ConformanceError("MCP action receipt handling differs from policy")
+
+
+MCP_SCHEMA_HASH_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/asp-over-mcp-schema/v1"
+)
+MCP_ACTION_INPUT_HASH_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/action-input/v1"
+)
+MCP_ACTION_EXECUTION_HASH_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/action-execution/v1"
+)
+MCP_ACTION_OUTPUT_HASH_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/action-output/v1"
+)
+MCP_ACTION_INPUT_SCHEMA_HASH_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/action-input-schema/v1"
+)
+MCP_ACTUAL_EFFECTS_HASH_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/actual-effects/v1"
+)
+MCP_PRECONDITIONS_HASH_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/action-preconditions/v1"
+)
+MCP_EXPECTED_EFFECTS_HASH_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/expected-effects/v1"
+)
+MCP_RECEIPT_HASH_DOMAIN = (
+    "https://github.com/0al-spec/agent-surface/hash/receipt/v1"
+)
+MCP_EFFECT_MODES = {"reserve", "commit", "compensate", "revert"}
+MCP_REQUEST_CORE_MEMBERS = {
+    "session_id",
+    "session_generation",
+    "trace_id",
+    "span_id",
+    "grant_id",
+    "grant_hash",
+    "surface_hash",
+    "action_id",
+    "idempotency_key",
+    "parent_receipt_hash",
+    "approval_receipt_hashes",
+    "input_hash",
+    "execution",
+    "execution_hash",
+}
+MCP_EXECUTION_CORE_MEMBERS = {
+    "mode",
+    "execution_id",
+    "preview_id",
+    "execution_token",
+    "execution_token_hash",
+    "preconditions_hash",
+    "expected_effects_hash",
+    "reservation_id",
+    "target_receipt_hash",
+}
+MCP_RESPONSE_CORE_MEMBERS = {
+    "session_id",
+    "session_generation",
+    "trace_id",
+    "span_id",
+    "grant_id",
+    "grant_hash",
+    "surface_hash",
+    "action_id",
+    "idempotency_key",
+    "execution",
+    "execution_hash",
+    "approval_receipt_hashes",
+    "result",
+    "proposal_id",
+    "proposal",
+    "preview",
+    "preconditions",
+    "preconditions_hash",
+    "expected_effects",
+    "expected_effects_hash",
+    "reservation_result",
+    "target_receipt_hash",
+    "revert_evidence",
+    "effect_outcome",
+    "actual_effects",
+    "actual_effects_hash",
+    "output",
+    "approval_receipt_id",
+    "approval_receipt_hash",
+    "receipt_id",
+    "receipt_hash",
+    "error",
+}
+
+
+def _validate_mcp_w3c_id(value: Any, *, width: int, label: str) -> None:
+    if (
+        not isinstance(value, str)
+        or re.fullmatch(f"[0-9a-f]{{{width}}}", value) is None
+        or set(value) == {"0"}
+    ):
+        raise ConformanceError(f"{label} is not a valid W3C identifier")
+
+
+def _validate_mcp_credential_free_uri(
+    value: str,
+    *,
+    label: str,
+    forbidden_credential_values: frozenset[str] = frozenset(),
+) -> None:
+    parsed = urlsplit(value)
+    sensitive_query_names = {
+        "access_token",
+        "authorization",
+        "bearer_token",
+        "client_secret",
+        "credential",
+        "dpop",
+        "execution_token",
+        "grant_credential",
+        "private_key",
+        "refresh_token",
+    }
+    query_pairs = parse_qsl(parsed.query, keep_blank_values=True)
+    query_names = {
+        key.lower().replace("-", "_")
+        for key, _ in query_pairs
+    }
+    def fully_unquote(member: str) -> str:
+        decoded = member
+        for _ in range(3):
+            next_value = unquote(decoded)
+            if next_value == decoded:
+                break
+            decoded = next_value
+        return decoded
+
+    decoded_path = fully_unquote(parsed.path)
+    decoded_fragment = fully_unquote(parsed.fragment)
+    decoded_query_values = [fully_unquote(value) for _, value in query_pairs]
+    known_credential_present = any(
+        credential in decoded_path for credential in forbidden_credential_values
+    ) or any(
+        credential in query_value
+        for credential in forbidden_credential_values
+        for query_value in decoded_query_values
+    ) or any(
+        credential in decoded_fragment for credential in forbidden_credential_values
+    )
+    if (
+        parsed.username is not None
+        or parsed.password is not None
+        or query_names.intersection(sensitive_query_names)
+        or known_credential_present
+    ):
+        raise ConformanceError(f"{label} carries credential material")
+
+
+def _mcp_contains_forbidden_credential(
+    value: Any,
+    *,
+    allow_execution_token: bool = False,
+    allow_preview_execution_token: bool = False,
+    forbidden_credential_values: frozenset[str] = frozenset(),
+    path: tuple[str, ...] = (),
+) -> bool:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            lowered = key.lower().replace("-", "_")
+            if lowered == "execution_token":
+                if (
+                    (allow_execution_token and path == ("execution",))
+                    or (allow_preview_execution_token and path == ("preview",))
+                ):
+                    continue
+                return True
+            if _mcp_contains_forbidden_credential(
+                item,
+                allow_execution_token=allow_execution_token,
+                allow_preview_execution_token=allow_preview_execution_token,
+                forbidden_credential_values=forbidden_credential_values,
+                path=(*path, key),
+            ):
+                return True
+    elif isinstance(value, list):
+        return any(
+            _mcp_contains_forbidden_credential(
+                item,
+                allow_execution_token=allow_execution_token,
+                allow_preview_execution_token=allow_preview_execution_token,
+                forbidden_credential_values=forbidden_credential_values,
+                path=path,
+            )
+            for item in value
+        )
+    elif isinstance(value, str) and any(
+        credential in value for credential in forbidden_credential_values
+    ):
+        return True
+    return False
+
+
+def _resolve_mcp_local_schema_ref(
+    root: Any,
+    reference: str,
+    *,
+    retrieval_uri: str | None = None,
+    base_uri: str | None = None,
+) -> None:
+    try:
+        resource = Resource.from_contents(root)
+        root_base_uri = (
+            resource.id()
+            or retrieval_uri
+            or "urn:asp:conformance:mcp-binding-schema"
+        )
+        registry = Registry().with_resource(root_base_uri, resource).crawl()
+        registry.resolver(base_uri=base_uri or root_base_uri).lookup(reference)
+    except Exception as error:
+        raise ConformanceError(
+            "MCP Tool schema reference leaves its self-contained document"
+        ) from error
+
+
+def _validate_mcp_schema_closure(
+    schema: Any, *, retrieval_uri: str | None = None
+) -> None:
+    if not isinstance(schema, dict):
+        raise ConformanceError("MCP Tool schema must be a JSON object")
+
+    allowed_vocabularies = {
+        "https://json-schema.org/draft/2020-12/vocab/core",
+        "https://json-schema.org/draft/2020-12/vocab/applicator",
+        "https://json-schema.org/draft/2020-12/vocab/unevaluated",
+        "https://json-schema.org/draft/2020-12/vocab/validation",
+        "https://json-schema.org/draft/2020-12/vocab/meta-data",
+        "https://json-schema.org/draft/2020-12/vocab/format-annotation",
+        "https://json-schema.org/draft/2020-12/vocab/content",
+    }
+
+    singleton_schema_keywords = {
+        "additionalItems", "additionalProperties", "contains", "contentSchema",
+        "else", "if", "items", "not", "propertyNames", "then",
+        "unevaluatedItems", "unevaluatedProperties",
+    }
+    array_schema_keywords = {"allOf", "anyOf", "oneOf", "prefixItems"}
+    map_schema_keywords = {
+        "$defs", "definitions", "dependentSchemas", "patternProperties", "properties"
+    }
+
+    try:
+        root_resource = Resource.from_contents(schema)
+        root_base_uri = (
+            root_resource.id()
+            or retrieval_uri
+            or "urn:asp:conformance:mcp-binding-schema"
+        )
+    except Exception as error:
+        raise ConformanceError("MCP Tool schema dialect is invalid") from error
+
+    def walk_schema(value: Any, current_base_uri: str) -> None:
+        if not isinstance(value, dict):
+            return
+        effective_base_uri = current_base_uri
+        schema_id = value.get("$id")
+        if isinstance(schema_id, str):
+            effective_base_uri = urljoin(current_base_uri, schema_id)
+        for key in ("$ref", "$dynamicRef", "$recursiveRef"):
+            if key in value:
+                reference = value[key]
+                if not isinstance(reference, str):
+                    raise ConformanceError("MCP Tool schema reference is not a string")
+                _resolve_mcp_local_schema_ref(
+                    schema,
+                    reference,
+                    retrieval_uri=retrieval_uri,
+                    base_uri=effective_base_uri,
+                )
+        vocabulary = value.get("$vocabulary")
+        if vocabulary is not None and (
+            not isinstance(vocabulary, dict)
+            or any(
+                required is True and uri not in allowed_vocabularies
+                for uri, required in vocabulary.items()
+            )
+        ):
+            raise ConformanceError(
+                "MCP Tool schema requires an unsupported vocabulary"
+            )
+        for key in singleton_schema_keywords:
+            child = value.get(key)
+            if isinstance(child, dict):
+                walk_schema(child, effective_base_uri)
+            elif key == "items" and isinstance(child, list):
+                for item in child:
+                    walk_schema(item, effective_base_uri)
+        for key in array_schema_keywords:
+            children = value.get(key)
+            if isinstance(children, list):
+                for child in children:
+                    walk_schema(child, effective_base_uri)
+        for key in map_schema_keywords:
+            children = value.get(key)
+            if isinstance(children, dict):
+                for child in children.values():
+                    walk_schema(child, effective_base_uri)
+        dependencies = value.get("dependencies")
+        if isinstance(dependencies, dict):
+            for child in dependencies.values():
+                if isinstance(child, dict):
+                    walk_schema(child, effective_base_uri)
+
+    walk_schema(schema, root_base_uri)
+
+    validator_class = validator_for(schema, default=None)
+    if validator_class is None:
+        raise ConformanceError("MCP Tool schema selects an unsupported dialect")
+    try:
+        validator_class.check_schema(schema)
+    except Exception as error:
+        raise ConformanceError("MCP Tool schema is invalid for its dialect") from error
+
+
+def _validate_mcp_schema_instance(
+    value: Any,
+    schema: dict[str, Any],
+    label: str,
+    *,
+    retrieval_uri: str | None = None,
+) -> None:
+    """Validate one value with the dialect selected by a self-contained schema."""
+
+    _validate_mcp_schema_closure(schema, retrieval_uri=retrieval_uri)
+    validator_class = validator_for(schema, default=None)
+    if validator_class is None:  # Kept explicit for type checkers and future registries.
+        raise ConformanceError(f"{label} selects an unsupported schema dialect")
+    try:
+        resource = Resource.from_contents(schema)
+        base_uri = (
+            resource.id()
+            or retrieval_uri
+            or "urn:asp:conformance:mcp-binding-schema"
+        )
+        registry = Registry().with_resource(base_uri, resource).crawl()
+        validator = validator_class(
+            schema,
+            registry=registry,
+        )
+        details = _format_schema_errors(validator, value)
+    except Exception as error:
+        raise ConformanceError(f"{label} schema could not be evaluated") from error
+    if details:
+        raise ConformanceError(f"{label} does not match its schema:\n{details}")
+
+
+def _validate_mcp_execution_token_pair(
+    token: Any, token_hash_value: Any, *, label: str
+) -> None:
+    if (
+        not isinstance(token, str)
+        or re.fullmatch(r"[A-Za-z0-9_-]+", token) is None
+    ):
+        raise ConformanceError(f"{label} execution_token is not unpadded base64url")
+    try:
+        decoded = base64.urlsafe_b64decode(token + "=" * (-len(token) % 4))
+    except (binascii.Error, ValueError) as error:
+        raise ConformanceError(f"{label} execution_token is not valid base64url") from error
+    if len(decoded) < 16:
+        raise ConformanceError(
+            f"{label} execution_token contains fewer than 16 decoded octets"
+        )
+    canonical_token = base64.urlsafe_b64encode(decoded).rstrip(b"=").decode("ascii")
+    if canonical_token != token:
+        raise ConformanceError(f"{label} execution_token is not canonical base64url")
+    token_hash = "sha-256:" + base64.urlsafe_b64encode(
+        hashlib.sha256(decoded).digest()
+    ).rstrip(b"=").decode("ascii")
+    if token_hash_value != token_hash:
+        raise ConformanceError(f"{label} execution_token_hash does not match token")
+
+
+def _validate_mcp_execution_context(
+    execution: Any, *, label: str, sanitized: bool = False
+) -> dict[str, Any]:
+    if (
+        not isinstance(execution, dict)
+        or not {"mode", "execution_id"}.issubset(execution)
+        or execution["mode"]
+        not in {
+            "read",
+            "dry_run",
+            "propose",
+            "reserve",
+            "commit",
+            "compensate",
+            "revert",
+        }
+        or not isinstance(execution["execution_id"], str)
+        or not execution["execution_id"]
+    ):
+        raise ConformanceError(f"{label} execution context is invalid")
+    unknown_members = set(execution) - MCP_EXECUTION_CORE_MEMBERS
+    if any(not urlsplit(member).scheme for member in unknown_members):
+        raise ConformanceError(
+            f"{label} execution contains a non-core, non-URI extension member"
+        )
+    for identifier in ("preview_id", "reservation_id"):
+        if identifier in execution and (
+            not isinstance(execution[identifier], str) or not execution[identifier]
+        ):
+            raise ConformanceError(f"{label} execution {identifier} is empty")
+    for digest_member in (
+        "execution_token_hash",
+        "preconditions_hash",
+        "expected_effects_hash",
+        "target_receipt_hash",
+    ):
+        if digest_member in execution:
+            _validate_digest(execution[digest_member], f"{label}.execution.{digest_member}")
+
+    if sanitized and "execution_token" in execution:
+        raise ConformanceError(f"{label} leaks execution_token")
+
+    preview_members = {
+        "preview_id",
+        "execution_token_hash",
+        "preconditions_hash",
+        "expected_effects_hash",
+    }
+    if not sanitized:
+        preview_members.add("execution_token")
+    if preview_members.intersection(execution) and not preview_members.issubset(execution):
+        raise ConformanceError(
+            f"{label} carries an incomplete preview-bound execution context"
+        )
+    if preview_members.issubset(execution) and execution["mode"] != "commit":
+        raise ConformanceError(
+            f"{label} carries preview-bound evidence outside commit mode"
+        )
+
+    if "execution_token" in execution:
+        _validate_mcp_execution_token_pair(
+            execution["execution_token"],
+            execution.get("execution_token_hash"),
+            label=label,
+        )
+
+    if "reservation_id" in execution and execution["mode"] not in {"reserve", "commit"}:
+        raise ConformanceError(
+            f"{label} reservation_id is not valid for the selected mode"
+        )
+    if execution["mode"] in {"compensate", "revert"}:
+        if "target_receipt_hash" not in execution:
+            raise ConformanceError(
+                f"{label} recovery execution lacks target_receipt_hash"
+            )
+    elif "target_receipt_hash" in execution:
+        raise ConformanceError(
+            f"{label} target_receipt_hash is only valid for recovery modes"
+        )
+    return execution
+
+
+def _validate_mcp_tuple_base(payload: Any, *, label: str) -> None:
+    required = {
+        "session_id",
+        "session_generation",
+        "trace_id",
+        "span_id",
+        "grant_id",
+        "grant_hash",
+        "surface_hash",
+        "action_id",
+    }
+    if not isinstance(payload, dict) or not required.issubset(payload):
+        raise ConformanceError(f"{label} lacks the complete ordinary ASP tuple")
+    if (
+        not isinstance(payload["session_id"], str)
+        or not payload["session_id"]
+        or not isinstance(payload["session_generation"], int)
+        or isinstance(payload["session_generation"], bool)
+        or not 1 <= payload["session_generation"] <= SAFE_INTEGER
+        or not isinstance(payload["grant_id"], str)
+        or not payload["grant_id"]
+        or not isinstance(payload["action_id"], str)
+        or not payload["action_id"]
+    ):
+        raise ConformanceError(f"{label} contains an invalid ordinary ASP tuple")
+    _validate_mcp_w3c_id(payload["trace_id"], width=32, label=f"{label} trace_id")
+    _validate_mcp_w3c_id(payload["span_id"], width=16, label=f"{label} span_id")
+    _validate_digest(payload["grant_hash"], f"{label}.grant_hash")
+    _validate_digest(payload["surface_hash"], f"{label}.surface_hash")
+
+
+def validate_mcp_wire_semantics(
+    message: Any,
+    *,
+    requested_resource_uri: str | None = None,
+    resource_kind: str | None = None,
+    expected_resource: Any = None,
+    resource_hash_domain: str | None = None,
+    expected_resource_hash: str | None = None,
+    expected_receipt_type: str | None = None,
+    expected_receipt_semantics: Any = None,
+    expected_authorized_projection: Any = None,
+    authorized_projection_expected: bool | None = None,
+    expected_binding_record: Any = None,
+    expected_tool_records: Any = None,
+    expected_surface_hash: str | None = None,
+    expected_request_payload: Any = None,
+    expected_schema_dialect: str | None = None,
+    expected_input_schema: Any = None,
+    expected_input_schema_uri: str | None = None,
+    expected_output_schema: Any = None,
+    expected_output_schema_uri: str | None = None,
+    expected_output_schema_hash: str | None = None,
+    expected_actual_effects: Any = None,
+    expected_preview: Any = None,
+    expected_preview_preconditions: Any = None,
+    expected_preview_effects: Any = None,
+    expected_revert_evidence: Any = None,
+    evaluation_time: str | None = None,
+    expected_final_approval_receipt_hashes: Any = None,
+    expected_authenticated_approval_receipts: Any = None,
+    expected_authenticated_receipt_resources: Any = None,
+    expected_receipt_resource_uris: Any = None,
+    prior_tool_names: list[str] | None = None,
+    prior_action_ids: list[str] | None = None,
+    action_mode: str | None = None,
+    expected_result: str | None = None,
+    idempotency_required: bool | None = None,
+    receipt_required: bool | None = None,
+    expected_credential_audience: str | None = None,
+    expected_endpoint: str | None = None,
+    expected_proof_target_uri: str | None = None,
+    expected_manifest_resource_uri: str | None = None,
+    expected_authorization_composition: str | None = None,
+    expected_request_id: str | int | None = None,
+    expected_progress_token: str | int | None = None,
+    expected_cancelled_request_id: str | int | None = None,
+    expected_cursor: str | None = None,
+    prior_request_ids: list[str | int] | None = None,
+    prior_cursors: list[str] | None = None,
+    tools_list_first_page: bool | None = None,
+    forbidden_credential_values: list[str] | None = None,
+    capacity_declared_limit_ids: list[str] | None = None,
+    capacity_disclosable_limit_ids: list[str] | None = None,
+) -> None:
+    """Validate ASP-over-MCP relationships that JSON Schema cannot express."""
+
+    if not isinstance(message, dict):
+        raise ConformanceError("ASP-over-MCP wire message must be an object")
+    forbidden_credentials = frozenset(forbidden_credential_values or ())
+    if (
+        isinstance(message.get("error"), dict)
+        and _mcp_contains_forbidden_credential(
+            message["error"].get("message"),
+            forbidden_credential_values=forbidden_credentials,
+        )
+    ):
+        raise ConformanceError("MCP JSON-RPC error exposes credential material")
+    if expected_request_id is not None and message.get("id") != expected_request_id:
+        raise ConformanceError("MCP JSON-RPC id differs from its correlated request")
+    method = message.get("method")
+    if (
+        method is not None
+        and "id" in message
+        and message["id"] in (prior_request_ids or ())
+    ):
+        raise ConformanceError("MCP JSON-RPC request id was already used in this session")
+    if method == "initialize":
+        client_binding = message["params"]["capabilities"]["experimental"][
+            ASP_OVER_MCP_EXTENSION_ID
+        ]
+        if (
+            expected_authorization_composition is not None
+            and client_binding["authorization_composition"]
+            != expected_authorization_composition
+        ):
+            raise ConformanceError(
+                "MCP initialize offer differs from manifest authorization composition"
+            )
+    if method in {"resources/read", "resources/subscribe"}:
+        selected_uri = requested_resource_uri or expected_manifest_resource_uri
+        request_uri = message["params"]["uri"]
+        _validate_mcp_credential_free_uri(
+            request_uri,
+            label=f"MCP {method} URI",
+            forbidden_credential_values=forbidden_credentials,
+        )
+        if selected_uri is not None and request_uri != selected_uri:
+            raise ConformanceError(f"MCP {method} URI differs from the selected resource")
+    if method == "notifications/resources/updated":
+        updated_uri = message["params"]["uri"]
+        _validate_mcp_credential_free_uri(
+            updated_uri,
+            label="MCP resources/updated URI",
+            forbidden_credential_values=forbidden_credentials,
+        )
+        if (
+            expected_manifest_resource_uri is not None
+            and updated_uri != expected_manifest_resource_uri
+        ):
+            raise ConformanceError(
+                "MCP resources/updated URI differs from the subscribed manifest"
+            )
+    if method == "tools/list":
+        request_cursor = message.get("params", {}).get("cursor")
+        if tools_list_first_page is True and "params" in message:
+            raise ConformanceError("first MCP tools/list request must omit params")
+        if expected_cursor is not None and request_cursor != expected_cursor:
+            raise ConformanceError("MCP tools/list cursor differs from page lineage")
+        if request_cursor is not None and request_cursor in (prior_cursors or ()):
+            raise ConformanceError("MCP tools/list cursor was already consumed")
+    if method == "notifications/cancelled" and (
+        expected_cancelled_request_id is not None
+        and message["params"]["requestId"] != expected_cancelled_request_id
+    ):
+        raise ConformanceError("MCP cancellation requestId differs from the outstanding call")
+    result = message.get("result")
+    if (
+        isinstance(result, dict)
+        and "serverInfo" in result
+        and "capabilities" in result
+    ):
+        server_binding = result["capabilities"]["experimental"][
+            ASP_OVER_MCP_EXTENSION_ID
+        ]
+        _validate_mcp_credential_free_uri(
+            server_binding["manifest_resource_uri"],
+            label="MCP initialize manifest resource URI",
+            forbidden_credential_values=forbidden_credentials,
+        )
+        if (
+            expected_manifest_resource_uri is not None
+            and server_binding["manifest_resource_uri"]
+            != expected_manifest_resource_uri
+        ):
+            raise ConformanceError(
+                "MCP initialize result substitutes the selected manifest URI"
+            )
+        if (
+            expected_authorization_composition is not None
+            and server_binding["authorization_composition"]
+            != expected_authorization_composition
+        ):
+            raise ConformanceError(
+                "MCP initialize result substitutes authorization composition"
+            )
+    if isinstance(result, dict) and "contents" in result:
+        for item in result["contents"]:
+            _validate_mcp_credential_free_uri(
+                item["uri"],
+                label="MCP resource content URI",
+                forbidden_credential_values=forbidden_credentials,
+            )
+        if requested_resource_uri is not None and any(
+            item.get("uri") != requested_resource_uri
+            for item in result["contents"]
+        ):
+            raise ConformanceError(
+                "MCP resource result URI differs from its exact read request"
+            )
+        resource = loads_human_json(
+            result["contents"][0]["text"],
+            source="ASP-over-MCP TextResourceContents",
+        )
+        if not isinstance(resource, dict):
+            raise ConformanceError("MCP resource text must encode one JSON object")
+        if expected_resource is not None and (
+            _canonical_json_rfc8785(resource)
+            != _canonical_json_rfc8785(expected_resource)
+        ):
+            raise ConformanceError("MCP resource differs from the expected retained object")
+        if resource_kind is not None and resource_kind not in {"manifest", "receipt"}:
+            raise ConformanceError("unknown ASP-over-MCP resource kind")
+        hashing_resource = resource
+        if resource_kind == "manifest":
+            if (
+                not isinstance(resource.get("surface_hash"), str)
+                or resource["surface_hash"] != expected_resource_hash
+            ):
+                raise ConformanceError(
+                    "MCP manifest resource surface_hash differs from its identity"
+                )
+            hashing_resource = copy.deepcopy(resource)
+            hashing_resource.pop("surface_hash", None)
+        if resource_kind == "receipt":
+            receipt_type = resource.get("receipt_type")
+            ordinary_required = {
+                "receipt_id", "receipt_type", "receipt_hash", "grant_id",
+                "grant_hash", "session_id", "session_generation", "trace_id",
+                "span_id", "action_id", "app_id", "surface_version",
+                "surface_hash", "runtime", "actor_agent", "subject",
+                "input_hash", "policy_decision_hash", "policy_decision",
+                "timestamp", "result",
+            }
+            app_required = ordinary_required
+            runtime_required = ordinary_required
+            approval_required = ordinary_required | {
+                "idempotency_key", "execution", "execution_hash", "approval"
+            }
+            required_by_type = {
+                "app": app_required,
+                "runtime": runtime_required,
+                "approval": approval_required,
+            }
+            if (
+                not {"receipt_id", "receipt_hash", "receipt_type"}.issubset(resource)
+                or receipt_type not in required_by_type
+                or not required_by_type.get(receipt_type, set()).issubset(resource)
+                or (
+                    expected_receipt_type is not None
+                    and receipt_type != expected_receipt_type
+                )
+                or (
+                    receipt_type == "approval"
+                    and (
+                        not isinstance(resource.get("approval"), dict)
+                        or resource["approval"].get("role")
+                        not in {"runtime", "application"}
+                    )
+                )
+                or resource.get("receipt_hash") != expected_resource_hash
+            ):
+                raise ConformanceError(
+                    "MCP receipt resource lacks its exact receipt type and identity"
+                )
+            _validate_mcp_tuple_base(resource, label="MCP receipt resource")
+            _validate_digest(resource["input_hash"], "receipt.input_hash")
+            _validate_digest(
+                resource["policy_decision_hash"], "receipt.policy_decision_hash"
+            )
+            if ("execution" in resource) != ("execution_hash" in resource):
+                raise ConformanceError(
+                    "MCP receipt resource must pair execution with execution_hash"
+                )
+            if "execution" in resource:
+                _validate_digest(resource["execution_hash"], "receipt.execution_hash")
+                receipt_execution = _validate_mcp_execution_context(
+                    resource["execution"],
+                    label="receipt.execution",
+                    sanitized=True,
+                )
+                if resource["execution_hash"] != _canonical_object_hash(
+                    MCP_ACTION_EXECUTION_HASH_DOMAIN, receipt_execution
+                ):
+                    raise ConformanceError(
+                        "MCP receipt execution_hash differs from sanitized execution"
+                    )
+            effect_members = {
+                "effect_outcome", "actual_effects", "actual_effects_hash"
+            }
+            if effect_members.intersection(resource) and not effect_members.issubset(resource):
+                raise ConformanceError(
+                    "MCP receipt resource carries incomplete effect evidence"
+                )
+            if effect_members.issubset(resource):
+                _validate_digest(
+                    resource["actual_effects_hash"], "receipt.actual_effects_hash"
+                )
+                if resource["actual_effects_hash"] != _canonical_object_hash(
+                    MCP_ACTUAL_EFFECTS_HASH_DOMAIN, resource["actual_effects"]
+                ):
+                    raise ConformanceError(
+                        "MCP receipt actual_effects_hash differs from actual_effects"
+                    )
+            for digest_member in ("parent_receipt_hash", "output_hash"):
+                if digest_member in resource:
+                    _validate_digest(resource[digest_member], f"receipt.{digest_member}")
+            semantic_members = {
+                "result",
+                "error",
+                "output_hash",
+                "actual_effects",
+                "actual_effects_hash",
+                "effect_outcome",
+                "resource",
+            }
+            if (
+                not isinstance(expected_receipt_semantics, dict)
+                or set(expected_receipt_semantics) != semantic_members
+            ):
+                raise ConformanceError(
+                    "MCP receipt read lacks exact authoritative result and effect semantics"
+                )
+            for member_name in semantic_members:
+                expected_value = expected_receipt_semantics[member_name]
+                if expected_value is None:
+                    if member_name in resource:
+                        raise ConformanceError(
+                            f"MCP receipt {member_name} is absent from authoritative semantics"
+                        )
+                elif (
+                    member_name not in resource
+                    or _canonical_json_rfc8785(resource[member_name])
+                    != _canonical_json_rfc8785(expected_value)
+                ):
+                    raise ConformanceError(
+                        f"MCP receipt {member_name} differs from authoritative semantics"
+                    )
+            hashing_resource = copy.deepcopy(resource)
+            hashing_resource.pop("receipt_hash", None)
+            hashing_resource.pop("receipt_signatures", None)
+        if (
+            expected_resource_hash is not None
+            and resource_hash_domain is not None
+            and _canonical_object_hash(resource_hash_domain, hashing_resource)
+            != expected_resource_hash
+        ):
+            raise ConformanceError("MCP resource hash differs from the expected object")
+        if resource_kind == "receipt":
+            record = (
+                expected_authenticated_receipt_resources[0]
+                if isinstance(expected_authenticated_receipt_resources, list)
+                and len(expected_authenticated_receipt_resources) == 1
+                else None
+            )
+            if (
+                not isinstance(record, dict)
+                or set(record) != {"uri", "receipt", "expected"}
+                or record.get("uri") != requested_resource_uri
+                or record.get("receipt") != resource
+                or not isinstance(record.get("expected"), dict)
+            ):
+                raise ConformanceError(
+                    "MCP receipt read lacks its exact authenticated resource record"
+                )
+            _validate_receipt_resource_batch(
+                _canonical_json_rfc8785(
+                    {
+                        "profile": RECEIPT_RESOURCE_REQUEST_PROFILE,
+                        "resources": expected_authenticated_receipt_resources,
+                    }
+                )
+            )
+
+    if isinstance(result, dict) and "tools" in result:
+        next_cursor = result.get("nextCursor")
+        if next_cursor is not None and next_cursor in (prior_cursors or ()):
+            raise ConformanceError("MCP tools/list response repeats a cursor lineage")
+        if next_cursor is not None and not result["tools"]:
+            raise ConformanceError("MCP tools/list empty page cannot continue pagination")
+        page_binding = result["_meta"][ASP_OVER_MCP_EXTENSION_ID]
+        _validate_mcp_credential_free_uri(
+            page_binding["manifest_resource_uri"],
+            label="MCP manifest resource URI",
+            forbidden_credential_values=forbidden_credentials,
+        )
+        if expected_binding_record is not None:
+            if (
+                not isinstance(expected_binding_record, dict)
+                or _canonical_json_rfc8785(page_binding)
+                != _canonical_json_rfc8785(expected_binding_record)
+            ):
+                raise ConformanceError(
+                    "MCP Tool page differs from the manifest-selected binding record"
+                )
+        projection_present = "authorized_projection" in page_binding
+        if (
+            authorized_projection_expected is not None
+            and projection_present != authorized_projection_expected
+        ):
+            raise ConformanceError(
+                "MCP Tool page authorized projection presence differs from selection"
+            )
+        if (
+            expected_authorized_projection is not None
+            and page_binding.get("authorized_projection")
+            != expected_authorized_projection
+        ):
+            raise ConformanceError(
+                "MCP Tool page authorized projection differs from the selected view"
+            )
+        shared_fields = {
+            "profile",
+            "mcp_protocol_version",
+            "binding_view_id",
+            "manifest_resource_uri",
+            "surface_version",
+            "surface_hash",
+            "authorization_composition",
+            "authorized_projection",
+        }
+        tool_names = set(prior_tool_names or ())
+        action_ids = set(prior_action_ids or ())
+        if expected_tool_records is not None and (
+            not isinstance(expected_tool_records, list)
+            or len(expected_tool_records) != len(result["tools"])
+        ):
+            raise ConformanceError("MCP Tool page differs from the manifest action set")
+        for index, tool in enumerate(result["tools"]):
+            tool_binding = tool["_meta"][ASP_OVER_MCP_EXTENSION_ID]
+            for uri_member in ("manifest_resource_uri", "input_schema", "output_schema"):
+                _validate_mcp_credential_free_uri(
+                    tool_binding[uri_member],
+                    label=f"MCP Tool {uri_member}",
+                    forbidden_credential_values=forbidden_credentials,
+                )
+            if expected_tool_records is not None:
+                expected_tool = expected_tool_records[index]
+                if not isinstance(expected_tool, dict):
+                    raise ConformanceError("expected MCP Tool record is invalid")
+                expected_input = expected_tool.get("inputSchema")
+                expected_binding = expected_tool.get("binding")
+                expected_name = expected_tool.get("name")
+                allowed_expected_members = {
+                    "name", "inputSchema", "binding", "outputSchema",
+                    "outputSchemaHash", "schemaDialect",
+                }
+                if (
+                    not {"name", "inputSchema", "binding"}.issubset(expected_tool)
+                    or set(expected_tool) - allowed_expected_members
+                    or expected_name != tool["name"]
+                    or _canonical_json_rfc8785(expected_input)
+                    != _canonical_json_rfc8785(tool["inputSchema"])
+                    or not isinstance(expected_binding, dict)
+                    or _canonical_json_rfc8785(tool_binding)
+                    != _canonical_json_rfc8785(expected_binding)
+                ):
+                    raise ConformanceError(
+                        "MCP Tool differs from its manifest action declaration"
+                    )
+            if tool["name"] in tool_names:
+                raise ConformanceError("MCP binding view repeats a Tool name")
+            if tool_binding["action_id"] in action_ids:
+                raise ConformanceError("MCP binding view repeats a mapped ASP action")
+            tool_names.add(tool["name"])
+            action_ids.add(tool_binding["action_id"])
+            if any(
+                tool_binding.get(field) != page_binding.get(field)
+                for field in shared_fields
+            ):
+                raise ConformanceError(
+                    "MCP page and Tool carry different binding-view records"
+                )
+            derived_name = "asp.action." + hashlib.sha256(
+                tool_binding["action_id"].encode("utf-8")
+            ).hexdigest()
+            if tool["name"] != derived_name:
+                raise ConformanceError(
+                    "MCP Tool name is not the deterministic ASP action mapping"
+                )
+            tool_schema_dialect = (
+                expected_tool.get("schemaDialect")
+                if expected_tool_records is not None
+                else expected_schema_dialect
+            )
+            if (
+                tool_schema_dialect is not None
+                and tool["inputSchema"].get("$schema") != tool_schema_dialect
+            ):
+                raise ConformanceError(
+                    "MCP Tool input schema dialect differs from the manifest"
+                )
+            _validate_mcp_schema_closure(
+                tool["inputSchema"], retrieval_uri=tool_binding["input_schema"]
+            )
+            if _canonical_object_hash(
+                MCP_SCHEMA_HASH_DOMAIN, tool["inputSchema"]
+            ) != tool_binding["binding_input_schema_hash"]:
+                raise ConformanceError(
+                    "MCP Tool input schema differs from its binding-local hash"
+                )
+            if (
+                "input_schema_hash" in tool_binding
+                and _canonical_object_hash(
+                    MCP_ACTION_INPUT_SCHEMA_HASH_DOMAIN, tool["inputSchema"]
+                )
+                != tool_binding["input_schema_hash"]
+            ):
+                raise ConformanceError(
+                    "MCP Tool input schema differs from its manifest input_schema_hash"
+                )
+            tool_output_schema = (
+                expected_tool.get("outputSchema")
+                if expected_tool_records is not None
+                and "outputSchema" in expected_tool
+                else expected_output_schema
+            )
+            tool_output_schema_hash = (
+                expected_tool.get("outputSchemaHash")
+                if expected_tool_records is not None
+                and "outputSchemaHash" in expected_tool
+                else expected_output_schema_hash
+            )
+            if tool_output_schema is not None:
+                _validate_mcp_schema_closure(
+                    tool_output_schema,
+                    retrieval_uri=tool_binding["output_schema"],
+                )
+                if (
+                    tool_schema_dialect is not None
+                    and tool_output_schema.get("$schema") != tool_schema_dialect
+                ):
+                    raise ConformanceError(
+                        "MCP output schema dialect differs from the manifest"
+                    )
+                computed_output_hash = _canonical_object_hash(
+                    MCP_SCHEMA_HASH_DOMAIN, tool_output_schema
+                )
+                if (
+                    computed_output_hash != tool_binding["binding_output_schema_hash"]
+                    or (
+                        tool_output_schema_hash is not None
+                        and computed_output_hash != tool_output_schema_hash
+                    )
+                ):
+                    raise ConformanceError(
+                        "MCP output schema differs from its binding-local hash"
+                    )
+
+    if message.get("method") == "tools/call":
+        params = message["params"]
+        call_binding = params["_meta"][ASP_OVER_MCP_EXTENSION_ID]
+        call_projection_present = "authorized_projection" in call_binding
+        if (
+            authorized_projection_expected is not None
+            and call_projection_present != authorized_projection_expected
+        ):
+            raise ConformanceError(
+                "MCP call authorized projection presence differs from selection"
+            )
+        action_payload = call_binding["action_request"]["payload"]
+        _validate_mcp_tuple_base(action_payload, label="action.request")
+        if expected_binding_record is not None and (
+            not isinstance(expected_binding_record, dict)
+            or _canonical_json_rfc8785(call_binding)
+            != _canonical_json_rfc8785(expected_binding_record)
+        ):
+            raise ConformanceError(
+                "MCP call differs from the selected binding-view record"
+            )
+        if expected_request_payload is not None and (
+            not isinstance(expected_request_payload, dict)
+            or _canonical_json_rfc8785(action_payload)
+            != _canonical_json_rfc8785(expected_request_payload)
+        ):
+            raise ConformanceError(
+                "MCP call ordinary request differs from runtime-owned request fields"
+            )
+        if action_payload["surface_hash"] != call_binding["surface_hash"]:
+            raise ConformanceError(
+                "MCP call binding surface differs from its ordinary ASP request"
+            )
+        if (
+            expected_surface_hash is not None
+            and action_payload["surface_hash"] != expected_surface_hash
+        ):
+            raise ConformanceError(
+                "MCP action request surface differs from the selected binding view"
+            )
+        if "input" in action_payload:
+            raise ConformanceError(
+                "MCP call action.request payload must omit input before argument insertion"
+            )
+        unknown_request_members = set(action_payload) - MCP_REQUEST_CORE_MEMBERS
+        if any(not urlsplit(member).scheme for member in unknown_request_members):
+            raise ConformanceError(
+                "MCP action.request contains a non-core, non-URI extension member"
+            )
+        if _mcp_contains_forbidden_credential(
+            action_payload,
+            allow_execution_token=True,
+            forbidden_credential_values=forbidden_credentials,
+        ) or _mcp_contains_forbidden_credential(
+            params["arguments"], forbidden_credential_values=forbidden_credentials
+        ):
+            raise ConformanceError("MCP action.request carries credential material")
+        execution = _validate_mcp_execution_context(
+            action_payload.get("execution"), label="action.request"
+        )
+        if action_mode is not None and execution["mode"] != action_mode:
+            raise ConformanceError("MCP action.request mode differs from its mapped Tool")
+        requires_idempotency = idempotency_required is True
+        if requires_idempotency and (
+            not isinstance(action_payload.get("idempotency_key"), str)
+            or not action_payload["idempotency_key"]
+        ):
+            raise ConformanceError("MCP action.request lacks required idempotency key")
+        if "idempotency_key" in action_payload and (
+            not isinstance(action_payload["idempotency_key"], str)
+            or not action_payload["idempotency_key"]
+        ):
+            raise ConformanceError("MCP action.request has an empty idempotency key")
+        requires_input_hash = (
+            requires_idempotency
+            or receipt_required is True
+            or execution["mode"] in MCP_EFFECT_MODES
+            or execution["mode"] == "dry_run"
+        )
+        if requires_input_hash:
+            if "input_hash" not in action_payload:
+                raise ConformanceError("MCP action.request lacks required input hash")
+        if "input_hash" in action_payload:
+            _validate_digest(action_payload["input_hash"], "action.request.input_hash")
+            computed_input_hash = _canonical_object_hash(
+                MCP_ACTION_INPUT_HASH_DOMAIN, params["arguments"]
+            )
+            if action_payload["input_hash"] != computed_input_hash:
+                raise ConformanceError(
+                    "MCP action.request input_hash differs from exact arguments"
+                )
+        if expected_input_schema is not None:
+            if (
+                expected_schema_dialect is not None
+                and expected_input_schema.get("$schema") != expected_schema_dialect
+            ):
+                raise ConformanceError(
+                    "MCP call input schema dialect differs from the manifest"
+                )
+            _validate_mcp_schema_instance(
+                params["arguments"],
+                expected_input_schema,
+                "MCP call arguments",
+                retrieval_uri=expected_input_schema_uri,
+            )
+        for member in ("parent_receipt_hash", "execution_hash"):
+            if member in action_payload:
+                _validate_digest(action_payload[member], f"action.request.{member}")
+        if execution["mode"] in MCP_EFFECT_MODES and "execution_hash" not in action_payload:
+            raise ConformanceError("effect-capable MCP request lacks execution hash")
+        if "execution_hash" in action_payload:
+            sanitized_execution = copy.deepcopy(execution)
+            sanitized_execution.pop("execution_token", None)
+            if action_payload["execution_hash"] != _canonical_object_hash(
+                MCP_ACTION_EXECUTION_HASH_DOMAIN, sanitized_execution
+            ):
+                raise ConformanceError(
+                    "MCP action.request execution_hash differs from sanitized execution"
+                )
+        approval_hashes = action_payload.get("approval_receipt_hashes")
+        if approval_hashes is not None:
+            if not isinstance(approval_hashes, dict) or set(approval_hashes) != {"runtime"}:
+                raise ConformanceError("MCP request approval receipt map is not closed")
+            _validate_digest(approval_hashes["runtime"], "action.request.approval_receipt_hashes.runtime")
+        action_id = action_payload.get("action_id")
+        if not isinstance(action_id, str):
+            raise ConformanceError("MCP call lacks its ASP action identifier")
+        derived_name = "asp.action." + hashlib.sha256(
+            action_id.encode("utf-8")
+        ).hexdigest()
+        if params["name"] != derived_name:
+            raise ConformanceError(
+                "MCP call Tool name differs from its ASP action request"
+            )
+        if (
+            expected_authorized_projection is not None
+            and call_binding.get("authorized_projection")
+            != expected_authorized_projection
+        ):
+            raise ConformanceError(
+                "MCP call authorized projection differs from its selected view"
+            )
+
+    if message.get("method") == "notifications/progress":
+        params = message["params"]
+        if (
+            expected_progress_token is not None
+            and params["progressToken"] != expected_progress_token
+        ):
+            raise ConformanceError("MCP progress token differs from its tools/call token")
+        if "total" in params and params["total"] < params["progress"]:
+            raise ConformanceError("MCP progress total is smaller than progress")
+
+    if isinstance(result, dict) and "structuredContent" in result:
+        structured = result["structuredContent"]
+        if expected_binding_record is not None:
+            expected_envelope = {
+                field: structured[field]
+                for field in ("profile", "mcp_protocol_version", "binding_view_id")
+            }
+            if (
+                not isinstance(expected_binding_record, dict)
+                or expected_envelope != expected_binding_record
+            ):
+                raise ConformanceError(
+                    "MCP structured result differs from the selected binding view"
+                )
+        parsed_text = loads_human_json(
+            result["content"][0]["text"],
+            source="ASP-over-MCP TextContent",
+        )
+        _validate_human_json_value(structured)
+        if _canonical_json_rfc8785(parsed_text) != _canonical_json_rfc8785(structured):
+            raise ConformanceError(
+                "MCP TextContent is not deeply equal to structuredContent"
+            )
+        linked_uris = [item["uri"] for item in result["content"][1:]]
+        for linked_uri in linked_uris:
+            _validate_mcp_credential_free_uri(
+                linked_uri,
+                label="MCP receipt ResourceLink URI",
+                forbidden_credential_values=forbidden_credentials,
+            )
+        declared_uris = structured.get("receipt_resource_uris", [])
+        if linked_uris != declared_uris:
+            raise ConformanceError(
+                "MCP receipt ResourceLinks are not the exact one-to-one URI list"
+            )
+        inner = structured["message"]
+        if inner["type"] == "binding.error" and _mcp_contains_forbidden_credential(
+            inner["payload"], forbidden_credential_values=forbidden_credentials
+        ):
+            raise ConformanceError("MCP binding.error exposes credential material")
+        if inner["type"] in {"action.result", "action.error"}:
+            payload = inner["payload"]
+            response_error_code = (
+                payload["error"]["code"]
+                if inner["type"] == "action.error"
+                else None
+            )
+            pre_admission_capacity_error = response_error_code in {
+                "rate_limited", "capacity_state_unavailable", "service_unavailable"
+            }
+            _validate_mcp_tuple_base(payload, label=inner["type"])
+            if (
+                expected_surface_hash is not None
+                and payload["surface_hash"] != expected_surface_hash
+            ):
+                raise ConformanceError(
+                    "MCP action response surface differs from the selected binding view"
+                )
+            unknown_response_members = set(payload) - MCP_RESPONSE_CORE_MEMBERS
+            if any(not urlsplit(member).scheme for member in unknown_response_members):
+                raise ConformanceError(
+                    f"{inner['type']} contains a non-core, non-URI extension member"
+                )
+            allow_preview_token = (
+                inner["type"] == "action.result" and action_mode == "dry_run"
+            )
+            if _mcp_contains_forbidden_credential(
+                payload,
+                allow_preview_execution_token=allow_preview_token,
+                forbidden_credential_values=forbidden_credentials,
+            ):
+                raise ConformanceError("MCP action response carries credential material")
+            if expected_request_payload is not None:
+                if not isinstance(expected_request_payload, dict):
+                    raise ConformanceError("expected MCP request payload is not an object")
+                repeat_members = {
+                    "session_id",
+                    "session_generation",
+                    "trace_id",
+                    "grant_id",
+                    "grant_hash",
+                    "surface_hash",
+                    "action_id",
+                    "idempotency_key",
+                    "execution_hash",
+                }
+                for member in repeat_members.intersection(expected_request_payload):
+                    if payload.get(member) != expected_request_payload[member]:
+                        raise ConformanceError(
+                            f"{inner['type']} does not repeat request {member} exactly"
+                        )
+                if (
+                    "span_id" in expected_request_payload
+                    and payload["span_id"] == expected_request_payload["span_id"]
+                ):
+                    raise ConformanceError(
+                        f"{inner['type']} reuses the request producer span_id"
+                    )
+                expected_execution = expected_request_payload.get("execution")
+                if expected_execution is not None:
+                    expected_sanitized = copy.deepcopy(expected_execution)
+                    expected_sanitized.pop("execution_token", None)
+                    if payload.get("execution") != expected_sanitized:
+                        raise ConformanceError(
+                            f"{inner['type']} does not repeat sanitized execution exactly"
+                        )
+            execution = payload.get("execution")
+            if ("execution" in payload) != ("execution_hash" in payload):
+                raise ConformanceError(
+                    "MCP action response must pair execution with execution_hash"
+                )
+            if "execution_hash" in payload:
+                _validate_digest(payload["execution_hash"], f"{inner['type']}.execution_hash")
+                execution = _validate_mcp_execution_context(
+                    execution, label=inner["type"], sanitized=True
+                )
+                if payload["execution_hash"] != _canonical_object_hash(
+                    MCP_ACTION_EXECUTION_HASH_DOMAIN, execution
+                ):
+                    raise ConformanceError(
+                        f"{inner['type']} execution_hash differs from sanitized execution"
+                    )
+                if action_mode is not None and execution["mode"] != action_mode:
+                    raise ConformanceError(
+                        f"{inner['type']} mode differs from its mapped Tool"
+                    )
+            if (
+                action_mode in MCP_EFFECT_MODES
+                and "execution" not in payload
+                and not pre_admission_capacity_error
+            ):
+                raise ConformanceError(
+                    "effect-capable MCP response lacks execution context and hash"
+                )
+            if idempotency_required is True and (
+                not isinstance(payload.get("idempotency_key"), str)
+                or not payload["idempotency_key"]
+            ):
+                raise ConformanceError("MCP action response lacks idempotency identity")
+            if "idempotency_key" in payload and (
+                not isinstance(payload["idempotency_key"], str)
+                or not payload["idempotency_key"]
+            ):
+                raise ConformanceError("MCP action response has an empty idempotency key")
+            if inner["type"] == "action.result" and not {"result", "output"}.issubset(payload):
+                raise ConformanceError("action.result lacks result or output")
+            if inner["type"] == "action.result":
+                if any(
+                    member in payload
+                    for member in ("error", "approval_receipt_id", "approval_receipt_hash")
+                ):
+                    raise ConformanceError(
+                        "action.result carries an action.error-only member"
+                    )
+                if not isinstance(payload["result"], str) or not payload["result"]:
+                    raise ConformanceError("action.result has an empty or unregistered result")
+                if expected_result is not None and payload["result"] != expected_result:
+                    raise ConformanceError(
+                        "action.result value differs from the selected mode result"
+                    )
+                if expected_output_schema is not None:
+                    if (
+                        expected_schema_dialect is not None
+                        and expected_output_schema.get("$schema")
+                        != expected_schema_dialect
+                    ):
+                        raise ConformanceError(
+                            "MCP result output schema dialect differs from the manifest"
+                        )
+                    _validate_mcp_schema_instance(
+                        payload["output"],
+                        expected_output_schema,
+                        "MCP action.result output",
+                        retrieval_uri=expected_output_schema_uri,
+                    )
+                if action_mode == "dry_run":
+                    if payload["result"] != "preview":
+                        raise ConformanceError(
+                            "dry_run action.result must report result=preview"
+                        )
+                    preview = payload.get("preview")
+                    required_preview_members = {
+                        "preview_id", "commit_action_id", "execution_token",
+                        "execution_token_hash", "expires_at",
+                    }
+                    if (
+                        not isinstance(preview, dict)
+                        or set(preview) != required_preview_members
+                        or not isinstance(preview["preview_id"], str)
+                        or not preview["preview_id"]
+                        or not isinstance(preview["commit_action_id"], str)
+                        or not preview["commit_action_id"]
+                    ):
+                        raise ConformanceError(
+                            "dry_run action.result lacks its closed preview token bundle"
+                        )
+                    _validate_mcp_execution_token_pair(
+                        preview["execution_token"],
+                        preview["execution_token_hash"],
+                        label="action.result.preview",
+                    )
+                    if (
+                        not isinstance(preview["expires_at"], str)
+                        or re.fullmatch(
+                            r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?Z",
+                            preview["expires_at"],
+                        )
+                        is None
+                    ):
+                        raise ConformanceError(
+                            "dry_run preview expires_at is not exact UTC RFC 3339"
+                        )
+                    try:
+                        expires_at = datetime.fromisoformat(
+                            preview["expires_at"].replace("Z", "+00:00")
+                        )
+                    except (AttributeError, ValueError) as error:
+                        raise ConformanceError(
+                            "dry_run preview expires_at is not an RFC 3339 timestamp"
+                        ) from error
+                    if evaluation_time is None:
+                        raise ConformanceError(
+                            "dry_run preview lacks authoritative evaluation_time context"
+                        )
+                    try:
+                        evaluated_at = datetime.fromisoformat(
+                            evaluation_time.replace("Z", "+00:00")
+                        )
+                    except (AttributeError, ValueError) as error:
+                        raise ConformanceError(
+                            "dry_run evaluation_time is not RFC 3339"
+                        ) from error
+                    if evaluated_at.tzinfo is None or expires_at <= evaluated_at:
+                        raise ConformanceError("dry_run preview token is expired")
+                    if not {
+                        "preconditions", "preconditions_hash",
+                        "expected_effects", "expected_effects_hash",
+                    }.issubset(payload):
+                        raise ConformanceError(
+                            "dry_run action.result lacks complete preview evidence"
+                        )
+                    _validate_digest(
+                        payload["preconditions_hash"],
+                        "action.result.preconditions_hash",
+                    )
+                    _validate_digest(
+                        payload["expected_effects_hash"],
+                        "action.result.expected_effects_hash",
+                    )
+                    if payload["preconditions_hash"] != _canonical_object_hash(
+                        MCP_PRECONDITIONS_HASH_DOMAIN, payload["preconditions"]
+                    ):
+                        raise ConformanceError(
+                            "dry_run preconditions_hash differs from preconditions"
+                        )
+                    if payload["expected_effects_hash"] != _canonical_object_hash(
+                        MCP_EXPECTED_EFFECTS_HASH_DOMAIN, payload["expected_effects"]
+                    ):
+                        raise ConformanceError(
+                            "dry_run expected_effects_hash differs from expected_effects"
+                        )
+                    if expected_preview_preconditions is None or (
+                        _canonical_json_rfc8785(payload["preconditions"])
+                        != _canonical_json_rfc8785(expected_preview_preconditions)
+                    ):
+                        raise ConformanceError(
+                            "dry_run preconditions differ from the authoritative schema-valid record"
+                        )
+                    if expected_preview_effects is None or (
+                        _canonical_json_rfc8785(payload["expected_effects"])
+                        != _canonical_json_rfc8785(expected_preview_effects)
+                    ):
+                        raise ConformanceError(
+                            "dry_run expected effects differ from the authoritative schema-valid record"
+                        )
+                    if expected_preview is not None and (
+                        _canonical_json_rfc8785(preview)
+                        != _canonical_json_rfc8785(expected_preview)
+                    ):
+                        raise ConformanceError(
+                            "dry_run preview differs from the authoritative preview record"
+                        )
+                elif "preview" in payload:
+                    raise ConformanceError(
+                        "non-dry_run action.result carries a preview token bundle"
+                    )
+                if action_mode != "dry_run" and {
+                    "preconditions", "preconditions_hash",
+                    "expected_effects", "expected_effects_hash",
+                }.intersection(payload):
+                    raise ConformanceError(
+                        "non-dry_run action.result carries dry_run preview evidence"
+                    )
+                proposal_members = {"proposal_id", "proposal"}
+                present_proposal_members = proposal_members.intersection(payload)
+                if action_mode == "propose":
+                    if present_proposal_members != proposal_members:
+                        raise ConformanceError(
+                            "propose action.result lacks its complete proposal artifact"
+                        )
+                elif present_proposal_members:
+                    raise ConformanceError(
+                        "non-propose action.result carries proposal members"
+                    )
+                if action_mode == "reserve":
+                    if "reservation_result" not in payload:
+                        raise ConformanceError(
+                            "reserve action.result lacks reservation_result"
+                        )
+                elif "reservation_result" in payload:
+                    raise ConformanceError(
+                        "non-reserve action.result carries reservation_result"
+                    )
+                if "revert_evidence" in payload:
+                    if expected_revert_evidence is None or (
+                        _canonical_json_rfc8785(payload["revert_evidence"])
+                        != _canonical_json_rfc8785(expected_revert_evidence)
+                    ):
+                        raise ConformanceError(
+                            "action.result carries unexpected revert_evidence"
+                        )
+            effect_members = {
+                "effect_outcome",
+                "actual_effects",
+                "actual_effects_hash",
+            }
+            present_effect_members = effect_members.intersection(payload)
+            if len(present_effect_members) not in {0, 3}:
+                raise ConformanceError(
+                    f"{inner['type']} effect outcome/effects/hash must be all present or all absent"
+                )
+            if present_effect_members:
+                if payload["effect_outcome"] not in {
+                    "not_applied",
+                    "applied",
+                    "partially_applied",
+                    "unknown",
+                }:
+                    raise ConformanceError(f"{inner['type']} effect_outcome is invalid")
+                if not isinstance(payload["actual_effects"], list):
+                    raise ConformanceError(f"{inner['type']} actual_effects is not an array")
+                _validate_digest(
+                    payload["actual_effects_hash"],
+                    f"{inner['type']}.actual_effects_hash",
+                )
+                if payload["actual_effects_hash"] != _canonical_object_hash(
+                    MCP_ACTUAL_EFFECTS_HASH_DOMAIN, payload["actual_effects"]
+                ):
+                    raise ConformanceError(
+                        f"{inner['type']} actual_effects_hash differs from actual_effects"
+                    )
+                if expected_actual_effects is not None and (
+                    _canonical_json_rfc8785(payload["actual_effects"])
+                    != _canonical_json_rfc8785(expected_actual_effects)
+                ):
+                    raise ConformanceError(
+                        f"{inner['type']} actual effects differ from the expected effect record"
+                    )
+            if (
+                inner["type"] == "action.result"
+                and action_mode in MCP_EFFECT_MODES
+                and not present_effect_members
+            ):
+                raise ConformanceError(
+                    "effect-capable action.result lacks complete effect evidence"
+                )
+            if action_mode in {"read", "dry_run"} and present_effect_members:
+                raise ConformanceError(
+                    f"{action_mode} action.result cannot claim attempted effects"
+                )
+            if action_mode == "dry_run" and {
+                "receipt_id", "receipt_hash", "approval_receipt_id",
+                "approval_receipt_hash",
+            }.intersection(payload):
+                raise ConformanceError(
+                    "dry_run action.result cannot create receipt-side coordination state"
+                )
+            approval_hashes = payload.get("approval_receipt_hashes")
+            if approval_hashes is not None:
+                if not isinstance(approval_hashes, dict) or not approval_hashes:
+                    raise ConformanceError(
+                        f"{inner['type']} approval receipt map is empty or invalid"
+                    )
+                if any(role not in {"runtime", "application"} for role in approval_hashes):
+                    raise ConformanceError(
+                        f"{inner['type']} approval receipt map is not closed"
+                    )
+                for role, digest in approval_hashes.items():
+                    _validate_digest(
+                        digest, f"{inner['type']}.approval_receipt_hashes.{role}"
+                    )
+                if action_mode not in MCP_EFFECT_MODES:
+                    raise ConformanceError(
+                        f"{action_mode} action response cannot claim approval receipts"
+                    )
+            request_approval_hashes = (
+                expected_request_payload.get("approval_receipt_hashes")
+                if isinstance(expected_request_payload, dict)
+                else None
+            )
+            if (
+                request_approval_hashes is not None
+                and not pre_admission_capacity_error
+                and (
+                not isinstance(approval_hashes, dict)
+                or any(
+                    approval_hashes.get(role) != digest
+                    for role, digest in request_approval_hashes.items()
+                )
+                )
+            ):
+                raise ConformanceError(
+                    f"{inner['type']} does not preserve request approval receipt hashes"
+                )
+            if (
+                request_approval_hashes is not None
+                and expected_final_approval_receipt_hashes is None
+                and not pre_admission_capacity_error
+                and approval_hashes != request_approval_hashes
+            ):
+                raise ConformanceError(
+                    f"{inner['type']} adds an approval receipt without final policy"
+                )
+            if (
+                expected_final_approval_receipt_hashes is not None
+                and not pre_admission_capacity_error
+                and (
+                approval_hashes != expected_final_approval_receipt_hashes
+                )
+            ):
+                raise ConformanceError(
+                    f"{inner['type']} final approval receipt map differs from policy"
+                )
+            if expected_authenticated_approval_receipts is not None:
+                raise ConformanceError(
+                    "legacy approval-only receipt context is not authoritative"
+                )
+            if receipt_required is True and not pre_admission_capacity_error and not {
+                "receipt_id",
+                "receipt_hash",
+            }.issubset(payload):
+                raise ConformanceError("MCP action response lacks required receipt identity")
+            for left, right in (
+                ("approval_receipt_id", "approval_receipt_hash"),
+                ("receipt_id", "receipt_hash"),
+            ):
+                if (left in payload) != (right in payload):
+                    raise ConformanceError(
+                        f"{inner['type']} must pair {left} with {right}"
+                    )
+            for member in (
+                "actual_effects_hash",
+                "approval_receipt_hash",
+                "receipt_hash",
+            ):
+                if member in payload:
+                    _validate_digest(payload[member], f"{inner['type']}.{member}")
+            referenced_receipt = any(
+                member in payload
+                for member in ("receipt_id", "approval_receipt_id")
+            ) or approval_hashes is not None
+            if referenced_receipt and not structured.get("receipt_resource_uris"):
+                raise ConformanceError(
+                    "action response receipt identifiers lack authenticated ResourceLinks"
+                )
+            if expected_receipt_resource_uris is not None and (
+                structured.get("receipt_resource_uris", [])
+                != expected_receipt_resource_uris
+            ):
+                raise ConformanceError(
+                    "action response receipt ResourceLinks differ from expected receipts"
+                )
+            if not referenced_receipt and structured.get("receipt_resource_uris"):
+                raise ConformanceError(
+                    "action response exposes receipt ResourceLinks without receipt identity"
+                )
+            _validate_mcp_receipt_resource_set(
+                inner_type=inner["type"],
+                payload=payload,
+                linked_uris=linked_uris,
+                expected_records=expected_authenticated_receipt_resources,
+            )
+        if inner["type"] == "action.error":
+            for left, right in (
+                ("approval_receipt_id", "approval_receipt_hash"),
+                ("receipt_id", "receipt_hash"),
+            ):
+                if (left in payload) != (right in payload):
+                    raise ConformanceError(
+                        f"action.error must pair {left} with {right}"
+                    )
+            error_code = payload["error"]["code"]
+            if error_code in {
+                "rate_limited",
+                "capacity_state_unavailable",
+                "service_unavailable",
+            }:
+                if (
+                    capacity_declared_limit_ids is None
+                    or capacity_disclosable_limit_ids is None
+                ):
+                    raise ConformanceError(
+                        "MCP capacity action.error lacks authoritative limit context"
+                    )
+                validate_capacity_error(
+                    payload["error"],
+                    {
+                        "declared_limit_ids": capacity_declared_limit_ids,
+                        "disclosable_limit_ids": capacity_disclosable_limit_ids,
+                    },
+                )
+                forbidden_capacity_members = effect_members | {
+                    "approval_receipt_id", "approval_receipt_hash",
+                    "approval_receipt_hashes", "receipt_id", "receipt_hash",
+                }
+                if forbidden_capacity_members.intersection(payload):
+                    raise ConformanceError(
+                        "pre-admission capacity action.error claims effects or receipts"
+                    )
+            approval_present = "approval_receipt_id" in payload
+            if (error_code == "approval_denied") != approval_present:
+                raise ConformanceError(
+                    "action.error approval receipt presence does not match approval_denied"
+                )
+            if error_code == "approval_denied" and effect_members.intersection(payload):
+                raise ConformanceError(
+                    "approval_denied claims action effects"
+                )
+
+    if message.get("kind") == "streamable_http_binding":
+        endpoint_value = message["endpoint"]
+        endpoint = urlsplit(endpoint_value)
+        if (
+            "?" in endpoint_value.split("#", 1)[0]
+            or "#" in endpoint_value
+            or endpoint.fragment
+            or endpoint.query
+            or endpoint.username is not None
+            or endpoint.password is not None
+        ):
+            raise ConformanceError(
+                "MCP endpoint must omit fragments and URL credential material"
+            )
+        _validate_mcp_credential_free_uri(
+            message["endpoint"],
+            label="MCP endpoint",
+            forbidden_credential_values=forbidden_credentials,
+        )
+        if expected_endpoint is not None and message["endpoint"] != expected_endpoint:
+            raise ConformanceError("MCP endpoint differs from the manifest binding")
+        authorization = message["authorization"]
+        request_authorizations = authorization.get("request_authorizations")
+        expected_request_methods = {
+            "initialize": "POST",
+            "post": "POST",
+            "listener": "GET",
+            "termination": "DELETE",
+        }
+        if not isinstance(request_authorizations, list) or len(request_authorizations) != 4:
+            raise ConformanceError(
+                "MCP authorization evidence does not cover the closed request lifecycle"
+            )
+        request_records = {
+            item.get("request_class"): item
+            for item in request_authorizations
+            if isinstance(item, dict)
+        }
+        expected_binding_kind = {
+            "dpop": "dpop_htu_htm",
+            "mtls": "mtls_channel",
+            "mtls_bound_bearer": "mtls_channel",
+            "compatibility_bearer": "bearer_transport",
+        }.get(authorization.get("asp_credential_profile"))
+        exact_target = expected_proof_target_uri or endpoint_value
+        if (
+            set(request_records) != set(expected_request_methods)
+            or expected_binding_kind is None
+            or any(
+                record.get("method") != expected_request_methods[request_class]
+                or record.get("target_uri") != endpoint_value
+                or record.get("target_uri") != exact_target
+                or record.get("authorization_applied") is not True
+                or record.get("binding_kind") != expected_binding_kind
+                or record.get("binding_verified") is not True
+                for request_class, record in request_records.items()
+            )
+        ):
+            raise ConformanceError(
+                "MCP authorization evidence is not bound to every exact request target"
+            )
+        if (
+            authorization["composition"] == "mcp_oauth_dual_use"
+            and authorization["audience"] != message["endpoint"]
+        ):
+            raise ConformanceError(
+                "dual-use MCP OAuth audience differs from the canonical endpoint"
+            )
+        if (
+            expected_credential_audience is not None
+            and authorization["audience"] != expected_credential_audience
+        ):
+            raise ConformanceError(
+                "MCP transport credential audience differs from the manifest"
+            )
+
+
 def _validate_schema_cases(
     root: Path,
     catalog: dict[str, Any],
@@ -2867,6 +5680,7 @@ def _validate_schema_cases(
         HUMAN_ELICITATION_SCHEMA_ID: set(),
         IMPACT_SIMULATION_SCHEMA_ID: set(),
         RISK_EXPLANATION_SCHEMA_ID: set(),
+        MCP_BINDING_SCHEMA_ID: set(),
     }
     for case in catalog["cases"]:
         schema_id = case["schema_id"]
@@ -2876,6 +5690,7 @@ def _validate_schema_cases(
             HUMAN_ELICITATION_SCHEMA_ID: "ASP-SC-HE-",
             IMPACT_SIMULATION_SCHEMA_ID: "ASP-SC-IS-",
             RISK_EXPLANATION_SCHEMA_ID: "ASP-SC-RE-",
+            MCP_BINDING_SCHEMA_ID: "ASP-SC-MB-",
         }[schema_id]
         if not case["case_id"].startswith(expected_prefix):
             raise ConformanceError(
@@ -2887,7 +5702,7 @@ def _validate_schema_cases(
         try:
             parser = (
                 loads_human_json
-                if schema_id == HUMAN_ELICITATION_SCHEMA_ID
+                if schema_id in {HUMAN_ELICITATION_SCHEMA_ID, MCP_BINDING_SCHEMA_ID}
                 else loads_strict_json
             )
             instance = parser(
@@ -2925,6 +5740,14 @@ def _validate_schema_cases(
                     registry=registry,
                     schema=schemas["impact-simulation"],
                 )
+            elif schema_id == MCP_BINDING_SCHEMA_ID:
+                _validate_with_schema(
+                    instance,
+                    schemas["mcp-binding"],
+                    "ASP-over-MCP wire case",
+                    registry=registry,
+                )
+                validate_mcp_wire_semantics(instance, **case["context"])
             else:
                 validate_risk_explanation(
                     instance,
@@ -3286,6 +6109,42 @@ def _semantic_validate_catalog(
         elif has_ahp_projection:
             raise ConformanceError(
                 f"non-AHP vector {vector_id} carries an ASP-over-AHP projection"
+            )
+        selects_mcp = "asp_over_mcp_selected" in vector["setup"]
+        is_mcp_operation = operation in {
+            "issue_mcp_grant",
+            "publish_mcp_surface",
+            "execute_mcp_action",
+            "mediate_mcp_action",
+            "adapt_mcp_action",
+        }
+        if selects_mcp != is_mcp_operation:
+            raise ConformanceError(
+                f"vector {vector_id} ASP-over-MCP setup and operation differ"
+            )
+        has_mcp_feature = ASP_OVER_MCP_FEATURE_ID in vector["features"]
+        if has_mcp_feature != is_mcp_operation:
+            raise ConformanceError(
+                f"vector {vector_id} ASP-over-MCP feature and operation differ"
+            )
+        has_mcp_projection = "mcp" in fixture["document"]
+        if is_mcp_operation:
+            prechannel_grant = operation == "issue_mcp_grant"
+            has_authenticated_channel = "authenticated_mcp_channel" in vector["setup"]
+            if not has_mcp_projection or (
+                prechannel_grant == has_authenticated_channel
+            ):
+                raise ConformanceError(
+                    f"ASP-over-MCP vector {vector_id} has invalid pre/post-channel setup"
+                )
+            validate_mcp_binding_projection(
+                fixture["document"]["mcp"],
+                fixture["document"],
+                operation,
+            )
+        elif has_mcp_projection:
+            raise ConformanceError(
+                f"non-MCP vector {vector_id} carries an ASP-over-MCP projection"
             )
         selects_elicitation = "human_elicitation_selected" in vector["setup"]
         is_elicitation_operation = operation in {
@@ -3996,10 +6855,19 @@ def _resolved_fixture(catalog: Catalog, vector: dict[str, Any]) -> dict[str, Any
                 target = target[int(part)] if isinstance(target, list) else target[part]
             final = parts[-1]
             if isinstance(target, list):
-                target[int(final)] = operation["value"]
+                index = int(final)
+                if target[index] == operation["value"]:
+                    raise ConformanceError(
+                        "fixture mutation must change its baseline value"
+                    )
+                target[index] = operation["value"]
             else:
                 if final not in target:
                     raise KeyError(final)
+                if target[final] == operation["value"]:
+                    raise ConformanceError(
+                        "fixture mutation must change its baseline value"
+                    )
                 target[final] = operation["value"]
         except (KeyError, IndexError, TypeError, ValueError) as error:
             raise ConformanceError(
@@ -4196,7 +7064,7 @@ def run_suite(
     started_at = _utc_now()
     runner = {
         "runner_id": "asp-reference-conformance-runner",
-        "runner_version": "1.8.0",
+        "runner_version": "1.9.0",
         "runner_artifact_sha256": file_digest(
             "ASP-CONFORMANCE-RUNNER-V1", root / "conformance" / "check.py"
         ),

@@ -74,6 +74,187 @@ pub(super) fn approval_links(receipt: &Value) -> Option<BTreeMap<String, String>
     )
 }
 
+fn collision_resistant_uri(value: &str) -> bool {
+    let Some((scheme, remainder)) = value.split_once(':') else {
+        return false;
+    };
+    !remainder.is_empty()
+        && scheme.chars().enumerate().all(|(index, character)| {
+            if index == 0 {
+                character.is_ascii_alphabetic()
+            } else {
+                character.is_ascii_alphanumeric() || matches!(character, '+' | '-' | '.')
+            }
+        })
+        && !value.chars().any(char::is_whitespace)
+}
+
+fn validate_policy_decision_shape(receipt: &Value, ordinal: usize, validator: &mut Validator) {
+    let path = format!("/records/{ordinal}/body/policy_decision");
+    let Some(decision) = member(receipt, "policy_decision") else {
+        return;
+    };
+    let required = [
+        "type",
+        "decision_id",
+        "enforcer",
+        "outcome",
+        "policy",
+        "reason_code",
+        "matched_rules",
+        "safe_to_show",
+        "evaluated_at",
+        "policy_decision_hash",
+    ];
+    if !require_members(
+        decision,
+        &required,
+        "ASP-REPLAY-RECEIPT-HASH-001",
+        ordinal,
+        &path,
+        "Policy Decision is missing a required closed-shape member",
+        validator,
+    ) {
+        return;
+    }
+    if !decision
+        .as_object()
+        .is_some_and(|object| has_only(object, &required))
+    {
+        validator.error(
+            "ASP-REPLAY-RECEIPT-HASH-001",
+            ordinal,
+            &path,
+            "Policy Decision contains a member outside its closed wire shape",
+        );
+    }
+
+    let strings_valid = [
+        "decision_id",
+        "outcome",
+        "reason_code",
+        "safe_to_show",
+        "evaluated_at",
+        "policy_decision_hash",
+    ]
+    .iter()
+    .all(|name| string(decision, name).is_some_and(|value| !value.is_empty()));
+    if string(decision, "type") != Some("policy.decision") || !strings_valid {
+        validator.error(
+            "ASP-REPLAY-RECEIPT-HASH-001",
+            ordinal,
+            &path,
+            "Policy Decision type and string members are invalid",
+        );
+    }
+
+    let enforcer = member(decision, "enforcer");
+    let enforcer_valid = enforcer.is_some_and(|value| {
+        value
+            .as_object()
+            .is_some_and(|object| has_only(object, &["type", "id"]))
+            && string(value, "type")
+                .is_some_and(|kind| ["runtime", "application", "enterprise"].contains(&kind))
+            && string(value, "id").is_some_and(|id| !id.is_empty())
+    });
+    let policy = member(decision, "policy");
+    let policy_valid = policy.is_some_and(|value| {
+        value
+            .as_object()
+            .is_some_and(|object| has_only(object, &["id", "version"]))
+            && string(value, "id").is_some_and(|id| !id.is_empty())
+            && string(value, "version").is_some_and(|version| !version.is_empty())
+    });
+    if !enforcer_valid || !policy_valid {
+        validator.error(
+            "ASP-REPLAY-RECEIPT-HASH-001",
+            ordinal,
+            &path,
+            "Policy Decision enforcer or policy snapshot is invalid",
+        );
+    }
+
+    let rules_valid = member(decision, "matched_rules")
+        .and_then(Value::as_array)
+        .is_some_and(|rules| {
+            let mut unique = HashSet::new();
+            rules.iter().all(|rule| {
+                rule.as_str()
+                    .is_some_and(|rule| !rule.is_empty() && unique.insert(rule))
+            })
+        });
+    if !rules_valid {
+        validator.error(
+            "ASP-REPLAY-RECEIPT-HASH-001",
+            ordinal,
+            format!("{path}/matched_rules"),
+            "Policy Decision matched_rules must contain unique non-empty strings",
+        );
+    }
+    if string(decision, "evaluated_at").is_none_or(|value| !timestamp_shape(value)) {
+        validator.error(
+            "ASP-REPLAY-RECEIPT-HASH-001",
+            ordinal,
+            format!("{path}/evaluated_at"),
+            "Policy Decision evaluated_at must be a real RFC 3339 UTC instant",
+        );
+    }
+
+    let outcome = string(decision, "outcome").unwrap_or_default();
+    let reason = string(decision, "reason_code").unwrap_or_default();
+    if !["allow", "require_approval", "deny"].contains(&outcome) {
+        validator.error(
+            "ASP-REPLAY-RECEIPT-HASH-001",
+            ordinal,
+            format!("{path}/outcome"),
+            "Policy Decision outcome is not a registered base value",
+        );
+    }
+    let reason_valid = match outcome {
+        "allow" => ["policy_allowed", "approval_satisfied"].contains(&reason),
+        "require_approval" => reason == "approval_required",
+        "deny" => [
+            "approval_denied",
+            "scope_denied",
+            "resource_denied",
+            "binding_invalid",
+            "limit_exceeded",
+            "local_policy_denied",
+            "app_policy_denied",
+        ]
+        .contains(&reason),
+        _ => false,
+    };
+    if !reason_valid && !collision_resistant_uri(reason) {
+        validator.error(
+            "ASP-REPLAY-RECEIPT-HASH-001",
+            ordinal,
+            format!("{path}/reason_code"),
+            "Policy Decision outcome and standard reason code are incompatible",
+        );
+    }
+
+    let expected_enforcer = match string(receipt, "receipt_type") {
+        Some("runtime") => Some((
+            "runtime",
+            member(receipt, "runtime").and_then(|value| string(value, "runtime_id")),
+        )),
+        Some("app") => Some(("application", string(receipt, "app_id"))),
+        _ => None,
+    };
+    if expected_enforcer.is_some_and(|(kind, id)| {
+        enforcer.and_then(|value| string(value, "type")) != Some(kind)
+            || enforcer.and_then(|value| string(value, "id")) != id
+    }) {
+        validator.error(
+            "ASP-REPLAY-RECEIPT-LINK-001",
+            ordinal,
+            format!("{path}/enforcer"),
+            "receipt Policy Decision enforcer does not match its producer",
+        );
+    }
+}
+
 pub(super) fn receipt_projection(receipt: &Value, ordinal: usize) -> Option<ReceiptProjection> {
     let execution = member(receipt, "execution").cloned();
     let actual_effect_ids = member(receipt, "actual_effects")
@@ -254,7 +435,7 @@ pub(super) fn validate_approval_decision(
         );
     }
     let valid_until = string(approval, "valid_until");
-    if result == "denied" && valid_until.is_some() {
+    if result == "denied" && member(approval, "valid_until").is_some() {
         validator.error(
             "ASP-REPLAY-RECEIPT-LINK-001",
             ordinal,
@@ -744,6 +925,25 @@ pub(super) fn check_receipt(
                 "approval projection contains a member outside its closed wire shape",
             );
         }
+        if string(approval, "approval_id").is_none_or(str::is_empty) {
+            validator.error(
+                "ASP-REPLAY-RECEIPT-HASH-001",
+                ordinal,
+                format!("{path}/approval/approval_id"),
+                "approval_id must be a non-empty string",
+            );
+        }
+        if string(receipt, "result") == Some("approved")
+            && string(approval, "valid_until")
+                .is_none_or(|value| value.is_empty() || !timestamp_shape(value))
+        {
+            validator.error(
+                "ASP-REPLAY-RECEIPT-HASH-001",
+                ordinal,
+                format!("{path}/approval/valid_until"),
+                "approved receipt valid_until must be a real RFC 3339 UTC instant",
+            );
+        }
         if let Some(valid_until) = string(approval, "valid_until")
             && (string(receipt, "timestamp").is_none_or(|timestamp| {
                 !timestamp_shape(valid_until)
@@ -760,6 +960,7 @@ pub(super) fn check_receipt(
         }
         validate_approval_decision(receipt, ordinal, scope, grant, validator);
     }
+    validate_policy_decision_shape(receipt, ordinal, validator);
     let actual = object_hash(
         RECEIPT_DOMAIN,
         receipt,

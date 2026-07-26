@@ -1,0 +1,1160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/mcp-binding/v1",
+  "title": "ASP-over-MCP 2025-11-25 Wire Binding v1",
+  "$comment": "Derived from modelcontextprotocol/modelcontextprotocol tag 2025-11-25, commit 38c84e9f93ad191d9eb26d92b945d17bd0efcaf3, generated schema SHA-256 1ffe4c5577974012f5fa02af14ea88df4b7146679df1abaaad497c8d9230ca8a, MIT License. This is an ASP-governed profile schema, not an official MCP extension.",
+  "oneOf": [
+    { "$ref": "#/$defs/initializeRequest" },
+    { "$ref": "#/$defs/initializeResult" },
+    { "$ref": "#/$defs/initializedNotification" },
+    { "$ref": "#/$defs/subscribeRequest" },
+    { "$ref": "#/$defs/emptyResult" },
+    { "$ref": "#/$defs/readResourceRequest" },
+    { "$ref": "#/$defs/readResourceResult" },
+    { "$ref": "#/$defs/listToolsRequest" },
+    { "$ref": "#/$defs/listToolsResult" },
+    { "$ref": "#/$defs/callToolRequest" },
+    { "$ref": "#/$defs/callToolResult" },
+    { "$ref": "#/$defs/resourceUpdatedNotification" },
+    { "$ref": "#/$defs/toolsChangedNotification" },
+    { "$ref": "#/$defs/progressNotification" },
+    { "$ref": "#/$defs/cancelledNotification" },
+    { "$ref": "#/$defs/jsonRpcErrorResponse" },
+    { "$ref": "#/$defs/streamableHttpEvidence" }
+  ],
+  "$defs": {
+    "jsonRpcId": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        { "type": "string" }
+      ]
+    },
+    "absoluteHttpsUri": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "absoluteUri": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha-256:[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$"
+    },
+    "traceId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$",
+      "not": { "const": "00000000000000000000000000000000" }
+    },
+    "spanId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$",
+      "not": { "const": "0000000000000000" }
+    },
+    "protocolVersion": {
+      "const": "2025-11-25"
+    },
+    "profile": {
+      "const": "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+    },
+    "extensionId": {
+      "const": "io.github.zeroal-spec/asp-over-mcp-v1"
+    },
+    "clientBindingSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "mcp_protocol_version", "authorization_composition"],
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "mcp_protocol_version": { "$ref": "#/$defs/protocolVersion" },
+        "authorization_composition": { "enum": ["asp-native", "mcp-oauth-dual-use"] }
+      }
+    },
+    "serverBindingSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "mcp_protocol_version", "manifest_resource_uri", "authorization_composition"],
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "mcp_protocol_version": { "$ref": "#/$defs/protocolVersion" },
+        "manifest_resource_uri": { "$ref": "#/$defs/absoluteUri" },
+        "authorization_composition": { "enum": ["asp-native", "mcp-oauth-dual-use"] }
+      }
+    },
+    "clientCapabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["experimental"],
+      "properties": {
+        "experimental": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["io.github.zeroal-spec/asp-over-mcp-v1"],
+          "properties": {
+            "io.github.zeroal-spec/asp-over-mcp-v1": {
+              "$ref": "#/$defs/clientBindingSettings"
+            }
+          }
+        }
+      }
+    },
+    "serverCapabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resources", "tools", "experimental"],
+      "properties": {
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["subscribe", "listChanged"],
+          "properties": {
+            "subscribe": { "const": true },
+            "listChanged": { "const": true }
+          }
+        },
+        "tools": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["listChanged"],
+          "properties": {
+            "listChanged": { "const": true }
+          }
+        },
+        "experimental": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["io.github.zeroal-spec/asp-over-mcp-v1"],
+          "properties": {
+            "io.github.zeroal-spec/asp-over-mcp-v1": {
+              "$ref": "#/$defs/serverBindingSettings"
+            }
+          }
+        }
+      }
+    },
+    "implementationVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "clientInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "asp-runtime-mediator" },
+        "version": { "$ref": "#/$defs/implementationVersion" }
+      }
+    },
+    "serverInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "asp-action-executor" },
+        "version": { "$ref": "#/$defs/implementationVersion" }
+      }
+    },
+    "initializeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/jsonRpcId" },
+        "method": { "const": "initialize" },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["protocolVersion", "capabilities", "clientInfo"],
+          "properties": {
+            "protocolVersion": { "$ref": "#/$defs/protocolVersion" },
+            "capabilities": { "$ref": "#/$defs/clientCapabilities" },
+            "clientInfo": { "$ref": "#/$defs/clientInfo" }
+          }
+        }
+      }
+    },
+    "initializeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "result"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/jsonRpcId" },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["protocolVersion", "capabilities", "serverInfo"],
+          "properties": {
+            "protocolVersion": { "$ref": "#/$defs/protocolVersion" },
+            "capabilities": { "$ref": "#/$defs/serverCapabilities" },
+            "serverInfo": { "$ref": "#/$defs/serverInfo" }
+          }
+        }
+      }
+    },
+    "initializedNotification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "method"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "method": { "const": "notifications/initialized" },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "maxProperties": 0
+        }
+      }
+    },
+    "subscribeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/jsonRpcId" },
+        "method": { "const": "resources/subscribe" },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["uri"],
+          "properties": {
+            "uri": { "$ref": "#/$defs/absoluteUri" }
+          }
+        }
+      }
+    },
+    "emptyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "result"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/jsonRpcId" },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "maxProperties": 0
+        }
+      }
+    },
+    "readResourceRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/jsonRpcId" },
+        "method": { "const": "resources/read" },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["uri"],
+          "properties": {
+            "uri": { "$ref": "#/$defs/absoluteUri" }
+          }
+        }
+      }
+    },
+    "listToolsRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "method"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/jsonRpcId" },
+        "method": { "const": "tools/list" },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cursor": { "$ref": "#/$defs/nonEmptyString" }
+          }
+        }
+      }
+    },
+    "bindingView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "mcp_protocol_version",
+        "binding_view_id",
+        "manifest_resource_uri",
+        "surface_version",
+        "surface_hash",
+        "authorization_composition"
+      ],
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "mcp_protocol_version": { "$ref": "#/$defs/protocolVersion" },
+        "binding_view_id": { "$ref": "#/$defs/nonEmptyString" },
+        "manifest_resource_uri": { "$ref": "#/$defs/absoluteUri" },
+        "surface_version": { "$ref": "#/$defs/nonEmptyString" },
+        "surface_hash": { "$ref": "#/$defs/digest" },
+        "authorization_composition": { "enum": ["asp-native", "mcp-oauth-dual-use"] },
+        "authorized_projection": { "$ref": "#/$defs/authorizedProjection" }
+      }
+    },
+    "authorizedProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "projection_id", "base_surface_version", "base_surface_hash", "expires_at"],
+      "properties": {
+        "profile": {
+          "const": "https://github.com/0al-spec/agent-surface/profiles/authorized-discovery/v1"
+        },
+        "projection_id": { "$ref": "#/$defs/nonEmptyString" },
+        "base_surface_version": { "$ref": "#/$defs/nonEmptyString" },
+        "base_surface_hash": { "$ref": "#/$defs/digest" },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z$"
+        }
+      }
+    },
+    "bindingMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["io.github.zeroal-spec/asp-over-mcp-v1"],
+      "properties": {
+        "io.github.zeroal-spec/asp-over-mcp-v1": { "$ref": "#/$defs/bindingView" }
+      }
+    },
+    "textResourceContents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "mimeType", "text"],
+      "properties": {
+        "uri": { "$ref": "#/$defs/absoluteUri" },
+        "mimeType": { "const": "application/json" },
+        "text": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "readResourceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "result"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/jsonRpcId" },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["contents"],
+          "properties": {
+            "contents": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "items": { "$ref": "#/$defs/textResourceContents" }
+            }
+          }
+        }
+      }
+    },
+    "rootObjectSchema": {
+      "type": "object",
+      "required": ["$schema", "type"],
+      "properties": {
+        "$schema": { "$ref": "#/$defs/absoluteUri" },
+        "type": { "const": "object" }
+      }
+    },
+    "toolBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "mcp_protocol_version",
+        "binding_view_id",
+        "manifest_resource_uri",
+        "surface_version",
+        "surface_hash",
+        "authorization_composition",
+        "action_id",
+        "execution_mode",
+        "input_schema",
+        "output_schema",
+        "binding_input_schema_hash",
+        "binding_output_schema_hash"
+      ],
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "mcp_protocol_version": { "$ref": "#/$defs/protocolVersion" },
+        "binding_view_id": { "$ref": "#/$defs/nonEmptyString" },
+        "manifest_resource_uri": { "$ref": "#/$defs/absoluteUri" },
+        "surface_version": { "$ref": "#/$defs/nonEmptyString" },
+        "surface_hash": { "$ref": "#/$defs/digest" },
+        "authorization_composition": { "enum": ["asp-native", "mcp-oauth-dual-use"] },
+        "authorized_projection": { "$ref": "#/$defs/authorizedProjection" },
+        "action_id": { "$ref": "#/$defs/nonEmptyString" },
+        "execution_mode": {
+          "enum": ["read", "dry_run", "propose", "reserve", "commit", "compensate", "revert"]
+        },
+        "input_schema": { "$ref": "#/$defs/absoluteHttpsUri" },
+        "input_schema_hash": { "$ref": "#/$defs/digest" },
+        "output_schema": { "$ref": "#/$defs/absoluteHttpsUri" },
+        "binding_input_schema_hash": { "$ref": "#/$defs/digest" },
+        "binding_output_schema_hash": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "toolMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["io.github.zeroal-spec/asp-over-mcp-v1"],
+      "properties": {
+        "io.github.zeroal-spec/asp-over-mcp-v1": { "$ref": "#/$defs/toolBinding" }
+      }
+    },
+    "mappedTool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "inputSchema", "_meta", "execution"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^asp\\.action\\.[0-9a-f]{64}$"
+        },
+        "inputSchema": { "$ref": "#/$defs/rootObjectSchema" },
+        "_meta": { "$ref": "#/$defs/toolMeta" },
+        "execution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["taskSupport"],
+          "properties": {
+            "taskSupport": { "const": "forbidden" }
+          }
+        }
+      }
+    },
+    "listToolsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "result"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/jsonRpcId" },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tools", "_meta"],
+          "properties": {
+            "tools": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/mappedTool" }
+            },
+            "nextCursor": { "$ref": "#/$defs/nonEmptyString" },
+            "_meta": { "$ref": "#/$defs/bindingMeta" }
+          }
+        }
+      }
+    },
+    "actionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "payload"],
+      "properties": {
+        "type": { "const": "action.request" },
+        "payload": {
+          "type": "object",
+          "not": { "required": ["input"] }
+        }
+      }
+    },
+    "callBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "mcp_protocol_version",
+        "binding_view_id",
+        "surface_version",
+        "surface_hash",
+        "authorization_composition",
+        "action_request"
+      ],
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "mcp_protocol_version": { "$ref": "#/$defs/protocolVersion" },
+        "binding_view_id": { "$ref": "#/$defs/nonEmptyString" },
+        "surface_version": { "$ref": "#/$defs/nonEmptyString" },
+        "surface_hash": { "$ref": "#/$defs/digest" },
+        "authorization_composition": { "enum": ["asp-native", "mcp-oauth-dual-use"] },
+        "authorized_projection": { "$ref": "#/$defs/authorizedProjection" },
+        "action_request": { "$ref": "#/$defs/actionRequest" }
+      }
+    },
+    "callMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["io.github.zeroal-spec/asp-over-mcp-v1"],
+      "properties": {
+        "io.github.zeroal-spec/asp-over-mcp-v1": { "$ref": "#/$defs/callBinding" },
+        "progressToken": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            { "type": "string", "minLength": 1, "maxLength": 128 }
+          ]
+        }
+      }
+    },
+    "callToolRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "method", "params"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/jsonRpcId" },
+        "method": { "const": "tools/call" },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "arguments", "_meta"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^asp\\.action\\.[0-9a-f]{64}$"
+            },
+            "arguments": { "type": "object" },
+            "_meta": { "$ref": "#/$defs/callMeta" }
+          }
+        }
+      }
+    },
+    "commonAspError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "description", "retryable"],
+      "properties": {
+        "code": {
+          "enum": [
+            "grant_missing", "grant_expired", "grant_revoked", "grant_proof_invalid",
+            "integrity_mismatch", "scope_denied", "resource_denied",
+            "approval_required", "approval_denied", "approval_expired",
+            "elicitation_invalid", "schema_invalid", "input_not_normalized",
+            "idempotency_conflict", "execution_mode_invalid",
+            "execution_transition_invalid", "execution_token_invalid",
+            "execution_token_expired", "precondition_failed", "effect_mismatch",
+            "reservation_conflict", "reservation_expired", "reservation_invalid",
+            "recovery_not_supported", "recovery_already_applied", "revert_conflict",
+            "outcome_unknown", "risk_denied", "data_exposure_violation",
+            "remote_processing_violation", "training_use_denied",
+            "identity_evidence_invalid", "identity_evidence_profile_unsupported",
+            "identity_evidence_status_unavailable",
+            "identity_evidence_migration_required", "passport_invalid",
+            "passport_profile_unsupported", "passport_status_unavailable",
+            "runtime_untrusted", "surface_incompatible",
+            "surface_projection_unavailable", "proposal_required", "session_invalid",
+            "session_transition_invalid", "event_subscription_invalid",
+            "event_delivery_conflict", "event_cursor_invalid", "event_cursor_expired",
+            "action_unknown", "limit_exceeded", "safety_guard_triggered",
+            "budget_query_invalid", "budget_state_unavailable", "rate_limited",
+            "capacity_state_unavailable", "service_unavailable"
+          ]
+        },
+        "description": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "retryable": { "type": "boolean" },
+        "limit": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "limit_ids": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/nonEmptyString" }
+            },
+            "retry_after_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "retry_after_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "code": { "const": "rate_limited" } } },
+          "then": { "not": { "required": ["retry_after_seconds"] } },
+          "else": {
+            "if": {
+              "properties": {
+                "code": { "enum": ["capacity_state_unavailable", "service_unavailable"] }
+              }
+            },
+            "then": { "not": { "required": ["limit"] } },
+            "else": {
+              "not": {
+                "anyOf": [
+                  { "required": ["limit"] },
+                  { "required": ["retry_after_seconds"] }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": { "required": ["retry_after_seconds"] },
+          "then": { "properties": { "retryable": { "const": true } } }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": { "const": "rate_limited" },
+              "limit": { "required": ["retry_after_seconds"] }
+            },
+            "required": ["code", "limit"]
+          },
+          "then": { "properties": { "retryable": { "const": true } } }
+        }
+      ]
+    },
+    "bindingErrorMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "payload"],
+      "properties": {
+        "type": { "const": "binding.error" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "description", "retryable", "admission_outcome"],
+          "properties": {
+            "code": { "const": "binding_invalid" },
+            "description": { "type": "string", "minLength": 1, "maxLength": 1024 },
+            "retryable": { "const": false },
+            "admission_outcome": { "const": "not_admitted" }
+          }
+        }
+      }
+    },
+    "actionErrorMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "payload"],
+      "properties": {
+        "type": { "const": "action.error" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "session_id", "session_generation", "trace_id", "span_id", "grant_id",
+            "grant_hash", "surface_hash", "action_id", "error"
+          ],
+          "properties": {
+            "session_id": { "$ref": "#/$defs/nonEmptyString" },
+            "session_generation": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+            "trace_id": { "$ref": "#/$defs/traceId" },
+            "span_id": { "$ref": "#/$defs/spanId" },
+            "grant_id": { "$ref": "#/$defs/nonEmptyString" },
+            "grant_hash": { "$ref": "#/$defs/digest" },
+            "surface_hash": { "$ref": "#/$defs/digest" },
+            "action_id": { "$ref": "#/$defs/nonEmptyString" },
+            "idempotency_key": { "$ref": "#/$defs/nonEmptyString" },
+            "execution": { "type": "object" },
+            "execution_hash": { "$ref": "#/$defs/digest" },
+            "effect_outcome": { "enum": ["not_applied", "applied", "partially_applied", "unknown"] },
+            "actual_effects": { "type": "array" },
+            "actual_effects_hash": { "$ref": "#/$defs/digest" },
+            "approval_receipt_hashes": {
+              "type": "object",
+              "additionalProperties": false,
+              "minProperties": 1,
+              "properties": {
+                "runtime": { "$ref": "#/$defs/digest" },
+                "application": { "$ref": "#/$defs/digest" }
+              }
+            },
+            "approval_receipt_id": { "$ref": "#/$defs/nonEmptyString" },
+            "approval_receipt_hash": { "$ref": "#/$defs/digest" },
+            "receipt_id": { "$ref": "#/$defs/nonEmptyString" },
+            "receipt_hash": { "$ref": "#/$defs/digest" },
+            "error": { "$ref": "#/$defs/commonAspError" }
+          }
+        }
+      }
+    },
+    "actionResultMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "payload"],
+      "properties": {
+        "type": { "const": "action.result" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "session_id", "session_generation", "trace_id", "span_id", "grant_id",
+            "grant_hash", "surface_hash", "action_id", "result", "output"
+          ],
+          "properties": {
+            "session_id": { "$ref": "#/$defs/nonEmptyString" },
+            "session_generation": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+            "trace_id": { "$ref": "#/$defs/traceId" },
+            "span_id": { "$ref": "#/$defs/spanId" },
+            "grant_id": { "$ref": "#/$defs/nonEmptyString" },
+            "grant_hash": { "$ref": "#/$defs/digest" },
+            "surface_hash": { "$ref": "#/$defs/digest" },
+            "action_id": { "$ref": "#/$defs/nonEmptyString" },
+            "idempotency_key": { "$ref": "#/$defs/nonEmptyString" },
+            "execution": { "type": "object" },
+            "execution_hash": { "$ref": "#/$defs/digest" },
+            "approval_receipt_hashes": {
+              "type": "object",
+              "additionalProperties": false,
+              "minProperties": 1,
+              "properties": {
+                "runtime": { "$ref": "#/$defs/digest" },
+                "application": { "$ref": "#/$defs/digest" }
+              }
+            },
+            "result": { "$ref": "#/$defs/nonEmptyString" },
+            "proposal_id": { "$ref": "#/$defs/nonEmptyString" },
+            "proposal": { "type": "object" },
+            "preview": { "type": "object" },
+            "preconditions": { "oneOf": [{"type": "object"}, {"type": "array"}] },
+            "preconditions_hash": { "$ref": "#/$defs/digest" },
+            "expected_effects": { "type": "array" },
+            "expected_effects_hash": { "$ref": "#/$defs/digest" },
+            "reservation_result": { "type": "object" },
+            "target_receipt_hash": { "$ref": "#/$defs/digest" },
+            "revert_evidence": { "type": "object" },
+            "effect_outcome": { "enum": ["not_applied", "applied", "partially_applied", "unknown"] },
+            "actual_effects": { "type": "array" },
+            "actual_effects_hash": { "$ref": "#/$defs/digest" },
+            "output": true,
+            "receipt_id": { "$ref": "#/$defs/nonEmptyString" },
+            "receipt_hash": { "$ref": "#/$defs/digest" }
+          }
+        }
+      }
+    },
+    "structuredEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "mcp_protocol_version", "binding_view_id", "message"],
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "mcp_protocol_version": { "$ref": "#/$defs/protocolVersion" },
+        "binding_view_id": { "$ref": "#/$defs/nonEmptyString" },
+        "message": {
+          "oneOf": [
+            { "$ref": "#/$defs/actionResultMessage" },
+            { "$ref": "#/$defs/bindingErrorMessage" },
+            { "$ref": "#/$defs/actionErrorMessage" }
+          ]
+        },
+        "receipt_resource_uris": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/absoluteUri" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "message": {
+                "properties": { "type": { "const": "binding.error" } },
+                "required": ["type"]
+              }
+            }
+          },
+          "then": { "not": { "required": ["receipt_resource_uris"] } }
+        }
+      ]
+    },
+    "textContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "text"],
+      "properties": {
+        "type": { "const": "text" },
+        "text": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "receiptResourceLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "name", "uri"],
+      "properties": {
+        "type": { "const": "resource_link" },
+        "name": { "const": "asp-receipt" },
+        "uri": { "$ref": "#/$defs/absoluteUri" }
+      }
+    },
+    "callToolResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "id", "result"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/jsonRpcId" },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["content", "structuredContent", "isError"],
+          "properties": {
+            "content": {
+              "type": "array",
+              "minItems": 1,
+              "prefixItems": [
+                { "$ref": "#/$defs/textContent" }
+              ],
+              "items": { "$ref": "#/$defs/receiptResourceLink" }
+            },
+            "structuredContent": { "$ref": "#/$defs/structuredEnvelope" },
+            "isError": { "type": "boolean" }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "structuredContent": {
+                    "properties": {
+                      "message": {
+                        "properties": { "type": { "const": "action.result" } },
+                        "required": ["type"]
+                      }
+                    }
+                  }
+                }
+              },
+              "then": { "properties": { "isError": { "const": false } } },
+              "else": { "properties": { "isError": { "const": true } } }
+            },
+            {
+              "if": {
+                "properties": {
+                  "structuredContent": {
+                    "properties": {
+                      "message": {
+                        "properties": { "type": { "const": "binding.error" } },
+                        "required": ["type"]
+                      }
+                    }
+                  }
+                }
+              },
+              "then": { "properties": { "content": { "maxItems": 1 } } }
+            }
+          ]
+        }
+      }
+    },
+    "resourceUpdatedNotification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "method", "params"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "method": { "const": "notifications/resources/updated" },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["uri"],
+          "properties": {
+            "uri": { "$ref": "#/$defs/absoluteUri" }
+          }
+        }
+      }
+    },
+    "toolsChangedNotification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "method"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "method": { "const": "notifications/tools/list_changed" }
+      }
+    },
+    "progressToken": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        { "type": "string", "minLength": 1, "maxLength": 128 }
+      ]
+    },
+    "progressNotification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "method", "params"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "method": { "const": "notifications/progress" },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["progressToken", "progress"],
+          "properties": {
+            "progressToken": { "$ref": "#/$defs/progressToken" },
+            "progress": { "type": "number", "minimum": 0 },
+            "total": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "cancelledNotification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "method", "params"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "method": { "const": "notifications/cancelled" },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requestId"],
+          "properties": {
+            "requestId": { "$ref": "#/$defs/jsonRpcId" }
+          }
+        }
+      }
+    },
+    "jsonRpcErrorResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jsonrpc", "error"],
+      "properties": {
+        "jsonrpc": { "const": "2.0" },
+        "id": { "$ref": "#/$defs/jsonRpcId" },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message"],
+          "properties": {
+            "code": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "message": { "type": "string", "minLength": 1, "maxLength": 256 }
+          }
+        }
+      }
+    },
+    "httpRequestAuthorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_class", "method", "target_uri", "authorization_applied",
+        "binding_kind", "binding_verified"
+      ],
+      "properties": {
+        "request_class": { "enum": ["initialize", "post", "listener", "termination"] },
+        "method": { "enum": ["POST", "GET", "DELETE"] },
+        "target_uri": { "$ref": "#/$defs/absoluteHttpsUri" },
+        "authorization_applied": { "const": true },
+        "binding_kind": { "enum": ["dpop_htu_htm", "mtls_channel", "bearer_transport"] },
+        "binding_verified": { "const": true }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "request_class": { "const": "initialize" } } },
+          "then": { "properties": { "method": { "const": "POST" } } }
+        },
+        {
+          "if": { "properties": { "request_class": { "const": "post" } } },
+          "then": { "properties": { "method": { "const": "POST" } } }
+        },
+        {
+          "if": { "properties": { "request_class": { "const": "listener" } } },
+          "then": { "properties": { "method": { "const": "GET" } } }
+        },
+        {
+          "if": { "properties": { "request_class": { "const": "termination" } } },
+          "then": { "properties": { "method": { "const": "DELETE" } } }
+        }
+      ]
+    },
+    "httpRequestAuthorizations": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/httpRequestAuthorization" },
+      "allOf": [
+        { "contains": { "properties": { "request_class": { "const": "initialize" } }, "required": ["request_class"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "request_class": { "const": "post" } }, "required": ["request_class"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "request_class": { "const": "listener" } }, "required": ["request_class"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "request_class": { "const": "termination" } }, "required": ["request_class"] }, "minContains": 1, "maxContains": 1 }
+      ]
+    },
+    "httpAuthorization": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "composition", "mcp_oauth", "asp_credential_profile",
+            "authorization_scheme", "audience", "application_verified_asp_grant",
+            "credential_in_json", "token_forwarding", "request_authorizations"
+          ],
+          "properties": {
+            "composition": { "const": "asp_native" },
+            "mcp_oauth": { "const": false },
+            "asp_credential_profile": { "enum": ["dpop", "compatibility_bearer", "mtls"] },
+            "authorization_scheme": { "enum": ["DPoP", "Bearer", "mTLS"] },
+            "audience": { "$ref": "#/$defs/absoluteHttpsUri" },
+            "application_verified_asp_grant": { "const": true },
+            "credential_in_json": { "const": false },
+            "token_forwarding": { "const": false },
+            "request_authorizations": { "$ref": "#/$defs/httpRequestAuthorizations" }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "asp_credential_profile": { "const": "dpop" } } },
+              "then": {
+                "properties": {
+                  "authorization_scheme": { "const": "DPoP" },
+                  "request_authorizations": {
+                    "items": { "properties": { "binding_kind": { "const": "dpop_htu_htm" } } }
+                  }
+                }
+              }
+            },
+            {
+              "if": { "properties": { "asp_credential_profile": { "const": "compatibility_bearer" } } },
+              "then": {
+                "properties": {
+                  "authorization_scheme": { "const": "Bearer" },
+                  "request_authorizations": {
+                    "items": { "properties": { "binding_kind": { "const": "bearer_transport" } } }
+                  }
+                }
+              }
+            },
+            {
+              "if": { "properties": { "asp_credential_profile": { "const": "mtls" } } },
+              "then": {
+                "properties": {
+                  "authorization_scheme": { "const": "mTLS" },
+                  "request_authorizations": {
+                    "items": { "properties": { "binding_kind": { "const": "mtls_channel" } } }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "composition", "mcp_oauth", "asp_credential_profile",
+            "authorization_scheme", "audience", "application_verified_asp_grant",
+            "credential_in_json", "token_forwarding", "request_authorizations"
+          ],
+          "properties": {
+            "composition": { "const": "mcp_oauth_dual_use" },
+            "mcp_oauth": { "const": true },
+            "asp_credential_profile": { "enum": ["compatibility_bearer", "mtls_bound_bearer"] },
+            "authorization_scheme": { "const": "Bearer" },
+            "audience": { "$ref": "#/$defs/absoluteHttpsUri" },
+            "application_verified_asp_grant": { "const": true },
+            "credential_in_json": { "const": false },
+            "token_forwarding": { "const": false },
+            "request_authorizations": { "$ref": "#/$defs/httpRequestAuthorizations" }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "asp_credential_profile": { "const": "compatibility_bearer" } } },
+              "then": {
+                "properties": {
+                  "request_authorizations": {
+                    "items": { "properties": { "binding_kind": { "const": "bearer_transport" } } }
+                  }
+                }
+              }
+            },
+            {
+              "if": { "properties": { "asp_credential_profile": { "const": "mtls_bound_bearer" } } },
+              "then": {
+                "properties": {
+                  "request_authorizations": {
+                    "items": { "properties": { "binding_kind": { "const": "mtls_channel" } } }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "streamableHttpEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind", "transport", "endpoint", "origin_check", "redirect_policy",
+        "post_content_type", "post_accepts_json_and_event_stream",
+        "get_accepts_event_stream", "mcp_protocol_version_header",
+        "session_id", "session_header_use", "session_binding", "listener_state",
+        "listener_content_type", "listener_count", "stream_state",
+        "not_found_recovery", "response_cache_policy", "outer_idempotency_header",
+        "authorization_use", "raw_error_exposure", "authorization"
+      ],
+      "properties": {
+        "kind": { "const": "streamable_http_binding" },
+        "transport": { "const": "streamable_http" },
+        "endpoint": {
+          "allOf": [
+            { "$ref": "#/$defs/absoluteHttpsUri" },
+            { "pattern": "^[^?#]+$" }
+          ]
+        },
+        "origin_check": { "const": "allowed_before_asp" },
+        "redirect_policy": { "const": "no_endpoint_changes" },
+        "post_content_type": { "const": "application/json" },
+        "post_accepts_json_and_event_stream": { "const": true },
+        "get_accepts_event_stream": { "const": true },
+        "mcp_protocol_version_header": { "$ref": "#/$defs/protocolVersion" },
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[\\x21-\\x7E]+$"
+        },
+        "session_header_use": { "const": "all_post_get_delete" },
+        "session_binding": { "const": "exact" },
+        "listener_state": { "const": "open_before_subscribe" },
+        "listener_content_type": { "const": "text/event-stream" },
+        "listener_count": { "const": 1 },
+        "stream_state": { "const": "current" },
+        "not_found_recovery": { "const": "fresh_initialize" },
+        "response_cache_policy": { "const": "no_store" },
+        "outer_idempotency_header": { "const": "omitted" },
+        "authorization_use": { "const": "initialize_and_every_request_and_listener" },
+        "raw_error_exposure": { "const": "internal_only" },
+        "authorization": { "$ref": "#/$defs/httpAuthorization" }
+      }
+    }
+  }
+}

@@ -19,8 +19,13 @@ from conformance.check import (
     _derive_impact_actions,
     _hash_without_member,
     _impact_candidate_projection,
+    _mcp_contains_forbidden_credential,
     _resolved_fixture,
     _schema_registry,
+    _validate_mcp_credential_free_uri,
+    _validate_mcp_execution_token_pair,
+    _validate_mcp_schema_instance,
+    _validate_with_schema,
     applicable_vectors,
     catalog_digest,
     loads_human_json,
@@ -34,6 +39,8 @@ from conformance.check import (
     validate_human_elicitation_projection,
     validate_impact_simulation,
     validate_impact_simulation_projection,
+    validate_mcp_binding_projection,
+    validate_mcp_wire_semantics,
     validate_risk_explanation,
     validate_risk_explanation_publisher_projection,
     validate_risk_explanation_projection,
@@ -174,14 +181,14 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.8.0")
-        self.assertEqual(len(self.catalog.features), 13)
-        self.assertEqual(len(self.catalog.requirements), 46)
-        self.assertEqual(len(self.catalog.vectors), 137)
+        self.assertEqual(self.catalog.suite["suite_version"], "1.9.0")
+        self.assertEqual(len(self.catalog.features), 14)
+        self.assertEqual(len(self.catalog.requirements), 51)
+        self.assertEqual(len(self.catalog.vectors), 163)
         self.assertEqual(len(self.catalog.bundles), 8)
-        self.assertEqual(len(self.catalog.fixtures), 39)
-        self.assertEqual(len(self.catalog.mutations), 96)
-        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 65)
+        self.assertEqual(len(self.catalog.fixtures), 44)
+        self.assertEqual(len(self.catalog.mutations), 117)
+        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 124)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
 
     def test_adoption_bundles_are_non_linear_closed_vector_plans(self) -> None:
@@ -972,6 +979,1621 @@ class ConformanceSuiteTests(unittest.TestCase):
             ConformanceError, "does not match its bound ASP authority tuple"
         ):
             validate_catalog(root)
+
+    def test_asp_over_mcp_baselines_are_semantically_bound(self) -> None:
+        mcp_vectors = {
+            "ASP-V-SP-010",
+            "ASP-V-SP-011",
+            "ASP-V-SP-012",
+            "ASP-V-SP-013",
+            "ASP-V-AE-032",
+            "ASP-V-AE-033",
+            "ASP-V-AE-034",
+            "ASP-V-AE-035",
+            "ASP-V-AE-036",
+            "ASP-V-AE-037",
+            "ASP-V-RM-072",
+            "ASP-V-RM-073",
+            "ASP-V-RM-074",
+            "ASP-V-RM-075",
+            "ASP-V-RM-076",
+            "ASP-V-RM-077",
+            "ASP-V-RM-078",
+            "ASP-V-RM-079",
+            "ASP-V-RM-080",
+            "ASP-V-AA-012",
+            "ASP-V-AA-013",
+            "ASP-V-AA-014",
+            "ASP-V-AA-015",
+            "ASP-V-GI-008",
+            "ASP-V-GI-009",
+            "ASP-V-GI-010",
+        }
+        self.assertEqual(
+            {
+                vector_id
+                for vector_id, vector in self.catalog.vectors.items()
+                if "asp_over_mcp_selected" in vector["setup"]
+            },
+            mcp_vectors,
+        )
+
+        # Discovery binds tools to the manifest inventory, never to a pre-existing Grant.
+        root = self.catalog_copy()
+        path = root / "conformance" / "v1" / "fixtures.json"
+        fixtures = json.loads(path.read_text(encoding="utf-8"))
+        publisher = next(
+            item
+            for item in fixtures["fixtures"]
+            if item["fixture_id"] == "ASP-F-SP-010"
+        )
+        publisher["document"]["grant"]["issued_actions"] = ["action.read"]
+        path.write_text(json.dumps(fixtures), encoding="utf-8")
+        validate_catalog(root)
+
+        # Execution must independently prove that the exact mapped action is issued.
+        root = self.catalog_copy()
+        path = root / "conformance" / "v1" / "fixtures.json"
+        fixtures = json.loads(path.read_text(encoding="utf-8"))
+        executor = next(
+            item
+            for item in fixtures["fixtures"]
+            if item["fixture_id"] == "ASP-F-AE-032"
+        )
+        executor["document"]["grant"]["issued_actions"] = ["action.read"]
+        path.write_text(json.dumps(fixtures), encoding="utf-8")
+        with self.assertRaisesRegex(ConformanceError, "outside the issued ASP Grant"):
+            validate_catalog(root)
+
+        root = self.catalog_copy()
+        path = root / "conformance" / "v1" / "fixtures.json"
+        fixtures = json.loads(path.read_text(encoding="utf-8"))
+        runtime = next(
+            item
+            for item in fixtures["fixtures"]
+            if item["fixture_id"] == "ASP-F-RM-072"
+        )
+        runtime["document"]["mcp"]["result_grant_hash"] = "grant_hash_b"
+        path.write_text(json.dumps(fixtures), encoding="utf-8")
+        with self.assertRaisesRegex(ConformanceError, "result tuple differs"):
+            validate_catalog(root)
+
+        root = self.catalog_copy()
+        path = root / "conformance" / "v1" / "fixtures.json"
+        fixtures = json.loads(path.read_text(encoding="utf-8"))
+        runtime = next(
+            item
+            for item in fixtures["fixtures"]
+            if item["fixture_id"] == "ASP-F-RM-072"
+        )
+        runtime["document"]["mcp"]["resource_update_state"] = "updated"
+        runtime["document"]["mcp"]["current_binding_view_id"] = "binding_view_b"
+        path.write_text(json.dumps(fixtures), encoding="utf-8")
+        with self.assertRaisesRegex(
+            ConformanceError, "neither current nor an exact retained completed replay"
+        ):
+            validate_catalog(root)
+
+        read_document = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-072"]["document"]
+        )
+        read_mcp = read_document["mcp"]
+        read_mcp["tool_name"] = (
+            "asp.action."
+            "23366c437a0ce5ea66f4e84510f454c3ba3c7928d9ce9bfedcea86136355048b"
+        )
+        read_mcp["action_id"] = "action.read"
+        read_mcp["mapped_action_id"] = "action.read"
+        read_mcp["action_mode"] = "read"
+        read_mcp["mapped_action_mode"] = "read"
+        read_mcp["idempotency_key"] = "none"
+        read_mcp["bound_idempotency_key"] = "none"
+        read_mcp["idempotency_requirement"] = "optional"
+        read_mcp["result_action_id"] = "action.read"
+        read_mcp["result_idempotency_key"] = "none"
+        read_mcp["receipt_channel"] = "not_applicable"
+        read_mcp["receipt_requirement"] = "not_required"
+        read_mcp["receipt_resource_authentication"] = "not_applicable"
+        read_mcp["receipt_integrity"] = "not_applicable"
+        read_mcp["receipt_persistence"] = "not_applicable"
+        read_mcp["receipt_rematerialization"] = "not_applicable"
+        read_document["mcp_authority"]["selected_action_id"] = "action.read"
+        read_document["mcp_authority"]["selected_action_mode"] = "read"
+        read_document["mcp_authority"]["idempotency_key"] = "none"
+        validate_mcp_binding_projection(
+            read_mcp,
+            read_document,
+            "mediate_mcp_action",
+        )
+
+    def test_asp_over_mcp_security_edges_are_executable(self) -> None:
+        publisher = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-SP-010"]["document"]
+        )
+        for field, value in (
+            ("surface_hash", "surface_hash_b"),
+            ("surface_version", "surface_v2"),
+        ):
+            with self.subTest(publisher_binding=field):
+                substituted_publisher = copy.deepcopy(publisher)
+                substituted_publisher["mcp"][field] = value
+                with self.assertRaisesRegex(
+                    ConformanceError, "manifest authority|authoritative surface"
+                ):
+                    validate_mcp_binding_projection(
+                        substituted_publisher["mcp"],
+                        substituted_publisher,
+                        "publish_mcp_surface",
+                    )
+        for surface_field, value in (
+            ("status", "stale"),
+            ("references", "incomplete"),
+        ):
+            with self.subTest(publisher_surface=surface_field):
+                invalid_publisher = copy.deepcopy(publisher)
+                invalid_publisher["surface"][surface_field] = value
+                with self.assertRaisesRegex(
+                    ConformanceError, "authoritative surface"
+                ):
+                    validate_mcp_binding_projection(
+                        invalid_publisher["mcp"],
+                        invalid_publisher,
+                        "publish_mcp_surface",
+                    )
+
+        adapter = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-AA-012"]["document"]
+        )
+        for operation, source in (
+            ("publish_mcp_surface", publisher),
+            ("adapt_mcp_action", adapter),
+        ):
+            for label, mutate in (
+                (
+                    "action_set",
+                    lambda document: document["mcp"]["manifest_action_ids"].append(
+                        "evil.action"
+                    ),
+                ),
+                (
+                    "projection",
+                    lambda document: document["mcp"].__setitem__(
+                        "authorized_projection_state", "exact"
+                    ),
+                ),
+                (
+                    "grant_location",
+                    lambda document: document["mcp_authority"].__setitem__(
+                        "issued_locations", ["https://attacker.example/mcp"]
+                    ),
+                ),
+            ):
+                with self.subTest(operation=operation, authority_binding=label):
+                    invalid = copy.deepcopy(source)
+                    mutate(invalid)
+                    with self.assertRaisesRegex(
+                        ConformanceError,
+                        "manifest authority|Grant locations",
+                    ):
+                        validate_mcp_binding_projection(
+                            invalid["mcp"], invalid, operation
+                        )
+
+        grant_issuer = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-GI-008"]["document"]
+        )
+        grant_issuer["mcp_authority"]["manifest_credential_audience"] = "not-a-uri"
+        with self.assertRaisesRegex(ConformanceError, "absolute HTTPS"):
+            validate_mcp_binding_projection(
+                grant_issuer["mcp"], grant_issuer, "issue_mcp_grant"
+            )
+
+        baseline = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-072"]["document"]
+        )
+        first_page = {"jsonrpc": "2.0", "id": "", "method": "tools/list"}
+        validate_mcp_wire_semantics(
+            first_page,
+            tools_list_first_page=True,
+            prior_request_ids=["previous"],
+        )
+        with self.assertRaisesRegex(ConformanceError, "must omit params"):
+            validate_mcp_wire_semantics(
+                {**first_page, "params": {}},
+                tools_list_first_page=True,
+            )
+        with self.assertRaisesRegex(ConformanceError, "already used"):
+            validate_mcp_wire_semantics(
+                first_page,
+                tools_list_first_page=True,
+                prior_request_ids=[""],
+            )
+        with self.assertRaisesRegex(ConformanceError, "already consumed"):
+            validate_mcp_wire_semantics(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "method": "tools/list",
+                    "params": {"cursor": "cursor-1"},
+                },
+                expected_cursor="cursor-1",
+                prior_cursors=["cursor-1"],
+            )
+        cursor_page = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": {"tools": [], "nextCursor": "cursor-1", "_meta": {}},
+        }
+        with self.assertRaisesRegex(ConformanceError, "repeats a cursor lineage"):
+            validate_mcp_wire_semantics(cursor_page, prior_cursors=["cursor-1"])
+        fresh_empty_page = copy.deepcopy(cursor_page)
+        fresh_empty_page["result"]["nextCursor"] = "cursor-2"
+        with self.assertRaisesRegex(ConformanceError, "empty page"):
+            validate_mcp_wire_semantics(fresh_empty_page, prior_cursors=["cursor-1"])
+        for lookup_outcome in (
+            "unknown_404_no_mutation",
+            "auth_mismatch_404_no_mutation",
+        ):
+            recovered = copy.deepcopy(baseline)
+            recovered_mcp = recovered["mcp"]
+            recovered_mcp["transport_lifecycle_event"] = "session_lookup_404_recovered"
+            recovered_mcp["fresh_initialize_authority"] = "transport_only"
+            recovered_mcp["session_lookup_outcome"] = lookup_outcome
+            with self.assertRaisesRegex(ConformanceError, "transport lifecycle"):
+                validate_mcp_binding_projection(
+                    recovered_mcp, recovered, "mediate_mcp_action"
+                )
+            rediscovery = copy.deepcopy(publisher)
+            rediscovery_mcp = rediscovery["mcp"]
+            rediscovery_mcp["transport_lifecycle_event"] = (
+                "session_lookup_404_recovered"
+            )
+            rediscovery_mcp["fresh_initialize_authority"] = "transport_only"
+            rediscovery_mcp["session_lookup_outcome"] = lookup_outcome
+            validate_mcp_binding_projection(
+                rediscovery_mcp, rediscovery, "publish_mcp_surface"
+            )
+
+        for delimiter in ("?", "#"):
+            with self.subTest(endpoint_delimiter=delimiter):
+                invalid_endpoint = copy.deepcopy(baseline)
+                endpoint = "https://app.example/mcp" + delimiter
+                for owner, field in (
+                    (invalid_endpoint["mcp"], "binding_endpoint"),
+                    (invalid_endpoint["mcp"], "canonical_mcp_server_uri"),
+                    (invalid_endpoint["mcp"], "credential_proof_target_uri"),
+                    (invalid_endpoint["mcp_authority"], "manifest_binding_endpoint"),
+                    (invalid_endpoint["mcp_authority"], "credential_proof_target_uri"),
+                ):
+                    owner[field] = endpoint
+                invalid_endpoint["mcp_authority"]["requested_locations"] = [endpoint]
+                invalid_endpoint["mcp_authority"]["issued_locations"] = [endpoint]
+                with self.assertRaisesRegex(
+                    ConformanceError, "fragmentless HTTPS"
+                ):
+                    validate_mcp_binding_projection(
+                        invalid_endpoint["mcp"],
+                        invalid_endpoint,
+                        "mediate_mcp_action",
+                    )
+
+        invalid_audience = copy.deepcopy(baseline)
+        invalid_audience["mcp_authority"]["manifest_credential_audience"] = "not-a-uri"
+        invalid_audience["mcp"]["token_audience"] = "not-a-uri"
+        invalid_audience["mcp"]["bound_token_audience"] = "not-a-uri"
+        with self.assertRaisesRegex(ConformanceError, "absolute HTTPS"):
+            validate_mcp_binding_projection(
+                invalid_audience["mcp"], invalid_audience, "mediate_mcp_action"
+            )
+
+        replay = copy.deepcopy(baseline)
+        replay_mcp = replay["mcp"]
+        replay_mcp["binding_view_use"] = "current_completed_replay"
+        replay_mcp["completed_record_state"] = "exact_authenticated"
+        replay_mcp["replay_materialization"] = "exact_persisted_result_and_receipt"
+        replay_mcp["retained_snapshot_state"] = "persisted_across_restart"
+        replay_mcp["replay_disclosure_authorization"] = "allowed"
+        validate_mcp_binding_projection(
+            replay_mcp, replay, "mediate_mcp_action"
+        )
+
+        retained_replay = copy.deepcopy(replay)
+        retained_mcp = retained_replay["mcp"]
+        retained_mcp["binding_view_use"] = "retained_completed_replay"
+        retained_mcp["resource_update_state"] = "updated"
+        retained_mcp["current_binding_view_id"] = "binding_view_b"
+        retained_mcp["tools_changed_state"] = "changed_after_snapshot"
+        retained_mcp["schema_snapshot_state"] = "retained"
+        retained_mcp["rotation_cause"] = "manifest"
+        validate_mcp_binding_projection(
+            retained_mcp, retained_replay, "mediate_mcp_action"
+        )
+        substituted_retained = copy.deepcopy(retained_replay)
+        substituted_retained_mcp = substituted_retained["mcp"]
+        substituted_retained_mcp["surface_version"] = "surface_v0"
+        substituted_retained_mcp["result_surface_version"] = "surface_v0"
+        for field in ("surface_hash", "bound_surface_hash", "result_surface_hash"):
+            substituted_retained_mcp[field] = "surface_hash_b"
+        with self.assertRaisesRegex(ConformanceError, "manifest authority"):
+            validate_mcp_binding_projection(
+                substituted_retained_mcp,
+                substituted_retained,
+                "mediate_mcp_action",
+            )
+
+        admission_mutations = (
+            ("grant", "status", "revoked"),
+            ("grant", "revocation_state", "revoked"),
+            ("grant", "claimed_issuer", "issuer_b"),
+            ("grant", "passport_status", "unavailable"),
+            ("grant", "companion_closure", "unclosed"),
+            ("execution", "input_hash", "input_hash_b"),
+            ("execution", "input_schema_hash", "input_schema_hash_b"),
+            ("execution", "normalization", "non_fixed_point"),
+            ("execution", "execution_hash", "execution_hash_b"),
+            ("execution", "approval_hash", "approval_hash_b"),
+            ("execution", "policy", "deny"),
+            ("execution", "runtime_identity", "runtime_identity_b"),
+            ("execution", "sender_credential_audience", "credential_audience_b"),
+            ("execution", "proof_session_binding", "session_binding_b"),
+            ("execution", "attestation", "unavailable"),
+        )
+        for fixture_id, operation in (
+            ("ASP-F-RM-072", "mediate_mcp_action"),
+            ("ASP-F-AE-032", "execute_mcp_action"),
+        ):
+            for section, field, value in admission_mutations:
+                with self.subTest(
+                    fixture_id=fixture_id, admission_field=f"{section}.{field}"
+                ):
+                    invalid_admission = copy.deepcopy(
+                        self.catalog.fixtures[fixture_id]["document"]
+                    )
+                    invalid_admission[section][field] = value
+                    with self.assertRaisesRegex(
+                        ConformanceError,
+                        "ordinary ASP authority|authoritative ASP state",
+                    ):
+                        validate_mcp_binding_projection(
+                            invalid_admission["mcp"],
+                            invalid_admission,
+                            operation,
+                        )
+
+        substituted = copy.deepcopy(baseline)
+        substituted_mcp = substituted["mcp"]
+        substituted_mcp["grant_id"] = "evil"
+        substituted_mcp["bound_grant_id"] = "evil"
+        substituted_mcp["result_grant_id"] = "evil"
+        with self.assertRaisesRegex(ConformanceError, "independent authority"):
+            validate_mcp_binding_projection(
+                substituted_mcp, substituted, "mediate_mcp_action"
+            )
+
+        for field, invalid_value in (
+            ("result_text_consistency", "divergent"),
+            ("result_grant_hash", "grant_hash_b"),
+            ("result_idempotency_key", "idempotency_key_b"),
+            ("result_output_schema", "invalid"),
+        ):
+            with self.subTest(result_invariant=field):
+                divergent = copy.deepcopy(baseline)
+                divergent["mcp"][field] = invalid_value
+                with self.assertRaises(ConformanceError):
+                    validate_mcp_binding_projection(
+                        divergent["mcp"], divergent, "mediate_mcp_action"
+                    )
+
+        valid_token = base64.urlsafe_b64encode(bytes(16)).rstrip(b"=").decode("ascii")
+        token_hash = digest("\x00" * 16)
+        # digest() hashes UTF-8 text; the token hash is over decoded token bytes.
+        token_hash = "sha-256:" + base64.urlsafe_b64encode(
+            hashlib.sha256(bytes(16)).digest()
+        ).rstrip(b"=").decode("ascii")
+        _validate_mcp_execution_token_pair(
+            valid_token, token_hash, label="test.preview"
+        )
+        with self.assertRaisesRegex(ConformanceError, "canonical base64url"):
+            _validate_mcp_execution_token_pair(
+                valid_token[:-1] + "B", token_hash, label="test.preview"
+            )
+        short_token = base64.urlsafe_b64encode(b"x").rstrip(b"=").decode("ascii")
+        short_token_hash = "sha-256:" + base64.urlsafe_b64encode(
+            hashlib.sha256(b"x").digest()
+        ).rstrip(b"=").decode("ascii")
+        with self.assertRaisesRegex(ConformanceError, "fewer than 16 decoded octets"):
+            _validate_mcp_execution_token_pair(
+                short_token, short_token_hash, label="test.preview"
+            )
+
+        reserved_name_schema = {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {"$ref": {"type": "string"}},
+            "required": ["$ref"],
+            "additionalProperties": False,
+        }
+        _validate_mcp_schema_instance(
+            {"$ref": "ordinary-domain-data"},
+            reserved_name_schema,
+            "reserved property",
+            retrieval_uri="https://app.example/schemas/reserved.json",
+        )
+        nested_base_schema = {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$defs": {
+                "user": {
+                    "$id": "defs/user",
+                    "type": "object",
+                    "properties": {"name": {"$ref": "inner"}},
+                    "required": ["name"],
+                },
+                "inner": {"$id": "defs/inner", "type": "string"},
+            },
+            "$ref": "defs/user",
+        }
+        _validate_mcp_schema_instance(
+            {"name": "Ada"},
+            nested_base_schema,
+            "nested retrieval base",
+            retrieval_uri="https://app.example/schemas/root.json",
+        )
+        with self.assertRaisesRegex(ConformanceError, "self-contained"):
+            _validate_mcp_schema_instance(
+                {},
+                {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$ref": "external.json",
+                },
+                "external retrieval",
+                retrieval_uri="https://app.example/schemas/root.json",
+            )
+
+        self.assertFalse(
+            _mcp_contains_forbidden_credential({"authorization": "none"})
+        )
+        secret = "synthetic-grant-credential-value"
+        self.assertTrue(
+            _mcp_contains_forbidden_credential(
+                {"value": secret},
+                forbidden_credential_values=frozenset({secret}),
+            )
+        )
+        with self.assertRaisesRegex(ConformanceError, "credential material"):
+            _validate_mcp_credential_free_uri(
+                f"https://app.example/resource?x={secret}",
+                label="neutral query",
+                forbidden_credential_values=frozenset({secret}),
+            )
+        with self.assertRaisesRegex(ConformanceError, "credential material"):
+            _validate_mcp_credential_free_uri(
+                "asp://receipt/r#synthetic-grant-credential%252Dvalue",
+                label="encoded fragment",
+                forbidden_credential_values=frozenset({secret}),
+            )
+
+    def test_asp_over_mcp_dry_run_preview_is_bound_and_fresh(self) -> None:
+        surface_hash = digest("surface")
+        grant_hash = digest("grant")
+        execution = {"mode": "dry_run", "execution_id": "exec-preview"}
+        execution_hash = _canonical_object_hash(
+            "https://github.com/0al-spec/agent-surface/hash/action-execution/v1",
+            execution,
+        )
+        raw_token = bytes(range(16))
+        execution_token = base64.urlsafe_b64encode(raw_token).rstrip(b"=").decode("ascii")
+        execution_token_hash = "sha-256:" + base64.urlsafe_b64encode(
+            hashlib.sha256(raw_token).digest()
+        ).rstrip(b"=").decode("ascii")
+        preview = {
+            "preview_id": "preview-1",
+            "commit_action_id": "mail.send",
+            "execution_token": execution_token,
+            "execution_token_hash": execution_token_hash,
+            "expires_at": "2026-07-22T12:05:00Z",
+        }
+        preconditions = {"mailbox_revision": "r1"}
+        expected_effects = [{"effect_id": "mail-send", "operation": "send"}]
+        payload = {
+            "session_id": "s1",
+            "session_generation": 1,
+            "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+            "span_id": "00f067aa0ba902b7",
+            "grant_id": "g1",
+            "grant_hash": grant_hash,
+            "surface_hash": surface_hash,
+            "action_id": "mail.preview",
+            "execution": execution,
+            "execution_hash": execution_hash,
+            "result": "preview",
+            "preview": preview,
+            "preconditions": preconditions,
+            "preconditions_hash": _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/action-preconditions/v1",
+                preconditions,
+            ),
+            "expected_effects": expected_effects,
+            "expected_effects_hash": _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/expected-effects/v1",
+                expected_effects,
+            ),
+            "output": {"ready": True},
+        }
+        envelope = {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1",
+            "mcp_protocol_version": "2025-11-25",
+            "binding_view_id": "view-1",
+            "message": {"type": "action.result", "payload": payload},
+        }
+        message = {
+            "jsonrpc": "2.0",
+            "id": 9,
+            "result": {
+                "content": [{"type": "text", "text": json.dumps(envelope)}],
+                "structuredContent": envelope,
+                "isError": False,
+            },
+        }
+        request_payload = {
+            key: payload[key]
+            for key in (
+                "session_id", "session_generation", "trace_id", "grant_id",
+                "grant_hash", "surface_hash", "action_id", "execution",
+                "execution_hash",
+            )
+        }
+        context = {
+            "expected_surface_hash": surface_hash,
+            "expected_request_payload": request_payload,
+            "action_mode": "dry_run",
+            "expected_result": "preview",
+            "receipt_required": False,
+            "expected_preview": preview,
+            "expected_preview_preconditions": preconditions,
+            "expected_preview_effects": expected_effects,
+            "evaluation_time": "2026-07-22T12:00:00Z",
+        }
+        validate_mcp_wire_semantics(message, **context)
+        expired = copy.deepcopy(message)
+        expired_preview = expired["result"]["structuredContent"]["message"]["payload"]["preview"]
+        expired_preview["expires_at"] = "2026-07-22T11:59:59Z"
+        expired["result"]["content"][0]["text"] = json.dumps(
+            expired["result"]["structuredContent"]
+        )
+        expired_context = dict(context)
+        expired_context["expected_preview"] = expired_preview
+        with self.assertRaisesRegex(ConformanceError, "expired"):
+            validate_mcp_wire_semantics(expired, **expired_context)
+
+    def test_asp_over_mcp_projection_and_receipt_resources_are_exact(self) -> None:
+        projection = {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/authorized-discovery/v1",
+            "projection_id": "projection-1",
+            "base_surface_version": "1",
+            "base_surface_hash": "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "expires_at": "2026-07-22T13:00:00Z",
+        }
+        cases = {
+            case["case_id"]: case
+            for case in self.catalog.schema_case_catalog["cases"]
+        }
+        manifest_case = cases["ASP-SC-MB-007"]
+        manifest_message = loads_human_json(
+            manifest_case["instance_json"], source="MCP manifest resource"
+        )
+        manifest_context = copy.deepcopy(manifest_case["context"])
+        validate_mcp_wire_semantics(manifest_message, **manifest_context)
+        substituted_manifest = copy.deepcopy(manifest_message)
+        substituted_body = loads_human_json(
+            substituted_manifest["result"]["contents"][0]["text"],
+            source="substituted MCP manifest",
+        )
+        substituted_body["surface_hash"] = digest("substituted-surface")
+        substituted_manifest["result"]["contents"][0]["text"] = json.dumps(
+            substituted_body
+        )
+        substituted_context = {
+            **manifest_context,
+            "expected_resource": substituted_body,
+        }
+        with self.assertRaisesRegex(ConformanceError, "surface_hash differs"):
+            validate_mcp_wire_semantics(substituted_manifest, **substituted_context)
+
+        http_case = cases["ASP-SC-MB-019"]
+        http_message = loads_human_json(
+            http_case["instance_json"], source="MCP HTTP evidence"
+        )
+        http_context = copy.deepcopy(http_case["context"])
+        validate_mcp_wire_semantics(http_message, **http_context)
+        mtls_message = copy.deepcopy(http_message)
+        mtls_authorization = mtls_message["authorization"]
+        mtls_authorization["asp_credential_profile"] = "mtls"
+        mtls_authorization["authorization_scheme"] = "mTLS"
+        for request_authorization in mtls_authorization["request_authorizations"]:
+            request_authorization["binding_kind"] = "mtls_channel"
+        validate_mcp_wire_semantics(mtls_message, **http_context)
+        wrong_listener_method = copy.deepcopy(http_message)
+        next(
+            item
+            for item in wrong_listener_method["authorization"]["request_authorizations"]
+            if item["request_class"] == "listener"
+        )["method"] = "POST"
+        with self.assertRaisesRegex(ConformanceError, "every exact request target"):
+            validate_mcp_wire_semantics(wrong_listener_method, **http_context)
+        empty_query_endpoint = copy.deepcopy(http_message)
+        empty_query_endpoint["endpoint"] += "?"
+        for request_authorization in empty_query_endpoint["authorization"][
+            "request_authorizations"
+        ]:
+            request_authorization["target_uri"] += "?"
+        empty_query_context = {
+            **http_context,
+            "expected_endpoint": empty_query_endpoint["endpoint"],
+            "expected_proof_target_uri": empty_query_endpoint["endpoint"],
+        }
+        with self.assertRaisesRegex(ConformanceError, "omit fragments"):
+            validate_mcp_wire_semantics(empty_query_endpoint, **empty_query_context)
+        empty_fragment_endpoint = copy.deepcopy(http_message)
+        empty_fragment_endpoint["endpoint"] += "#"
+        for request_authorization in empty_fragment_endpoint["authorization"][
+            "request_authorizations"
+        ]:
+            request_authorization["target_uri"] += "#"
+        empty_fragment_context = {
+            **http_context,
+            "expected_endpoint": empty_fragment_endpoint["endpoint"],
+            "expected_proof_target_uri": empty_fragment_endpoint["endpoint"],
+        }
+        with self.assertRaisesRegex(ConformanceError, "omit fragments"):
+            validate_mcp_wire_semantics(
+                empty_fragment_endpoint, **empty_fragment_context
+            )
+
+        list_case = cases["ASP-SC-MB-009"]
+        list_message = loads_human_json(
+            list_case["instance_json"], source="projected tools/list"
+        )
+        list_context = copy.deepcopy(list_case["context"])
+        page_binding = list_message["result"]["_meta"][
+            "io.github.zeroal-spec/asp-over-mcp-v1"
+        ]
+        tool_binding = list_message["result"]["tools"][0]["_meta"][
+            "io.github.zeroal-spec/asp-over-mcp-v1"
+        ]
+        page_binding["authorized_projection"] = projection
+        tool_binding["authorized_projection"] = projection
+        list_context["authorized_projection_expected"] = True
+        list_context["expected_authorized_projection"] = projection
+        list_context["expected_binding_record"]["authorized_projection"] = projection
+        list_context["expected_tool_records"][0]["binding"][
+            "authorized_projection"
+        ] = projection
+        validate_mcp_wire_semantics(list_message, **list_context)
+        substituted_list = copy.deepcopy(list_message)
+        substituted_list["result"]["tools"][0]["_meta"][
+            "io.github.zeroal-spec/asp-over-mcp-v1"
+        ]["authorized_projection"]["projection_id"] = "projection-2"
+        with self.assertRaisesRegex(ConformanceError, "manifest-selected binding record"):
+            validate_mcp_wire_semantics(substituted_list, **list_context)
+
+        call_case = cases["ASP-SC-MB-010"]
+        call_message = loads_human_json(
+            call_case["instance_json"], source="projected tools/call"
+        )
+        call_context = copy.deepcopy(call_case["context"])
+        call_binding = call_message["params"]["_meta"][
+            "io.github.zeroal-spec/asp-over-mcp-v1"
+        ]
+        call_binding["authorized_projection"] = projection
+        call_context["authorized_projection_expected"] = True
+        call_context["expected_authorized_projection"] = projection
+        call_context["expected_binding_record"]["authorized_projection"] = projection
+        validate_mcp_wire_semantics(call_message, **call_context)
+        missing_projection = copy.deepcopy(call_message)
+        del missing_projection["params"]["_meta"][
+            "io.github.zeroal-spec/asp-over-mcp-v1"
+        ]["authorized_projection"]
+        with self.assertRaisesRegex(ConformanceError, "presence differs"):
+            validate_mcp_wire_semantics(missing_projection, **call_context)
+
+        receipt_effects = [{"effect_id": "mail-send", "operation": "send"}]
+        receipt_execution = {"mode": "commit", "execution_id": "exec-1"}
+        receipt_policy = {
+            "type": "policy.decision",
+            "decision_id": "decision-1",
+            "enforcer": {"type": "application", "id": "mail.example"},
+            "outcome": "allow",
+            "policy": {"id": "mail-action-policy", "version": "1"},
+            "reason_code": "policy_allowed",
+            "matched_rules": ["grant.active", "action.mail.send"],
+            "safe_to_show": "The application accepted the authorized action.",
+            "evaluated_at": "2026-07-22T12:00:00Z",
+        }
+        receipt_policy["policy_decision_hash"] = _canonical_object_hash(
+            "https://github.com/0al-spec/agent-surface/hash/policy-decision/v1",
+            receipt_policy,
+        )
+        receipt_body = {
+            "receipt_id": "receipt-1",
+            "receipt_type": "app",
+            "grant_id": "g1",
+            "grant_hash": digest("grant"),
+            "session_id": "s1",
+            "session_generation": 1,
+            "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+            "span_id": "00f067aa0ba902b7",
+            "action_id": "mail.send",
+            "app_id": "mail.example",
+            "surface_version": "1",
+            "surface_hash": digest("surface"),
+            "runtime": {"runtime_id": "runtime-1"},
+            "actor_agent": {
+                "agent_id": "agent-1",
+                "identity_evidence_hash": digest("identity-evidence"),
+            },
+            "subject": {"user": "user-1"},
+            "idempotency_key": "idem-1",
+            "input_hash": digest("input"),
+            "execution": receipt_execution,
+            "execution_hash": _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/action-execution/v1",
+                receipt_execution,
+            ),
+            "output_hash": digest("output"),
+            "actual_effects": receipt_effects,
+            "actual_effects_hash": _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/actual-effects/v1",
+                receipt_effects,
+            ),
+            "effect_outcome": "applied",
+            "policy_decision_hash": receipt_policy["policy_decision_hash"],
+            "policy_decision": receipt_policy,
+            "timestamp": "2026-07-22T12:00:00Z",
+            "result": "success",
+        }
+        receipt_hash = _canonical_object_hash(
+            "https://github.com/0al-spec/agent-surface/hash/receipt/v1",
+            receipt_body,
+        )
+        receipt = {**receipt_body, "receipt_hash": receipt_hash}
+        receipt_uri = "asp://receipt/receipt-1"
+
+        def authenticated_receipt_record(
+            value: dict, *, receipt_type: str = "app", approval_role: str | None = None
+        ) -> dict:
+            binding_members = (
+                "session_id", "session_generation", "trace_id", "grant_id",
+                "grant_hash", "app_id", "surface_hash", "surface_version",
+                "action_id", "idempotency_key", "input_hash", "runtime",
+                "actor_agent", "subject", "execution", "execution_hash",
+            )
+            return {
+                "uri": receipt_uri,
+                "receipt": value,
+                "expected": {
+                    "receipt_id": value["receipt_id"],
+                    "receipt_hash": value["receipt_hash"],
+                    "receipt_type": receipt_type,
+                    "approval_role": approval_role,
+                    "binding": {
+                        member: value[member]
+                        for member in binding_members
+                        if member in value
+                    },
+                    "signature_required": False,
+                },
+            }
+
+        def receipt_semantics(value: dict) -> dict:
+            return {
+                member: value.get(member)
+                for member in (
+                    "result", "error", "output_hash", "actual_effects",
+                    "actual_effects_hash", "effect_outcome", "resource",
+                )
+            }
+        receipt_message = {
+            "jsonrpc": "2.0",
+            "id": 11,
+            "result": {
+                "contents": [
+                    {
+                        "uri": receipt_uri,
+                        "mimeType": "application/json",
+                        "text": json.dumps(receipt),
+                    }
+                ]
+            },
+        }
+        receipt_context = {
+            "requested_resource_uri": receipt_uri,
+            "resource_kind": "receipt",
+            "expected_resource": receipt,
+            "resource_hash_domain": "https://github.com/0al-spec/agent-surface/hash/receipt/v1",
+            "expected_resource_hash": receipt_hash,
+            "expected_receipt_type": "app",
+            "expected_receipt_semantics": receipt_semantics(receipt),
+            "expected_authenticated_receipt_resources": [
+                authenticated_receipt_record(receipt)
+            ],
+        }
+        validate_mcp_wire_semantics(receipt_message, **receipt_context)
+        malformed_record_context = {
+            **receipt_context,
+            "expected_authenticated_receipt_resources": [None],
+        }
+        with self.assertRaisesRegex(
+            ConformanceError, "exact authenticated resource record"
+        ):
+            validate_mcp_wire_semantics(
+                receipt_message, **malformed_record_context
+            )
+        invalid_role = copy.deepcopy(receipt_message)
+        invalid_receipt_body = {**receipt, "receipt_type": "runtime"}
+        invalid_receipt_body.pop("receipt_hash")
+        invalid_receipt = {
+            **invalid_receipt_body,
+            "receipt_hash": _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/receipt/v1",
+                invalid_receipt_body,
+            ),
+        }
+        invalid_role["result"]["contents"][0]["text"] = json.dumps(invalid_receipt)
+        invalid_context = {
+            **receipt_context,
+            "expected_resource": invalid_receipt,
+            "expected_resource_hash": invalid_receipt["receipt_hash"],
+        }
+        with self.assertRaisesRegex(ConformanceError, "receipt type and identity"):
+            validate_mcp_wire_semantics(invalid_role, **invalid_context)
+        tampered_hash = copy.deepcopy(receipt_message)
+        tampered_receipt = {**receipt, "receipt_hash": digest("tampered-receipt")}
+        tampered_hash["result"]["contents"][0]["text"] = json.dumps(tampered_receipt)
+        tampered_context = {**receipt_context, "expected_resource": tampered_receipt}
+        with self.assertRaisesRegex(ConformanceError, "receipt type and identity"):
+            validate_mcp_wire_semantics(tampered_hash, **tampered_context)
+        incomplete = copy.deepcopy(receipt_message)
+        incomplete_receipt = copy.deepcopy(receipt)
+        del incomplete_receipt["grant_id"]
+        incomplete["result"]["contents"][0]["text"] = json.dumps(incomplete_receipt)
+        incomplete_context = {**receipt_context, "expected_resource": incomplete_receipt}
+        with self.assertRaisesRegex(ConformanceError, "receipt type and identity"):
+            validate_mcp_wire_semantics(incomplete, **incomplete_context)
+
+        partial_policy_body = copy.deepcopy(receipt_body)
+        partial_policy_body["policy_decision"].pop("matched_rules")
+        partial_policy_body["policy_decision"].pop("policy_decision_hash")
+        partial_policy_body["policy_decision"]["policy_decision_hash"] = (
+            _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/policy-decision/v1",
+                partial_policy_body["policy_decision"],
+            )
+        )
+        partial_policy_body["policy_decision_hash"] = partial_policy_body[
+            "policy_decision"
+        ]["policy_decision_hash"]
+        partial_policy_receipt = {
+            **partial_policy_body,
+            "receipt_hash": _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/receipt/v1",
+                partial_policy_body,
+            ),
+        }
+        partial_policy_message = copy.deepcopy(receipt_message)
+        partial_policy_message["result"]["contents"][0]["text"] = json.dumps(
+            partial_policy_receipt
+        )
+        partial_policy_context = {
+            **receipt_context,
+            "expected_resource": partial_policy_receipt,
+            "expected_resource_hash": partial_policy_receipt["receipt_hash"],
+            "expected_receipt_semantics": receipt_semantics(
+                partial_policy_receipt
+            ),
+            "expected_authenticated_receipt_resources": [
+                authenticated_receipt_record(partial_policy_receipt)
+            ],
+        }
+        with self.assertRaisesRegex(ConformanceError, "oracle rejected"):
+            validate_mcp_wire_semantics(
+                partial_policy_message, **partial_policy_context
+            )
+
+        invalid_outcome_body = copy.deepcopy(receipt_body)
+        invalid_outcome_body["policy_decision"]["outcome"] = "explode"
+        invalid_outcome_body["policy_decision"]["reason_code"] = (
+            "https://example.invalid/policy-reason/explode"
+        )
+        invalid_outcome_body["policy_decision"].pop("policy_decision_hash")
+        invalid_outcome_body["policy_decision"]["policy_decision_hash"] = (
+            _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/policy-decision/v1",
+                invalid_outcome_body["policy_decision"],
+            )
+        )
+        invalid_outcome_body["policy_decision_hash"] = invalid_outcome_body[
+            "policy_decision"
+        ]["policy_decision_hash"]
+        invalid_outcome_receipt = {
+            **invalid_outcome_body,
+            "receipt_hash": _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/receipt/v1",
+                invalid_outcome_body,
+            ),
+        }
+        invalid_outcome_message = copy.deepcopy(receipt_message)
+        invalid_outcome_message["result"]["contents"][0]["text"] = json.dumps(
+            invalid_outcome_receipt
+        )
+        invalid_outcome_context = {
+            **receipt_context,
+            "expected_resource": invalid_outcome_receipt,
+            "expected_resource_hash": invalid_outcome_receipt["receipt_hash"],
+            "expected_receipt_semantics": receipt_semantics(
+                invalid_outcome_receipt
+            ),
+            "expected_authenticated_receipt_resources": [
+                authenticated_receipt_record(invalid_outcome_receipt)
+            ],
+        }
+        with self.assertRaisesRegex(ConformanceError, "oracle rejected"):
+            validate_mcp_wire_semantics(
+                invalid_outcome_message, **invalid_outcome_context
+            )
+
+        incomplete_success_body = copy.deepcopy(receipt_body)
+        for member in (
+            "output_hash", "actual_effects", "actual_effects_hash",
+            "effect_outcome", "resource",
+        ):
+            incomplete_success_body.pop(member, None)
+        incomplete_success_receipt = {
+            **incomplete_success_body,
+            "receipt_hash": _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/receipt/v1",
+                incomplete_success_body,
+            ),
+        }
+        incomplete_success_message = copy.deepcopy(receipt_message)
+        incomplete_success_message["result"]["contents"][0]["text"] = (
+            json.dumps(incomplete_success_receipt)
+        )
+        incomplete_success_context = {
+            **receipt_context,
+            "expected_resource": incomplete_success_receipt,
+            "expected_resource_hash": incomplete_success_receipt["receipt_hash"],
+            "expected_authenticated_receipt_resources": [
+                authenticated_receipt_record(incomplete_success_receipt)
+            ],
+        }
+        with self.assertRaisesRegex(ConformanceError, "authoritative semantics"):
+            validate_mcp_wire_semantics(
+                incomplete_success_message, **incomplete_success_context
+            )
+
+        no_effect_body = copy.deepcopy(receipt_body)
+        no_effect_body["action_id"] = "mail.read"
+        no_effect_body["result"] = "denied"
+        for member in (
+            "execution", "execution_hash", "output_hash", "actual_effects",
+            "actual_effects_hash", "effect_outcome", "resource",
+        ):
+            no_effect_body.pop(member, None)
+        denied_policy = {
+            **receipt_policy,
+            "decision_id": "decision-denied-1",
+            "outcome": "deny",
+            "reason_code": "app_policy_denied",
+            "matched_rules": ["mail.read.denied"],
+            "safe_to_show": "The application denied the read action.",
+        }
+        denied_policy.pop("policy_decision_hash")
+        denied_policy["policy_decision_hash"] = _canonical_object_hash(
+            "https://github.com/0al-spec/agent-surface/hash/policy-decision/v1",
+            denied_policy,
+        )
+        no_effect_body["policy_decision"] = denied_policy
+        no_effect_body["policy_decision_hash"] = denied_policy[
+            "policy_decision_hash"
+        ]
+        no_effect_receipt = {
+            **no_effect_body,
+            "receipt_hash": _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/receipt/v1",
+                no_effect_body,
+            ),
+        }
+        no_effect_message = copy.deepcopy(receipt_message)
+        no_effect_message["result"]["contents"][0]["text"] = json.dumps(
+            no_effect_receipt
+        )
+        no_effect_context = {
+            **receipt_context,
+            "expected_resource": no_effect_receipt,
+            "expected_resource_hash": no_effect_receipt["receipt_hash"],
+            "expected_receipt_semantics": receipt_semantics(no_effect_receipt),
+            "expected_authenticated_receipt_resources": [
+                authenticated_receipt_record(no_effect_receipt)
+            ],
+        }
+        validate_mcp_wire_semantics(no_effect_message, **no_effect_context)
+
+        raw_token_body = copy.deepcopy(receipt_body)
+        raw_token = base64.urlsafe_b64encode(bytes(range(16))).rstrip(b"=").decode("ascii")
+        raw_token_body["execution"]["execution_token"] = raw_token
+        raw_token_body["execution"]["execution_token_hash"] = (
+            "sha-256:"
+            + base64.urlsafe_b64encode(hashlib.sha256(bytes(range(16))).digest())
+            .rstrip(b"=")
+            .decode("ascii")
+        )
+        raw_token_receipt = {
+            **raw_token_body,
+            "receipt_hash": _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/receipt/v1",
+                raw_token_body,
+            ),
+        }
+        raw_token_message = copy.deepcopy(receipt_message)
+        raw_token_message["result"]["contents"][0]["text"] = json.dumps(
+            raw_token_receipt
+        )
+        raw_token_context = {
+            **receipt_context,
+            "expected_resource": raw_token_receipt,
+            "expected_resource_hash": raw_token_receipt["receipt_hash"],
+        }
+        with self.assertRaisesRegex(ConformanceError, "leaks execution_token"):
+            validate_mcp_wire_semantics(raw_token_message, **raw_token_context)
+
+        approval_without_result_body = copy.deepcopy(receipt_body)
+        approval_without_result_body["receipt_type"] = "approval"
+        approval_without_result_body["approval"] = {
+            "approval_id": "approval-1",
+            "role": "runtime",
+            "decided_by": "user",
+            "valid_until": "2026-07-22T12:05:00Z",
+        }
+        approval_without_result_body.pop("result")
+        for member in (
+            "parent_receipt_hash", "output_hash", "actual_effects",
+            "actual_effects_hash", "effect_outcome",
+        ):
+            approval_without_result_body.pop(member, None)
+        approval_without_result = {
+            **approval_without_result_body,
+            "receipt_hash": _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/receipt/v1",
+                approval_without_result_body,
+            ),
+        }
+        approval_message = copy.deepcopy(receipt_message)
+        approval_message["result"]["contents"][0]["text"] = json.dumps(
+            approval_without_result
+        )
+        approval_context = {
+            **receipt_context,
+            "expected_resource": approval_without_result,
+            "expected_resource_hash": approval_without_result["receipt_hash"],
+            "expected_receipt_type": "approval",
+        }
+        with self.assertRaisesRegex(ConformanceError, "receipt type and identity"):
+            validate_mcp_wire_semantics(approval_message, **approval_context)
+
+    def test_asp_over_mcp_approval_receipt_maps_are_exact_and_resolvable(self) -> None:
+        cases = {
+            case["case_id"]: case
+            for case in self.catalog.schema_case_catalog["cases"]
+        }
+        base_case = cases["ASP-SC-MB-011"]
+        base_message = loads_human_json(
+            base_case["instance_json"], source="MCP approval-map result"
+        )
+        base_context = copy.deepcopy(base_case["context"])
+        base_app_receipt = base_context[
+            "expected_authenticated_receipt_resources"
+        ][0]["receipt"]
+        receipt_domain = (
+            "https://github.com/0al-spec/agent-surface/hash/receipt/v1"
+        )
+
+        def approval_receipt(role: str) -> tuple[str, dict]:
+            enforcer = (
+                {"type": "runtime", "id": "runtime-1"}
+                if role == "runtime"
+                else {"type": "application", "id": "mail.example"}
+            )
+            policy_decision = {
+                "type": "policy.decision",
+                "decision_id": f"decision-{role}-1",
+                "enforcer": enforcer,
+                "outcome": "allow",
+                "policy": {"id": f"{role}-approval-policy", "version": "1"},
+                "reason_code": "approval_satisfied",
+                "matched_rules": ["writes.require_local_approval"],
+                "safe_to_show": "The exact write request was approved.",
+                "evaluated_at": "2026-07-22T12:00:00Z",
+            }
+            policy_decision["policy_decision_hash"] = _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/policy-decision/v1",
+                policy_decision,
+            )
+            body = {
+                "receipt_id": f"approval-{role}-1",
+                "receipt_type": "approval",
+                "grant_id": base_app_receipt["grant_id"],
+                "grant_hash": base_app_receipt["grant_hash"],
+                "session_id": base_app_receipt["session_id"],
+                "session_generation": base_app_receipt["session_generation"],
+                "trace_id": base_app_receipt["trace_id"],
+                "span_id": "00f067aa0ba902b7",
+                "action_id": base_app_receipt["action_id"],
+                "app_id": base_app_receipt["app_id"],
+                "surface_version": base_app_receipt["surface_version"],
+                "surface_hash": base_app_receipt["surface_hash"],
+                "runtime": base_app_receipt["runtime"],
+                "actor_agent": base_app_receipt["actor_agent"],
+                "subject": base_app_receipt["subject"],
+                "idempotency_key": base_app_receipt["idempotency_key"],
+                "input_hash": base_app_receipt["input_hash"],
+                "execution": base_app_receipt["execution"],
+                "execution_hash": base_app_receipt["execution_hash"],
+                "approval": {
+                    "approval_id": f"approval-{role}-1",
+                    "role": role,
+                    "decided_by": "user",
+                    "valid_until": "2026-07-22T12:05:00Z",
+                },
+                "policy_decision_hash": policy_decision["policy_decision_hash"],
+                "policy_decision": policy_decision,
+                "timestamp": "2026-07-22T12:00:00Z",
+                "result": "approved",
+            }
+            receipt_hash = _canonical_object_hash(receipt_domain, body)
+            receipt = {
+                **body,
+                "receipt_hash": receipt_hash,
+            }
+            binding = {
+                member: receipt[member]
+                for member in (
+                    "session_id", "session_generation", "trace_id", "grant_id",
+                    "grant_hash", "app_id", "surface_hash", "surface_version",
+                    "action_id", "idempotency_key", "input_hash", "runtime",
+                    "actor_agent", "subject", "execution", "execution_hash",
+                )
+            }
+            return f"asp://receipt/approval-{role}-1", {
+                "uri": f"asp://receipt/approval-{role}-1",
+                "receipt": receipt,
+                "expected": {
+                    "receipt_id": receipt["receipt_id"],
+                    "receipt_hash": receipt_hash,
+                    "receipt_type": "approval",
+                    "approval_role": role,
+                    "binding": binding,
+                    "signature_required": False,
+                },
+            }
+
+        runtime_uri, runtime_receipt = approval_receipt("runtime")
+        application_uri, application_receipt = approval_receipt("application")
+        records = {"runtime": runtime_receipt, "application": application_receipt}
+
+        def approval_resource_read(record: dict) -> tuple[dict, dict]:
+            receipt = record["receipt"]
+            uri = record["uri"]
+            message = {
+                "jsonrpc": "2.0",
+                "id": 12,
+                "result": {
+                    "contents": [
+                        {
+                            "uri": uri,
+                            "mimeType": "application/json",
+                            "text": json.dumps(receipt),
+                        }
+                    ]
+                },
+            }
+            context = {
+                "requested_resource_uri": uri,
+                "resource_kind": "receipt",
+                "expected_resource": receipt,
+                "resource_hash_domain": receipt_domain,
+                "expected_resource_hash": receipt["receipt_hash"],
+                "expected_receipt_type": "approval",
+                "expected_receipt_semantics": {
+                    "result": receipt["result"],
+                    "error": None,
+                    "output_hash": None,
+                    "actual_effects": None,
+                    "actual_effects_hash": None,
+                    "effect_outcome": None,
+                    "resource": None,
+                },
+                "expected_authenticated_receipt_resources": [record],
+            }
+            return message, context
+
+        approval_read, approval_read_context = approval_resource_read(
+            runtime_receipt
+        )
+        validate_mcp_wire_semantics(approval_read, **approval_read_context)
+        missing_valid_until_record = copy.deepcopy(runtime_receipt)
+        missing_valid_until_record["receipt"]["approval"].pop("valid_until")
+        missing_valid_until_record["receipt"].pop("receipt_hash")
+        missing_valid_until_record["receipt"]["receipt_hash"] = (
+            _canonical_object_hash(
+                receipt_domain, missing_valid_until_record["receipt"]
+            )
+        )
+        missing_valid_until_record["expected"]["receipt_hash"] = (
+            missing_valid_until_record["receipt"]["receipt_hash"]
+        )
+        missing_valid_until, missing_valid_until_context = approval_resource_read(
+            missing_valid_until_record
+        )
+        with self.assertRaisesRegex(ConformanceError, "oracle rejected"):
+            validate_mcp_wire_semantics(
+                missing_valid_until, **missing_valid_until_context
+            )
+        for label, invalid_value in (
+            ("empty approval id", {"approval_id": ""}),
+            ("numeric valid_until", {"valid_until": 42}),
+        ):
+            with self.subTest(invalid_approval_field=label):
+                invalid_record = copy.deepcopy(runtime_receipt)
+                invalid_record["receipt"]["approval"].update(invalid_value)
+                invalid_record["receipt"].pop("receipt_hash")
+                invalid_record["receipt"]["receipt_hash"] = (
+                    _canonical_object_hash(
+                        receipt_domain, invalid_record["receipt"]
+                    )
+                )
+                invalid_record["expected"]["receipt_hash"] = invalid_record[
+                    "receipt"
+                ]["receipt_hash"]
+                invalid_read, invalid_read_context = approval_resource_read(
+                    invalid_record
+                )
+                with self.assertRaisesRegex(ConformanceError, "oracle rejected"):
+                    validate_mcp_wire_semantics(
+                        invalid_read, **invalid_read_context
+                    )
+
+        def sync_text(message: dict) -> None:
+            message["result"]["content"][0]["text"] = json.dumps(
+                message["result"]["structuredContent"],
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            )
+
+        deny_policy_message = copy.deepcopy(base_message)
+        deny_policy_context = copy.deepcopy(base_context)
+        deny_policy_record = deny_policy_context[
+            "expected_authenticated_receipt_resources"
+        ][0]
+        deny_policy_receipt = deny_policy_record["receipt"]
+        deny_policy_receipt["policy_decision"]["outcome"] = "deny"
+        deny_policy_receipt["policy_decision"]["reason_code"] = (
+            "app_policy_denied"
+        )
+        deny_policy_receipt["policy_decision"].pop("policy_decision_hash")
+        deny_policy_receipt["policy_decision"]["policy_decision_hash"] = (
+            _canonical_object_hash(
+                "https://github.com/0al-spec/agent-surface/hash/policy-decision/v1",
+                deny_policy_receipt["policy_decision"],
+            )
+        )
+        deny_policy_receipt["policy_decision_hash"] = deny_policy_receipt[
+            "policy_decision"
+        ]["policy_decision_hash"]
+        deny_policy_receipt.pop("receipt_hash")
+        deny_policy_receipt["receipt_hash"] = _canonical_object_hash(
+            receipt_domain, deny_policy_receipt
+        )
+        deny_policy_record["expected"]["receipt_hash"] = deny_policy_receipt[
+            "receipt_hash"
+        ]
+        deny_policy_message["result"]["structuredContent"]["message"][
+            "payload"
+        ]["receipt_hash"] = deny_policy_receipt["receipt_hash"]
+        sync_text(deny_policy_message)
+        with self.assertRaisesRegex(ConformanceError, "Policy Decision"):
+            validate_mcp_wire_semantics(
+                deny_policy_message, **deny_policy_context
+            )
+
+        success_error_message = copy.deepcopy(base_message)
+        success_error_context = copy.deepcopy(base_context)
+        success_error_payload = success_error_message["result"][
+            "structuredContent"
+        ]["message"]["payload"]
+        success_error_message["result"]["structuredContent"]["message"][
+            "type"
+        ] = "action.error"
+        success_error_message["result"]["isError"] = True
+        success_error_payload.pop("result")
+        success_error_payload.pop("output")
+        success_error_payload["error"] = {
+            "code": "schema_invalid",
+            "description": "The application result did not match its schema.",
+            "retryable": False,
+        }
+        success_error_record = success_error_context[
+            "expected_authenticated_receipt_resources"
+        ][0]
+        success_error_receipt = success_error_record["receipt"]
+        success_error_receipt["error"] = copy.deepcopy(
+            success_error_payload["error"]
+        )
+        success_error_receipt.pop("receipt_hash")
+        success_error_receipt["receipt_hash"] = _canonical_object_hash(
+            receipt_domain, success_error_receipt
+        )
+        success_error_record["expected"]["receipt_hash"] = (
+            success_error_receipt["receipt_hash"]
+        )
+        success_error_payload["receipt_hash"] = success_error_receipt[
+            "receipt_hash"
+        ]
+        sync_text(success_error_message)
+        with self.assertRaisesRegex(
+            ConformanceError, "claims success or output evidence"
+        ):
+            validate_mcp_wire_semantics(
+                success_error_message, **success_error_context
+            )
+
+        def with_approval_roles(*roles: str) -> tuple[dict, dict]:
+            message = copy.deepcopy(base_message)
+            context = copy.deepcopy(base_context)
+            structured = message["result"]["structuredContent"]
+            payload = structured["message"]["payload"]
+            approval_hashes = {
+                role: records[role]["receipt"]["receipt_hash"] for role in roles
+            }
+            payload["approval_receipt_hashes"] = approval_hashes
+            app_record = context["expected_authenticated_receipt_resources"][0]
+            app_receipt = app_record["receipt"]
+            app_receipt["approval_receipt_hashes"] = approval_hashes
+            app_receipt.pop("receipt_hash")
+            app_receipt["receipt_hash"] = _canonical_object_hash(
+                receipt_domain, app_receipt
+            )
+            app_record["expected"]["receipt_hash"] = app_receipt["receipt_hash"]
+            payload["receipt_hash"] = app_receipt["receipt_hash"]
+            structured["receipt_resource_uris"].extend(
+                records[role]["uri"] for role in roles
+            )
+            message["result"]["content"].extend(
+                {
+                    "type": "resource_link",
+                    "name": "asp-receipt",
+                    "uri": records[role]["uri"],
+                }
+                for role in roles
+            )
+            context["expected_request_payload"]["approval_receipt_hashes"] = {
+                "runtime": runtime_receipt["receipt"]["receipt_hash"]
+            }
+            context["expected_authenticated_receipt_resources"] = [
+                app_record,
+                *(records[role] for role in roles),
+            ]
+            context["expected_receipt_resource_uris"] = list(
+                structured["receipt_resource_uris"]
+            )
+            sync_text(message)
+            return message, context
+
+        runtime_message, runtime_context = with_approval_roles("runtime")
+        _validate_with_schema(
+            runtime_message,
+            loads_strict_json(
+                (ROOT / "conformance" / "v1" / "mcp-binding.schema.json").read_text(
+                    encoding="utf-8"
+                )
+            ),
+            "MCP approval-map positive",
+            registry=_schema_registry(ROOT),
+        )
+        validate_mcp_wire_semantics(runtime_message, **runtime_context)
+
+        changed_runtime = copy.deepcopy(runtime_message)
+        changed_runtime["result"]["structuredContent"]["message"]["payload"][
+            "approval_receipt_hashes"
+        ]["runtime"] = digest("changed-runtime-approval")
+        sync_text(changed_runtime)
+        with self.assertRaisesRegex(ConformanceError, "does not preserve"):
+            validate_mcp_wire_semantics(changed_runtime, **runtime_context)
+
+        final_message, final_context = with_approval_roles(
+            "runtime", "application"
+        )
+        with self.assertRaisesRegex(ConformanceError, "without final policy"):
+            validate_mcp_wire_semantics(final_message, **final_context)
+        final_context["expected_final_approval_receipt_hashes"] = {
+            "runtime": runtime_receipt["receipt"]["receipt_hash"],
+            "application": application_receipt["receipt"]["receipt_hash"],
+        }
+        _validate_with_schema(
+            final_message,
+            loads_strict_json(
+                (ROOT / "conformance" / "v1" / "mcp-binding.schema.json").read_text(
+                    encoding="utf-8"
+                )
+            ),
+            "MCP final approval-map positive",
+            registry=_schema_registry(ROOT),
+        )
+        validate_mcp_wire_semantics(final_message, **final_context)
+
+        missing_approval_resource = copy.deepcopy(final_message)
+        missing_approval_resource["result"]["content"] = [
+            item
+            for item in missing_approval_resource["result"]["content"]
+            if item.get("uri") != application_uri
+        ]
+        missing_approval_resource["result"]["structuredContent"][
+            "receipt_resource_uris"
+        ].remove(application_uri)
+        sync_text(missing_approval_resource)
+        missing_context = {
+            **final_context,
+            "expected_receipt_resource_uris": missing_approval_resource["result"]
+            ["structuredContent"]["receipt_resource_uris"],
+        }
+        with self.assertRaisesRegex(ConformanceError, "one-to-one"):
+            validate_mcp_wire_semantics(
+                missing_approval_resource, **missing_context
+            )
+
+        tampered_resource_context = copy.deepcopy(runtime_context)
+        next(
+            record
+            for record in tampered_resource_context[
+                "expected_authenticated_receipt_resources"
+            ]
+            if record["expected"]["approval_role"] == "runtime"
+        )["receipt"]["result"] = "substituted"
+        with self.assertRaisesRegex(ConformanceError, "oracle rejected"):
+            validate_mcp_wire_semantics(
+                runtime_message, **tampered_resource_context
+            )
+
+        ordinary_link_only = copy.deepcopy(runtime_message)
+        ordinary_link_only["result"]["content"] = ordinary_link_only["result"][
+            "content"
+        ][:2]
+        ordinary_link_only["result"]["structuredContent"][
+            "receipt_resource_uris"
+        ] = ["asp://receipt/receipt-1"]
+        sync_text(ordinary_link_only)
+        ordinary_only_context = {
+            **runtime_context,
+            "expected_receipt_resource_uris": ["asp://receipt/receipt-1"],
+        }
+        with self.assertRaisesRegex(ConformanceError, "one-to-one"):
+            validate_mcp_wire_semantics(
+                ordinary_link_only, **ordinary_only_context
+            )
+
+        capacity_case = cases["ASP-SC-MB-013"]
+        capacity_message = loads_human_json(
+            capacity_case["instance_json"], source="MCP capacity approval map"
+        )
+        capacity_context = copy.deepcopy(capacity_case["context"])
+        capacity_structured = capacity_message["result"]["structuredContent"]
+        capacity_structured["message"]["payload"]["approval_receipt_hashes"] = {
+            "runtime": runtime_receipt["receipt"]["receipt_hash"]
+        }
+        capacity_structured["receipt_resource_uris"] = [runtime_uri]
+        capacity_message["result"]["content"].append(
+            {
+                "type": "resource_link",
+                "name": "asp-receipt",
+                "uri": runtime_uri,
+            }
+        )
+        capacity_context["expected_request_payload"]["approval_receipt_hashes"] = {
+            "runtime": runtime_receipt["receipt"]["receipt_hash"]
+        }
+        capacity_context["expected_authenticated_receipt_resources"] = [
+            records["runtime"]
+        ]
+        capacity_context["expected_receipt_resource_uris"] = [runtime_uri]
+        capacity_context["action_mode"] = "commit"
+        sync_text(capacity_message)
+        with self.assertRaisesRegex(ConformanceError, "pre-admission capacity"):
+            validate_mcp_wire_semantics(capacity_message, **capacity_context)
+
+        for mode in ("read", "dry_run", "propose"):
+            with self.subTest(disallowed_approval_mode=mode):
+                invalid_mode, invalid_context = with_approval_roles("runtime")
+                invalid_payload = invalid_mode["result"]["structuredContent"][
+                    "message"
+                ]["payload"]
+                for member in (
+                    "effect_outcome",
+                    "actual_effects",
+                    "actual_effects_hash",
+                    "receipt_id",
+                    "receipt_hash",
+                ):
+                    invalid_payload.pop(member, None)
+                invalid_mode["result"]["content"] = [
+                    item
+                    for item in invalid_mode["result"]["content"]
+                    if item.get("uri") != "asp://receipt/receipt-1"
+                ]
+                invalid_mode["result"]["structuredContent"][
+                    "receipt_resource_uris"
+                ] = [runtime_uri]
+                execution = {"mode": mode, "execution_id": "e1"}
+                execution_hash = _canonical_object_hash(
+                    "https://github.com/0al-spec/agent-surface/hash/action-execution/v1",
+                    execution,
+                )
+                invalid_payload["execution"] = execution
+                invalid_payload["execution_hash"] = execution_hash
+                invalid_context["expected_request_payload"]["execution"] = execution
+                invalid_context["expected_request_payload"][
+                    "execution_hash"
+                ] = execution_hash
+                invalid_context["action_mode"] = mode
+                invalid_context["receipt_required"] = False
+                invalid_context["expected_actual_effects"] = None
+                invalid_context["expected_receipt_resource_uris"] = [runtime_uri]
+                if mode == "propose":
+                    invalid_payload["proposal_id"] = "proposal-1"
+                    invalid_payload["proposal"] = {"draft": "mail"}
+                if mode == "dry_run":
+                    raw_token = bytes(range(16))
+                    preview = {
+                        "preview_id": "preview-1",
+                        "commit_action_id": "mail.send",
+                        "execution_token": base64.urlsafe_b64encode(raw_token)
+                        .rstrip(b"=")
+                        .decode("ascii"),
+                        "execution_token_hash": "sha-256:"
+                        + base64.urlsafe_b64encode(
+                            hashlib.sha256(raw_token).digest()
+                        )
+                        .rstrip(b"=")
+                        .decode("ascii"),
+                        "expires_at": "2026-07-22T12:05:00Z",
+                    }
+                    preconditions = {"mailbox_revision": "r1"}
+                    expected_effects = [
+                        {"effect_id": "mail-send", "operation": "send"}
+                    ]
+                    invalid_payload["result"] = "preview"
+                    invalid_payload["preview"] = preview
+                    invalid_payload["preconditions"] = preconditions
+                    invalid_payload["preconditions_hash"] = _canonical_object_hash(
+                        "https://github.com/0al-spec/agent-surface/hash/action-preconditions/v1",
+                        preconditions,
+                    )
+                    invalid_payload["expected_effects"] = expected_effects
+                    invalid_payload["expected_effects_hash"] = _canonical_object_hash(
+                        "https://github.com/0al-spec/agent-surface/hash/expected-effects/v1",
+                        expected_effects,
+                    )
+                    invalid_context["expected_result"] = "preview"
+                    invalid_context["expected_preview"] = preview
+                    invalid_context["expected_preview_preconditions"] = preconditions
+                    invalid_context["expected_preview_effects"] = expected_effects
+                    invalid_context["evaluation_time"] = "2026-07-22T12:00:00Z"
+                sync_text(invalid_mode)
+                with self.assertRaisesRegex(
+                    ConformanceError, "cannot claim approval receipts"
+                ):
+                    validate_mcp_wire_semantics(
+                        invalid_mode, **invalid_context
+                    )
 
     def test_human_elicitation_baselines_are_semantically_bound(self) -> None:
         elicitation_vectors = {

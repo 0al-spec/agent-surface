@@ -22,12 +22,12 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.8.0"
+      "const": "1.9.0"
     },
     "vectors": {
       "type": "array",
-      "minItems": 137,
-      "maxItems": 137,
+      "minItems": 163,
+      "maxItems": 163,
       "items": {
         "$ref": "#/$defs/vector"
       }
@@ -58,7 +58,8 @@
         "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
         "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1",
         "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
-        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
+        "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
       ]
     },
     "requirementId": {
@@ -119,7 +120,9 @@
         "authenticated_human_channel",
         "terminal_elicitation_replay_retained",
         "risk_explanation_present",
-        "impact_simulation_selected"
+        "impact_simulation_selected",
+        "asp_over_mcp_selected",
+        "authenticated_mcp_channel"
       ]
     },
     "operation": {
@@ -146,11 +149,18 @@
         "apply_human_elicitation_candidate",
         "project_human_elicitation_answer",
         "render_risk_explanation",
-        "simulate_impact"
+        "simulate_impact",
+        "issue_mcp_grant",
+        "publish_mcp_surface",
+        "execute_mcp_action",
+        "mediate_mcp_action",
+        "adapt_mcp_action"
       ]
     },
     "inputVariant": {
       "enum": [
+        "mcp_grant_endpoint_substitution",
+        "mcp_grant_dual_use_dpop",
         "application_claims_runtime_observation",
         "approval_hash_substitution",
         "claimed_issuer_mismatched_grant",
@@ -246,7 +256,26 @@
         "impact_simulation_far_future",
         "impact_simulation_decision_substitution",
         "impact_simulation_request_overflow",
-        "impact_simulation_active_grant_authority_attempt"
+        "impact_simulation_active_grant_authority_attempt",
+        "mcp_mixed_surface_snapshot",
+        "mcp_tool_action_substitution",
+        "mcp_stale_tool_view",
+        "mcp_oauth_claims_asp_authority",
+        "mcp_token_passthrough",
+        "mcp_argument_input_mismatch",
+        "mcp_application_error_as_jsonrpc",
+        "mcp_receipt_text_claims_authority",
+        "mcp_protocol_downgrade",
+        "mcp_extension_unnegotiated",
+        "mcp_annotations_claim_authority",
+        "mcp_result_divergence",
+        "mcp_receipt_resource_substitution",
+        "mcp_cancellation_claims_completion",
+        "mcp_task_support_enabled",
+        "mcp_cancellation_new_key"
+        , "mcp_agent_meta_exposed"
+        , "mcp_agent_credential_exposed"
+        , "mcp_full_result_exposed"
       ]
     },
     "aspError": {
@@ -306,6 +335,7 @@
         "current_state_checked",
         "denial_recorded",
         "grant_issued",
+        "grant_location_bound",
         "grant_rejected",
         "grant_revoked",
         "input_schema_checked",
@@ -371,6 +401,16 @@
         "asp_authority_retained",
         "action_dispatch_suppressed",
         "credential_withheld",
+        "credential_released",
+        "mcp_binding_validated",
+        "mcp_binding_rejected",
+        "mcp_surface_published",
+        "mcp_tools_published",
+        "mcp_discovery_suppressed",
+        "mcp_structured_result_emitted",
+        "mcp_structured_result_validated",
+        "mcp_result_suppressed",
+        "cancellation_advisory",
         "elicitation_binding_validated",
         "elicitation_binding_rejected",
         "elicitation_request_presented",
