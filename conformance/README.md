@@ -8,17 +8,18 @@ object.
 
 ## Version 1 artifacts
 
-`conformance/v1/suite.json` is the authoritative Suite 1.8.0 role, feature,
-requirement, and vector matrix: six profiles, 46 requirements, and 137 closed
-declarative scenarios. `conformance/v1/fixtures.json` resolves them through 39
-exact semantic baselines and 96 closed mutation patches.
+`conformance/v1/suite.json` is the authoritative Suite 1.9.0 role, feature,
+requirement, and vector matrix: six profiles, 51 requirements, and 163 closed
+declarative scenarios. `conformance/v1/fixtures.json` resolves them through 44
+exact semantic baselines and 117 closed mutation patches.
 `conformance/v1/bundles.json` defines eight non-linear adoption bundles as
 closed plans over those existing role requirements and vectors; its schema and
 semantic validator reject omitted unconditional requirements, unsupported
 role-feature pairs, missing vectors, duplicate claims, and non-canonical order.
-`conformance/v1/schema-cases.json` carries 65 executable positive and negative
+`conformance/v1/schema-cases.json` carries executable positive and negative
 cases for the Operational Limits declaration, capacity-error envelope, Human
-Elicitation messages, Impact Simulation results, and Risk Explanation hints.
+Elicitation messages, Impact Simulation results, Risk Explanation hints, and
+the ASP-over-MCP wire binding.
 Human cases use their RFC
 8785-compatible parser;
 `ASP-SC-HE-002` exercises binary64 and UTF-16 member-order hash boundaries,
@@ -41,6 +42,33 @@ revision, presentation control, and the complete ASP session/grant/surface/actio
 tuple. The vectors reject tuple substitution, conflicting revision replay,
 profile downgrade, unauthenticated carriage, action substitution, and any
 attempt to treat AHP receipt presentation as ASP authority.
+
+ASP-over-MCP vectors use the closed `mcp-binding.schema.json` wire schema and
+an optional closed `mcp` fixture section as a normalized harness projection.
+The binding pins MCP `2025-11-25`, Streamable HTTP, the negotiated experimental
+capability, the manifest-selected endpoint, the authorized manifest resource,
+and deterministic action-to-tool mappings. Runtime and application rows derive
+the complete ASP request tuple independently, keep Grant Credentials and
+execution tokens outside agent-visible MCP data, validate typed structured
+results and their deep-equal text representation, and link receipt resources
+to the exact result. Binding errors remain MCP transport errors; ASP action and
+capacity failures remain closed tool results. Session loss, authenticated
+termination, safe resume, exact completed replay, schema rotation, advisory
+cancellation, and Grant issuance are tested without treating MCP sessions,
+OAuth tokens, annotations, progress, resource links, or receipts as ASP
+authority.
+
+Receipt resources are checked through the bounded `asp-replay
+validate-receipts` API for their closed producer shape, hashes, participant and
+invocation tuple, approval links, and receipt-local semantics. Its report
+deliberately states `signatures_verified: false`; it does not establish a
+signature, trusted chain head, unresolved parent-chain completeness, or
+producer authority. The binding checker separately requires authoritative
+result, error, output, effect, and resource expectations and rejects any
+receipt substitution before exposing an action result. Because this bounded
+oracle has no authoritative extension reason-code registry, it accepts only
+the base Policy Decision reason/outcome pairs and fails closed for extension
+reason codes.
 
 Human Elicitation vectors use the standalone closed
 `human-elicitation.schema.json` wire schema plus an optional closed
@@ -138,7 +166,7 @@ production readiness, or arbitrary-implementation interoperability.
 All digests use SHA-256 and the text representation
 `sha-256:<base64url-without-padding>`. The single `catalog_sha256` digest uses
 the exact RFC-defined `ASP-CONFORMANCE-CATALOG-V1` domain. Hash the ASCII domain
-string, one zero octet, and then each of these eighteen canonical repo-relative
+string, one zero octet, and then each of these nineteen canonical repo-relative
 paths in lexicographic order:
 
 1. `conformance/v1/bundles.json`
@@ -148,17 +176,18 @@ paths in lexicographic order:
 5. `conformance/v1/fixtures.schema.json`
 6. `conformance/v1/human-elicitation.schema.json`
 7. `conformance/v1/impact-simulation.schema.json`
-8. `conformance/v1/observation.schema.json`
-9. `conformance/v1/operational-limits.schema.json`
-10. `conformance/v1/report.schema.json`
-11. `conformance/v1/risk-explanation.schema.json`
-12. `conformance/v1/schema-cases.json`
-13. `conformance/v1/schema-cases.schema.json`
-14. `conformance/v1/subject.schema.json`
-15. `conformance/v1/suite.json`
-16. `conformance/v1/suite.schema.json`
-17. `conformance/v1/vectors.json`
-18. `conformance/v1/vectors.schema.json`
+8. `conformance/v1/mcp-binding.schema.json`
+9. `conformance/v1/observation.schema.json`
+10. `conformance/v1/operational-limits.schema.json`
+11. `conformance/v1/report.schema.json`
+12. `conformance/v1/risk-explanation.schema.json`
+13. `conformance/v1/schema-cases.json`
+14. `conformance/v1/schema-cases.schema.json`
+15. `conformance/v1/subject.schema.json`
+16. `conformance/v1/suite.json`
+17. `conformance/v1/suite.schema.json`
+18. `conformance/v1/vectors.json`
+19. `conformance/v1/vectors.schema.json`
 
 For each file, hash its path as UTF-8, a zero octet, its exact raw bytes, and a
 final zero octet. No newline, whitespace, Unicode, or JSON member-order
@@ -198,6 +227,16 @@ octet before its RFC 8785 object or raw entry-point bytes.
 A report is valid only for the exact combined catalog, RFC bytes, vector
 objects, subject artifact, and configuration named by its digests. Digest
 equality proves byte identity only.
+
+## MCP source provenance
+
+The ASP-over-MCP profile is pinned to the official
+[MCP specification revision `2025-11-25`](https://modelcontextprotocol.io/specification/2025-11-25).
+The profile schema records the exact upstream repository commit and
+generated-schema SHA-256 used during development; it remains an ASP-governed
+profile schema and is not an official MCP extension. The copied upstream
+license notice is retained in
+[`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
 
 ## Requirement and applicability rules
 
@@ -331,8 +370,11 @@ and cannot be reused as implementation evidence.
 Runs use synthetic fixtures and privacy-minimized probes. Reports and
 observations MUST NOT contain Grant Credentials, refresh tokens, cookies,
 private keys, raw execution tokens, raw Runtime Attestation Evidence, hidden
-policy text, user content, tenant data, or unsanitized logs. Identifiers in
-catalog artifacts are test tokens, not production identifiers.
+policy text, user content, tenant data, or unsanitized logs. A fixed synthetic
+execution token may appear only in the private input/result fixture path needed
+to test `dry_run` custody; it is non-authoritative test data and MUST be stripped
+before adapter, model, user, event, log, receipt, and report projections.
+Identifiers in catalog artifacts are test tokens, not production identifiers.
 
 Catalog and report parsers reject duplicate JSON keys, non-I-JSON values,
 unknown members, and digest mismatches. Their version 1 wire shapes have no

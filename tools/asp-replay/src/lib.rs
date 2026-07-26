@@ -37,6 +37,8 @@ pub const COMPOSITION_REPORT_PROFILE: &str =
 pub const COMPOSITION_POLICY_PROFILE: &str =
     "https://github.com/0al-spec/agent-surface/tools/asp-replay/composition-policy/v1";
 
+pub use validation::ReceiptResourceReport;
+
 pub const BUNDLE_SCHEMA: &str = include_str!("../schema/bundle.schema.json");
 pub const REPORT_SCHEMA: &str = include_str!("../schema/report.schema.json");
 pub const COMPOSITION_REPORT_SCHEMA: &str =
@@ -152,6 +154,14 @@ pub struct Report {
 /// Verify one exact replay bundle and produce a deterministic, payload-minimized report.
 pub fn verify(source: &str, document: &[u8]) -> Result<Report, ReplayError> {
     validation::verify_document(source, document)
+}
+
+/// Validate a bounded batch of transport-authenticated receipt resources.
+///
+/// This checks local structure, semantics, hashes, and caller-supplied tuple
+/// bindings. It deliberately does not claim signature or trust-chain validity.
+pub fn validate_receipt_resources(document: &[u8]) -> Result<ReceiptResourceReport, ReplayError> {
+    validation::verify_receipt_resources(document)
 }
 
 /// Verify all embedded artifacts and execute every registered fixture/golden case.

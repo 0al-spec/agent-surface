@@ -31,6 +31,7 @@ from mocks.behavior import (
     _hash_without,
     _impact_candidate_projection,
     _object_hash,
+    _validate_mcp_binding,
     _validate_risk_explanation_publisher,
     evaluate,
     family_for,
@@ -144,7 +145,7 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 "state_deltas",
             }
         )
-        self.assertEqual(len(self.catalog.vectors), 137)
+        self.assertEqual(len(self.catalog.vectors), 163)
         for vector_id in self.catalog.vectors:
             with self.subTest(vector_id=vector_id):
                 self.assert_matches_catalog_oracle(vector_id)
@@ -751,6 +752,117 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                         "runtime.stored_grant_width",
                     }:
                         self.assertEqual(result.state_after[state], before)
+
+    def test_mcp_binding_composes_independent_and_ordinary_authority(self) -> None:
+        for fixture_id, phase in (
+            ("ASP-F-SP-010", "discovery"),
+            ("ASP-F-AA-012", "adapter"),
+        ):
+            for label, mutate in (
+                (
+                    "actions",
+                    lambda document: document["mcp"]["manifest_action_ids"].append(
+                        "evil.action"
+                    ),
+                ),
+                (
+                    "projection",
+                    lambda document: document["mcp"].__setitem__(
+                        "authorized_projection_state", "exact"
+                    ),
+                ),
+                (
+                    "location",
+                    lambda document: document["mcp_authority"].__setitem__(
+                        "issued_locations", ["https://attacker.example/mcp"]
+                    ),
+                ),
+            ):
+                with self.subTest(fixture_id=fixture_id, authority=label):
+                    document = copy.deepcopy(
+                        self.catalog.fixtures[fixture_id]["document"]
+                    )
+                    mutate(document)
+                    with self.assertRaises(BehaviorError):
+                        _validate_mcp_binding(document, phase=phase)
+
+        admission_mutations = (
+            ("grant", "status", "revoked"),
+            ("grant", "passport_status", "unavailable"),
+            ("execution", "input_schema_hash", "input_schema_hash_b"),
+            ("execution", "execution_hash", "execution_hash_b"),
+            ("execution", "approval_hash", "approval_hash_b"),
+            ("execution", "runtime_identity", "runtime_identity_b"),
+            ("execution", "sender_credential_audience", "credential_audience_b"),
+            ("execution", "proof_session_binding", "session_binding_b"),
+            ("execution", "attestation", "unavailable"),
+            ("execution", "policy", "deny"),
+        )
+        for fixture_id, phase in (
+            ("ASP-F-RM-072", "pre_dispatch"),
+            ("ASP-F-AE-032", "application_admission"),
+        ):
+            for section, field, value in admission_mutations:
+                with self.subTest(
+                    fixture_id=fixture_id, admission=f"{section}.{field}"
+                ):
+                    document = copy.deepcopy(
+                        self.catalog.fixtures[fixture_id]["document"]
+                    )
+                    document[section][field] = value
+                    with self.assertRaisesRegex(BehaviorError, "ordinary ASP"):
+                        _validate_mcp_binding(document, phase=phase)
+
+        runtime = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-072"]["document"]
+        )
+        runtime["mcp"]["transport_lifecycle_event"] = (
+            "session_lookup_404_recovered"
+        )
+        runtime["mcp"]["fresh_initialize_authority"] = "transport_only"
+        runtime["mcp"]["session_lookup_outcome"] = "unknown_404_no_mutation"
+        with self.assertRaisesRegex(BehaviorError, "transport lifecycle"):
+            _validate_mcp_binding(runtime, phase="pre_dispatch")
+
+        publisher = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-SP-010"]["document"]
+        )
+        publisher["mcp"]["transport_lifecycle_event"] = (
+            "session_lookup_404_recovered"
+        )
+        publisher["mcp"]["fresh_initialize_authority"] = "transport_only"
+        publisher["mcp"]["session_lookup_outcome"] = "unknown_404_no_mutation"
+        _validate_mcp_binding(publisher, phase="discovery")
+
+    def test_mcp_completed_replays_do_not_redispatch(self) -> None:
+        for vector_id in ("ASP-V-RM-072", "ASP-V-AE-032"):
+            vector = self.catalog.vectors[vector_id]
+            baseline = _resolved_fixture(self.catalog, vector)["document"]
+            current = copy.deepcopy(baseline)
+            current_mcp = current["mcp"]
+            current_mcp["binding_view_use"] = "current_completed_replay"
+            current_mcp["completed_record_state"] = "exact_authenticated"
+            current_mcp["replay_materialization"] = (
+                "exact_persisted_result_and_receipt"
+            )
+            current_mcp["retained_snapshot_state"] = "persisted_across_restart"
+            current_mcp["replay_disclosure_authorization"] = "allowed"
+
+            retained = copy.deepcopy(current)
+            retained_mcp = retained["mcp"]
+            retained_mcp["binding_view_use"] = "retained_completed_replay"
+            retained_mcp["resource_update_state"] = "updated"
+            retained_mcp["current_binding_view_id"] = "binding_view_b"
+            retained_mcp["tools_changed_state"] = "changed_after_snapshot"
+            retained_mcp["schema_snapshot_state"] = "retained"
+            retained_mcp["rotation_cause"] = "manifest"
+
+            for view, document in (("current", current), ("retained", retained)):
+                with self.subTest(vector_id=vector_id, view=view):
+                    result = self.evaluate_document(vector, document)
+                    self.assertEqual(result.decision, "accepted")
+                    self.assertEqual(result.state_after, result.state_before)
+                    self.assertIn("asp_authority_unchanged", result.tokens)
 
     def test_revoked_or_unknown_authority_never_dispatches(self) -> None:
         for vector_id in ("ASP-V-AE-006", "ASP-V-RM-004"):

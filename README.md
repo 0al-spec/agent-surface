@@ -265,6 +265,7 @@ shape, grant lifecycle, receipt semantics, and MVP boundaries.
   Creative Commons Attribution 4.0 International License (CC BY 4.0).
 - Source code and tooling are licensed under the MIT License.
 
-See [LICENSE](./LICENSE) and [LICENSE-CC-BY-4.0](./LICENSE-CC-BY-4.0).
+See [LICENSE](./LICENSE), [LICENSE-CC-BY-4.0](./LICENSE-CC-BY-4.0), and
+[THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
 
 [agent-passport]: https://github.com/0al-spec/agent-passport

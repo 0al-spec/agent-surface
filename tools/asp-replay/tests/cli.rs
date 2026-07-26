@@ -114,3 +114,20 @@ fn compose_supports_standard_input_and_emits_a_blocked_report() {
         ))
         .stderr(predicate::str::is_empty());
 }
+
+#[test]
+fn receipt_resource_validation_supports_standard_input_and_invalid_reports() {
+    let request = r#"{
+      "profile":"https://github.com/0al-spec/agent-surface/tools/asp-replay/receipt-resource-request/v1",
+      "resources":[]
+    }"#;
+    let mut command = Command::cargo_bin("asp-replay").unwrap();
+    command
+        .args(["validate-receipts", "-"])
+        .write_stdin(request)
+        .assert()
+        .code(1)
+        .stdout(predicate::str::contains("\"verdict\": \"invalid\""))
+        .stdout(predicate::str::contains("\"signatures_verified\": false"))
+        .stderr(predicate::str::is_empty());
+}

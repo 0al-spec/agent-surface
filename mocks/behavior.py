@@ -18,6 +18,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Sequence
+from urllib.parse import urlsplit
 
 import rfc8785
 from jsonschema import Draft202012Validator
@@ -31,6 +32,15 @@ RP = "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1"
 RM = "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
 AA = "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1"
 _IMPACT_AUTHORITY_GUARDS = {
+    (GI, "issue_mcp_grant"): (
+        ("grant",),
+        (
+            "grant_rejected",
+            "mcp_binding_rejected",
+            "asp_authority_retained",
+            "credential_withheld",
+        ),
+    ),
     (GI, "issue_grant"): (
         ("grant",),
         (
@@ -72,7 +82,28 @@ _IMPACT_AUTHORITY_GUARDS = {
             "impact_simulation_agent_projection_suppressed",
         ),
     ),
+    (RM, "mediate_mcp_action"): (
+        ("grant", "execution"),
+        (
+            "action_rejected",
+            "mediation_stopped",
+            "impact_simulation_binding_rejected",
+            "impact_simulation_authority_rejected",
+            "application_dry_run_suppressed",
+            "impact_simulation_agent_projection_suppressed",
+        ),
+    ),
     (AE, "invoke_action"): (
+        ("grant", "execution"),
+        (
+            "action_rejected",
+            "impact_simulation_binding_rejected",
+            "impact_simulation_authority_rejected",
+            "application_dry_run_suppressed",
+            "impact_simulation_agent_projection_suppressed",
+        ),
+    ),
+    (AE, "execute_mcp_action"): (
         ("grant", "execution"),
         (
             "action_rejected",
@@ -119,6 +150,11 @@ OPERATIONAL_LIMITS = (
 ASP_OVER_AHP = (
     "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1"
 )
+ASP_OVER_MCP = (
+    "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+)
+ASP_OVER_MCP_EXTENSION = "io.github.zeroal-spec/asp-over-mcp-v1"
+ASP_OVER_MCP_PROTOCOL = "2025-11-25"
 HUMAN_ELICITATION = (
     "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1"
 )
@@ -359,13 +395,16 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
     SP: (
         "agent-surface/feature/proposal-only",
         RISK_EXPLANATION,
+        ASP_OVER_MCP,
         OPERATIONAL_LIMITS,
     ),
     GI: (
         "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
+        ASP_OVER_MCP,
     ),
     AE: (
         "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
+        ASP_OVER_MCP,
         HUMAN_ELICITATION,
         OPERATIONAL_LIMITS,
         "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
@@ -377,12 +416,13 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
         RISK_EXPLANATION,
         "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1",
         ASP_OVER_AHP,
+        ASP_OVER_MCP,
         "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
         HUMAN_ELICITATION,
         OPERATIONAL_LIMITS,
         "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
     ),
-    AA: (ASP_OVER_AHP, HUMAN_ELICITATION),
+    AA: (ASP_OVER_AHP, ASP_OVER_MCP, HUMAN_ELICITATION),
 }
 
 
@@ -741,6 +781,721 @@ def _validate_ahp_binding(
     if ahp.get("receipt_use") != "informational":
         raise BehaviorError("AHP receipt projection claims ASP authority")
     return ahp
+
+
+def _validate_mcp_fresh_ordinary_admission(
+    document: Mapping[str, Any], action_id: Any
+) -> None:
+    """Compose ordinary ASP admission checks for a fresh MCP-carried action."""
+
+    surface = _section(document, "surface")
+    grant = _section(document, "grant")
+    execution = _section(document, "execution")
+    if (
+        surface.get("status") != "current"
+        or surface.get("references") != "complete"
+        or surface.get("candidate_hash") != surface.get("retained_hash")
+        or grant.get("status") != "active"
+        or grant.get("revocation_state") != "active"
+        or grant.get("claimed_issuer") != grant.get("issuer")
+        or grant.get("passport_status") != "current"
+        or grant.get("companion_closure") != "closed"
+        or not set(grant.get("issued_actions", ())).issubset(
+            grant.get("requested_actions", ())
+        )
+        or action_id not in grant.get("issued_actions", ())
+        or execution.get("input_hash") != execution.get("recorded_input_hash")
+        or execution.get("input_schema_hash")
+        != execution.get("recorded_input_schema_hash")
+        or execution.get("normalization") != "fixed_point"
+        or execution.get("execution_hash")
+        != execution.get("recorded_execution_hash")
+        or execution.get("approval_hash")
+        != execution.get("recorded_approval_hash")
+        or execution.get("policy") != "allow"
+        or execution.get("runtime_identity")
+        != execution.get("bound_runtime_identity")
+        or execution.get("sender_credential_audience")
+        != execution.get("bound_credential_audience")
+        or execution.get("proof_session_binding")
+        != execution.get("bound_session_binding")
+        or execution.get("attestation") != "current"
+    ):
+        raise BehaviorError(
+            "fresh MCP admission failed ordinary ASP authority checks"
+        )
+
+
+def _validate_mcp_binding(
+    document: Mapping[str, Any],
+    *,
+    phase: str,
+) -> Mapping[str, Any]:
+    """Validate a closed MCP harness projection without treating MCP as authority."""
+
+    mcp = _section(document, "mcp")
+    authority = _section(document, "mcp_authority")
+    if phase == "issuance":
+        endpoint = authority.get("manifest_binding_endpoint")
+        endpoint_parts = urlsplit(str(endpoint))
+        grant = _section(document, "grant")
+        surface = _section(document, "surface")
+        authorization_mode = authority.get("authorization_mode")
+        authorization_composition = authority.get("authorization_composition")
+        credential_binding = authority.get("credential_binding")
+        credential_audience = authority.get("manifest_credential_audience")
+        credential_audience_parts = urlsplit(str(credential_audience))
+        if (
+            credential_audience_parts.scheme != "https"
+            or not credential_audience_parts.netloc
+        ):
+            raise BehaviorError("MCP credential audience is not an absolute HTTPS URI")
+        valid_authorization = (
+            authorization_mode == "asp_native"
+            and authorization_composition == "asp-native"
+            and credential_binding in {"dpop", "compatibility_bearer", "mtls"}
+            and isinstance(credential_audience, str)
+        ) or (
+            authorization_mode == "mcp_oauth_dual_use"
+            and authorization_composition == "mcp-oauth-dual-use"
+            and credential_binding
+            in {"compatibility_bearer", "mtls_bound_bearer"}
+            and credential_audience == endpoint
+        )
+        if (
+            endpoint_parts.scheme != "https"
+            or not endpoint_parts.netloc
+            or "?" in str(endpoint)
+            or "#" in str(endpoint)
+            or endpoint_parts.query
+            or endpoint_parts.fragment
+            or endpoint_parts.username is not None
+            or endpoint_parts.password is not None
+            or surface.get("status") != "current"
+            or grant.get("passport_status") != "current"
+            or grant.get("companion_closure") != "closed"
+            or not set(grant.get("issued_actions", ())).issubset(
+                grant.get("requested_actions", ())
+            )
+            or authority.get("requested_locations") != [endpoint]
+            or authority.get("issued_locations")
+            != authority.get("requested_locations")
+            or not valid_authorization
+        ):
+            raise BehaviorError(
+                "pre-channel MCP Grant location or authorization selection is invalid"
+            )
+        return mcp
+    exact_fields = {
+        "profile",
+        "negotiated_profile",
+        "extension_id",
+        "negotiated_extension",
+        "capability_container",
+        "protocol_version",
+        "negotiated_protocol_version",
+        "protocol_header",
+        "initialization_state",
+        "bootstrap_manifest_state",
+        "bootstrap_binding_declaration",
+        "binding_endpoint",
+        "grant_location_binding",
+        "endpoint_redirect_policy",
+        "http_origin_check",
+        "post_media_negotiation",
+        "listener_authentication",
+        "mcp_session_id_source",
+        "session_header_use",
+        "session_binding",
+        "asp_session_id",
+        "asp_session_generation",
+        "request_trace_id",
+        "request_span_id",
+        "result_trace_id",
+        "result_span_id",
+        "listener_state",
+        "listener_response",
+        "stream_state",
+        "stream_recovery",
+        "asp_session_state",
+        "transport_lifecycle_event",
+        "fresh_initialize_authority",
+        "session_generation_transition",
+        "session_lookup_outcome",
+        "interruption_authority",
+        "session_binding_persistence",
+        "active_mcp_session_cardinality",
+        "generation_drain_state",
+        "old_record_generation_binding",
+        "core_resume_outcome",
+        "transport",
+        "authentication",
+        "authorization_mode",
+        "authorization_composition",
+        "credential_binding",
+        "transport_credential_scheme",
+        "canonical_mcp_server_uri",
+        "token_audience",
+        "bound_token_audience",
+        "credential_proof_target_uri",
+        "credential_custody",
+        "token_forwarding",
+        "execution_token_handling",
+        "outer_idempotency_header",
+        "discovery_kind",
+        "manifest_resource_uri",
+        "manifest_content_uri",
+        "manifest_content_kind",
+        "manifest_content_mime",
+        "manifest_content_ijson",
+        "manifest_content_meta",
+        "manifest_uri_binding",
+        "manifest_subscription",
+        "resource_update_state",
+        "binding_view_id",
+        "current_binding_view_id",
+        "tool_list_state",
+        "tools_changed_state",
+        "binding_view_tool_set",
+        "page_tool_binding_records",
+        "authorized_projection_state",
+        "authorized_projection_binding",
+        "binding_input_schema_hash",
+        "current_binding_input_schema_hash",
+        "binding_output_schema_hash",
+        "current_binding_output_schema_hash",
+        "schema_snapshot_state",
+        "schema_reference_closure",
+        "binding_view_use",
+        "completed_record_state",
+        "replay_materialization",
+        "retained_snapshot_state",
+        "rotation_cause",
+        "replay_disclosure_authorization",
+        "manifest_schema_dialect",
+        "mapped_input_schema_dialect",
+        "mapped_output_schema_dialect",
+        "initialize_display_metadata",
+        "tool_display_metadata",
+        "resource_link_display_metadata",
+        "manifest_action_ids",
+        "tool_name",
+        "action_id",
+        "mapped_action_id",
+        "action_mode",
+        "mapped_action_mode",
+        "grant_id",
+        "bound_grant_id",
+        "grant_hash",
+        "bound_grant_hash",
+        "idempotency_key",
+        "bound_idempotency_key",
+        "idempotency_requirement",
+        "surface_version",
+        "surface_hash",
+        "bound_surface_hash",
+        "arguments_input_hash",
+        "bound_input_hash",
+        "asp_grant_proof",
+        "mcp_oauth_use",
+        "annotations_use",
+        "agent_request_projection",
+        "agent_meta_access",
+        "agent_credential_access",
+        "agent_result_projection",
+        "agent_transport_result_access",
+        "agent_transport_authority_use",
+        "result_channel",
+        "result_text_consistency",
+        "result_surface_version",
+        "result_surface_hash",
+        "result_action_id",
+        "result_input_hash",
+        "result_grant_id",
+        "result_grant_hash",
+        "result_idempotency_key",
+        "result_integrity",
+        "result_output_schema",
+        "result_is_error_consistency",
+        "result_delivery_boundary",
+        "error_mapping",
+        "binding_error_semantics",
+        "action_error_semantics",
+        "capacity_error_carrier",
+        "transport_status_semantics",
+        "task_support",
+        "progress_use",
+        "progress_token_source",
+        "progress_token_echo",
+        "progress_payload",
+        "progress_stream",
+        "cancellation_phase",
+        "cancellation_use",
+        "retry_behavior",
+        "receipt_channel",
+        "receipt_requirement",
+        "receipt_resource_authentication",
+        "receipt_integrity",
+        "receipt_link_binding",
+        "receipt_persistence",
+        "receipt_rematerialization",
+        "transport_error_exposure",
+    }
+    if set(mcp) != exact_fields:
+        raise BehaviorError("ASP-over-MCP projection is not the exact closed shape")
+    if (
+        mcp.get("profile") != ASP_OVER_MCP
+        or mcp.get("negotiated_profile") != ASP_OVER_MCP
+        or mcp.get("extension_id") != ASP_OVER_MCP_EXTENSION
+        or mcp.get("negotiated_extension") != ASP_OVER_MCP_EXTENSION
+        or mcp.get("capability_container") != "experimental"
+    ):
+        raise BehaviorError("ASP-over-MCP experimental capability was not negotiated")
+    if any(
+        mcp.get(field) != ASP_OVER_MCP_PROTOCOL
+        for field in (
+            "protocol_version",
+            "negotiated_protocol_version",
+            "protocol_header",
+        )
+    ):
+        raise BehaviorError("ASP-over-MCP protocol revision was not pinned")
+    if mcp.get("initialization_state") != "initialized_notified":
+        raise BehaviorError("MCP initialization lifecycle is incomplete")
+    if (
+        mcp.get("bootstrap_manifest_state") != "verified_before_mcp"
+        or mcp.get("bootstrap_binding_declaration") != "exact"
+        or mcp.get("binding_endpoint") != mcp.get("canonical_mcp_server_uri")
+        or mcp.get("binding_endpoint") != authority.get("manifest_binding_endpoint")
+        or mcp.get("manifest_resource_uri") != authority.get("manifest_resource_uri")
+        or mcp.get("grant_location_binding") != "verified"
+        or mcp.get("endpoint_redirect_policy") != "no_endpoint_changes"
+        or mcp.get("http_origin_check") != "allowed_before_asp"
+        or mcp.get("post_media_negotiation") != "json_and_event_stream"
+        or mcp.get("listener_authentication") != "selected"
+        or mcp.get("mcp_session_id_source") != "server_secure"
+        or mcp.get("session_header_use") != "all_post_get_delete"
+        or mcp.get("session_binding") != "exact"
+        or mcp.get("listener_state") != "open_before_subscribe"
+        or mcp.get("listener_response") != "text_event_stream"
+        or mcp.get("stream_state") != "current"
+        or mcp.get("stream_recovery") != "refetch_or_fresh_initialize"
+    ):
+        raise BehaviorError("MCP bootstrap endpoint or Grant location is unpinned")
+    if (
+        mcp.get("discovery_kind") != "complete_authorized_snapshot"
+        or mcp.get("manifest_subscription") != "active"
+        or mcp.get("tool_list_state") != "complete"
+        or mcp.get("manifest_uri_binding") != "verified"
+        or mcp.get("manifest_content_uri") != mcp.get("manifest_resource_uri")
+        or mcp.get("manifest_content_kind") != "text_resource_contents"
+        or mcp.get("manifest_content_mime") != "application/json"
+        or mcp.get("manifest_content_ijson") != "valid"
+        or mcp.get("manifest_content_meta") != "omitted"
+        or mcp.get("mapped_input_schema_dialect")
+        != mcp.get("manifest_schema_dialect")
+        or mcp.get("mapped_output_schema_dialect")
+        != mcp.get("manifest_schema_dialect")
+        or mcp.get("initialize_display_metadata") != "omitted"
+        or mcp.get("tool_display_metadata") != "omitted"
+        or mcp.get("resource_link_display_metadata") != "omitted"
+        or mcp.get("binding_view_tool_set") != "asp_mapped_only"
+        or mcp.get("page_tool_binding_records") != "identical"
+        or mcp.get("authorized_projection_binding") != "absent_or_exact"
+        or mcp.get("authorized_projection_state") not in {"absent", "exact"}
+        or mcp.get("schema_reference_closure") != "self_contained"
+    ):
+        raise BehaviorError("MCP discovery snapshot is incomplete or stale")
+    if (
+        mcp.get("manifest_action_ids") != authority.get("manifest_action_ids")
+        or mcp.get("authorized_projection_state")
+        != authority.get("authorized_projection_state")
+        or mcp.get("authorized_projection_binding")
+        != authority.get("authorized_projection_binding")
+        or mcp.get("surface_version") != authority.get("surface_version")
+        or mcp.get("surface_hash") != authority.get("surface_hash")
+    ):
+        raise BehaviorError("MCP view differs from independent manifest authority")
+    current_view = (
+        mcp.get("binding_view_use") == "current_admission"
+        and mcp.get("resource_update_state") == "current"
+        and mcp.get("binding_view_id") == mcp.get("current_binding_view_id")
+        and mcp.get("tools_changed_state") == "stable"
+        and mcp.get("binding_input_schema_hash")
+        == mcp.get("current_binding_input_schema_hash")
+        and mcp.get("binding_output_schema_hash")
+        == mcp.get("current_binding_output_schema_hash")
+        and mcp.get("schema_snapshot_state") == "current"
+        and mcp.get("completed_record_state") == "not_applicable"
+        and mcp.get("replay_materialization") == "not_applicable"
+        and mcp.get("retained_snapshot_state") == "not_applicable"
+        and mcp.get("replay_disclosure_authorization") == "not_applicable"
+    )
+    current_completed_replay = (
+        mcp.get("binding_view_use") == "current_completed_replay"
+        and phase in {"pre_dispatch", "application_admission", "result"}
+        and mcp.get("resource_update_state") == "current"
+        and mcp.get("binding_view_id") == mcp.get("current_binding_view_id")
+        and mcp.get("tools_changed_state") == "stable"
+        and mcp.get("binding_input_schema_hash")
+        == mcp.get("current_binding_input_schema_hash")
+        and mcp.get("binding_output_schema_hash")
+        == mcp.get("current_binding_output_schema_hash")
+        and mcp.get("schema_snapshot_state") == "current"
+        and mcp.get("completed_record_state") == "exact_authenticated"
+        and mcp.get("replay_materialization")
+        == "exact_persisted_result_and_receipt"
+        and mcp.get("retained_snapshot_state") == "persisted_across_restart"
+        and mcp.get("rotation_cause") == "none"
+        and mcp.get("replay_disclosure_authorization") == "allowed"
+        and mcp.get("idempotency_requirement") == "required"
+        and mcp.get("idempotency_key") != "none"
+    )
+    retained_completed_replay = (
+        mcp.get("binding_view_use") == "retained_completed_replay"
+        and phase in {"pre_dispatch", "application_admission", "result"}
+        and mcp.get("binding_view_id") != mcp.get("current_binding_view_id")
+        and mcp.get("tools_changed_state") == "changed_after_snapshot"
+        and mcp.get("schema_snapshot_state") == "retained"
+        and mcp.get("completed_record_state") == "exact_authenticated"
+        and mcp.get("replay_materialization")
+        == "exact_persisted_result_and_receipt"
+        and mcp.get("retained_snapshot_state") == "persisted_across_restart"
+        and mcp.get("replay_disclosure_authorization") == "allowed"
+        and mcp.get("idempotency_requirement") == "required"
+        and mcp.get("idempotency_key") != "none"
+        and (
+            (
+                mcp.get("rotation_cause") == "manifest"
+                and mcp.get("resource_update_state") == "updated"
+            )
+            or (
+                mcp.get("rotation_cause") == "input_schema"
+                and mcp.get("binding_input_schema_hash")
+                != mcp.get("current_binding_input_schema_hash")
+            )
+            or (
+                mcp.get("rotation_cause") == "output_schema"
+                and mcp.get("binding_output_schema_hash")
+                != mcp.get("current_binding_output_schema_hash")
+            )
+            or mcp.get("rotation_cause") == "view_context"
+        )
+    )
+    if not current_view and not current_completed_replay and not retained_completed_replay:
+        raise BehaviorError(
+            "MCP view is neither current nor an exact retained completed replay"
+        )
+    active_session = (
+        mcp.get("asp_session_state") == "active"
+        and mcp.get("session_generation_transition") == "unchanged"
+        and mcp.get("session_lookup_outcome") == "bound"
+        and mcp.get("interruption_authority") == "not_applicable"
+        and mcp.get("generation_drain_state") == "not_applicable"
+        and mcp.get("core_resume_outcome") == "not_applicable"
+        and (
+            (
+                mcp.get("transport_lifecycle_event") == "none"
+                and mcp.get("fresh_initialize_authority") == "not_applicable"
+            )
+            or (
+                mcp.get("transport_lifecycle_event")
+                == "call_or_listener_loss_recovered"
+                and mcp.get("fresh_initialize_authority") == "transport_only"
+            )
+        )
+    )
+    resumed_session = (
+        mcp.get("asp_session_state") == "active"
+        and mcp.get("transport_lifecycle_event") == "session_terminated"
+        and mcp.get("fresh_initialize_authority") == "no_asp_reactivation"
+        and mcp.get("session_generation_transition") == "incremented"
+        and mcp.get("session_lookup_outcome") == "bound"
+        and mcp.get("interruption_authority") == "server_or_authenticated_owner"
+        and mcp.get("generation_drain_state") == "drained"
+        and mcp.get("core_resume_outcome") == "accepted"
+    )
+    nonmutating_session_lookup_404 = (
+        phase == "discovery"
+        and current_view
+        and mcp.get("asp_session_state") == "active"
+        and mcp.get("transport_lifecycle_event") == "session_lookup_404_recovered"
+        and mcp.get("fresh_initialize_authority") == "transport_only"
+        and mcp.get("session_generation_transition") == "unchanged"
+        and mcp.get("session_lookup_outcome")
+        in {"unknown_404_no_mutation", "auth_mismatch_404_no_mutation"}
+        and mcp.get("interruption_authority") == "not_applicable"
+        and mcp.get("generation_drain_state") == "not_applicable"
+        and mcp.get("core_resume_outcome") == "not_applicable"
+    )
+    interrupted_closed_path = (
+        (current_completed_replay or retained_completed_replay)
+        and mcp.get("asp_session_state") == "interrupted"
+        and mcp.get("transport_lifecycle_event") == "session_terminated"
+        and mcp.get("fresh_initialize_authority") == "no_asp_reactivation"
+        and mcp.get("session_generation_transition") == "unchanged"
+        and mcp.get("session_lookup_outcome") == "bound"
+        and mcp.get("interruption_authority") == "server_or_authenticated_owner"
+        and mcp.get("generation_drain_state") == "closed_path_in_progress"
+        and mcp.get("core_resume_outcome") == "not_applicable"
+    )
+    if (
+        mcp.get("session_binding_persistence") != "durable"
+        or mcp.get("active_mcp_session_cardinality") != "one"
+        or mcp.get("old_record_generation_binding") != "original_generation"
+    ):
+        raise BehaviorError("MCP session-generation binding is not durable")
+    if (
+        not active_session
+        and not resumed_session
+        and not nonmutating_session_lookup_404
+        and not interrupted_closed_path
+    ):
+        raise BehaviorError(
+            "MCP transport lifecycle did not preserve or explicitly resume the ASP session"
+        )
+    manifest_uri = urlsplit(str(mcp.get("manifest_resource_uri", "")))
+    if not manifest_uri.scheme:
+        raise BehaviorError("MCP manifest resource URI is not absolute")
+    endpoint_value = str(mcp.get("canonical_mcp_server_uri", ""))
+    endpoint = urlsplit(endpoint_value)
+    if (
+        endpoint.scheme != "https"
+        or not endpoint.netloc
+        or "?" in endpoint_value
+        or "#" in endpoint_value
+        or endpoint.query
+        or endpoint.fragment
+        or endpoint.username is not None
+        or endpoint.password is not None
+    ):
+        raise BehaviorError(
+            "MCP canonical endpoint is not credential-free fragmentless HTTPS"
+        )
+    credential_audience = str(authority.get("manifest_credential_audience", ""))
+    credential_audience_parts = urlsplit(credential_audience)
+    if (
+        credential_audience_parts.scheme != "https"
+        or not credential_audience_parts.netloc
+    ):
+        raise BehaviorError("MCP credential audience is not an absolute HTTPS URI")
+    if (
+        authority.get("issued_locations") != authority.get("requested_locations")
+        or endpoint_value not in authority.get("issued_locations", ())
+    ):
+        raise BehaviorError("MCP endpoint is outside independent Grant locations")
+
+    surface = _section(document, "surface")
+    grant = _section(document, "grant")
+    execution = _section(document, "execution")
+    action_id = mcp.get("action_id")
+    derived_tool = "asp.action." + hashlib.sha256(
+        str(action_id).encode("utf-8")
+    ).hexdigest()
+    if (
+        action_id != mcp.get("mapped_action_id")
+        or action_id != authority.get("selected_action_id")
+        or mcp.get("tool_name") != derived_tool
+        or mcp.get("action_mode") != mcp.get("mapped_action_mode")
+        or mcp.get("action_mode") != authority.get("selected_action_mode")
+        or mcp.get("manifest_schema_dialect") != authority.get("schema_dialect")
+        or mcp.get("binding_input_schema_hash") != authority.get("input_schema_hash")
+        or mcp.get("binding_output_schema_hash") != authority.get("output_schema_hash")
+        or mcp.get("action_mode")
+        not in {"read", "dry_run", "propose", "reserve", "commit", "compensate", "revert"}
+        or not isinstance(mcp.get("manifest_action_ids"), list)
+        or mcp.get("manifest_action_ids")
+        != sorted(
+            set(mcp.get("manifest_action_ids", ())),
+            key=lambda item: item.encode("utf-8"),
+        )
+        or action_id not in mcp.get("manifest_action_ids", ())
+    ):
+        raise BehaviorError("MCP tool does not map to one exact manifest ASP action")
+    if (
+        mcp.get("transport") != "streamable_http"
+        or mcp.get("authentication") != "authenticated"
+        or mcp.get("token_audience") != mcp.get("bound_token_audience")
+        or mcp.get("token_audience") != authority.get("manifest_credential_audience")
+        or mcp.get("credential_proof_target_uri")
+        != authority.get("credential_proof_target_uri")
+        or mcp.get("credential_proof_target_uri")
+        != mcp.get("canonical_mcp_server_uri")
+        or mcp.get("authorization_mode") != authority.get("authorization_mode")
+        or mcp.get("authorization_composition")
+        != authority.get("authorization_composition")
+        or mcp.get("credential_custody") != "runtime"
+        or mcp.get("token_forwarding") != "prohibited"
+        or mcp.get("execution_token_handling") != "runtime_injected_meta_only"
+        or mcp.get("outer_idempotency_header") != "omitted"
+    ):
+        raise BehaviorError("MCP carrier released or misbound credential material")
+    if mcp.get("authorization_mode") == "asp_native":
+        valid_auth = (
+            mcp.get("authorization_composition") == "asp-native"
+            and mcp.get("mcp_oauth_use") == "not_selected"
+            and (
+            (mcp.get("credential_binding"), mcp.get("transport_credential_scheme"))
+            in {("dpop", "dpop"), ("compatibility_bearer", "bearer"), ("mtls", "mtls")}
+            )
+        )
+    elif mcp.get("authorization_mode") == "mcp_oauth_dual_use":
+        valid_auth = (
+            mcp.get("authorization_composition") == "mcp-oauth-dual-use"
+            and mcp.get("mcp_oauth_use") == "dual_use_verified"
+            and mcp.get("transport_credential_scheme") == "bearer"
+            and mcp.get("token_audience") == mcp.get("canonical_mcp_server_uri")
+            and mcp.get("credential_binding")
+            in {"compatibility_bearer", "mtls_bound_bearer"}
+        )
+    else:
+        valid_auth = False
+    if not valid_auth:
+        raise BehaviorError("MCP authorization composition is invalid")
+    if current_view and (
+        surface.get("status") != "current"
+        or surface.get("references") != "complete"
+        or surface.get("candidate_hash") != surface.get("retained_hash")
+        or mcp.get("surface_version") != surface.get("version")
+        or mcp.get("surface_hash") != surface.get("retained_hash")
+    ):
+        raise BehaviorError(
+            "MCP current view differs from the authoritative surface"
+        )
+    if phase == "discovery":
+        if not current_view:
+            raise BehaviorError("MCP discovery or issuance used a retained view")
+        return mcp
+    if phase == "adapter":
+        if not current_view:
+            raise BehaviorError("Agent Adapter consumed a retained MCP view")
+        if (
+            mcp.get("agent_request_projection") != "tool_and_arguments_only"
+            or mcp.get("agent_meta_access") != "none"
+            or mcp.get("agent_credential_access") != "none"
+            or mcp.get("agent_result_projection") != "purpose_minimized_output"
+            or mcp.get("agent_transport_result_access") != "none"
+            or mcp.get("agent_transport_authority_use") != "none"
+        ):
+            raise BehaviorError("Agent Adapter crossed the MCP authority boundary")
+        return mcp
+    if phase not in {"pre_dispatch", "application_admission", "result"}:
+        raise BehaviorError(f"unknown MCP validation phase {phase!r}")
+    if phase in {"pre_dispatch", "application_admission"} and not (
+        current_completed_replay or retained_completed_replay
+    ):
+        _validate_mcp_fresh_ordinary_admission(document, action_id)
+        if mcp.get("binding_input_schema_hash") != execution.get(
+            "input_schema_hash"
+        ):
+            raise BehaviorError(
+                "fresh MCP binding schema differs from ordinary ASP admission"
+            )
+    pair_fields = (
+        ("grant_id", "bound_grant_id"),
+        ("grant_hash", "bound_grant_hash"),
+        ("idempotency_key", "bound_idempotency_key"),
+        ("surface_hash", "bound_surface_hash"),
+        ("arguments_input_hash", "bound_input_hash"),
+    )
+    if any(mcp.get(current) != mcp.get(bound) for current, bound in pair_fields):
+        raise BehaviorError("MCP action request is detached from the ASP tuple")
+    if (
+        mcp.get("grant_id") != authority.get("grant_id")
+        or mcp.get("grant_hash") != authority.get("grant_hash")
+        or mcp.get("idempotency_key") != authority.get("idempotency_key")
+        or mcp.get("asp_session_id") != authority.get("asp_session_id")
+        or mcp.get("asp_session_generation")
+        != authority.get("asp_session_generation")
+        or mcp.get("request_trace_id") != authority.get("trace_id")
+        or mcp.get("request_span_id") != authority.get("request_span_id")
+        or mcp.get("result_trace_id") != authority.get("trace_id")
+        or mcp.get("result_span_id") != authority.get("result_span_id")
+        or mcp.get("result_span_id") == mcp.get("request_span_id")
+    ):
+        raise BehaviorError("MCP tuple differs from independent authority")
+    if (current_view or current_completed_replay) and (
+        mcp.get("surface_version") != surface.get("version")
+        or mcp.get("surface_hash") != surface.get("retained_hash")
+        or mcp.get("arguments_input_hash") != execution.get("input_hash")
+    ):
+        raise BehaviorError("MCP action request differs from authoritative ASP state")
+    if mcp.get("asp_grant_proof") != "verified" or mcp.get("task_support") != "forbidden":
+        raise BehaviorError("MCP request lacks exact ASP proof or enables tasks")
+    if phase != "result" and mcp.get("annotations_use") != "omitted":
+        raise BehaviorError("MCP Tool annotations cannot carry ASP authority")
+    if phase != "result":
+        return mcp
+    result_pairs = (
+        ("result_surface_version", "surface_version"),
+        ("result_surface_hash", "surface_hash"),
+        ("result_action_id", "action_id"),
+        ("result_input_hash", "arguments_input_hash"),
+        ("result_grant_id", "grant_id"),
+        ("result_grant_hash", "grant_hash"),
+        ("result_idempotency_key", "idempotency_key"),
+    )
+    if any(mcp.get(result) != mcp.get(request) for result, request in result_pairs):
+        raise BehaviorError("MCP structured result is detached from the ASP request")
+    if (
+        mcp.get("result_channel") != "structured_content"
+        or mcp.get("result_text_consistency") != "deep_equal"
+        or mcp.get("result_integrity") != "valid"
+        or mcp.get("result_output_schema") != "valid"
+        or mcp.get("result_is_error_consistency") != "matched"
+        or mcp.get("result_delivery_boundary") != "runtime_only"
+        or mcp.get("error_mapping") != "layered"
+        or mcp.get("binding_error_semantics")
+        != "closed_pre_effect_non_authoritative"
+        or mcp.get("action_error_semantics") != "closed_asp_error"
+        or mcp.get("capacity_error_carrier") != "tool_result"
+        or mcp.get("transport_status_semantics") != "mcp_http_success"
+        or mcp.get("progress_use") != "advisory"
+        or mcp.get("progress_token_source") != "runtime"
+        or mcp.get("progress_token_echo") != "matched"
+        or mcp.get("progress_payload") != "bounded_numeric_only"
+        or mcp.get("progress_stream") != "call_post_sse"
+        or mcp.get("receipt_link_binding") != "exact_one_to_one"
+        or mcp.get("transport_error_exposure")
+        != "internal_safe_classification_only"
+    ):
+        raise BehaviorError("MCP transport semantics weakened ASP authority")
+    if mcp.get("cancellation_phase") == "after_dispatch_ambiguous":
+        if (
+            mcp.get("cancellation_use") != "wait_only"
+            or mcp.get("retry_behavior") != "reconcile_same_key"
+        ):
+            raise BehaviorError("post-dispatch cancellation bypassed reconciliation")
+    elif (
+        mcp.get("cancellation_phase") != "pre_admission_proven"
+        or mcp.get("cancellation_use") != "honored_pre_admission"
+        or mcp.get("retry_behavior") != "not_applicable"
+    ):
+        raise BehaviorError("MCP cancellation state is not fail-closed")
+    if mcp.get("idempotency_requirement") == "required":
+        if mcp.get("idempotency_key") == "none":
+            raise BehaviorError("MCP action lacks required idempotency identity")
+    elif mcp.get("idempotency_requirement") != "optional":
+        raise BehaviorError("MCP idempotency requirement is invalid")
+    if mcp.get("receipt_requirement") == "required":
+        if (
+            mcp.get("receipt_channel") != "authenticated_resource"
+            or mcp.get("receipt_resource_authentication") != "authenticated"
+            or mcp.get("receipt_integrity") != "verified"
+            or mcp.get("receipt_persistence") != "immutable_before_result"
+            or mcp.get("receipt_rematerialization")
+            != "exact_after_fresh_session"
+        ):
+            raise BehaviorError("MCP receipt resource is not authenticated and verified")
+    elif mcp.get("receipt_requirement") != "not_required" or (
+        mcp.get("receipt_channel") != "not_applicable"
+        or mcp.get("receipt_resource_authentication") != "not_applicable"
+        or mcp.get("receipt_integrity") != "not_applicable"
+        or mcp.get("receipt_persistence") != "not_applicable"
+        or mcp.get("receipt_rematerialization") != "not_applicable"
+    ):
+        raise BehaviorError("MCP receipt handling differs from action policy")
+    return mcp
 
 
 def _validate_jcs_value(value: Any) -> None:
@@ -2936,6 +3691,30 @@ def _validate_impact_simulation(document: Mapping[str, Any]) -> None:
 
 
 def _surface(operation: str, document: Mapping[str, Any], state: _Transition) -> BehaviorResult:
+    if operation == "publish_mcp_surface":
+        try:
+            _validate_mcp_binding(
+                document,
+                phase="discovery",
+            )
+        except BehaviorError:
+            return state.result(
+                "rejected",
+                "mcp_binding_rejected",
+                "mcp_discovery_suppressed",
+                "asp_authority_retained",
+                "action_dispatch_suppressed",
+                asp_error="surface_incompatible",
+            )
+        state.increment("manifest.accepted_count")
+        state.increment("surface.version_binding_count")
+        return state.result(
+            "accepted",
+            "mcp_binding_validated",
+            "mcp_surface_published",
+            "mcp_tools_published",
+            "asp_authority_unchanged",
+        )
     if operation != "publish_manifest":
         raise BehaviorError(f"Surface Publisher does not support {operation!r}")
     surface = _section(document, "surface")
@@ -2992,6 +3771,44 @@ def _surface(operation: str, document: Mapping[str, Any], state: _Transition) ->
 def _grant(operation: str, document: Mapping[str, Any], state: _Transition) -> BehaviorResult:
     surface = _section(document, "surface")
     grant = _section(document, "grant")
+    if operation == "issue_mcp_grant":
+        try:
+            _validate_mcp_binding(document, phase="issuance")
+        except BehaviorError:
+            return state.result(
+                "rejected",
+                "grant_rejected",
+                "mcp_binding_rejected",
+                "asp_authority_retained",
+                "credential_withheld",
+                policy_reason="binding_invalid",
+            )
+        if (
+            surface.get("status") != "current"
+            or grant.get("passport_status") != "current"
+            or grant.get("companion_closure") != "closed"
+            or not set(grant.get("issued_actions", ())).issubset(
+                grant.get("requested_actions", ())
+            )
+        ):
+            return state.result(
+                "rejected",
+                "grant_rejected",
+                "mcp_binding_rejected",
+                "asp_authority_retained",
+                "credential_withheld",
+                policy_reason="binding_invalid",
+            )
+        state.increment("grant.issued_count")
+        state.increment("credential.issued_count")
+        return state.result(
+            "accepted",
+            "mcp_binding_validated",
+            "grant_location_bound",
+            "grant_issued",
+            "tuple_checked",
+            "credential_withheld",
+        )
     if operation == "issue_grant":
         if surface.get("status") != "current":
             return state.result("rejected", "grant_rejected", "current_state_checked")
@@ -3054,6 +3871,74 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
     grant = _section(document, "grant")
     execution = _section(document, "execution")
     operational = document.get("operational")
+    if operation == "execute_mcp_action":
+        try:
+            mcp = _validate_mcp_binding(document, phase="application_admission")
+        except BehaviorError:
+            return state.result(
+                "rejected",
+                "mcp_binding_rejected",
+                "action_rejected",
+                "mcp_result_suppressed",
+                "asp_authority_retained",
+                "credential_withheld",
+                policy_reason="binding_invalid",
+            )
+        if mcp.get("binding_view_use") in {
+            "current_completed_replay",
+            "retained_completed_replay",
+        }:
+            try:
+                _validate_mcp_binding(document, phase="result")
+            except BehaviorError:
+                return state.result(
+                    "stopped",
+                    "mcp_binding_rejected",
+                    "mcp_result_suppressed",
+                    "outcome_reconciliation_required",
+                    "asp_authority_retained",
+                    "credential_withheld",
+                    "retry_suppressed",
+                    policy_reason="binding_invalid",
+                )
+            return state.result(
+                "accepted",
+                "mcp_binding_validated",
+                "mcp_structured_result_emitted",
+                "receipt_verified",
+                "asp_authority_unchanged",
+            )
+        for name in (
+            "action.dispatch_count",
+            "action.effect_count",
+            "idempotency.record_count",
+            "budget.application_charge",
+            "receipt.application_count",
+        ):
+            state.increment(name)
+        try:
+            _validate_mcp_binding(document, phase="result")
+        except BehaviorError:
+            return state.result(
+                "stopped",
+                "mcp_binding_rejected",
+                "action_accepted",
+                "application_receipt_emitted",
+                "mcp_result_suppressed",
+                "outcome_reconciliation_required",
+                "asp_authority_retained",
+                "credential_withheld",
+                "retry_suppressed",
+                policy_reason="binding_invalid",
+            )
+        return state.result(
+            "accepted",
+            "mcp_binding_validated",
+            "asp_tuple_validated",
+            "action_accepted",
+            "application_receipt_emitted",
+            "mcp_structured_result_emitted",
+        )
     if operation == "apply_human_elicitation_candidate":
         try:
             elicitation_result = _validate_human_elicitation(document)
@@ -3320,6 +4205,72 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
     execution = _section(document, "execution")
     runtime = _section(document, "runtime")
     operational = document.get("operational")
+    if operation == "mediate_mcp_action":
+        try:
+            mcp = _validate_mcp_binding(document, phase="pre_dispatch")
+        except BehaviorError:
+            return state.result(
+                "rejected",
+                "mcp_binding_rejected",
+                "mediation_stopped",
+                "mcp_result_suppressed",
+                "asp_authority_retained",
+                "credential_withheld",
+                "retry_suppressed",
+                policy_reason="binding_invalid",
+            )
+        if mcp.get("binding_view_use") in {
+            "current_completed_replay",
+            "retained_completed_replay",
+        }:
+            try:
+                _validate_mcp_binding(document, phase="result")
+            except BehaviorError:
+                return state.result(
+                    "stopped",
+                    "mcp_binding_rejected",
+                    "mcp_result_suppressed",
+                    "outcome_reconciliation_required",
+                    "asp_authority_retained",
+                    "credential_withheld",
+                    "retry_suppressed",
+                    policy_reason="binding_invalid",
+                )
+            return state.result(
+                "accepted",
+                "mcp_binding_validated",
+                "mcp_structured_result_validated",
+                "receipt_verified",
+                "credential_withheld",
+                "asp_authority_unchanged",
+            )
+        state.increment("action.dispatch_count")
+        state.increment("runtime.stored_grant_width")
+        try:
+            _validate_mcp_binding(document, phase="result")
+        except BehaviorError:
+            return state.result(
+                "stopped",
+                "mcp_binding_rejected",
+                "mediation_stopped",
+                "typed_request_forwarded",
+                "mcp_result_suppressed",
+                "outcome_reconciliation_required",
+                "asp_authority_retained",
+                "credential_withheld",
+                "retry_suppressed",
+                policy_reason="binding_invalid",
+            )
+        return state.result(
+            "accepted",
+            "mcp_binding_validated",
+            "asp_tuple_validated",
+            "typed_request_forwarded",
+            "mcp_structured_result_validated",
+            "credential_withheld",
+            "cancellation_advisory",
+            "asp_authority_unchanged",
+        )
     if operation == "simulate_impact":
         try:
             _validate_impact_simulation(document)
@@ -3754,6 +4705,27 @@ def _adapter(operation: str, document: Mapping[str, Any], state: _Transition) ->
     execution = _section(document, "execution")
     adapter = _section(document, "adapter")
     receipt = _section(document, "receipt")
+    if operation == "adapt_mcp_action":
+        try:
+            _validate_mcp_binding(document, phase="adapter")
+        except BehaviorError:
+            return state.result(
+                "rejected",
+                "mcp_binding_rejected",
+                "adapter_request_rejected",
+                "mcp_result_suppressed",
+                "asp_authority_retained",
+                "credential_withheld",
+                policy_reason="binding_invalid",
+            )
+        state.increment("adapter.forwarded_count")
+        return state.result(
+            "accepted",
+            "mcp_binding_validated",
+            "typed_request_forwarded",
+            "credential_withheld",
+            "asp_authority_unchanged",
+        )
     if operation == "project_human_elicitation_answer":
         raw_elicitation = document.get("elicitation")
         raw_projection = (

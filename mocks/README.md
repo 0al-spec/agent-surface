@@ -38,6 +38,23 @@ authority from AHP UI state; invalid bindings are rejected before presentation
 or forwarding. The normalized `ahp` section is likewise harness data rather
 than a base AHP wire specification.
 
+The ASP-over-MCP paths pin MCP `2025-11-25`, Streamable HTTP, the negotiated
+experimental capability, the manifest-selected endpoint, the authorized
+manifest resource, and deterministic ASP action-to-tool mappings. They model
+the five role-specific operations `publish_mcp_surface`, `issue_mcp_grant`,
+`mediate_mcp_action`, `execute_mcp_action`, and `adapt_mcp_action`. Mock Runtime
+constructs and checks the complete ASP request tuple, retains credentials and
+execution tokens outside the Agent Adapter boundary, and treats cancellation
+as advisory after dispatch. Mock App independently repeats application
+admission, validates closed structured results, persists receipts before
+returning their exact authenticated resource links, and serves retained
+completed replays without repeating effects, charges, admission, or receipt
+production. The fixtures also exercise schema/view rotation, transport-session
+loss, authoritative interruption and safe resume, authorization composition,
+capacity errors, and the private `dry_run` preview-token channel. The normalized
+`mcp` section is harness evidence, not a replacement MCP wire format or a source
+of ASP authority.
+
 The Human Elicitation paths independently validate the closed wire messages,
 exact selected profile, authenticated requester and presenter, current session
 and Grant tuple, RFC 8785 canonical request and response hashes, immutable

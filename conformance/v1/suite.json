@@ -2,7 +2,7 @@
   "$schema": "./suite.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.8.0",
+  "suite_version": "1.9.0",
   "protocol_version": "agent-surface/0.1",
   "specification": {
     "path": "drafts/agent-surface.md",
@@ -16,7 +16,8 @@
         "ASP-SP-001",
         "ASP-SP-002",
         "ASP-SP-003",
-        "ASP-SP-004"
+        "ASP-SP-004",
+        "ASP-SP-005"
       ]
     },
     {
@@ -26,7 +27,8 @@
         "ASP-GI-001",
         "ASP-GI-002",
         "ASP-GI-003",
-        "ASP-GI-004"
+        "ASP-GI-004",
+        "ASP-GI-005"
       ]
     },
     {
@@ -44,7 +46,8 @@
         "ASP-AE-009",
         "ASP-AE-010",
         "ASP-AE-011",
-        "ASP-AE-012"
+        "ASP-AE-012",
+        "ASP-AE-013"
       ]
     },
     {
@@ -76,7 +79,8 @@
         "ASP-RM-011",
         "ASP-RM-012",
         "ASP-RM-013",
-        "ASP-RM-014"
+        "ASP-RM-014",
+        "ASP-RM-015"
       ]
     },
     {
@@ -88,7 +92,8 @@
         "ASP-AA-003",
         "ASP-AA-004",
         "ASP-AA-005",
-        "ASP-AA-006"
+        "ASP-AA-006",
+        "ASP-AA-007"
       ]
     }
   ],
@@ -204,6 +209,18 @@
         "ASP-AA-006",
         "ASP-AE-012",
         "ASP-RM-012"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1",
+      "title": "ASP-over-MCP Binding Profile",
+      "rfc_anchor": "asp-over-mcp-binding-profile",
+      "requirement_ids": [
+        "ASP-SP-005",
+        "ASP-AE-013",
+        "ASP-RM-015",
+        "ASP-AA-007",
+        "ASP-GI-005"
       ]
     }
   ],
@@ -925,6 +942,97 @@
         "ASP-V-RM-070",
         "ASP-V-RM-071"
       ]
-    }
+    },
+    {
+      "requirement_id": "ASP-SP-005",
+      "title": "Publish one complete authorized MCP snapshot with deterministic ASP action-tool mappings",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "rfc_anchor": "asp-over-mcp-binding-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      },
+      "execution_class": "static",
+      "vector_ids": [
+        "ASP-V-SP-010",
+        "ASP-V-SP-011",
+        "ASP-V-SP-012",
+        "ASP-V-SP-013"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-013",
+      "title": "Independently enforce one representative MCP-carried commit and return its bound structured result and receipt",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "asp-over-mcp-binding-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AE-032",
+        "ASP-V-AE-033",
+        "ASP-V-AE-034",
+        "ASP-V-AE-035",
+        "ASP-V-AE-036",
+        "ASP-V-AE-037"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-015",
+      "title": "Pin MCP negotiation and validate one representative commit result while retaining credentials and reconciling advisory cancellation",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "asp-over-mcp-binding-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-072",
+        "ASP-V-RM-073",
+        "ASP-V-RM-074",
+        "ASP-V-RM-075",
+        "ASP-V-RM-076",
+        "ASP-V-RM-077",
+        "ASP-V-RM-078",
+        "ASP-V-RM-079",
+        "ASP-V-RM-080"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AA-007",
+      "title": "Expose only the MCP tool name, arguments, and purpose-minimized result across the Agent Adapter boundary",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/agent-adapter/v1",
+      "rfc_anchor": "asp-over-mcp-binding-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AA-012",
+        "ASP-V-AA-013",
+        "ASP-V-AA-014",
+        "ASP-V-AA-015"
+      ]
+    },
+{
+    "requirement_id": "ASP-GI-005",
+    "title": "Bind each ASP-over-MCP Grant to the exact manifest-selected endpoint and compatible authorization composition",
+    "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+    "rfc_anchor": "asp-over-mcp-binding-profile",
+    "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+    },
+    "execution_class": "behavioral",
+    "vector_ids": [
+        "ASP-V-GI-008",
+        "ASP-V-GI-009",
+        "ASP-V-GI-010"
+    ]
+}
   ]
 }

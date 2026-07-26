@@ -32,6 +32,7 @@ CONFORMANCE_SCHEMAS = {
         "fixtures",
         "human-elicitation",
         "impact-simulation",
+        "mcp-binding",
         "observation",
         "operational-limits",
         "report",
@@ -46,6 +47,7 @@ OPERATIONAL_LIMITS_CONFORMANCE_SCHEMAS = CONFORMANCE_SCHEMAS - {
     Path("conformance/v1/bundles.schema.json"),
     Path("conformance/v1/human-elicitation.schema.json"),
     Path("conformance/v1/impact-simulation.schema.json"),
+    Path("conformance/v1/mcp-binding.schema.json"),
     Path("conformance/v1/risk-explanation.schema.json"),
 }
 CONFORMANCE_REGISTRIES = {
@@ -104,6 +106,11 @@ HTTP_CAPACITY_IMPLEMENTATIONS = {
 }
 ASP_OVER_AHP_IMPLEMENTATIONS = {
     Path("mocks/behavior.py"),
+    Path("mocks/mock_runtime.py"),
+}
+ASP_OVER_MCP_IMPLEMENTATIONS = {
+    Path("mocks/behavior.py"),
+    Path("mocks/mock_app.py"),
     Path("mocks/mock_runtime.py"),
 }
 HUMAN_ELICITATION_IMPLEMENTATIONS = {
@@ -382,6 +389,47 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
             path.as_posix() for path in HTTP_CAPACITY_IMPLEMENTATIONS
         },
     },
+    69: {
+        "rfc_anchor": {
+            "model-context-protocol",
+            "asp-over-mcp-binding-profile",
+            "canonical-object-hash-profile",
+            "curated-surface-boundary",
+            "endpoints",
+            "agent-grant-2",
+            "action-request",
+            "action-response",
+            "idempotency",
+            "session-authority-and-lifecycle",
+            "runtime-disconnected",
+            "grant-verification",
+            "app-receipt",
+            "error-model",
+            "http-capacity-error-binding",
+            "interoperability-test-suite",
+            "reference-mock-participants",
+            "surface-publisher-profile",
+            "grant-issuer-profile",
+            "action-executor-profile",
+            "agent-adapter-profile",
+            "runtime-mediator-profile",
+        },
+        "schema": {
+            "conformance/v1/mcp-binding.schema.json",
+            "conformance/v1/fixtures.schema.json",
+            "conformance/v1/observation.schema.json",
+            "conformance/v1/vectors.schema.json",
+        },
+        "registry": {
+            "conformance/v1/suite.json",
+            "conformance/v1/vectors.json",
+            "conformance/v1/fixtures.json",
+            "conformance/v1/schema-cases.json",
+        },
+        "implementation": {
+            path.as_posix() for path in ASP_OVER_MCP_IMPLEMENTATIONS
+        },
+    },
 }
 EXACT_MACHINE_VALIDATED_REVIEW_IDS = {
     17,
@@ -395,6 +443,7 @@ EXACT_MACHINE_VALIDATED_REVIEW_IDS = {
     59,
     61,
     62,
+    69,
 }
 MATURITY_ORDER = (
     "proposal",
@@ -825,6 +874,9 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         _validate_mock_bundle_evidence(review_id, "implementation", ref)
         return
     if review_id == 27 and relative_path in ASP_OVER_AHP_IMPLEMENTATIONS:
+        _validate_mock_bundle_evidence(review_id, "implementation", ref)
+        return
+    if review_id == 69 and relative_path in ASP_OVER_MCP_IMPLEMENTATIONS:
         _validate_mock_bundle_evidence(review_id, "implementation", ref)
         return
     if review_id == 29 and relative_path in HUMAN_ELICITATION_IMPLEMENTATIONS:
