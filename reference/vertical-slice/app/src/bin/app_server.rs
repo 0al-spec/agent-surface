@@ -1,4 +1,4 @@
-use asp_reference_vertical_app::canonical_digest;
+use asp_reference_vertical_app::{canonical_digest, parse_unique_json};
 use base64::Engine as _;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -481,7 +481,7 @@ fn serve_connection(
     if line.is_empty() || line.len() > MAX_JSON_LINE_BYTES || !line.ends_with('\n') {
         return Err("request must be one bounded JSON line".into());
     }
-    let request: ServerRequest = serde_json::from_str(&line)?;
+    let request: ServerRequest = parse_unique_json(&line)?;
     let (response, stop) = handle(state, request);
     serde_json::to_writer(&mut stream, &response)?;
     stream.write_all(b"\n")?;
@@ -588,6 +588,19 @@ mod tests {
 
     fn request(value: Value) -> ServerRequest {
         serde_json::from_value(value).unwrap()
+    }
+
+    #[test]
+    fn duplicate_input_members_are_rejected_before_dispatch() {
+        let error = parse_unique_json::<ServerRequest>(
+            r#"{"operation":"invoke","input":{"task_id":"task-1","text":"first","text":"second"}}"#,
+        )
+        .unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("duplicate JSON object member \"text\"")
+        );
     }
 
     #[test]

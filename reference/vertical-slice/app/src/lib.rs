@@ -5,10 +5,12 @@
 //! mock implementation.
 
 use base64::Engine as _;
+use serde::de::{self, DeserializeOwned, Deserializer, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
+use std::fmt;
 use std::io::{self, Read};
 use thiserror::Error;
 
@@ -17,6 +19,111 @@ pub const SP: &str = "https://github.com/0al-spec/agent-surface/conformance/surf
 pub const GI: &str = "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1";
 pub const AE: &str = "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1";
 pub const RP: &str = "https://github.com/0al-spec/agent-surface/conformance/receipt-producer/v1";
+
+#[derive(Debug)]
+struct UniqueValue(Value);
+
+struct UniqueValueVisitor;
+
+impl<'de> Visitor<'de> for UniqueValueVisitor {
+    type Value = UniqueValue;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("JSON without duplicate object members")
+    }
+
+    fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::Bool(value)))
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::Number(value.into())))
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::Number(value.into())))
+    }
+
+    fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        serde_json::Number::from_f64(value)
+            .map(Value::Number)
+            .map(UniqueValue)
+            .ok_or_else(|| E::custom("JSON number must be finite"))
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::String(value.to_owned())))
+    }
+
+    fn visit_string<E>(self, value: String) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::String(value)))
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::Null))
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E> {
+        Ok(UniqueValue(Value::Null))
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(UniqueValueVisitor)
+    }
+
+    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut values = Vec::new();
+        while let Some(value) = sequence.next_element::<UniqueValue>()? {
+            values.push(value.0);
+        }
+        Ok(UniqueValue(Value::Array(values)))
+    }
+
+    fn visit_map<A>(self, mut object: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut values = Map::new();
+        while let Some(key) = object.next_key::<String>()? {
+            if values.contains_key(&key) {
+                return Err(de::Error::custom(format!(
+                    "duplicate JSON object member {key:?}"
+                )));
+            }
+            let value = object.next_value::<UniqueValue>()?;
+            values.insert(key, value.0);
+        }
+        Ok(UniqueValue(Value::Object(values)))
+    }
+}
+
+impl<'de> Deserialize<'de> for UniqueValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(UniqueValueVisitor)
+    }
+}
+
+pub fn parse_unique_json<T>(document: &str) -> Result<T, serde_json::Error>
+where
+    T: DeserializeOwned,
+{
+    let mut deserializer = serde_json::Deserializer::from_str(document);
+    let value = UniqueValue::deserialize(&mut deserializer)?.0;
+    deserializer.end()?;
+    serde_json::from_value(value)
+}
 
 #[derive(Debug, Error)]
 pub enum AppError {
@@ -550,7 +657,7 @@ pub fn evaluate(invocation: SubjectInvocation) -> Result<SubjectResult, AppError
 pub fn run_subject(allowed_profiles: &[&str]) -> Result<(), AppError> {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input)?;
-    let invocation: SubjectInvocation = serde_json::from_str(&input)?;
+    let invocation: SubjectInvocation = parse_unique_json(&input)?;
     if !allowed_profiles.contains(&invocation.case.profile_id.as_str()) {
         return Err(AppError::Invalid(format!(
             "profile is outside this artifact boundary: {}",
@@ -602,6 +709,19 @@ mod tests {
                 },
             },
         }
+    }
+
+    #[test]
+    fn unique_json_parser_rejects_nested_duplicate_members() {
+        let error = parse_unique_json::<Value>(
+            r#"{"input":{"task_id":"task-1","text":"first","text":"second"}}"#,
+        )
+        .unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("duplicate JSON object member \"text\"")
+        );
     }
 
     #[test]
