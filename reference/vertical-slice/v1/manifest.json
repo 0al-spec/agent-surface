@@ -21,6 +21,7 @@
   "path_base": "repository-root",
   "harness": {
     "artifact_paths": [
+      "reference/vertical-slice/build_support.py",
       "reference/vertical-slice/harness/adapter.py",
       "reference/vertical-slice/harness/probe.py"
     ],

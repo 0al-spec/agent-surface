@@ -16,6 +16,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from build_support import application_binary
+
 MAX_LINE = 1_048_576
 
 
@@ -200,7 +202,7 @@ def terminate(process: subprocess.Popen) -> None:
 
 
 def run_scenario(root: Path) -> dict[str, Any]:
-    app_binary = root / "target" / "debug" / "asp-reference-app-server"
+    app_binary = application_binary(root, "asp-reference-app-server")
     local_runtime = root / "reference" / "vertical-slice" / "runtime_local.py"
     remote_runtime = root / "reference" / "vertical-slice" / "runtime_remote.py"
     agent_a = root / "reference" / "vertical-slice" / "agent_a.py"

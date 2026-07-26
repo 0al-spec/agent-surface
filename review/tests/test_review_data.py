@@ -101,6 +101,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             "implementation": (
                 "Cargo.lock",
                 "Cargo.toml",
+                "reference/vertical-slice/build_support.py",
                 "reference/vertical-slice/app/Cargo.toml",
                 "reference/vertical-slice/app/src/lib.rs",
                 "reference/vertical-slice/app/src/bin/app_control.rs",
@@ -892,7 +893,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 77)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 565)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 566)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
             Counter(

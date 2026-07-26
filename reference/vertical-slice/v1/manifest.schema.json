@@ -463,8 +463,8 @@
       "properties": {
         "artifact_paths": {
           "type": "array",
-          "minItems": 2,
-          "maxItems": 2,
+          "minItems": 3,
+          "maxItems": 3,
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/relativePath"

@@ -133,6 +133,13 @@ claims, verifies every report against current source and configuration
 digests, runs both end-to-end lanes, validates the aggregate evidence schema,
 and discards the temporary output.
 
+The build honors a shell-parsed `CARGO` override while forcing all application
+binaries into the dedicated `target/asp-reference-vertical-slice` directory.
+The adapter and scenario resolve executables through the same retained
+`build_support.py` mapping, so ambient `CARGO_TARGET_DIR` or Cargo
+`build.target-dir` configuration cannot redirect the build away from the code
+that the evidence run executes.
+
 The repository-wide quality gate also runs this self-check:
 
 ```sh

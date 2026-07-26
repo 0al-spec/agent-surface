@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 SLICE = Path(__file__).resolve().parents[1]
@@ -17,11 +19,14 @@ if str(SLICE) not in sys.path:
 
 from check import (  # noqa: E402
     SliceError,
+    _cargo_command,
     artifact_digest,
+    build_application,
     validate_evidence_schema,
     validate_participant_bindings,
     validate_suite_binding,
 )
+from build_support import application_binary, application_target_dir  # noqa: E402
 
 
 def load(path: Path) -> dict:
@@ -81,6 +86,41 @@ class BindingValidationTests(unittest.TestCase):
             before = artifact_digest(root, paths)
             (root / "Cargo.lock").write_text("version = 2\n", encoding="utf-8")
             self.assertNotEqual(before, artifact_digest(root, paths))
+
+    def test_build_honors_cargo_override_and_forces_shared_target(self) -> None:
+        completed = mock.Mock(returncode=0, stdout="", stderr="")
+        with (
+            mock.patch.dict(
+                os.environ,
+                {"CARGO": 'cargo-wrapper --channel "pinned toolchain"'},
+            ),
+            mock.patch("check.subprocess.run", return_value=completed) as run,
+        ):
+            self.assertEqual(
+                _cargo_command(),
+                ["cargo-wrapper", "--channel", "pinned toolchain"],
+            )
+            build_application(ROOT)
+        command = run.call_args.args[0]
+        self.assertEqual(
+            command[:3],
+            ["cargo-wrapper", "--channel", "pinned toolchain"],
+        )
+        self.assertEqual(
+            command[-2:],
+            ["--target-dir", str(application_target_dir(ROOT))],
+        )
+        self.assertEqual(
+            application_binary(ROOT, "asp-reference-app-server"),
+            application_target_dir(ROOT)
+            / "debug"
+            / "asp-reference-app-server",
+        )
+
+    def test_empty_cargo_override_fails_closed(self) -> None:
+        with mock.patch.dict(os.environ, {"CARGO": "  "}):
+            with self.assertRaisesRegex(SliceError, "CARGO override is empty"):
+                _cargo_command()
 
 
 class EvidenceSchemaTests(unittest.TestCase):

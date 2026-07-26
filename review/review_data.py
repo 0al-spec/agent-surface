@@ -135,6 +135,7 @@ VERTICAL_SLICE_REGISTRY = Path("reference/vertical-slice/v1/manifest.json")
 VERTICAL_SLICE_IMPLEMENTATIONS = {
     Path("Cargo.lock"),
     Path("Cargo.toml"),
+    Path("reference/vertical-slice/build_support.py"),
     Path("reference/vertical-slice/app/Cargo.toml"),
     Path("reference/vertical-slice/app/src/lib.rs"),
     Path("reference/vertical-slice/app/src/bin/app_control.rs"),

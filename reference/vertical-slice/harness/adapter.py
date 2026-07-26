@@ -10,10 +10,23 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
+SLICE = Path(__file__).resolve().parents[1]
+if str(SLICE) not in sys.path:
+    sys.path.insert(0, str(SLICE))
+
+from build_support import application_binary  # noqa: E402
+
+
 ENTRYPOINTS = {
-    "reference-app-control": ROOT / "target" / "debug" / "asp-reference-app-control",
-    "reference-app-executor": ROOT / "target" / "debug" / "asp-reference-app-executor",
-    "reference-app-receipt": ROOT / "target" / "debug" / "asp-reference-app-receipt",
+    "reference-app-control": application_binary(
+        ROOT, "asp-reference-app-control"
+    ),
+    "reference-app-executor": application_binary(
+        ROOT, "asp-reference-app-executor"
+    ),
+    "reference-app-receipt": application_binary(
+        ROOT, "asp-reference-app-receipt"
+    ),
     "reference-runtime-local": ROOT / "reference" / "vertical-slice" / "runtime_local.py",
     "reference-runtime-remote": ROOT / "reference" / "vertical-slice" / "runtime_remote.py",
     "reference-agent-a": ROOT / "reference" / "vertical-slice" / "agent_a.py",

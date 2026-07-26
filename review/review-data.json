@@ -5585,6 +5585,10 @@
         },
         {
           "kind": "implementation",
+          "ref": "reference/vertical-slice/build_support.py"
+        },
+        {
+          "kind": "implementation",
           "ref": "reference/vertical-slice/app/Cargo.toml"
         },
         {

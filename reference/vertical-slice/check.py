@@ -8,6 +8,8 @@ import base64
 import hashlib
 import json
 import os
+import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -15,6 +17,8 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
+
+from build_support import application_target_dir
 
 
 HERE = Path(__file__).resolve().parent
@@ -30,8 +34,13 @@ BUNDLE_ID = (
 )
 ADAPTER_RELATIVE = Path("reference/vertical-slice/harness/adapter.py")
 PROBE_RELATIVE = Path("reference/vertical-slice/harness/probe.py")
+BUILD_SUPPORT_RELATIVE = Path("reference/vertical-slice/build_support.py")
 APP_PACKAGE = "asp-reference-vertical-app"
 DIGEST_PATTERN_PREFIX = "sha-256:"
+EXPECTED_HARNESS_ARTIFACTS = sorted(
+    path.as_posix()
+    for path in (ADAPTER_RELATIVE, BUILD_SUPPORT_RELATIVE, PROBE_RELATIVE)
+)
 EXPECTED_PARTICIPANT_BINDINGS = {
     "reference-app-control": {
         "participant_kind": "application",
@@ -330,6 +339,9 @@ def validate_manifest(root: Path) -> tuple[dict[str, Any], dict[str, dict[str, A
         raise SliceError("this repository-owned slice must not self-assert independent interop")
     suite = strict_object(repository_file(root, "conformance/v1/suite.json"))
     validate_suite_binding(manifest, suite)
+    if manifest["harness"]["artifact_paths"] != EXPECTED_HARNESS_ARTIFACTS:
+        raise SliceError("vertical-slice harness artifact closure is not exact")
+    artifact_digest(root, manifest["harness"]["artifact_paths"])
 
     participant_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -383,11 +395,33 @@ def validate_manifest(root: Path) -> tuple[dict[str, Any], dict[str, dict[str, A
     return manifest, participant_configs
 
 
+def _cargo_command() -> list[str]:
+    override = os.environ.get("CARGO")
+    if override is not None:
+        command = shlex.split(override)
+        if not command:
+            raise SliceError("CARGO override is empty")
+        return command
+    cargo = shutil.which("cargo")
+    if cargo is None:
+        raise SliceError("cargo is unavailable")
+    return [cargo]
+
+
 def build_application(root: Path) -> None:
     environment = dict(os.environ)
     environment["CARGO_TERM_COLOR"] = "never"
     process = subprocess.run(
-        ["cargo", "build", "--quiet", "--locked", "-p", APP_PACKAGE],
+        [
+            *_cargo_command(),
+            "build",
+            "--quiet",
+            "--locked",
+            "-p",
+            APP_PACKAGE,
+            "--target-dir",
+            str(application_target_dir(root)),
+        ],
         cwd=root,
         env=environment,
         capture_output=True,
@@ -492,7 +526,14 @@ def run_conformance(
     adapter = repository_file(root, ADAPTER_RELATIVE)
     probe = repository_file(root, PROBE_RELATIVE)
     harness_config = manifest["harness"]["config"]
-    harness_config_digest = configuration_digest(harness_config)
+    harness_config_digest = configuration_digest(
+        {
+            "config": harness_config,
+            "artifact_sha256": artifact_digest(
+                root, manifest["harness"]["artifact_paths"]
+            ),
+        }
+    )
     reports = []
     for claim in claims:
         subject = _subject_for_claim(
