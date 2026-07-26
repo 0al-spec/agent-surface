@@ -1,0 +1,50 @@
+{
+  "$schema": "../manifest.schema.json#/$defs/participantConfig",
+  "schema_version": 1,
+  "participant_id": "reference-app-control",
+  "participant_kind": "application",
+  "claim_role": "canonical_claim_subject",
+  "lane_membership": [
+    "local",
+    "remote"
+  ],
+  "implementation": {
+    "name": "asp-reference-vertical-app-control",
+    "version": "0.1.0",
+    "lineage_id": "reference/implementation/application-rust-v1",
+    "language": "rust",
+    "artifact_paths": [
+      "Cargo.lock",
+      "Cargo.toml",
+      "reference/vertical-slice/app/Cargo.toml",
+      "reference/vertical-slice/app/src/bin/app_control.rs",
+      "reference/vertical-slice/app/src/bin/app_server.rs",
+      "reference/vertical-slice/app/src/lib.rs"
+    ]
+  },
+  "deployment": {
+    "deployment_id": "reference/vertical-slice/deployment/application-control",
+    "boundary_id": "reference/application/control",
+    "placement": "shared-application"
+  },
+  "entrypoint": {
+    "kind": "cargo_binary",
+    "name": "asp-reference-app-control",
+    "path": "reference/vertical-slice/app/src/bin/app_control.rs"
+  },
+  "profiles": [
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1"
+    },
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1"
+    }
+  ],
+  "config": {
+    "subject_protocol": "asp-reference-subject/1",
+    "subject_transport": "stdio-json",
+    "scenario_protocol": "asp-reference-app/1",
+    "scenario_transport": "tcp-json-lines",
+    "network_scope": "loopback-only"
+  }
+}

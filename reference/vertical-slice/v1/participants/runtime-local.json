@@ -1,0 +1,41 @@
+{
+  "$schema": "../manifest.schema.json#/$defs/participantConfig",
+  "schema_version": 1,
+  "participant_id": "reference-runtime-local",
+  "participant_kind": "runtime",
+  "claim_role": "canonical_claim_subject",
+  "lane_membership": [
+    "local"
+  ],
+  "implementation": {
+    "name": "asp-reference-runtime-local",
+    "version": "0.1.0",
+    "lineage_id": "reference/implementation/runtime-local-python-v1",
+    "language": "python",
+    "artifact_paths": [
+      "reference/vertical-slice/runtime_local.py"
+    ]
+  },
+  "deployment": {
+    "deployment_id": "reference/vertical-slice/deployment/runtime-local",
+    "boundary_id": "reference/runtime/local",
+    "placement": "local"
+  },
+  "entrypoint": {
+    "kind": "python_script",
+    "name": "reference-runtime-local",
+    "path": "reference/vertical-slice/runtime_local.py"
+  },
+  "profiles": [
+    {
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1"
+    }
+  ],
+  "config": {
+    "subject_protocol": "asp-reference-subject/1",
+    "subject_transport": "stdio-json",
+    "scenario_protocol": "asp-reference-runtime/1",
+    "scenario_transport": "tcp-json-lines",
+    "network_scope": "loopback-only"
+  }
+}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -127,6 +128,32 @@ RISK_EXPLANATION_IMPLEMENTATIONS = {
     Path("mocks/mock_app.py"),
     Path("mocks/mock_runtime.py"),
 }
+VERTICAL_SLICE_SCHEMAS = {
+    Path("reference/vertical-slice/v1/manifest.schema.json"),
+    Path("reference/vertical-slice/v1/evidence.schema.json"),
+}
+VERTICAL_SLICE_REGISTRY = Path("reference/vertical-slice/v1/manifest.json")
+VERTICAL_SLICE_IMPLEMENTATIONS = {
+    Path("Cargo.lock"),
+    Path("Cargo.toml"),
+    Path("reference/vertical-slice/build_support.py"),
+    Path("reference/vertical-slice/app/Cargo.toml"),
+    Path("reference/vertical-slice/app/src/lib.rs"),
+    Path("reference/vertical-slice/app/src/bin/app_control.rs"),
+    Path("reference/vertical-slice/app/src/bin/app_executor.rs"),
+    Path("reference/vertical-slice/app/src/bin/app_receipt.rs"),
+    Path("reference/vertical-slice/app/src/bin/app_server.rs"),
+    Path("reference/vertical-slice/runtime_local.py"),
+    Path("reference/vertical-slice/runtime_remote.py"),
+    Path("reference/vertical-slice/agent_a.py"),
+    Path("reference/vertical-slice/agent_b.py"),
+    Path("reference/vertical-slice/scenario.py"),
+    Path("reference/vertical-slice/harness/adapter.py"),
+    Path("reference/vertical-slice/harness/probe.py"),
+}
+VERTICAL_SLICE_TEST = Path("reference/vertical-slice/check.py")
+VERTICAL_SLICE_VALIDATED_SHA_ENV = "ASP_VERTICAL_SLICE_VALIDATED_SHA"
+GIT_OBJECT_ID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
     17: {
         "rfc_anchor": {
@@ -431,6 +458,31 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         },
     },
 }
+IMPLEMENTATION_TESTED_REVIEW_BINDINGS = {
+    74: {
+        "rfc_anchor": {
+            "application-mvp-mapping",
+            "reference-mock-participants",
+            "interoperability-test-suite",
+            "conformance-claim-and-composition-rules",
+        },
+        "schema": {
+            *(path.as_posix() for path in VERTICAL_SLICE_SCHEMAS),
+            "conformance/v1/bundles.schema.json",
+            "conformance/v1/report.schema.json",
+            "conformance/v1/subject.schema.json",
+            "conformance/v1/observation.schema.json",
+        },
+        "registry": {
+            VERTICAL_SLICE_REGISTRY.as_posix(),
+            "conformance/v1/bundles.json",
+        },
+        "implementation": {
+            path.as_posix() for path in VERTICAL_SLICE_IMPLEMENTATIONS
+        },
+        "test": {VERTICAL_SLICE_TEST.as_posix()},
+    },
+}
 EXACT_MACHINE_VALIDATED_REVIEW_IDS = {
     17,
     27,
@@ -556,6 +608,8 @@ def validate_review_payload(
                 _validate_registry_evidence(review_id, ref)
             elif kind == "implementation":
                 _validate_implementation_evidence(review_id, ref)
+            elif kind == "test":
+                _validate_test_evidence(review_id, ref)
             else:
                 raise ValueError(
                     f"Review #{review_id} evidence kind {kind!r} is not supported "
@@ -690,7 +744,10 @@ def _validate_maturity_evidence(
     review_id: int, maturity: str, evidence: list[dict[str, str]]
 ) -> None:
     evidence_kinds = {item["kind"] for item in evidence}
-    if maturity not in {"proposal", "specified", "machine_validated"}:
+    if maturity in {"interop_tested", "stable"} or (
+        maturity == "implementation_tested"
+        and review_id not in IMPLEMENTATION_TESTED_REVIEW_BINDINGS
+    ):
         raise ValueError(
             f"Review #{review_id} maturity {maturity!r} is not supported until "
             "authoritative evidence resolvers are configured"
@@ -727,6 +784,19 @@ def _validate_maturity_evidence(
             raise ValueError(
                 f"Review #{review_id} maturity {maturity!r} is missing bound evidence: "
                 + details
+            )
+    if maturity == "implementation_tested":
+        binding = IMPLEMENTATION_TESTED_REVIEW_BINDINGS[review_id]
+        evidence_refs = {
+            kind: {item["ref"] for item in evidence if item["kind"] == kind}
+            for kind in {item["kind"] for item in evidence} | set(binding)
+        }
+        expected = {kind: set(refs) for kind, refs in binding.items()}
+        actual = {kind: refs for kind, refs in evidence_refs.items() if refs}
+        if actual != expected:
+            raise ValueError(
+                f"Review #{review_id} maturity {maturity!r} does not match "
+                "its exact authoritative evidence binding"
             )
 
 
@@ -767,12 +837,16 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
     is_bound_linter_schema = review_id == 57 and relative_path in LINTER_SCHEMAS
     is_bound_replay_schema = review_id == 59 and relative_path in REPLAY_SCHEMAS
     is_bound_mock_schema = review_id == 58 and relative_path == MOCK_SCHEMA
+    is_bound_vertical_slice_schema = (
+        review_id == 74 and relative_path in VERTICAL_SLICE_SCHEMAS
+    )
     if (
         not is_conformance_schema
         and not is_bound_api_importer_schema
         and not is_bound_linter_schema
         and not is_bound_replay_schema
         and not is_bound_mock_schema
+        and not is_bound_vertical_slice_schema
     ):
         raise ValueError(
             f"Review #{review_id} schema evidence must reference "
@@ -812,6 +886,8 @@ def _validate_registry_evidence(review_id: int, ref: str) -> None:
         return
     if review_id == 58 and relative_path == MOCK_REGISTRY:
         _validate_mock_bundle_evidence(review_id, "registry", ref)
+        return
+    if review_id == 74 and relative_path == VERTICAL_SLICE_REGISTRY:
         return
     if relative_path not in CONFORMANCE_REGISTRIES:
         raise ValueError(
@@ -888,10 +964,103 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
     if review_id == 48 and relative_path in RISK_EXPLANATION_IMPLEMENTATIONS:
         _validate_mock_bundle_evidence(review_id, "implementation", ref)
         return
+    if review_id == 74 and relative_path in VERTICAL_SLICE_IMPLEMENTATIONS:
+        return
     raise ValueError(
         f"Review #{review_id} implementation evidence must reference an exact "
         f"bound tooling entry point: {ref!r}"
     )
+
+
+def _validate_test_evidence(review_id: int, ref: str) -> None:
+    test_path = _resolve_repository_evidence_file(review_id, "test", ref)
+    relative_path = test_path.relative_to(REPO_ROOT)
+    if review_id != 74 or relative_path != VERTICAL_SLICE_TEST:
+        raise ValueError(
+            f"Review #{review_id} test evidence kind is not supported until "
+            f"an authoritative resolver is configured: {ref!r}"
+        )
+    try:
+        _run_vertical_slice_self_check()
+    except Exception as error:
+        raise ValueError(
+            f"Review #{review_id} test evidence failed authoritative vertical "
+            f"slice validation: {ref!r}: {error}"
+        ) from error
+
+
+@lru_cache(maxsize=1)
+def _run_vertical_slice_self_check() -> None:
+    if _ci_vertical_slice_is_prevalidated():
+        return
+    process = subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            str(REPO_ROOT / VERTICAL_SLICE_TEST),
+            "validate-evidence",
+            "--root",
+            str(REPO_ROOT),
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    if process.returncode != 0:
+        details = process.stderr.strip() or process.stdout.strip() or "unknown error"
+        raise ValueError(
+            f"vertical slice self-check exited {process.returncode}: {details}"
+        )
+
+
+def _ci_vertical_slice_is_prevalidated() -> bool:
+    """Accept only a successful, clean, same-head handoff from the CI producer step."""
+
+    validated_sha = os.environ.get(VERTICAL_SLICE_VALIDATED_SHA_ENV)
+    if validated_sha is None:
+        return False
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        raise ValueError(
+            f"{VERTICAL_SLICE_VALIDATED_SHA_ENV} is only accepted in GitHub Actions"
+        )
+    github_sha = os.environ.get("GITHUB_SHA", "")
+    validated_sha = validated_sha.lower()
+    github_sha = github_sha.lower()
+    if not GIT_OBJECT_ID.fullmatch(validated_sha) or not GIT_OBJECT_ID.fullmatch(
+        github_sha
+    ):
+        raise ValueError("vertical slice CI handoff requires exact Git object ids")
+    if validated_sha != github_sha:
+        raise ValueError("vertical slice CI handoff does not match GITHUB_SHA")
+
+    head_process = subprocess.run(
+        ["git", "rev-parse", "--verify", "HEAD^{commit}"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    current_head = head_process.stdout.strip().lower()
+    if (
+        head_process.returncode != 0
+        or not GIT_OBJECT_ID.fullmatch(current_head)
+        or current_head != validated_sha
+    ):
+        raise ValueError("vertical slice CI handoff does not match the checkout HEAD")
+    status_process = subprocess.run(
+        ["git", "status", "--porcelain=v1", "--untracked-files=normal"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    if status_process.returncode != 0 or status_process.stdout:
+        raise ValueError("vertical slice CI handoff requires a clean checkout")
+    return True
 
 
 def _validate_api_importer_bundle_evidence(

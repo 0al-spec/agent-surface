@@ -14,7 +14,7 @@ REPLAY_FUZZ_TIMEOUT_CMD ?= timeout
 REPLAY_FUZZ_PARSE_MAX_LEN ?= 262144
 REPLAY_FUZZ_STRUCTURED_MAX_LEN ?= 4096
 
-.PHONY: conformance-validate conformance-test conformance-check mock-validate mock-test mock-check rust-workspace-fmt rust-workspace-clippy rust-workspace-test rust-workspace-check rust-tooling-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check api-import-self-check api-import-check replay-self-check replay-check replay-fuzz-smoke rfc-toc rfc-toc-check review-build review-data-check review-test review-js-test review-check
+.PHONY: conformance-validate conformance-test conformance-check mock-validate mock-test mock-check vertical-slice-validate vertical-slice-test vertical-slice-check rust-workspace-fmt rust-workspace-clippy rust-workspace-test rust-workspace-check rust-tooling-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check api-import-self-check api-import-check replay-self-check replay-check replay-fuzz-smoke rfc-toc rfc-toc-check review-build review-data-check review-test review-js-test review-check
 
 conformance-validate:
 	$(PYTHON) -B conformance/check.py validate
@@ -31,6 +31,14 @@ mock-test:
 	$(PYTHON) -B -m unittest discover -s mocks/tests -p 'test_*.py'
 
 mock-check: mock-validate mock-test
+
+vertical-slice-validate:
+	$(PYTHON) -B reference/vertical-slice/check.py validate-evidence
+
+vertical-slice-test:
+	$(PYTHON) -B -m unittest discover -s reference/vertical-slice/tests -p 'test_*.py'
+
+vertical-slice-check: vertical-slice-test vertical-slice-validate
 
 rust-workspace-fmt:
 	$(CARGO) fmt --all -- --check
@@ -106,6 +114,6 @@ review-test:
 review-js-test:
 	node --test review/dashboard-state.test.mjs
 
-review-check: conformance-check mock-check rust-tooling-check rfc-toc-check review-data-check review-test review-js-test
+review-check: conformance-check mock-check vertical-slice-check rust-tooling-check rfc-toc-check review-data-check review-test review-js-test
 	$(PYTHON) -B review/build_review.py --check
 	node review/check_review.mjs

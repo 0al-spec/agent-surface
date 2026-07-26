@@ -22,7 +22,9 @@ from build_review import (  # noqa: E402
 )
 from review_data import (  # noqa: E402
     _cargo_command,
+    _ci_vertical_slice_is_prevalidated,
     _run_replay_self_check,
+    _run_vertical_slice_self_check,
     _validate_canonical_conformance_catalog,
     _validate_canonical_mock_bundle,
     load_review_payload,
@@ -44,6 +46,85 @@ class ReviewDataValidationTests(unittest.TestCase):
 
     def machine_validated_payload(self) -> dict[str, object]:
         return copy.deepcopy(load_review_payload())
+
+    def implementation_tested_payload(self) -> dict[str, object]:
+        payload = self.valid_payload()
+        template = payload["reviews"][0]
+        payload["reviews"] = [
+            {
+                **copy.deepcopy(template),
+                "id": review_id,
+                "title": f"Review {review_id}",
+            }
+            for review_id in range(1, 75)
+        ]
+        review = payload["reviews"][-1]
+        review["title"] = "Independent Reference Vertical Slice"
+        review["status"] = "present"
+        review["anchors"] = [
+            {
+                "heading": "Application MVP Mapping",
+                "anchorId": "application-mvp-mapping",
+            },
+            {
+                "heading": "Reference Mock Participants",
+                "anchorId": "reference-mock-participants",
+            },
+            {
+                "heading": "Interoperability Test Suite",
+                "anchorId": "interoperability-test-suite",
+            },
+            {
+                "heading": "Conformance Claim and Composition Rules",
+                "anchorId": "conformance-claim-and-composition-rules",
+            },
+        ]
+        review["maturity"] = "implementation_tested"
+        evidence_by_kind = {
+            "rfc_anchor": (
+                "application-mvp-mapping",
+                "reference-mock-participants",
+                "interoperability-test-suite",
+                "conformance-claim-and-composition-rules",
+            ),
+            "schema": (
+                "reference/vertical-slice/v1/manifest.schema.json",
+                "reference/vertical-slice/v1/evidence.schema.json",
+                "conformance/v1/bundles.schema.json",
+                "conformance/v1/report.schema.json",
+                "conformance/v1/subject.schema.json",
+                "conformance/v1/observation.schema.json",
+            ),
+            "registry": (
+                "reference/vertical-slice/v1/manifest.json",
+                "conformance/v1/bundles.json",
+            ),
+            "implementation": (
+                "Cargo.lock",
+                "Cargo.toml",
+                "reference/vertical-slice/build_support.py",
+                "reference/vertical-slice/app/Cargo.toml",
+                "reference/vertical-slice/app/src/lib.rs",
+                "reference/vertical-slice/app/src/bin/app_control.rs",
+                "reference/vertical-slice/app/src/bin/app_executor.rs",
+                "reference/vertical-slice/app/src/bin/app_receipt.rs",
+                "reference/vertical-slice/app/src/bin/app_server.rs",
+                "reference/vertical-slice/runtime_local.py",
+                "reference/vertical-slice/runtime_remote.py",
+                "reference/vertical-slice/agent_a.py",
+                "reference/vertical-slice/agent_b.py",
+                "reference/vertical-slice/scenario.py",
+                "reference/vertical-slice/harness/adapter.py",
+                "reference/vertical-slice/harness/probe.py",
+            ),
+            "test": ("reference/vertical-slice/check.py",),
+        }
+        review["evidence"] = [
+            {"kind": kind, "ref": ref}
+            for kind, refs in evidence_by_kind.items()
+            for ref in refs
+        ]
+        return payload
 
     def assert_invalid(self, payload: dict[str, object], message: str) -> None:
         with self.assertRaisesRegex(ValueError, message):
@@ -106,6 +187,159 @@ class ReviewDataValidationTests(unittest.TestCase):
             self.assertEqual(run.call_args.kwargs["cwd"], REVIEW_DIR.parent)
         finally:
             _run_replay_self_check.cache_clear()
+
+    def test_vertical_slice_self_check_is_cached_and_uses_the_bound_validator(
+        self,
+    ) -> None:
+        _run_vertical_slice_self_check.cache_clear()
+        try:
+            completed = mock.Mock(returncode=0, stdout="", stderr="")
+            with (
+                mock.patch.dict(os.environ, {}, clear=True),
+                mock.patch(
+                    "review_data.subprocess.run", return_value=completed
+                ) as run,
+            ):
+                _run_vertical_slice_self_check()
+                _run_vertical_slice_self_check()
+            self.assertEqual(run.call_count, 1)
+            self.assertEqual(
+                run.call_args.args[0],
+                [
+                    sys.executable,
+                    "-B",
+                    str(
+                        REVIEW_DIR.parent
+                        / "reference"
+                        / "vertical-slice"
+                        / "check.py"
+                    ),
+                    "validate-evidence",
+                    "--root",
+                    str(REVIEW_DIR.parent),
+                ],
+            )
+            self.assertEqual(run.call_args.kwargs["cwd"], REVIEW_DIR.parent)
+            self.assertTrue(run.call_args.kwargs["capture_output"])
+            self.assertTrue(run.call_args.kwargs["text"])
+            self.assertEqual(run.call_args.kwargs["timeout"], 300)
+            self.assertFalse(run.call_args.kwargs["check"])
+        finally:
+            _run_vertical_slice_self_check.cache_clear()
+
+    def test_vertical_slice_ci_handoff_is_cached_and_bound_to_checkout(self) -> None:
+        sha = "a" * 40
+        _run_vertical_slice_self_check.cache_clear()
+        try:
+            head = mock.Mock(returncode=0, stdout=f"{sha}\n", stderr="")
+            clean = mock.Mock(returncode=0, stdout="", stderr="")
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {
+                        "ASP_VERTICAL_SLICE_VALIDATED_SHA": sha,
+                        "GITHUB_ACTIONS": "true",
+                        "GITHUB_SHA": sha,
+                    },
+                    clear=True,
+                ),
+                mock.patch(
+                    "review_data.subprocess.run", side_effect=(head, clean)
+                ) as run,
+            ):
+                _run_vertical_slice_self_check()
+                _run_vertical_slice_self_check()
+            self.assertEqual(
+                [call.args[0] for call in run.call_args_list],
+                [
+                    ["git", "rev-parse", "--verify", "HEAD^{commit}"],
+                    [
+                        "git",
+                        "status",
+                        "--porcelain=v1",
+                        "--untracked-files=normal",
+                    ],
+                ],
+            )
+            for call in run.call_args_list:
+                self.assertEqual(call.kwargs["cwd"], REVIEW_DIR.parent)
+                self.assertTrue(call.kwargs["capture_output"])
+                self.assertTrue(call.kwargs["text"])
+                self.assertEqual(call.kwargs["timeout"], 10)
+                self.assertFalse(call.kwargs["check"])
+        finally:
+            _run_vertical_slice_self_check.cache_clear()
+
+    def test_vertical_slice_ci_handoff_fails_closed(self) -> None:
+        sha = "a" * 40
+        cases = (
+            (
+                {
+                    "ASP_VERTICAL_SLICE_VALIDATED_SHA": sha,
+                    "GITHUB_ACTIONS": "false",
+                    "GITHUB_SHA": sha,
+                },
+                "only accepted in GitHub Actions",
+            ),
+            (
+                {
+                    "ASP_VERTICAL_SLICE_VALIDATED_SHA": sha,
+                    "GITHUB_ACTIONS": "true",
+                    "GITHUB_SHA": "b" * 40,
+                },
+                "does not match GITHUB_SHA",
+            ),
+            (
+                {
+                    "ASP_VERTICAL_SLICE_VALIDATED_SHA": "not-a-sha",
+                    "GITHUB_ACTIONS": "true",
+                    "GITHUB_SHA": "not-a-sha",
+                },
+                "requires exact Git object ids",
+            ),
+        )
+        for environment, message in cases:
+            with (
+                self.subTest(message=message),
+                mock.patch.dict(os.environ, environment, clear=True),
+                self.assertRaisesRegex(ValueError, message),
+            ):
+                _ci_vertical_slice_is_prevalidated()
+
+        completed = mock.Mock(returncode=0, stdout=f"{'b' * 40}\n", stderr="")
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "ASP_VERTICAL_SLICE_VALIDATED_SHA": sha,
+                    "GITHUB_ACTIONS": "true",
+                    "GITHUB_SHA": sha,
+                },
+                clear=True,
+            ),
+            mock.patch("review_data.subprocess.run", return_value=completed),
+            self.assertRaisesRegex(ValueError, "does not match the checkout HEAD"),
+        ):
+            _ci_vertical_slice_is_prevalidated()
+
+        head = mock.Mock(returncode=0, stdout=f"{sha}\n", stderr="")
+        dirty = mock.Mock(returncode=0, stdout=" M review/review_data.py\n", stderr="")
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "ASP_VERTICAL_SLICE_VALIDATED_SHA": sha,
+                    "GITHUB_ACTIONS": "true",
+                    "GITHUB_SHA": sha,
+                },
+                clear=True,
+            ),
+            mock.patch(
+                "review_data.subprocess.run", side_effect=(head, dirty)
+            ),
+            self.assertRaisesRegex(ValueError, "requires a clean checkout"),
+        ):
+            _ci_vertical_slice_is_prevalidated()
 
     def test_valid_v2_planning_bundle_is_accepted(self) -> None:
         validate_review_payload(self.valid_payload(), self.heading_ids)
@@ -612,6 +846,111 @@ class ReviewDataValidationTests(unittest.TestCase):
         )
         self.assert_invalid(payload, "conformance/v1/suite.json")
 
+    @mock.patch("review_data._run_vertical_slice_self_check")
+    def test_vertical_slice_implementation_tested_exact_evidence_is_accepted(
+        self, vertical_slice_self_check: mock.Mock
+    ) -> None:
+        validate_review_payload(
+            self.implementation_tested_payload(),
+            self.heading_ids,
+        )
+        vertical_slice_self_check.assert_called_once_with()
+
+    @mock.patch("review_data._run_vertical_slice_self_check")
+    def test_vertical_slice_implementation_tested_rejects_missing_evidence(
+        self, _vertical_slice_self_check: mock.Mock
+    ) -> None:
+        for missing_kind in (
+            "rfc_anchor",
+            "schema",
+            "registry",
+            "implementation",
+            "test",
+        ):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.implementation_tested_payload()
+                review = payload["reviews"][-1]
+                removed = False
+                retained = []
+                for item in review["evidence"]:
+                    if item["kind"] == missing_kind and not removed:
+                        removed = True
+                        continue
+                    retained.append(item)
+                review["evidence"] = retained
+                self.assertTrue(removed)
+                self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    @mock.patch("review_data._run_vertical_slice_self_check")
+    def test_vertical_slice_implementation_tested_rejects_extra_evidence(
+        self, _vertical_slice_self_check: mock.Mock
+    ) -> None:
+        payload = self.implementation_tested_payload()
+        review = payload["reviews"][-1]
+        review["anchors"].append(
+            {
+                "heading": "Conceptual Architecture",
+                "anchorId": "conceptual-architecture",
+            }
+        )
+        review["evidence"].append(
+            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+        )
+        self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    @mock.patch(
+        "review_data._run_vertical_slice_self_check",
+        side_effect=ValueError("artifact digest mismatch"),
+    )
+    def test_vertical_slice_implementation_tested_rejects_tampered_evidence(
+        self, _vertical_slice_self_check: mock.Mock
+    ) -> None:
+        self.assert_invalid(
+            self.implementation_tested_payload(),
+            "authoritative vertical slice validation.*artifact digest mismatch",
+        )
+
+    def test_other_review_cannot_borrow_vertical_slice_evidence(self) -> None:
+        cases = (
+            (
+                "schema",
+                "reference/vertical-slice/v1/manifest.schema.json",
+                "exact bound tooling schema",
+            ),
+            (
+                "registry",
+                "reference/vertical-slice/v1/manifest.json",
+                "conformance/v1/suite.json",
+            ),
+            (
+                "implementation",
+                "reference/vertical-slice/runtime_local.py",
+                "exact bound tooling entry point",
+            ),
+            (
+                "test",
+                "reference/vertical-slice/check.py",
+                "authoritative resolver",
+            ),
+        )
+        for kind, ref, message in cases:
+            with self.subTest(kind=kind):
+                payload = self.valid_payload()
+                payload["reviews"][0]["evidence"].append(
+                    {"kind": kind, "ref": ref}
+                )
+                self.assert_invalid(payload, message)
+
+    @mock.patch("review_data._run_vertical_slice_self_check")
+    def test_vertical_slice_higher_maturity_levels_remain_rejected(
+        self, _vertical_slice_self_check: mock.Mock
+    ) -> None:
+        for maturity in ("interop_tested", "stable"):
+            with self.subTest(maturity=maturity):
+                payload = self.implementation_tested_payload()
+                payload["reviews"][-1]["maturity"] = maturity
+                self.assert_invalid(payload, "authoritative evidence resolvers")
+
     def test_unverifiable_higher_maturity_levels_are_rejected(self) -> None:
         for maturity in (
             "implementation_tested",
@@ -675,10 +1014,17 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 77)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 541)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 566)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
-            Counter({"specified": 52, "machine_validated": 14, "proposal": 11}),
+            Counter(
+                {
+                    "specified": 52,
+                    "machine_validated": 14,
+                    "proposal": 10,
+                    "implementation_tested": 1,
+                }
+            ),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
@@ -1127,7 +1473,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(reviews_by_id[73]["depends_on"], [2, 5, 41, 44, 76])
         self.assertEqual(reviews_by_id[73]["readiness"], "ready")
         self.assertEqual(reviews_by_id[74]["status"], "present")
-        self.assertEqual(reviews_by_id[74]["maturity"], "proposal")
+        self.assertEqual(reviews_by_id[74]["maturity"], "implementation_tested")
         self.assertEqual(reviews_by_id[74]["depends_on"], [56, 58, 60, 65])
         self.assertEqual(reviews_by_id[74]["readiness"], "ready")
         self.assertEqual(reviews_by_id[75]["status"], "partial")
