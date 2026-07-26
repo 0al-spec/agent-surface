@@ -2,7 +2,7 @@
 
 - Status: active planning snapshot
 - Snapshot date: 2026-07-26
-- Snapshot base: `1fd734ecf3a4ec0e83b4f5da4f2ce18883668d24`
+- Snapshot base: `ad2e71803160ec6b6bfa1e91f5c44c7b28ba8ca9`
 - Canonical machine-readable source: [`review-data.json`](review-data.json)
 
 ## Purpose and authority
@@ -28,19 +28,19 @@ The following precedence rules apply:
 
 | Coverage | Cards | Meaning |
 | --- | ---: | --- |
-| `present` | 67 | The proposal is represented in normative prose. |
-| `partial` | 3 | A precursor exists, but the interoperable contract is incomplete. |
+| `present` | 68 | The proposal is represented in normative prose. |
+| `partial` | 2 | A precursor exists, but the interoperable contract is incomplete. |
 | `missing` | 7 | The proposed contract or mapping is not specified. |
 | **Total** | **77** | |
 
-The active coverage debt is therefore **10 cards**: 4 P2 and 6 P3.
+The active coverage debt is therefore **9 cards**: 3 P2 and 6 P3.
 
 ### Delivery maturity
 
 | Maturity | Cards |
 | --- | ---: |
-| `proposal` | 10 |
-| `specified` | 52 |
+| `proposal` | 9 |
+| `specified` | 53 |
 | `machine_validated` | 14 |
 | `implementation_tested` | 1 |
 | `interop_tested` | 0 |
@@ -56,8 +56,7 @@ architecture.
 
 | Order | Card | Priority | Coverage | Required outcome |
 | ---: | --- | --- | --- | --- |
-| 1 | #64 Purpose- and Task-Bound Agent Grants | P2 | `partial` | Add optional issuer-owned purpose/task binding, attenuation, expiry, session and action enforcement, and fresh consent when authority is widened. |
-| 2 | #66 Modular RFC Publication Architecture | P2 | `partial` | Define document ownership, normative references, version pinning, registries, compatibility, and independent release lifecycles for Core and extension documents. |
+| 1 | #66 Modular RFC Publication Architecture | P2 | `partial` | Define document ownership, normative references, version pinning, registries, compatibility, and independent release lifecycles for Core and extension documents. |
 
 ### Normative boundaries
 
@@ -101,7 +100,7 @@ ASP Grant, approval, effect claim, or receipt.
 
 ### Broader maturity debt
 
-The current 52 `specified` cards still need card-appropriate executable schemas,
+The current 53 `specified` cards still need card-appropriate executable schemas,
 registries, validators, and positive and negative vectors before they can move
 to `machine_validated`. The 14 `machine_validated` cards need evidence from
 real implementations before they can move to `implementation_tested`.
@@ -149,7 +148,7 @@ completed #63 and #69 contracts.
 ### Lane D: delegation hardening
 
 ```text
-#64 Purpose- and Task-Bound Agent Grants
+#64 Purpose- and Task-Bound Agent Grants (specified)
 ```
 
 ### Lane E: publication and authoring tooling
@@ -173,13 +172,14 @@ completed #63 and #69 contracts.
 ```
 
 The intake's P1 delivery lane is complete through **#74 Independent Reference
-Vertical Slice**. The next recommended security-focused slice is **#64
-Purpose- and Task-Bound Agent Grants**: it narrows long-lived delegated
-authority and is structurally independent of the publication split. **#70
-ASP-over-WebMCP Binding** is the ready transport alternative, but remains P2
-while WebMCP is experimental. Lower-priority mappings should advance only when
-their upstream specification is sufficiently stable and there is concrete
-adopter demand.
+Vertical Slice**, and the normative contract for **#64 Purpose- and Task-Bound
+Agent Grants** is specified. Its separate executable follow-up should add
+schemas, registries, validators, and positive and negative vectors before the
+card can advance to `machine_validated`. The next recommended normative slice
+is **#66 Modular RFC Publication Architecture**. **#70 ASP-over-WebMCP Binding**
+is the ready transport alternative, but remains P2 while WebMCP is
+experimental. Lower-priority mappings should advance only when their upstream
+specification is sufficiently stable and there is concrete adopter demand.
 
 ## Definition of done for a protocol slice
 

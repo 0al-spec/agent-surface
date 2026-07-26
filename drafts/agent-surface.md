@@ -70,6 +70,7 @@ However, it follows similar principles of openness and community participation.
 - [Agent Training Use Policy Profile](#agent-training-use-policy-profile)
 - [Runtime Attestation Optional Profile](#runtime-attestation-optional-profile)
 - [Agent Grant](#agent-grant-1)
+- [Purpose- and Task-Bound Agent Grant Profile](#purpose-and-task-bound-agent-grant-profile)
 - [Capability Matching](#capability-matching)
 - [Observability Context](#observability-context)
 - [Sessions and Actions](#sessions-and-actions)
@@ -146,6 +147,7 @@ Unless otherwise stated, the following sections are **normative**:
 - Agent Training Use Policy Profile
 - Runtime Attestation Optional Profile
 - Agent Grant
+- Purpose- and Task-Bound Agent Grant Profile
 - Sessions and Actions
 - Receipts
 - Portable Replay Bundle Profile
@@ -3405,6 +3407,9 @@ surface discoverable.
     "training_use_profiles": [
       "https://github.com/0al-spec/agent-surface/profiles/agent-training-use/v1"
     ],
+    "purpose_binding_profiles": [
+      "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+    ],
     "approval_receipt_profiles": [
       "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1"
     ],
@@ -3816,6 +3821,18 @@ enforcement, and consent semantics the application implements completely. A
 runtime MUST NOT infer support or policy from a retention mode, privacy notice,
 provider label, model setting, or Remote Processing path. Absence means training
 use is unspecified, not prohibited and not permitted.
+
+`compatibility.purpose_binding_profiles`, when present, MUST be a non-empty
+array of unique collision-resistant profile identifiers. This draft defines
+`https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1`.
+The member advertises only profiles for which the Grant Issuer and every
+protected-resource enforcement point can resolve the exact issuer-owned purpose
+and optional task records, enforce their revisions, lifecycle, relationship,
+attenuation order, and action policy, and fail closed when current state is
+unavailable. Absence means that the application does not support purpose-bound
+issuance. A runtime MUST NOT infer support or authority from
+`session.start.payload.task`, an A2A task identifier, an application workflow,
+human-readable goal text, a label, or a digest.
 
 `compatibility.approval_receipt_profiles`, when present, MUST be a non-empty
 array of unique collision-resistant profile identifiers. It advertises only
@@ -6517,6 +6534,18 @@ An extension reason-code specification MUST declare its allowed outcome. A
 producer and verifier MUST reject a standard or extension reason code used with
 an incompatible outcome.
 
+When the Purpose- and Task-Bound Agent Grant Profile is selected, the complete
+exact binding, current issuer-owned record states and relationship, action,
+target resources, normalized input, mode, and effects are mandatory policy
+inputs. The Policy Decision wire shape does not repeat the binding. Its
+enclosing action and receipt context carries the `grant_hash` that commits to
+the Grant, and a detached Policy Decision is never binding proof of a purpose
+or task. `matched_rules` and `safe_to_show` MUST NOT reveal hidden purpose
+policy, raw task inputs, another user's record, or an issuer-only label. An
+application MUST evaluate its own current records and MUST NOT accept a runtime
+`allow` decision as proof that the binding is active or that the action fits
+its purpose.
+
 The producer MUST compute `policy_decision_hash` with the Canonical Object Hash
 Profile. A receipt MUST include the complete decision that directly determined
 its producer's outcome and repeat the matching hash at receipt top level. A
@@ -8444,6 +8473,17 @@ application, surface, scopes, and caveats.
     "repositories": ["example-org/example-repo"],
     "pull_requests": [13],
     "expires_at": "2026-06-25T20:00:00Z",
+    "purpose_binding": {
+      "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+      "purpose": {
+        "id": "pur_01J2Q7M4K8X5",
+        "revision": "rev_3"
+      },
+      "task": {
+        "id": "tsk_01J2Q7N9C3V6",
+        "revision": "rev_7"
+      }
+    },
     "write_approval": "required",
     "budgets": {
       "max_write_actions": 20,
@@ -8606,6 +8646,16 @@ token and introspection responses, management views, and runtime enforcement.
 It authorizes only the defined secondary use and does not prove provider
 behavior or model unlearning.
 
+When the Purpose- and Task-Bound Agent Grant Profile is selected, request and
+Grant both contain the exact closed `constraints.purpose_binding` object. The
+authorization server MUST resolve the referenced issuer-owned records for the
+authenticated subject and application, preserve the exact identifiers and
+revisions it approved, and cap `constraints.expires_at` by their current
+lifetime. The complete object is included in `grant_hash`, token and
+introspection responses, session binding, consent and management views, and
+protected-resource enforcement. It narrows the ordinary action, location,
+scope, and resource intersection; it never grants authority by itself.
+
 When the Approval Receipt Profile is selected, request and Grant both contain
 the complete `audit.approval_receipt` object. The authorization server projects
 its requirements to the returned action subset and MAY only narrow a
@@ -8627,6 +8677,12 @@ credential binding, and the effective `data_exposure` projection. It computes
 the value with the Canonical Object Hash
 Profile and persists the exact hashing view for the lifetime of the grant and
 its audit-retention period.
+
+Because `constraints.purpose_binding` is an effective constraint, its complete
+profile, purpose reference, and optional task reference are covered by this
+same hashing view. This profile defines no separate purpose, task, or binding
+hash. A human-readable purpose description, task goal, or digest outside the
+Grant cannot replace the hashed closed object or prove its current semantics.
 
 The client MUST NOT supply `grant_hash` in an authorization request. Token and
 introspection responses MUST return it with the authoritative grant. An action
@@ -8897,6 +8953,9 @@ The runtime MUST derive the preview exclusively from:
 - the exact proposed semantic Agent Grant request; the OAuth profile represents
   this request as `authorization_details`, while another issuance model MUST
   preserve the same Grant Object field semantics;
+- when Purpose- and Task-Bound Agent Grant is selected, the exact
+  issuer-authenticated purpose and optional task references and every current
+  lifecycle and relationship result available to the runtime;
 - the verified runtime, agent, and complete identity-evidence envelope,
   including every selected format, digest, verification, key-binding,
   freshness, and status profile and the selected Runtime Identity Profile and
@@ -8952,6 +9011,11 @@ confirms:
 - exact action identifiers, scopes, locations, and resource filters;
 - absolute expiration time, human-readable duration, budgets, and other
   constraints;
+- when Purpose- and Task-Bound Agent Grant is selected, the exact purpose id
+  and revision, optional task id and revision, purpose-only or task-bound mode,
+  effective expiration, and any parent or child Grant relationship; an
+  authenticated issuer label MAY accompany but MUST NOT replace those opaque
+  references;
 - each selected action's risk, static execution mode, approval requirement,
   and required companion stages; when a Risk Explanation UI Hint exists, its
   selected localization MAY accompany but MUST NOT replace those values;
@@ -9029,6 +9093,9 @@ or resolved exposure contracts makes the preview stale. A stale
 preview MUST be regenerated and confirmed again before a request is sent or a
 returned grant is stored or used. Decline terminates the local flow; the runtime
 MUST NOT continue authorization in the background.
+For a selected Purpose Binding, a changed purpose id, task id, revision,
+purpose-to-task relationship, lifecycle result, or removal of either reference
+also makes the complete preview stale.
 Changing a Risk Explanation UI Hint necessarily changes the surface hash and
 therefore stales the complete preview even though the prose is not authority.
 The runtime does not patch the displayed hint while preserving the prior
@@ -9091,6 +9158,12 @@ It MAY be a semantically narrower valid subset under this comparison:
   MUST remain exact and `permitted_classes` MUST be a canonical set subset of
   both the requested set and the returned effective exposure-class union; an
   added class or omitted constraint is authority widening;
+- when Purpose- and Task-Bound Agent Grant was selected, the returned profile,
+  purpose id and revision, and optional task id and revision MUST remain exactly
+  equal; the runtime MUST separately re-resolve authenticated current state and
+  require the task still to belong to that exact purpose. Substituting a
+  sibling, updating a revision, or dropping the task is not server attenuation,
+  while `expires_at` can only move earlier;
 - returned actions, scopes, and locations MUST be set subsets of the confirmed
   values and MUST remain closed over required companion actions;
 - `expires_at` MAY be no later. A returned `budgets` object MUST retain every
@@ -9140,6 +9213,10 @@ effective action role and maximum age and explicitly distinguish accepting a
 runtime statement from application-side approval. It is not required to repeat
 runtime-local operator, recipient, or processing-path assertions. It MUST NOT
 trust client-supplied human-readable prose as the authoritative description.
+When Purpose- and Task-Bound Agent Grant is selected, it MUST show the exact
+issuer-owned purpose and optional task references, their current relationship
+and lifecycle state, purpose-only or task-bound mode, and effective expiration;
+any safe label remains informational.
 Its final approved subset remains authoritative for issuance. The local runtime
 preview reduces surprise and app-controlled UI risk, but it does not replace
 issuer authentication, consent, or the application's obligation to enforce the
@@ -9748,6 +9825,11 @@ Example, shown decoded from its form-encoded authorization request parameter:
       "repositories": ["example-org/example-repo"],
       "pull_requests": [13],
       "expires_at": "2026-06-25T20:00:00Z",
+      "purpose_binding": {
+        "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+        "purpose": {"id": "pur_01J2Q7M4K8X5", "revision": "rev_3"},
+        "task": {"id": "tsk_01J2Q7N9C3V6", "revision": "rev_7"}
+      },
       "write_approval": "required",
       "budgets": {
         "max_write_actions": 20
@@ -9789,7 +9871,11 @@ are the authoritative Grant Object wire shape defined above:
   `profile` and `path`, the request MUST select Runtime Identity, and the client
   MUST NOT supply `classification_ceiling`. When Agent Training Use Policy is
   selected, `constraints` MUST also contain its closed `training_use` object
-  with the exact profile and canonical `permitted_classes` request set.
+  with the exact profile and canonical `permitted_classes` request set. When
+  Purpose- and Task-Bound Agent Grant is selected, it MUST contain the exact
+  closed `purpose_binding` object with the advertised profile, required purpose
+  reference, and optional task reference; the client MUST NOT supply lifecycle
+  state, a label, or another semantic projection.
 - `credential_profile` MUST be `compatibility_bearer` or `proof_bound` and maps
   to the credential profiles defined in this draft.
 - A request for action authority MUST contain non-empty RFC 9396 common
@@ -9829,7 +9915,9 @@ ceiling, a path inconsistent with the controlling Runtime Identity, an
 effective exposure above the deterministic ceiling, an unadvertised or
 malformed Agent Training Use Policy, an unknown, duplicate, non-canonical, or
 unexposed requested training class, an unadvertised or malformed Approval
-Receipt profile, an incomplete or incompatible approval requirement projection,
+Receipt profile, an unadvertised or malformed Purpose Binding profile, an
+unknown or inactive purpose or task, a wrong revision or parent relationship,
+an incomplete or incompatible approval requirement projection,
 an action set that is not closed over required companion dependencies, or
 constraints that are invalid for the published surface. It MUST use the RFC 9396
 `invalid_authorization_details` error for malformed or unsupported Agent Grant
@@ -9870,7 +9958,11 @@ deterministic ceiling, and complete exposure closure while distinguishing the
 runtime commitment from application-verified Runtime Identity evidence. When
 Agent Training Use Policy is selected, the view MUST show the requested and
 effective permitted classes by source, every prohibited class, and the durable-
-influence warning independently of plaintext retention. The user MAY
+influence warning independently of plaintext retention. When Purpose- and
+Task-Bound Agent Grant is selected, the view MUST show the exact purpose and
+optional task ids and revisions, their current relationship and state,
+purpose-only or task-bound mode, and effective expiration without treating a
+safe label as authority. The user MAY
 approve a strict subset. The authorization server
 MUST present each required companion closure as one approval group. It MUST
 materialize the exact approved action stages in the returned `actions`
@@ -9902,6 +9994,11 @@ When the request selected Agent Training Use Policy, the returned constraints
 MUST preserve its exact profile and a canonical `permitted_classes` subset of
 the request and returned exposure union; the authorization server MUST NOT add
 a class or omit an explicit empty result.
+When the request selected Purpose- and Task-Bound Agent Grant, the returned
+constraints MUST preserve the exact profile, purpose id and revision, and
+optional task id and revision. The authorization server MUST NOT substitute a
+sibling, update a revision, remove the task, or extend expiration beyond the
+current record lifetime.
 When the request selected the Pluggable Agent Identity Evidence Profile, the
 returned delegate and credential binding MUST preserve the complete exact
 envelope. A legacy Passport request follows only the explicit migration rules.
@@ -9986,6 +10083,16 @@ Processing Privacy and the exchange retains its exact profile and path. In
 every other case, adding this profile or a non-empty training permission
 requires a fresh independent authorization and consent flow.
 
+When the source Grant selected Purpose- and Task-Bound Agent Grant, token
+exchange MUST preserve or narrow the binding only through that profile's
+portable partial order. It MUST resolve current issuer-owned state and
+relationship, retain exact revisions, and cap expiration by the source and
+record lifetimes. Removing a binding, selecting a sibling, replacing a
+revision, or widening from task-bound to purpose-only requires a fresh
+independent authorization and consent flow. When the source omitted the
+profile, adding one verified purpose or task binding is a restriction only if
+all ordinary authority remains a subset and derivation linkage is retained.
+
 When the source Grant selected Approval Receipt, token exchange MUST retain the
 exact profile, project requirements to the exchanged action subset, preserve
 fixed-role modes, and only narrow a `user_or_app` accepted-role set or lower a
@@ -10057,6 +10164,11 @@ Example successful response:
         "repositories": ["example-org/example-repo"],
         "pull_requests": [13],
         "expires_at": "2026-06-25T20:00:00Z",
+        "purpose_binding": {
+          "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+          "purpose": {"id": "pur_01J2Q7M4K8X5", "revision": "rev_3"},
+          "task": {"id": "tsk_01J2Q7N9C3V6", "revision": "rev_7"}
+        },
         "write_approval": "required",
         "budgets": {
           "max_write_actions": 20
@@ -10148,6 +10260,15 @@ Verifier, proof key, runtime-identity revision, appraisal policy, or reference
 values cannot be established. The inactive response MUST NOT distinguish
 rejection, indeterminate appraisal, staleness, revocation, or supersession.
 
+A credential bound to Purpose- and Task-Bound Agent Grant is inactive whenever
+the authorization server cannot establish the exact scoped purpose and optional
+task revisions, their current active state, or their relationship. The
+`{"active":false}` response MUST NOT distinguish an unknown record, wrong
+subject, suspension, terminal closure, relationship change, or temporary state
+unavailability. A resource server that cannot obtain current authoritative
+state MUST fail closed rather than preserving a prior positive introspection
+result.
+
 For an active Grant Credential, the response MUST include the RFC 7662 fields
 `active`, `client_id`, `scope`, `token_type`, `exp`, `iat`, `sub`, `aud`, and
 `iss`, plus the ASP fields `grant_id`, `grant_hash`, `resource_server`, `delegate`,
@@ -10215,6 +10336,11 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
     "repositories": ["example-org/example-repo"],
     "pull_requests": [13],
     "expires_at": "2026-06-25T20:00:00Z",
+    "purpose_binding": {
+      "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+      "purpose": {"id": "pur_01J2Q7M4K8X5", "revision": "rev_3"},
+      "task": {"id": "tsk_01J2Q7N9C3V6", "revision": "rev_7"}
+    },
     "write_approval": "required",
     "budgets": {
       "max_write_actions": 20
@@ -10269,6 +10395,11 @@ Bearer Credential MUST NOT fabricate a `cnf` member.
         "repositories": ["example-org/example-repo"],
         "pull_requests": [13],
         "expires_at": "2026-06-25T20:00:00Z",
+        "purpose_binding": {
+          "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+          "purpose": {"id": "pur_01J2Q7M4K8X5", "revision": "rev_3"},
+          "task": {"id": "tsk_01J2Q7N9C3V6", "revision": "rev_7"}
+        },
         "write_approval": "required",
         "budgets": {
           "max_write_actions": 20
@@ -10456,6 +10587,15 @@ Revocation Transition. Revocation or invalidation of a shared runtime identity,
 Attester, proof key, Verifier, policy, endorsement, or reference value makes
 every dependent child-specific appraisal inactive.
 
+When the parent selected the Purpose- and Task-Bound Agent Grant Profile, child
+derivation MUST follow that profile's portable partial order. A purpose-bound
+parent can retain that exact purpose or add one issuer-verified task under it; a
+task-bound parent can retain only that exact purpose and task tuple. Removing
+or replacing a binding, selecting a sibling task, or changing either revision
+is not child attenuation. A parent that omitted the profile can add a verified
+purpose or task binding as a restriction, but the child MUST still be linked to
+the parent and cannot use that binding to add any ordinary authority.
+
 Child budget limits MUST retain every inherited member with an equal or smaller
 limit, and every charge or occupied slot consumes the child and ancestor
 ledgers. A child MAY add a supported standard dimension as a further
@@ -10501,6 +10641,11 @@ Applications MUST verify every action against grant state:
   `permitted_classes` value is a canonical set no wider than the approved
   request and complete effective exposure-class union, and every authoritative
   Grant, token, introspection, and stored-state copy matches the hashed value
+- when `constraints.purpose_binding` is present, its exact profile is supported,
+  the scoped purpose and optional task records are at the Grant-bound revisions
+  and in active state, the task still belongs to that purpose, the authoritative
+  session repeats the exact binding, and the action, resources, normalized
+  input, mode, and effects satisfy the current issuer-owned policy
 - grant is bound to the agent and complete identity-evidence envelope, both
   authoritative copies are exact, and the independently verified artifact,
   key binding, agent binding, lifecycle state, and freshness remain usable
@@ -10595,6 +10740,283 @@ Runtimes SHOULD verify:
   from training unless its complete class set is a subset of the effective
   `permitted_classes`, the Remote Processing path remains valid, and every
   downstream recipient enforces an equal or stricter training policy
+- when the Purpose- and Task-Bound Agent Grant Profile is selected, the exact
+  issuer-authenticated purpose and optional task revisions, relationship, and
+  current active state match the Grant and session, and local policy does not
+  treat task prose or an external task identifier as authority
+
+## Purpose- and Task-Bound Agent Grant Profile
+
+This optional profile binds an Agent Grant to an issuer-owned purpose record
+and, when required, one exact task record within that purpose. It prevents a
+long-lived or otherwise broad Grant from being reused merely because an action
+is in its ordinary action, scope, location, and resource allow-lists. The
+profile identifier is:
+
+```text
+https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1
+```
+
+The profile adds a restriction, not a new source of authority. Effective action
+authority remains the intersection of the current credential, Grant actions,
+locations, scopes, resource constraints, active session, application policy,
+and every other selected profile. A purpose or task match can only narrow that
+intersection. It cannot add an action, resource, scope, location, execution
+stage, effect, approval, lifetime, budget, or disclosure permission.
+
+### Purpose Binding Object and Authority Boundary
+
+The profile uses this closed `constraints.purpose_binding` object:
+
+```json
+{
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+  "purpose": {
+    "id": "pur_01J2Q7M4K8X5",
+    "revision": "rev_3"
+  },
+  "task": {
+    "id": "tsk_01J2Q7N9C3V6",
+    "revision": "rev_7"
+  }
+}
+```
+
+`profile` and `purpose` are REQUIRED. `task` is OPTIONAL. The top-level object
+and each nested reference object are closed. A reference contains exactly `id`
+and `revision`, each a non-empty opaque I-JSON string. This profile assigns no
+lexical ordering, hierarchy, URL dereference, prefix, path, UUID, timestamp, or
+digest semantics to either value. An implementation MUST compare both strings
+for exact equality after ordinary JSON parsing and MUST NOT normalize case,
+whitespace, Unicode, separators, or number-like content.
+
+The purpose and task namespace is scoped to the exact
+`(resource_server.issuer, resource_server.app_id, subject.user)` tuple. The
+Grant Issuer owns the records, their revisions, their lifecycle, and the
+purpose-to-task relationship. A runtime can request exact references already
+made available through an authenticated user or application workflow, but it
+cannot mint a record, define its semantics, move a task between purposes, or
+prove current state by asserting an identifier. A copied A2A task id, workflow
+run id, issue id, agent-generated goal, label, description, prompt, digest, or
+receipt is not an issuer record unless the Grant Issuer has independently
+resolved it as the exact scoped record.
+
+For each purpose record, the Grant Issuer MUST retain an authoritative revision,
+current lifecycle state, and policy capable of deciding whether a proposed
+Grant and later action remain within that purpose. For a task record, it MUST
+also retain the exact parent purpose, task revision, current lifecycle state,
+and task policy. A semantic change to a record's allowed action family,
+resource set, normalized input predicate, effect boundary, or parent
+relationship MUST create a new revision. A deployment MUST NOT change those
+semantics under an existing revision. A lifecycle transition can occur without
+changing the revision because current lifecycle state is independently checked
+on every admission.
+
+The current evaluation state is one of:
+
+- **active**: the exact revision and, for a task, its exact parent relationship
+  are current and can constrain new work;
+- **suspended**: the exact record is known but temporarily cannot authorize new
+  work;
+- **terminal**: the record is completed, cancelled, revoked, expired,
+  superseded, or otherwise permanently closed for new work; or
+- **unavailable**: the enforcement point cannot establish authenticated current
+  state for the exact scoped record.
+
+These states are authoritative server state and are not added to the Grant
+hashing view. A status response, label, or client cache cannot override them.
+An implementation MAY use richer internal states but MUST map them
+conservatively to this behavior.
+
+This profile reuses the single `constraints.expires_at` member. During issuance,
+the Grant Issuer MUST set it no later than every known purpose or task lifetime
+boundary. The profile defines no second `valid_until` member. Later closure,
+suspension, or policy change takes effect immediately even if the hashed Grant
+expiration is later.
+
+### Issuance, Consent, and Returned Grant
+
+A request selecting this profile MUST contain the exact
+`constraints.purpose_binding` object and the manifest MUST advertise its exact
+profile identifier. The Grant Issuer MUST:
+
+1. derive `subject.user` from authenticated authority rather than the request;
+2. resolve the exact purpose and optional task references in that subject and
+   application namespace;
+3. verify exact revisions, active lifecycle state, and the task-to-purpose
+   relationship;
+4. verify that the requested actions, locations, scopes, resources, constraints,
+   effects, and expiry satisfy both the purpose and optional task policy;
+5. obtain the issuance-model consent required for that exact binding; and
+6. return the exact approved binding in the authoritative Grant.
+
+An unknown identifier, wrong revision, wrong subject, wrong application,
+missing task relationship, inactive record, or action outside the effective
+policy MUST fail closed. The issuer MUST NOT search other users or applications
+for a similarly named record, silently substitute a sibling task, remove the
+task to make the request purpose-only, or replace a revision with a newer one.
+
+The local Consent Preview and Grant Issuer consent view MUST show the exact
+purpose id and revision, the exact task id and revision when present, whether
+the request is purpose-only or task-bound, the effective Grant expiry, and any
+parent or child Grant relationship. They MAY show an authenticated,
+issuer-supplied safe label as non-authoritative help. The label and
+`session.start.payload.task.goal` MUST be visually distinguished from the opaque
+authority references and MUST NOT replace them.
+
+Changing, adding, removing, or substituting a purpose id, task id, revision,
+relationship, lifecycle result, or expiration makes a pending preview stale.
+The runtime MUST regenerate and reconfirm the preview before dispatch. After
+issuance, it MUST require the returned binding to be exactly equal to the
+confirmed request. A different binding is not a valid server attenuation,
+including when the returned task appears more specific or has a
+human-readable description that looks equivalent.
+
+The complete binding participates in the ordinary `grant_hash`. No purpose- or
+task-specific digest, signed description, intent hash, or natural-language
+similarity result can replace exact object comparison and current issuer
+resolution.
+
+### Session and Action Enforcement
+
+A session under a bound Grant MUST copy the complete
+`constraints.purpose_binding` object into
+`session.start.payload.task.purpose_binding`. The two objects MUST be deeply
+equal after structural validation. The application stores that exact binding
+in the authoritative session record, and a `session.state` response for this
+profile repeats it. When the Grant is unbound, the session member MUST be
+absent. A runtime or application MUST reject an invented, omitted, changed, or
+additional session binding as `session_invalid`.
+
+`session.start.payload.task.kind`, `goal`, and `inputs` remain informational
+orchestration data. They do not establish purpose, task identity, resource
+authority, or policy satisfaction, even when their text or identifiers happen
+to match an issuer record. Multiple sessions MAY use one active bound Grant;
+this profile is not a single-use or single-session profile.
+
+Before admitting each new action, the application MUST:
+
+1. verify the complete ordinary Grant, credential, hash, surface, delegate, and
+   active session tuple;
+2. resolve the exact current purpose and optional task records under the
+   Grant-bound user and application;
+3. require the exact revisions, active state, and task-to-purpose relationship;
+4. require exact equality between the Grant and authoritative session binding;
+   and
+5. apply the issuer-owned purpose and task policy to the requested action,
+   target resources, normalized input, execution mode, and maximum effects.
+
+These checks occur before idempotency admission, budget charge, capacity
+admission, policy receipt creation, workload dispatch, reservation, or effect.
+The runtime SHOULD perform the equivalent local check from its authenticated
+current view, but a runtime decision or receipt never replaces independent
+application enforcement.
+An unavailable authenticated record result uses
+`purpose_binding_status_unavailable`. A known suspended record or definitive
+purpose/task policy denial uses `purpose_binding_denied`. Neither code reveals
+the record or rule that failed.
+
+The Action Request and receipts continue to carry the existing `grant_hash`,
+session tuple, action, input, execution, policy, and effect bindings. They MUST
+NOT add a raw purpose label, goal, task input, or parallel purpose hash under
+this profile. Avoiding a duplicate projection prevents two synchronization
+sources and limits disclosure. A Policy Decision uses its existing wire shape;
+the exact purpose binding and current issuer record are mandatory evaluation
+inputs, while `matched_rules` and `safe_to_show` contain only identifiers and
+text safe for the affected user.
+
+### Attenuation, Subdelegation, Exchange, and Renewal
+
+Purpose binding has this portable partial order, subject to every ordinary
+Grant attenuation rule:
+
+```text
+unbound
+  -> exact purpose
+       -> exact task under that purpose
+```
+
+More precisely:
+
+- an unbound parent can derive a child bound to one verified purpose or one
+  verified task under that purpose;
+- a purpose-bound parent can derive a child with the exact same purpose
+  reference, or add one exact task whose current authoritative parent is that
+  purpose;
+- a task-bound parent can derive only a child with the exact same purpose and
+  task ids and revisions; and
+- every child still has a subset of ordinary actions, locations, scopes, and
+  resources, equal or stricter caveats, a no-later expiry, the same pinned
+  surface, and explicit lineage.
+
+The following changes are not attenuation and require a fresh independently
+consented semantic Grant: removing the binding; changing a purpose; replacing a
+task with its purpose-only parent; replacing a task with a sibling; changing
+either revision; increasing expiry; or treating a string prefix, URI path,
+digest, description, or external task id as proof of narrowing. Every accepted
+binding change produces a new Grant Object and `grant_hash`. A verified
+purpose- or task-narrowing child can use the existing child-derivation consent
+rules because it cannot widen the parent; an incomparable or wider result
+requires the complete local preview and Grant Issuer consent flow.
+
+Token exchange MUST apply the same order and preserve source lifecycle linkage.
+RFC 8693 token exchange does not establish that linkage by itself. Renewal or
+refresh can preserve the exact binding only while its records remain active,
+the relationship is unchanged, and the new expiry does not exceed either
+record's current lifetime. A revision replacement, even for the same id,
+requires fresh consent rather than an automatic refresh.
+
+### Lifecycle, Revocation, Recovery, and Replay
+
+A terminal purpose record invokes the Semantic Grant Revocation Transition for
+every Grant bound to that purpose and every descendant. A terminal task record
+does the same for Grants bound to that exact task and their descendants, but
+does not revoke a sibling task or an independently consented Grant. A
+purpose-only Grant can remain active for other permitted tasks after one child
+task closes; the application still denies every action whose current purpose
+policy requires that closed task.
+
+When a selected record is suspended or its current state is unavailable, the
+application and runtime MUST stop new sessions and actions and fence affected
+active sessions without claiming that a terminal revocation occurred. If the
+exact same revision and relationship later return to active state, the runtime
+can explicitly resume the interrupted session under the ordinary generation
+rules or start a new session; the Grant hash does not change. An implementation
+MUST NOT continue optimistically from a cached active result.
+
+Terminal closure does not erase receipts, rewrite an already authoritative
+effect, or turn an unknown outcome into no effect. A completed idempotency
+record and its original response and receipts remain immutable, but a revoked
+Grant Credential cannot invoke the Action Request replay path. Historical
+results can be retrieved only through an existing independently authenticated
+and authorized receipt or reconciliation path whose disclosure checks remain
+current; retrieval creates no admission or effect. A new idempotency key after
+closure is new work and MUST be rejected. Replay validation can prove
+historical Grant-byte integrity, but it does not prove that the purpose
+semantics were correct or that the issuer record is currently active.
+
+### Security and Privacy Requirements
+
+Purpose and task identifiers SHOULD be random or opaque application-scoped
+references and MUST NOT embed repository names, customer identities, task prose,
+prompt content, or another user's stable identifier. The Grant Issuer MUST make
+unknown, wrong-subject, wrong-application, wrong-revision, and unauthorized
+lookups externally indistinguishable. Neither the runtime nor the application
+may use this profile as an enumeration interface.
+
+Human-readable purpose or task labels, workflow descriptions, task inputs,
+provider records, and policy internals remain in their authoritative UI or
+policy boundary. They MUST NOT be copied into the Grant, credential, ordinary
+receipts, public errors, traces, prompts, or agent-visible logs. Retention of the
+opaque binding and lifecycle record MUST be bounded by active enforcement,
+receipt reconciliation, security audit, and applicable legal obligations.
+
+This profile makes reuse outside an issuer-defined purpose or task detectable
+and enforceable. It does not prove that a human-authored label is truthful,
+that an agent's reasoning remained on-topic, that downstream processing
+complied with a purpose limitation, or that a deployment satisfies GDPR or
+another legal regime. Such claims require separate policy, evidence, audit,
+and legal analysis.
 
 ## Capability Matching
 
@@ -10631,6 +11053,9 @@ Matching inputs:
   classification ceiling, and current recipient-policy enforcement capability
 - the requested Agent Training Use class set, complete class set of every
   source, and current downstream training-policy enforcement capability
+- the exact requested Purpose Binding profile, purpose and optional task
+  references, and whether current authenticated issuer state and relationship
+  are available; goal text and external task ids are not matching authority
 - reservation requirements and available recovery actions
 - Agent Passport capabilities
 - Agent Passport security policy
@@ -11098,6 +11523,7 @@ exactly one authoritative tuple consisting of:
 - the grant `subject.user`, `grant_id`, and `grant_hash`
 - the grant-bound `runtime`, `agent`, and `identity_evidence_hash`
 - the application `app_id`, `surface_version`, and `surface_hash`
+- when selected, the complete exact `constraints.purpose_binding`
 
 The application is authoritative for the application-side session record and
 state. The runtime is authoritative for whether the corresponding local worker
@@ -11173,6 +11599,14 @@ start only after the explicit runaway resolution rules below; historical guard
 and event-deduplication records are not rewritten as if the earlier generation
 never ran.
 
+When a Purpose Binding record is suspended or current authenticated state is
+unavailable, the application MUST fence the affected session before accepting
+another action and the runtime MUST stop local work. Resume requires the exact
+same purpose and optional task ids and revisions, the same relationship, and a
+current active result; it cannot change the binding or revive a terminal
+record. Terminal closure follows Semantic Grant Revocation rather than session
+resume.
+
 `session.pause`, `session.cancel`, and `session.resume` requests MUST contain
 `session_id`, the caller's current `session_generation`, `grant_id`,
 `grant_hash`, and `surface_hash`. The channel authenticates the runtime or
@@ -11233,6 +11667,11 @@ alone cannot release an application slot or satisfy parent resolution.
       "surface_hash": "sha-256:<base64url-digest>"
     },
     "task": {
+      "purpose_binding": {
+        "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+        "purpose": {"id": "pur_01J2Q7M4K8X5", "revision": "rev_3"},
+        "task": {"id": "tsk_01J2Q7N9C3V6", "revision": "rev_7"}
+      },
       "kind": "pull_request.review",
       "goal": "Review PR #13 and propose a concise review comment.",
       "inputs": {
@@ -11265,12 +11704,25 @@ content MUST fail as `session_transition_invalid`.
     "runtime_id": "application_runtime_456",
     "agent_id": "local_agent_789",
     "identity_evidence_hash": "sha-256:<base64url-digest>",
-    "surface_hash": "sha-256:<base64url-digest>"
+    "surface_hash": "sha-256:<base64url-digest>",
+    "purpose_binding": {
+      "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+      "purpose": {"id": "pur_01J2Q7M4K8X5", "revision": "rev_3"},
+      "task": {"id": "tsk_01J2Q7N9C3V6", "revision": "rev_7"}
+    }
   }
 }
 ```
 
-`session.start.task` is user- or runtime-authored orchestration, not an
+When the Grant contains `constraints.purpose_binding`,
+`session.start.payload.task.purpose_binding` is REQUIRED and MUST be deeply
+equal to it after structural validation. The application stores that exact
+object in the authoritative session and `session.state` repeats it as shown.
+When the Grant omits the profile, both session members MUST be absent. An
+omitted, additional, or changed binding fails as `session_invalid`; the
+application does not repair it from `kind`, `goal`, or `inputs`.
+
+`session.start.payload.task` is user- or runtime-authored orchestration, not an
 application data-delivery mechanism. The application MUST NOT place
 application-originated content in `goal`, `inputs`, or another task member.
 Opaque identifiers and filters already present in the grant constraints MAY be
@@ -11720,6 +12172,17 @@ The application MUST also verify that body `grant_hash` matches the complete
 authoritative grant selected by the credential and that `surface_hash` matches
 the manifest snapshot pinned by that grant. These hashes are correlation and
 integrity commitments, not substitutes for the HTTP authorization proof.
+
+When the Grant contains `constraints.purpose_binding`, the application MUST
+resolve its exact issuer-owned purpose and optional task records for the
+Grant-bound subject and app, verify exact revisions, active state and
+relationship, require the authoritative session's exact equal binding, and
+apply the current purpose and task policy to the action, target resources,
+normalized input, execution mode, and maximum effects. It performs these checks
+before idempotency lookup or allocation, budget or capacity admission, policy
+receipt creation, workload dispatch, reservation, or effect. The Action Request
+does not repeat the object: adding a client-authored copy cannot repair the
+Grant or session and would be invalid unless a future extension defines it.
 
 If both the `Idempotency-Key` header and the body `idempotency_key` field are
 present, they MUST match, and the application MUST reject a mismatch as
@@ -13097,6 +13560,10 @@ inspectable:
 - when selected, the exact Agent Training Use Policy profile and permitted and
   prohibited effective classes, shown separately from plaintext retention and
   with no claim that revocation or deletion causes model unlearning;
+- when selected, the exact Purpose Binding profile, purpose id and revision,
+  optional task id and revision, purpose-only or task-bound mode, current
+  coarse active, suspended, terminal, or unavailable state, effective
+  expiration, and an authenticated safe issuer label when available;
 - credential profile and receipt requirements;
 - when Approval Receipt is selected, each action's accepted producer roles and
   maximum approval age without exposing individual approval decisions;
@@ -13235,6 +13702,15 @@ reservations, and cascade revocation to child, exchanged, renewed, or
 superseding grants whose authority preserves its delegation lineage. The
 transition establishes `effective_at` and the concurrency fence defined above.
 
+When a Purpose Binding purpose becomes terminal, the Grant Issuer MUST invoke
+this transition for every Grant bound to that exact purpose and every
+descendant. When only a task becomes terminal, it invokes the transition for
+the exact task-bound Grants and their descendants without revoking sibling
+tasks or independently consented lineages. A purpose-only Grant can remain
+active for other work that current purpose policy permits. Suspension or
+temporary status unavailability fences sessions and actions as defined by the
+profile but is not falsely recorded as terminal revocation.
+
 The transition is idempotent. Reapplying it to an inactive grant MUST NOT emit
 duplicate control events, repeat cleanup side effects, or change the original
 effective instant. It does not erase receipts or undo committed effects.
@@ -13314,7 +13790,10 @@ occurrence time, `aspaudience` identifies the target runtime, and
 REQUIRED for a child grant and otherwise MAY be null. `data.runtime_id` MUST
 equal `aspaudience`. Defined reason values are `user_revoked`, `application_revoked`,
 `runtime_revoked`, `credential_compromise`, `parent_revoked`, `policy_changed`,
-and `superseded`. A runtime MUST still enforce revocation when it receives an
+`purpose_closed`, `task_closed`, and `superseded`. `purpose_closed` and
+`task_closed` indicate the terminal Purpose Binding transitions defined by
+that profile and reveal no record identifier beyond the Grant the runtime
+already possesses. A runtime MUST still enforce revocation when it receives an
 unknown future reason value and MAY preserve that value as opaque audit data.
 
 The event MUST be delivered over an application-authenticated event channel
@@ -13478,6 +13957,8 @@ Agent Surface Protocol SHOULD define structured errors:
 | `passport_profile_unsupported` | A required Passport consuming, artifact-hash, verification, status, or integrity profile is unsupported or incomplete. |
 | `passport_status_unavailable` | Fresh authenticated status for the exact Passport tuple cannot currently be established. |
 | `runtime_untrusted` | Runtime authentication cannot be mapped to the exact active runtime identity projection, or a required posture, locality, or assurance is absent, stale, suspended, revoked, or mismatched. |
+| `purpose_binding_denied` | A known current purpose or optional task binding does not authorize new work under its current state or policy. |
+| `purpose_binding_status_unavailable` | Current authenticated lifecycle or relationship state for the exact purpose and optional task binding cannot be established. |
 | `surface_incompatible` | A required surface version, profile, or action declaration is unsupported or internally inconsistent and cannot be interpreted safely. |
 | `surface_projection_unavailable` | An authorized discovery projection cannot be returned without revealing whether its base, authenticated context, entitlement state, or requested member exists. |
 | `proposal_required` | On a standard surface, the requested state-changing action exists but the Grant authorizes only its reciprocal proposal companion for the same operation. |
@@ -13685,6 +14166,28 @@ Passport code for a generic envelope merely because its concrete
 `format_profile` is Agent Passport, and MUST NOT expose the concrete format in
 a public generic error.
 
+`purpose_binding_status_unavailable` is a fail-closed indeterminate result, not
+proof that a record was revoked or that a task does not exist. It MAY be
+retried only after authenticated issuer-state recovery, while the affected
+session remains fenced. The rejected attempt MUST NOT claim an idempotency key,
+admit budget or capacity, create a policy or action receipt, dispatch workload,
+or attempt an effect. A malformed or hash-mismatched binding remains
+`integrity_mismatch`; a Grant/session mismatch remains `session_invalid`; Grant
+expiry remains `grant_expired`; and a terminal purpose or task follows semantic
+revocation and returns `grant_revoked`.
+
+`purpose_binding_denied` covers both a known suspended record and a definitive
+current purpose/task policy denial. Its public envelope MUST set
+`retryable: false` for the unchanged binding and authenticated state, MUST NOT
+reveal which record, relationship, action, resource, input predicate, or rule
+failed, and MUST occur before idempotency, budget, capacity, receipt, workload,
+or effect admission. An application Policy Decision can use
+`app_policy_denied`, and a runtime-local decision can use
+`local_policy_denied`, but those reason codes do not replace this action-error
+mapping. A later authenticated activation or material policy change can permit
+a new ordinary attempt; a suspended session additionally requires explicit
+resume under the exact same binding and generation rules.
+
 `remote_processing_violation` is terminal for the same unchanged path and
 Grant. The detecting component MUST block application-originated data before
 downstream dispatch and MUST NOT claim that retry, a lower-privilege recipient
@@ -13762,6 +14265,9 @@ same grant. Temporary reservation exhaustion and parallel-session saturation
 MAY be retried only after authoritative capacity release when a non-identifying
 `retry_after` is available. `budget_state_unavailable` requires authoritative
 resynchronization and MUST NOT reset counters.
+`purpose_binding_status_unavailable` requires authenticated recovery of the
+exact same issuer-owned revisions and relationship; retry never substitutes a
+new purpose, task, revision, session, or idempotency key.
 After an effect was attempted, drift or uncertainty is represented by
 `effect_outcome: "partially_applied"` or `"unknown"`, not a retryable
 `effect_mismatch`. `outcome_unknown` MUST NOT be retried under a new
@@ -13904,6 +14410,10 @@ within caveats.
 The runtime can accidentally use a grant for the wrong agent, user, workspace, or
 application. Grants MUST bind user, app, runtime, agent, and the complete exact
 identity-evidence envelope selected by the Grant.
+When Purpose- and Task-Bound Agent Grant is selected, the complete purpose and
+optional task references are part of the same boundary. A matching action,
+repository, issue number, goal, description, or external task id does not allow
+the runtime to substitute another issuer-owned purpose or task.
 
 ### Raw Token Leakage
 
@@ -13960,6 +14470,13 @@ Grant hash, retention cleanup, or a runtime receipt as compliance or unlearning
 evidence. Deployments that require such evidence need a separately negotiated
 provider-attestation, audit, or verifiable-unlearning profile and still enforce
 the class constraint before disclosure.
+
+Purpose Binding preserves the same independent-enforcement boundary. A
+malicious runtime can claim that an agent remains on-task, change
+`session.start.payload.task.goal`, copy an A2A task id, or present a local policy
+decision. None of those values proves the current issuer-owned record or its
+action relation. The application MUST resolve the exact hashed references and
+current state itself and MUST fail closed when that state is unavailable.
 
 A runtime budget report can safely request a fence for its own bound session,
 but it MUST NOT change application counters, grant authority, or another
@@ -14249,6 +14766,18 @@ Applications SHOULD request only the metadata needed for authorization and audit
 Runtimes SHOULD minimize agent and passport disclosure when possible. Receipts
 SHOULD support pseudonymous user references where legal and operationally
 appropriate.
+
+Purpose and task bindings reveal user intent, workflow structure, and
+potentially sensitive relationships even when no application payload is
+present. Their ids SHOULD be opaque and scoped to issuer, app, and app-scoped
+subject; they MUST NOT embed repository, customer, prompt, goal, or task prose.
+Safe labels, raw task inputs, relationship records, and purpose-policy internals
+remain in authenticated issuer or user interfaces and MUST NOT enter Grants,
+credentials, ordinary receipts, public errors, traces, prompts, or
+agent-visible logs. Lookup failures MUST be uniform across unknown,
+wrong-subject, wrong-app, wrong-revision, and unauthorized records. This
+technical purpose restriction is not by itself evidence of GDPR or other legal
+compliance.
 
 Authorized Surface discovery can reveal account roles, tenant membership,
 agent eligibility, and the existence of privileged or experimental
@@ -15086,6 +15615,9 @@ A component conforms to the Surface Publisher Profile when it:
   closed `read`/`propose` action inventory with at least one proposal action,
   no effects, and no state-changing companion relationship
 - declares actions, resources, events, scopes, and schemas
+- when advertising Purpose- and Task-Bound Agent Grant, advertises only the
+  exact profile whose issuer records, lifecycle, relationship, attenuation,
+  and protected-resource policy it can enforce completely
 - declares every referenced data class and complete exposure contracts for
   resources, actions, and events
 - declares risk labels for actions
@@ -15167,6 +15699,11 @@ A component conforms to the Grant Issuer Profile when it:
   canonical requested set against the complete exposure union, obtains consent
   for the returned subset, preserves every authoritative copy, and makes no
   provider-compliance or unlearning claim
+- when it selects the Purpose- and Task-Bound Agent Grant Profile, resolves the
+  exact issuer-owned purpose and optional task records for the authenticated
+  subject and app, verifies revisions, relationship, active state, policy, and
+  lifetime, obtains consent for the exact binding, hash-binds it, and maintains
+  its suspension, terminal-revocation, and non-enumeration behavior
 - when it selects the Approval Receipt Profile, validates and hash-binds the
   exact per-action producer roles and maximum ages without treating an approval
   receipt as issuance authority
@@ -15249,6 +15786,11 @@ A protected-resource component conforms to the Action Executor Profile when it:
 - when the Grant selects the Agent Training Use Policy Profile, enforces the
   complete effective class set at disclosure time and makes no provider-
   compliance or unlearning claim
+- when the Grant selects the Purpose- and Task-Bound Agent Grant Profile,
+  independently resolves current issuer-owned state at every action, requires
+  the exact Grant/session binding and relationship, applies purpose and task
+  policy to normalized action semantics before idempotency or effect admission,
+  and fails closed without trusting runtime task prose or policy evidence
 - when the Grant selects the Approval Receipt Profile, authenticates and
   verifies the complete required role map and maximum age before first effect
   admission; producing an application Approval Receipt additionally requires an
@@ -15359,6 +15901,11 @@ it independently satisfies the Grant Issuer Profile and:
 - validates the Agent Training Use request profile and canonical class set,
   preserves only a permitted subset through authorization, token exchange,
   introspection, Grant hashing, and consent, and retains an explicit empty set
+- validates the exact Purpose Binding request against issuer-owned current
+  records, preserves only its defined partial-order attenuation through token
+  exchange and child derivation, returns the exact binding through token and
+  introspection projections, and links terminal lifecycle to semantic
+  revocation
 - validates and preserves Approval Receipt requirements through authorization,
   token response, introspection, Grant hashing, and token exchange without
   adding a role, increasing maximum age, or reusing source approval evidence
@@ -15525,6 +16072,10 @@ An application runtime conforms to the Runtime Mediator Profile when it:
   complete class set, presents the permitted and prohibited sets separately
   from retention, enforces the whole-source and downstream-recipient rules,
   treats omission as unspecified, and makes no model-unlearning claim
+- when selecting the Purpose- and Task-Bound Agent Grant Profile, presents and
+  confirms the exact opaque references and revisions, rejects any returned
+  substitution, copies the exact binding into session start, enforces current
+  authenticated state locally, and fences work while that state is unavailable
 - when selecting Runtime Attestation, supports the exact concrete profile,
   protects its proof key and raw Evidence, authenticates every challenge and its
   runtime, request, audience, and freshness bindings, confirms any initially
@@ -15760,7 +16311,8 @@ To support Agent Surface Protocol, the next slices are:
 4. Runtime verifies the selected agent's Agent Passport.
 5. Runtime derives and the user confirms a local preview from the exact request,
    verified tuple, pinned manifest, effects, exposure contracts, and labeled
-   local operator/processing-path assertions. When it claims Impact Simulation,
+   local operator/processing-path assertions, including the exact issuer-owned
+   purpose and task references when selected. When it claims Impact Simulation,
    the runtime also shows the complete bounded local action examples and labels
    `covered` as proposed-request coverage rather than execution permission.
 6. Runtime sends that exact Agent Grant `authorization_details` request.
@@ -15772,6 +16324,8 @@ To support Agent Surface Protocol, the next slices are:
    - scopes: pull_request.read, pull_request.comment
    - actions: pull_request.get, comment.create
    - repository: example-org/example-repo
+   - purpose: pur_01J2Q7M4K8X5 at rev_3
+   - task: tsk_01J2Q7N9C3V6 at rev_7
    - duration: 2 hours
    - budgets: 20 writes, 100 tool calls, 50,000 model tokens, 30 active
      runtime minutes, 2 parallel sessions, and separate runtime/application
@@ -15782,11 +16336,12 @@ To support Agent Surface Protocol, the next slices are:
    - retention: 2 hours, delete on grant end
 8. User approves a subset or the complete request.
 9. App issues or token-exchanges grant_123, its canonical `grant_hash`, and its
-   bound Grant Credential.
+   bound Grant Credential after resolving the exact current purpose/task state.
 10. Runtime verifies that the result is equal to or narrower than the confirmed
     request, recomputes its exposure projection, and stores the authoritative
     details and credential.
-11. App starts a pull-request review session.
+11. App starts a pull-request review session that repeats the exact
+    purpose/task binding.
 12. Agent reads typed PR context through runtime-mediated resources.
 13. Agent proposes a review comment.
 14. When declared, runtime requests a dry run and the app returns immutable
@@ -15798,8 +16353,9 @@ To support Agent Surface Protocol, the next slices are:
     Approval Receipt, then sends comment.create with trace context, parent
     receipt hash, idempotency key, execution context and hash, and Grant
     Credential.
-17. App verifies current grant, surface, decision, input, execution, preview,
-    and complete receipt evidence, produces any required application Approval
+17. App verifies current grant, current purpose/task revisions and policy,
+    session, surface, decision, input, execution, preview, and complete receipt
+    evidence, produces any required application Approval
     Receipt, atomically binds the accepted set to idempotency admission, rechecks
     preconditions, and commits the comment.
 18. App returns actual effects and an app receipt with the final role-indexed

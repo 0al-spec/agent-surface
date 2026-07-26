@@ -4825,8 +4825,12 @@
       "description": "добавить optional issuer-owned purpose/task binding в Agent Grant и проверять его в sessions и каждом app-side action admission.",
       "category": "OAuth / grants / purpose limitation",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
+        {
+          "heading": "Purpose- and Task-Bound Agent Grant Profile",
+          "anchorId": "purpose-and-task-bound-agent-grant-profile"
+        },
         {
           "heading": "Grant Object",
           "anchorId": "grant-object"
@@ -4852,7 +4856,7 @@
           "anchorId": "grant-verification"
         }
       ],
-      "rationale": "RFC связывает sessions с goal и использует task-purpose для Human Elicitation, но это не ограничивает сам Grant. Digest связывает bytes, а не доказывает semantic purpose. Профиль должен определить issuer-owned purpose/task identity и semantics, exact request/session binding, expiry, Policy Decision input и application-side equality/enforcement на каждом action. Subdelegation может только сохранить или сузить binding; человекочитаемое описание остаётся informational. Изменение binding создаёт новый Grant и при расширении authority требует fresh consent.",
+      "rationale": "RFC определяет optional issuer-owned Purpose- and Task-Bound Agent Grant Profile: exact purpose/task identity и request/session binding, bounded expiry, Policy Decision inputs и application-side enforcement на каждом action. Digest связывает canonical bytes, но не доказывает semantic purpose; человекочитаемое описание остаётся informational. Subdelegation может только сохранить или сузить binding, а widening создаёт новый Grant и требует fresh consent.",
       "priority": "P2",
       "profile": "oauth-grants",
       "depends_on": [
@@ -4865,8 +4869,12 @@
         46
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "specified",
       "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "purpose-and-task-bound-agent-grant-profile"
+        },
         {
           "kind": "rfc_anchor",
           "ref": "grant-object"
