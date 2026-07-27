@@ -200,6 +200,83 @@ class MockBehaviorSecurityTests(unittest.TestCase):
         self.assertNotIn("original_result_replayed", replay.tokens)
         self.assertEqual(replay.state_after["grant.lifecycle"], "revoked")
 
+        cleared_authority = (
+            "grant.child_active_count",
+            "credential.active_count",
+            "proof_session.active_count",
+            "execution_token.active_count",
+            "reservation.active_count",
+        )
+        revocation_counters = (
+            "control_event.emitted_count",
+            "revocation.effective_count",
+            "revocation.confirmed_count",
+            "revocation.fence_count",
+        )
+        for vector_id in ("ASP-V-AE-042", "ASP-V-AE-044"):
+            with self.subTest(vector_id=vector_id, mixed_state=True):
+                vector = self.catalog.vectors[vector_id]
+                document = copy.deepcopy(
+                    _resolved_fixture(self.catalog, vector)["document"]
+                )
+                document["purpose_binding"]["authoritative"]["task"][
+                    "state"
+                ] = "unavailable"
+                result = self.evaluate_document(vector, document)
+                self.assertEqual(result.asp_error, "grant_revoked")
+                self.assertIn("semantic_grant_revocation_applied", result.tokens)
+                for state_name in cleared_authority:
+                    self.assertEqual(result.state_after[state_name], 0)
+                for state_name in revocation_counters:
+                    self.assertEqual(result.state_after[state_name], 1)
+                self.assertTrue(
+                    result.state_after["revocation.confirmed_after_effective"]
+                )
+
+        runtime_vector = copy.deepcopy(self.catalog.vectors["ASP-V-RM-081"])
+        runtime_vector["state_deltas"].extend(
+            [
+                {"state": "grant.lifecycle", "before": "active", "after": "revoked"},
+                *[
+                    {"state": name, "before": 1, "after": 0}
+                    for name in cleared_authority
+                ],
+                *[
+                    {"state": name, "before": 0, "after": 1}
+                    for name in revocation_counters
+                ],
+                {
+                    "state": "revocation.confirmed_after_effective",
+                    "before": False,
+                    "after": True,
+                },
+            ]
+        )
+        runtime_document = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-RM-081"]["document"]
+        )
+        runtime_document["purpose_binding"]["authoritative"]["purpose"][
+            "state"
+        ] = "terminal"
+        runtime_document["purpose_binding"]["authoritative"]["task"][
+            "state"
+        ] = "unavailable"
+        runtime_result = self.evaluate_document(runtime_vector, runtime_document)
+        self.assertEqual(runtime_result.decision, "stopped")
+        self.assertEqual(runtime_result.asp_error, "grant_revoked")
+        self.assertIn(
+            "semantic_grant_revocation_applied",
+            runtime_result.tokens,
+        )
+        self.assertEqual(runtime_result.state_after["runtime.stored_grant_width"], 0)
+        for state_name in cleared_authority:
+            self.assertEqual(runtime_result.state_after[state_name], 0)
+        for state_name in revocation_counters:
+            self.assertEqual(runtime_result.state_after[state_name], 1)
+        self.assertTrue(
+            runtime_result.state_after["revocation.confirmed_after_effective"]
+        )
+
     def test_impact_simulation_is_supplemental_and_never_authority(self) -> None:
         for vector_id in (
             "ASP-V-RM-051",

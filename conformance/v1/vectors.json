@@ -9097,6 +9097,13 @@
       "cross_role_attack": false,
       "setup": [
         "current_surface",
+        "derived_active_grant",
+        "valid_credential",
+        "active_proof_session",
+        "active_execution_token",
+        "active_reservation",
+        "active_session",
+        "control_event_endpoint",
         "purpose_task_binding_selected",
         "authenticated_purpose_records"
       ],
@@ -9109,6 +9116,15 @@
         "purpose_binding_rejected",
         "session_fenced",
         "semantic_grant_revocation_applied",
+        "grant_revoked",
+        "child_grant_revoked",
+        "credential_invalidated",
+        "proof_session_invalidated",
+        "execution_token_invalidated",
+        "reservation_invalidated",
+        "control_event_emitted",
+        "revocation_fence_established",
+        "revocation_confirmed",
         "action_rejected"
       ],
       "forbidden_observations": [
@@ -9170,6 +9186,56 @@
           "state": "grant.lifecycle",
           "before": "active",
           "after": "revoked"
+        },
+        {
+          "state": "grant.child_active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "credential.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "proof_session.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "execution_token.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "reservation.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "control_event.emitted_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "revocation.effective_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "revocation.confirmed_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "revocation.confirmed_after_effective",
+          "before": false,
+          "after": true
+        },
+        {
+          "state": "revocation.fence_count",
+          "before": 0,
+          "after": 1
         }
       ],
       "expected_error": "grant_revoked"
@@ -9277,6 +9343,13 @@
       "cross_role_attack": false,
       "setup": [
         "current_surface",
+        "derived_active_grant",
+        "valid_credential",
+        "active_proof_session",
+        "active_execution_token",
+        "active_reservation",
+        "active_session",
+        "control_event_endpoint",
         "purpose_task_binding_selected",
         "authenticated_purpose_records"
       ],
@@ -9289,6 +9362,15 @@
         "purpose_binding_rejected",
         "session_fenced",
         "semantic_grant_revocation_applied",
+        "grant_revoked",
+        "child_grant_revoked",
+        "credential_invalidated",
+        "proof_session_invalidated",
+        "execution_token_invalidated",
+        "reservation_invalidated",
+        "control_event_emitted",
+        "revocation_fence_established",
+        "revocation_confirmed",
         "action_rejected",
         "retry_suppressed"
       ],
@@ -9351,6 +9433,56 @@
           "state": "grant.lifecycle",
           "before": "active",
           "after": "revoked"
+        },
+        {
+          "state": "grant.child_active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "credential.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "proof_session.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "execution_token.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "reservation.active_count",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "state": "control_event.emitted_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "revocation.effective_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "revocation.confirmed_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "revocation.confirmed_after_effective",
+          "before": false,
+          "after": true
+        },
+        {
+          "state": "revocation.fence_count",
+          "before": 0,
+          "after": 1
         }
       ],
       "expected_error": "grant_revoked"

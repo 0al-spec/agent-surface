@@ -653,10 +653,10 @@ def _purpose_current_state(
             raise BehaviorError("Purpose Binding task has the wrong parent purpose")
         states.append(task_record["state"])
         policies.append(task_record["policy"])
-    if "unavailable" in states:
-        return "unavailable", "unknown"
     if "terminal" in states:
         return "terminal", "deny"
+    if "unavailable" in states:
+        return "unavailable", "unknown"
     if "suspended" in states:
         return "suspended", "deny"
     return "active", "allow" if all(item == "allow" for item in policies) else "deny"
@@ -773,6 +773,39 @@ class _Transition:
             policy_reason=policy_reason,
             match_reason=match_reason,
         )
+
+
+_SEMANTIC_GRANT_REVOCATION_OBSERVATIONS = (
+    "grant_revoked",
+    "child_grant_revoked",
+    "credential_invalidated",
+    "proof_session_invalidated",
+    "execution_token_invalidated",
+    "reservation_invalidated",
+    "control_event_emitted",
+    "revocation_fence_established",
+    "revocation_confirmed",
+)
+
+
+def _apply_semantic_grant_revocation(state: _Transition) -> None:
+    state.set("grant.lifecycle", "revoked")
+    for name in (
+        "grant.child_active_count",
+        "credential.active_count",
+        "proof_session.active_count",
+        "execution_token.active_count",
+        "reservation.active_count",
+    ):
+        state.set(name, 0)
+    for name in (
+        "control_event.emitted_count",
+        "revocation.effective_count",
+        "revocation.confirmed_count",
+        "revocation.fence_count",
+    ):
+        state.increment(name)
+    state.set("revocation.confirmed_after_effective", True)
 
 
 def _capacity_response_parts(
@@ -4153,34 +4186,10 @@ def _grant(operation: str, document: Mapping[str, Any], state: _Transition) -> B
             "original_revocation_replayed",
             "revocation_confirmed",
         )
-    state.set("grant.lifecycle", "revoked")
-    for name in (
-        "grant.child_active_count",
-        "credential.active_count",
-        "proof_session.active_count",
-        "execution_token.active_count",
-        "reservation.active_count",
-    ):
-        state.set(name, 0)
-    for name in (
-        "control_event.emitted_count",
-        "revocation.effective_count",
-        "revocation.confirmed_count",
-        "revocation.fence_count",
-    ):
-        state.increment(name)
-    state.set("revocation.confirmed_after_effective", True)
+    _apply_semantic_grant_revocation(state)
     return state.result(
         "accepted",
-        "grant_revoked",
-        "child_grant_revoked",
-        "credential_invalidated",
-        "proof_session_invalidated",
-        "execution_token_invalidated",
-        "reservation_invalidated",
-        "control_event_emitted",
-        "revocation_fence_established",
-        "revocation_confirmed",
+        *_SEMANTIC_GRANT_REVOCATION_OBSERVATIONS,
     )
 
 
@@ -4357,13 +4366,14 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
             if current_state != "active" or purpose_policy != "allow":
                 state.increment("purpose_binding.session_fence_count")
                 if current_state == "terminal":
-                    state.set("grant.lifecycle", "revoked")
+                    _apply_semantic_grant_revocation(state)
                     return state.result(
                         "rejected",
                         "purpose_binding_state_checked",
                         "purpose_binding_rejected",
                         "session_fenced",
                         "semantic_grant_revocation_applied",
+                        *_SEMANTIC_GRANT_REVOCATION_OBSERVATIONS,
                         "action_rejected",
                         "retry_suppressed",
                         asp_error="grant_revoked",
@@ -4489,13 +4499,14 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
         if current_state in {"unavailable", "suspended", "terminal"}:
             state.increment("purpose_binding.session_fence_count")
             if current_state == "terminal":
-                state.set("grant.lifecycle", "revoked")
+                _apply_semantic_grant_revocation(state)
                 return state.result(
                     "rejected",
                     "purpose_binding_state_checked",
                     "purpose_binding_rejected",
                     "session_fenced",
                     "semantic_grant_revocation_applied",
+                    *_SEMANTIC_GRANT_REVOCATION_OBSERVATIONS,
                     "action_rejected",
                     asp_error="grant_revoked",
                 )
@@ -5058,13 +5069,14 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
             if current_state in {"unavailable", "suspended", "terminal"}:
                 state.increment("purpose_binding.session_fence_count")
                 if current_state == "terminal":
-                    state.set("grant.lifecycle", "revoked")
+                    _apply_semantic_grant_revocation(state)
                     return state.result(
                         "stopped",
                         "purpose_binding_state_checked",
                         "purpose_binding_rejected",
                         "session_fenced",
                         "semantic_grant_revocation_applied",
+                        *_SEMANTIC_GRANT_REVOCATION_OBSERVATIONS,
                         "mediation_stopped",
                         asp_error="grant_revoked",
                     )
