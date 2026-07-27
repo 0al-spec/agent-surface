@@ -1,0 +1,344 @@
+{
+  "$schema": "./document-set.schema.json",
+  "schema_version": 1,
+  "document_set_id": "https://github.com/0al-spec/agent-surface/publication/document-set/v1",
+  "document_set_version": "0.1.0-draft.1",
+  "protocol_version": "agent-surface/0.1",
+  "publication_mode": "transitional_monolith",
+  "authority": {
+    "catalog": "normative_publication_contract",
+    "active_sources": "normative",
+    "reserved_documents": "non_authoritative",
+    "build_manifest": "provenance_only",
+    "source_map": "provenance_only"
+  },
+  "anchor_policy": {
+    "new_public_ids": "explicit_only",
+    "id_syntax": "lowercase_ascii_kebab",
+    "reference_tuple": "document_id_exact_version_anchor_id",
+    "scope": "document_set_global",
+    "move_policy": "reject_cross_document_move_until_relocation_profile",
+    "local_alias_scope": "same_document_version_or_aggregate_fragment",
+    "cross_document_relocation": "unsupported_in_schema_v1",
+    "legacy_aggregate_aliases": [
+      "github_increment_from_1",
+      "dashboard_increment_from_2"
+    ],
+    "legacy_status": "transition_only"
+  },
+  "assembly_policy": {
+    "compiler": "https://github.com/0al-spec/Hyperprompt",
+    "revision_policy": "exact_immutable_revision",
+    "manifest_role": "build_provenance_only",
+    "source_map_role": "build_provenance_only",
+    "output_digest_location": "source_map",
+    "content_transforms": "before_provenance_bound_assembly"
+  },
+  "activation": {
+    "transition": "atomic_catalog_transition",
+    "requirements": [
+      "all_sources_exist",
+      "closed_dependency_graph",
+      "single_owner_per_export",
+      "aggregate_provenance_ready",
+      "legacy_references_resolved",
+      "validators_pass"
+    ],
+    "partial_activation": "forbidden"
+  },
+  "aggregate": {
+    "path": "drafts/agent-surface.md",
+    "sha256": "03bea8968cbcc47b64fe1ddadc811464e361e2f0c78946e510c53565973915d8",
+    "generated": false,
+    "role": "exact_document_set_representation",
+    "source_document": {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/agent-surface-monolith",
+      "version": "0.1.0-draft.1"
+    }
+  },
+  "documents": [
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/agent-surface-monolith",
+      "version": "0.1.0-draft.1",
+      "title": "Agent Surface Protocol Specification",
+      "kind": "monolith",
+      "role": "monolith",
+      "status": "canonical",
+      "publication_order": 0,
+      "source_path": "drafts/agent-surface.md",
+      "source_sha256": "03bea8968cbcc47b64fe1ddadc811464e361e2f0c78946e510c53565973915d8",
+      "normative_dependencies": [],
+      "normative_references": [],
+      "public_anchors": [
+        {
+          "anchor_id": "modular-rfc-publication-architecture",
+          "heading": "Modular RFC Publication Architecture",
+          "aliases": []
+        },
+        {
+          "anchor_id": "publication-authority-and-transitional-state",
+          "heading": "Publication Authority and Transitional State",
+          "aliases": []
+        },
+        {
+          "anchor_id": "document-classes",
+          "heading": "Document Classes",
+          "aliases": []
+        },
+        {
+          "anchor_id": "exact-normative-references",
+          "heading": "Exact Normative References",
+          "aliases": []
+        },
+        {
+          "anchor_id": "namespace-and-registry-ownership",
+          "heading": "Namespace and Registry Ownership",
+          "aliases": []
+        },
+        {
+          "anchor_id": "stable-anchors-and-compatibility-aliases",
+          "heading": "Stable Anchors and Compatibility Aliases",
+          "aliases": []
+        },
+        {
+          "anchor_id": "version-namespaces-and-independent-lifecycles",
+          "heading": "Version Namespaces and Independent Lifecycles",
+          "aliases": []
+        },
+        {
+          "anchor_id": "aggregate-assembly-and-build-provenance",
+          "heading": "Aggregate Assembly and Build Provenance",
+          "aliases": []
+        },
+        {
+          "anchor_id": "atomic-modular-activation",
+          "heading": "Atomic Modular Activation",
+          "aliases": []
+        }
+      ],
+      "exports": [
+        {
+          "kind": "anchor_namespace",
+          "id": "https://github.com/0al-spec/agent-surface/anchors/legacy-aggregate"
+        },
+        {
+          "kind": "identifier_namespace",
+          "id": "https://github.com/0al-spec/agent-surface/identifiers/agent-surface-0.1"
+        },
+        {
+          "kind": "registry",
+          "id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
+        },
+        {
+          "kind": "registry",
+          "id": "https://github.com/0al-spec/agent-surface/conformance/bundles/v1"
+        },
+        {
+          "kind": "artifact",
+          "id": "drafts/agent-surface.md"
+        }
+      ]
+    }
+  ],
+  "reserved_documents": [
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+      "version": "0.1.0-draft.1",
+      "title": "ASP Core",
+      "kind": "core",
+      "role": "core",
+      "status": "reserved",
+      "publication_order": 0,
+      "target_source_path": "drafts/modules/core.md",
+      "normative_dependencies": [],
+      "planned_exports": [],
+      "activation_condition": "atomic_catalog_transition"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
+      "version": "0.1.0-draft.1",
+      "title": "ASP Delegated Authorization",
+      "kind": "extension",
+      "role": "authorization",
+      "status": "reserved",
+      "publication_order": 1,
+      "target_source_path": "drafts/modules/authorization.md",
+      "normative_dependencies": [
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+          "version": "0.1.0-draft.1"
+        }
+      ],
+      "planned_exports": [],
+      "activation_condition": "atomic_catalog_transition"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
+      "version": "0.1.0-draft.1",
+      "title": "ASP Safe Effects",
+      "kind": "extension",
+      "role": "safe_effects",
+      "status": "reserved",
+      "publication_order": 2,
+      "target_source_path": "drafts/modules/safe-effects.md",
+      "normative_dependencies": [
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
+          "version": "0.1.0-draft.1"
+        }
+      ],
+      "planned_exports": [],
+      "activation_condition": "atomic_catalog_transition"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
+      "version": "0.1.0-draft.1",
+      "title": "ASP Evidence",
+      "kind": "extension",
+      "role": "evidence",
+      "status": "reserved",
+      "publication_order": 3,
+      "target_source_path": "drafts/modules/evidence.md",
+      "normative_dependencies": [
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
+          "version": "0.1.0-draft.1"
+        }
+      ],
+      "planned_exports": [],
+      "activation_condition": "atomic_catalog_transition"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
+      "version": "0.1.0-draft.1",
+      "title": "ASP Privacy",
+      "kind": "extension",
+      "role": "privacy",
+      "status": "reserved",
+      "publication_order": 4,
+      "target_source_path": "drafts/modules/privacy.md",
+      "normative_dependencies": [
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
+          "version": "0.1.0-draft.1"
+        }
+      ],
+      "planned_exports": [],
+      "activation_condition": "atomic_catalog_transition"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
+      "version": "0.1.0-draft.1",
+      "title": "ASP-over-MCP Binding",
+      "kind": "binding",
+      "role": "binding",
+      "status": "reserved",
+      "publication_order": 5,
+      "target_source_path": "drafts/modules/bindings/asp-over-mcp.md",
+      "normative_dependencies": [
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
+          "version": "0.1.0-draft.1"
+        }
+      ],
+      "planned_exports": [],
+      "activation_condition": "atomic_catalog_transition"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
+      "version": "0.1.0-draft.1",
+      "title": "ASP Conformance",
+      "kind": "conformance",
+      "role": "conformance",
+      "status": "reserved",
+      "publication_order": 6,
+      "target_source_path": "drafts/modules/conformance.md",
+      "normative_dependencies": [
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
+          "version": "0.1.0-draft.1"
+        },
+        {
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
+          "version": "0.1.0-draft.1"
+        }
+      ],
+      "planned_exports": [],
+      "activation_condition": "atomic_catalog_transition"
+    }
+  ],
+  "registries": [
+    {
+      "registry_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
+      "version": "1.10.0",
+      "source_path": "conformance/v1/suite.json",
+      "source_sha256": "dfe65ef8619a92b62fd7d3020306622749666b229a0d594287d9b910e6f6d8e6",
+      "id_member": "suite_id",
+      "version_member": "suite_version",
+      "owner": {
+        "document_id": "https://github.com/0al-spec/agent-surface/documents/agent-surface-monolith",
+        "version": "0.1.0-draft.1"
+      }
+    },
+    {
+      "registry_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/v1",
+      "version": "1.0.0",
+      "source_path": "conformance/v1/bundles.json",
+      "source_sha256": "2b45ceb0235d2b5f12322ebdbd0e4db08ae0f7e56af8e0416623ca394ffb744e",
+      "id_member": "registry_id",
+      "version_member": "registry_version",
+      "owner": {
+        "document_id": "https://github.com/0al-spec/agent-surface/documents/agent-surface-monolith",
+        "version": "0.1.0-draft.1"
+      }
+    }
+  ]
+}

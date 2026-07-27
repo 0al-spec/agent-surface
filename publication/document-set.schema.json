@@ -1,0 +1,643 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/publication/schemas/document-set/v1",
+  "title": "ASP Specification Document Set Catalog v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "document_set_id",
+    "document_set_version",
+    "protocol_version",
+    "publication_mode",
+    "authority",
+    "anchor_policy",
+    "assembly_policy",
+    "activation",
+    "aggregate",
+    "documents",
+    "reserved_documents",
+    "registries"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./document-set.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "document_set_id": {
+      "const": "https://github.com/0al-spec/agent-surface/publication/document-set/v1"
+    },
+    "document_set_version": {
+      "$ref": "#/$defs/exactVersion"
+    },
+    "protocol_version": {
+      "pattern": "^agent-surface/[0-9]+\\.[0-9]+$",
+      "type": "string"
+    },
+    "publication_mode": {
+      "enum": [
+        "transitional_monolith",
+        "modular"
+      ]
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "catalog",
+        "active_sources",
+        "reserved_documents",
+        "build_manifest",
+        "source_map"
+      ],
+      "properties": {
+        "catalog": {
+          "const": "normative_publication_contract"
+        },
+        "active_sources": {
+          "const": "normative"
+        },
+        "reserved_documents": {
+          "const": "non_authoritative"
+        },
+        "build_manifest": {
+          "const": "provenance_only"
+        },
+        "source_map": {
+          "const": "provenance_only"
+        }
+      }
+    },
+    "anchor_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "new_public_ids",
+        "id_syntax",
+        "reference_tuple",
+        "scope",
+        "move_policy",
+        "local_alias_scope",
+        "cross_document_relocation",
+        "legacy_aggregate_aliases",
+        "legacy_status"
+      ],
+      "properties": {
+        "new_public_ids": {
+          "const": "explicit_only"
+        },
+        "id_syntax": {
+          "const": "lowercase_ascii_kebab"
+        },
+        "reference_tuple": {
+          "const": "document_id_exact_version_anchor_id"
+        },
+        "scope": {
+          "const": "document_set_global"
+        },
+        "move_policy": {
+          "const": "reject_cross_document_move_until_relocation_profile"
+        },
+        "local_alias_scope": {
+          "const": "same_document_version_or_aggregate_fragment"
+        },
+        "cross_document_relocation": {
+          "const": "unsupported_in_schema_v1"
+        },
+        "legacy_aggregate_aliases": {
+          "const": [
+            "github_increment_from_1",
+            "dashboard_increment_from_2"
+          ]
+        },
+        "legacy_status": {
+          "const": "transition_only"
+        }
+      }
+    },
+    "assembly_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compiler",
+        "revision_policy",
+        "manifest_role",
+        "source_map_role",
+        "output_digest_location",
+        "content_transforms"
+      ],
+      "properties": {
+        "compiler": {
+          "const": "https://github.com/0al-spec/Hyperprompt"
+        },
+        "revision_policy": {
+          "const": "exact_immutable_revision"
+        },
+        "manifest_role": {
+          "const": "build_provenance_only"
+        },
+        "source_map_role": {
+          "const": "build_provenance_only"
+        },
+        "output_digest_location": {
+          "const": "source_map"
+        },
+        "content_transforms": {
+          "const": "before_provenance_bound_assembly"
+        }
+      }
+    },
+    "activation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transition",
+        "requirements",
+        "partial_activation"
+      ],
+      "properties": {
+        "transition": {
+          "const": "atomic_catalog_transition"
+        },
+        "requirements": {
+          "const": [
+            "all_sources_exist",
+            "closed_dependency_graph",
+            "single_owner_per_export",
+            "aggregate_provenance_ready",
+            "legacy_references_resolved",
+            "validators_pass"
+          ]
+        },
+        "partial_activation": {
+          "const": "forbidden"
+        }
+      }
+    },
+    "aggregate": {
+      "$ref": "#/$defs/aggregate"
+    },
+    "documents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/activeDocument"
+      }
+    },
+    "reserved_documents": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reservedDocument"
+      }
+    },
+    "registries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/registry"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "publication_mode": {
+            "const": "transitional_monolith"
+          }
+        },
+        "required": [
+          "publication_mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate": {
+            "properties": {
+              "generated": {
+                "const": false
+              }
+            },
+            "required": [
+              "source_document"
+            ],
+            "not": {
+              "required": [
+                "assembly"
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "aggregate": {
+            "properties": {
+              "generated": {
+                "const": true
+              }
+            },
+            "required": [
+              "assembly"
+            ],
+            "not": {
+              "required": [
+                "source_document"
+              ]
+            }
+          },
+          "reserved_documents": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "exactVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$"
+    },
+    "sha256Hex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repoPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[^/\\\\](?:[^\\\\]*[^/\\\\])?$"
+    },
+    "documentId": {
+      "type": "string",
+      "pattern": "^https://github\\.com/0al-spec/agent-surface/documents/[a-z0-9]+(?:[/-][a-z0-9]+)*$"
+    },
+    "documentRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "document_id",
+        "version"
+      ],
+      "properties": {
+        "document_id": {
+          "$ref": "#/$defs/documentId"
+        },
+        "version": {
+          "$ref": "#/$defs/exactVersion"
+        }
+      }
+    },
+    "export": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "anchor_namespace",
+            "identifier_namespace",
+            "registry",
+            "artifact"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "activeDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "document_id",
+        "version",
+        "title",
+        "kind",
+        "role",
+        "status",
+        "publication_order",
+        "source_path",
+        "source_sha256",
+        "normative_dependencies",
+        "normative_references",
+        "public_anchors",
+        "exports"
+      ],
+      "properties": {
+        "document_id": {
+          "$ref": "#/$defs/documentId"
+        },
+        "version": {
+          "$ref": "#/$defs/exactVersion"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "kind": {
+          "enum": [
+            "monolith",
+            "core",
+            "extension",
+            "binding",
+            "conformance"
+          ]
+        },
+        "role": {
+          "$ref": "#/$defs/documentRole"
+        },
+        "status": {
+          "const": "canonical"
+        },
+        "publication_order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/sha256Hex"
+        },
+        "normative_dependencies": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/documentRef"
+          }
+        },
+        "normative_references": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/normativeReference"
+          }
+        },
+        "public_anchors": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/publicAnchor"
+          }
+        },
+        "exports": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/export"
+          }
+        }
+      }
+    },
+    "reservedDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "document_id",
+        "version",
+        "title",
+        "kind",
+        "role",
+        "status",
+        "publication_order",
+        "target_source_path",
+        "normative_dependencies",
+        "planned_exports",
+        "activation_condition"
+      ],
+      "properties": {
+        "document_id": {
+          "$ref": "#/$defs/documentId"
+        },
+        "version": {
+          "$ref": "#/$defs/exactVersion"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "kind": {
+          "enum": [
+            "core",
+            "extension",
+            "binding",
+            "conformance"
+          ]
+        },
+        "role": {
+          "$ref": "#/$defs/documentRole"
+        },
+        "status": {
+          "const": "reserved"
+        },
+        "publication_order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_source_path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "normative_dependencies": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/documentRef"
+          }
+        },
+        "planned_exports": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/export"
+          }
+        },
+        "activation_condition": {
+          "const": "atomic_catalog_transition"
+        }
+      }
+    },
+    "documentRole": {
+      "enum": [
+        "monolith",
+        "core",
+        "authorization",
+        "safe_effects",
+        "evidence",
+        "privacy",
+        "binding",
+        "conformance"
+      ]
+    },
+    "publicAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anchor_id",
+        "heading",
+        "aliases"
+      ],
+      "properties": {
+        "anchor_id": {
+          "$ref": "#/$defs/anchorId"
+        },
+        "heading": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "aliases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/anchorId"
+          }
+        }
+      }
+    },
+    "anchorId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "normativeReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_anchor_id",
+        "target_document",
+        "target_kind",
+        "target_id"
+      ],
+      "properties": {
+        "source_anchor_id": {
+          "$ref": "#/$defs/anchorId"
+        },
+        "target_document": {
+          "$ref": "#/$defs/documentRef"
+        },
+        "target_kind": {
+          "enum": [
+            "anchor",
+            "identifier_namespace",
+            "registry",
+            "artifact"
+          ]
+        },
+        "target_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "assembly": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compiler",
+        "compiler_revision",
+        "entrypoint",
+        "manifest",
+        "source_map"
+      ],
+      "properties": {
+        "compiler": {
+          "const": "https://github.com/0al-spec/Hyperprompt"
+        },
+        "compiler_revision": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?)$"
+        },
+        "entrypoint": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "manifest": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "source_map": {
+          "$ref": "#/$defs/repoPath"
+        }
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "generated",
+        "role"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256Hex"
+        },
+        "generated": {
+          "type": "boolean"
+        },
+        "role": {
+          "const": "exact_document_set_representation"
+        },
+        "source_document": {
+          "$ref": "#/$defs/documentRef"
+        },
+        "assembly": {
+          "$ref": "#/$defs/assembly"
+        }
+      }
+    },
+    "registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registry_id",
+        "version",
+        "source_path",
+        "source_sha256",
+        "id_member",
+        "version_member",
+        "owner"
+      ],
+      "properties": {
+        "registry_id": {
+          "type": "string",
+          "format": "uri",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "version": {
+          "$ref": "#/$defs/exactVersion"
+        },
+        "source_path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/sha256Hex"
+        },
+        "id_member": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "version_member": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "owner": {
+          "$ref": "#/$defs/documentRef"
+        }
+      }
+    }
+  }
+}
