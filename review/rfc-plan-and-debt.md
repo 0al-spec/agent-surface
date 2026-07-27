@@ -2,7 +2,7 @@
 
 - Status: active planning snapshot
 - Snapshot date: 2026-07-27
-- Snapshot base: `baa154e123fda7718c2f07fac4db1f68867a0743`
+- Snapshot base: `4a8c0346faa8e56dc8f776d4a36af842a07fea94`
 - Canonical machine-readable source: [`review-data.json`](review-data.json)
 
 ## Purpose and authority
@@ -12,15 +12,21 @@ remaining specification and delivery debt for Agent Surface Protocol (ASP).
 It is a planning view, not a second backlog and not a normative protocol
 artifact.
 
-The following precedence rules apply:
+The following authority rules apply:
 
-1. `drafts/agent-surface.md` is the canonical normative protocol text.
-2. `review/review-data.json` is the canonical source for card coverage,
+1. The active sources selected by `publication/document-set.json` are the
+   canonical normative protocol text. In the current transitional mode that is
+   only `drafts/agent-surface.md`.
+2. `publication/document-set.json` is normative only for publication
+   selection, exact source digests, dependencies, ownership, and transition
+   state; it cannot override protocol semantics. A conflict makes the
+   publication invalid rather than giving either artifact silent precedence.
+3. `review/review-data.json` is the canonical source for card coverage,
    priority, profile, dependencies, target release, maturity, and evidence.
-3. This document explains the intended sequencing and groups the canonical
+4. This document explains the intended sequencing and groups the canonical
    cards into reviewable work slices.
-4. If this document conflicts with the RFC or review data, the RFC and review
-   data win and this snapshot MUST be updated.
+5. If this document conflicts with the publication contract, active RFC
+   sources, or review data, this snapshot MUST be updated.
 
 ## Current snapshot
 
@@ -28,20 +34,20 @@ The following precedence rules apply:
 
 | Coverage | Cards | Meaning |
 | --- | ---: | --- |
-| `present` | 68 | The proposal is represented in normative prose. |
-| `partial` | 2 | A precursor exists, but the interoperable contract is incomplete. |
+| `present` | 71 | The proposal is represented in normative prose. |
+| `partial` | 1 | A precursor exists, but the interoperable contract is incomplete. |
 | `missing` | 7 | The proposed contract or mapping is not specified. |
-| **Total** | **77** | |
+| **Total** | **79** | |
 
-The active coverage debt is therefore **9 cards**: 3 P2 and 6 P3.
+The active coverage debt is therefore **8 cards**: 2 P2 and 6 P3.
 
 ### Delivery maturity
 
 | Maturity | Cards |
 | --- | ---: |
-| `proposal` | 9 |
+| `proposal` | 10 |
 | `specified` | 52 |
-| `machine_validated` | 15 |
+| `machine_validated` | 16 |
 | `implementation_tested` | 1 |
 | `interop_tested` | 0 |
 | `stable` | 0 |
@@ -49,14 +55,14 @@ The active coverage debt is therefore **9 cards**: 3 P2 and 6 P3.
 No card currently has a `target_release`. Coverage completion must not be
 mistaken for implementation or interoperability maturity.
 
-## Normative RFC debt
+## Normative RFC architecture state
 
-These cards change the core normative model or its conformance and publication
-architecture.
+The publication-architecture card is now covered and machine-validated. No
+additional uncovered architecture card remains in this lane.
 
-| Order | Card | Priority | Coverage | Required outcome |
-| ---: | --- | --- | --- | --- |
-| 1 | #66 Modular RFC Publication Architecture | P2 | `partial` | Define document ownership, normative references, version pinning, registries, compatibility, and independent release lifecycles for Core and extension documents. |
+| Card | Priority | Coverage | Maturity | Delivered outcome |
+| --- | --- | --- | --- | --- |
+| #66 Modular RFC Publication Architecture | P2 | `present` | `machine_validated` | Transitional ownership, immutable exact versions and source digests, required-role DAG, receipt ownership without a semantic cycle, registry and explicit-anchor ownership, transitive exact-pin republishing, Hyperprompt provenance boundaries, and fail-closed relocation/activation rules are defined; modular readiness remains #78. |
 
 ### Normative boundaries
 
@@ -70,6 +76,19 @@ architecture.
   and widening requires a new authorization decision.
 - Splitting the RFC into files does not create independent specifications until
   ownership, references, registries, versioning, and compatibility are defined.
+
+### Publication implementation debt
+
+The architecture contract deliberately leaves the monolith as the sole active
+canonical source. The remaining work is tracked canonically:
+
+| Card | Coverage | Maturity | Required delivery |
+| --- | --- | --- | --- |
+| #78 Reproducible RFC Assembly Pipeline | `present` | `proposal` | Build a non-authoritative ASP-over-MCP candidate, exact-revision Hyperprompt assembly, manifest/source-map resolver, complete output digest and local-alias checks, clean staging, and reproducibility gate. |
+| #79 Atomic Modular RFC Activation | `present` | `proposal` | Prepare the complete Core/Authorization/Safe Effects/Evidence/Privacy/Binding/Conformance candidate closure, add validated old-to-new anchor relocation records, republish exact-pin dependents, move every source to its final target, remove reservations and monolith authority, and activate only after all gates pass in one source state. |
+
+Candidate modules remain under `publication/candidates/` and have no normative
+authority. Reserved canonical target paths remain absent until #79.
 
 ## Binding and mapping specification debt
 
@@ -96,13 +115,15 @@ ASP Grant, approval, effect claim, or receipt.
 | --- | --- | --- | --- | --- |
 | #74 Independent Reference Vertical Slice | P1 | `present` | `implementation_tested` | Exact Application-Audited Effects reports and two executable local/remote lanes now pass through a card-specific resolver. Independent interoperability remains deliberately unclaimed. |
 | #75 ASP Typed SDK and Core Code Generation | P2 | `partial` | `proposal` | Build one validated canonical authoring model with deterministic manifest, schema, validator, and diagnostic generation. Keep external adapters outside the core SDK. |
+| #78 Reproducible RFC Assembly Pipeline | P2 | `present` | `proposal` | Implement the validator that can safely enable modular publication mode and prove a byte-identical ASP-over-MCP pilot candidate. |
+| #79 Atomic Modular RFC Activation | P2 | `present` | `proposal` | Materialize and activate the complete document closure only after #78 supplies authoritative publication evidence. |
 | #77 External Mapping Adapter Generators | P3 | `missing` | `proposal` | Generate adapters only for completed mapping profiles; pin upstream versions, report semantic loss, perform no network I/O, and never synthesize authority. |
 
 ### Broader maturity debt
 
 The current 52 `specified` cards still need card-appropriate executable schemas,
 registries, validators, and positive and negative vectors before they can move
-to `machine_validated`. The 15 `machine_validated` cards need evidence from
+to `machine_validated`. The 16 `machine_validated` cards need evidence from
 real implementations before they can move to `implementation_tested`.
 
 The project still needs:
@@ -154,8 +175,10 @@ completed #63 and #69 contracts.
 ### Lane E: publication and authoring tooling
 
 ```text
-#66 Modular RFC Publication Architecture
-  -> #75 ASP Typed SDK and Core Code Generation
+#66 Modular RFC Publication Architecture (machine-validated)
+  +-> #78 Reproducible RFC Assembly Pipeline
+  |     `-> #79 Atomic Modular RFC Activation
+  `-> #75 ASP Typed SDK and Core Code Generation
 ```
 
 ### Lane F: external mappings and generation
@@ -172,14 +195,15 @@ completed #63 and #69 contracts.
 ```
 
 The intake's P1 delivery lane is complete through **#74 Independent Reference
-Vertical Slice**. **#64 Purpose- and Task-Bound Agent Grants** now has an
-executable schema, closed catalog vectors, semantic validation, and reference
-mock behavior, so the card is `machine_validated`. The next recommended
-normative slice is **#66 Modular RFC Publication Architecture**. **#70
-ASP-over-WebMCP Binding** is the ready transport alternative, but remains P2
-while WebMCP is experimental. Lower-priority mappings should advance only when
-their upstream specification is sufficiently stable and there is concrete
-adopter demand.
+Vertical Slice**. **#66 Modular RFC Publication Architecture** now has
+normative prose plus a closed document-set schema, catalog, semantic validator,
+negative tests, and CI gate. The next publication step is **#78 Reproducible
+RFC Assembly Pipeline**, followed by **#79 Atomic Modular RFC Activation**.
+**#70
+ASP-over-WebMCP Binding** is the ready content alternative, but remains P2 while
+WebMCP is experimental. Lower-priority mappings should advance only when their
+upstream specification is sufficiently stable and there is concrete adopter
+demand.
 
 ## Definition of done for a protocol slice
 

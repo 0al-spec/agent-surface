@@ -12,6 +12,7 @@ policy-enforcing runtime.
 ```text
 agent-surface/
   drafts/                  Source RFCs written in Markdown.
+  publication/             Specification document-set contract and validation.
   conformance/             Executable role matrix, vectors, schemas, and runner.
   mocks/                   Synthetic Mock App and Mock Runtime suite fixtures.
   tools/                   Rust protocol tooling and machine-readable rules.
@@ -63,6 +64,13 @@ agent-surface/
   - `App Receipt`
 
 - Keep schemas and examples in sync with the RFC text when they are added.
+- Keep `publication/document-set.json`, its closed schema, canonical source
+  paths and SHA-256 digests, exact dependency graph, public-anchor inventory,
+  normative reference records, and registry ownership consistent and run
+  `make publication-check`. Update the RFC table of contents before recording
+  its final source and aggregate digest. Reserved module paths are
+  non-authoritative and must be activated only as one complete modular
+  transition.
 - Keep conformance matrix, vector, fixture, schema, runner, and report changes mutually
   consistent and run `make conformance-check`.
 - Keep the reference mock manifest, schema, entry points, separate authority

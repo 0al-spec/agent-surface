@@ -56,6 +56,7 @@ However, it follows similar principles of openness and community participation.
 - [Relationship to Existing Protocols](#relationship-to-existing-protocols)
 - [Conceptual Architecture](#conceptual-architecture)
 - [Protocol Layers](#protocol-layers)
+- [Modular RFC Publication Architecture](#modular-rfc-publication-architecture)
 - [Canonical Integrity and Provenance](#canonical-integrity-and-provenance)
 - [Agent Surface Manifest](#agent-surface-manifest-1)
 - [Action Execution Model](#action-execution-model)
@@ -132,6 +133,7 @@ Unless otherwise stated, the following sections are **normative**:
 - Conventions
 - Terminology
 - Design Principles
+- Modular RFC Publication Architecture
 - ASP-over-MCP Binding Profile
 - Agent Surface Manifest
 - Action Execution Model
@@ -166,10 +168,6 @@ The following sections are **informative**:
 - Non-Goals
 - Relationship to Existing Protocols, except the ASP-over-MCP Binding Profile
 - Conceptual Architecture
-
-The ASP-over-MCP Binding Profile subsection is normative notwithstanding its
-placement under the otherwise informative Relationship to Existing Protocols
-section.
 - Protocol Layers
 - Capability Matching
 - Application MVP Mapping
@@ -177,6 +175,10 @@ section.
 - Open Questions
 - References
 - Appendices
+
+The ASP-over-MCP Binding Profile subsection is normative notwithstanding its
+placement under the otherwise informative Relationship to Existing Protocols
+section.
 
 ## Motivation
 
@@ -1855,6 +1857,12 @@ connect directly to the local runtime.
 
 Agent Surface Protocol is specified as four separable layers.
 
+These protocol layers describe semantic responsibility boundaries. They do not
+define publication files, document ownership, or normative-reference
+direction. One publication document can temporarily contain several protocol
+layers, and one protocol layer can later be specified by several
+exact-versioned documents, subject to the Modular RFC Publication Architecture.
+
 ### 1. Agent Surface Manifest
 
 The application-published affordance contract:
@@ -2433,9 +2441,332 @@ The runtime-to-agent integration layer:
 
 The adapter layer turns a concrete agent into a runtime-mediated worker.
 
+<a id="modular-rfc-publication-architecture"></a>
+## Modular RFC Publication Architecture
+
+This section defines how ASP specification prose, registries, bindings, and
+generated publication views are divided and versioned without changing their
+authority by accident. It is a publication contract, not an ASP wire object,
+runtime negotiation mechanism, or permission to interpret an incomplete module
+set.
+
+The canonical machine-readable Document Set Catalog is:
+
+```text
+publication/document-set.json
+```
+
+Its closed schema is:
+
+```text
+publication/document-set.schema.json
+```
+
+The catalog and its active canonical source documents jointly define one ASP
+specification publication. The catalog defines document selection, exact
+versions, normative dependency edges, publication order, export ownership,
+aggregate role, and transition state. It MUST NOT add, weaken, or repair wire
+semantics that are absent from or conflict between active canonical sources.
+Such a conflict makes the publication invalid.
+
+<a id="publication-authority-and-transitional-state"></a>
+### Publication Authority and Transitional State
+
+Only entries in the catalog's `documents` collection with `status` equal to
+`canonical` are normative sources for that document set. An entry in
+`reserved_documents` reserves a future document identity, target path, role,
+and planned dependency graph. It has no normative authority, does not satisfy a
+normative dependency, and MUST NOT be cited as if it had been published.
+
+The current catalog uses `transitional_monolith`. In that mode:
+
+- `drafts/agent-surface.md` is the only active canonical source;
+- the aggregate path is that same source and is not represented as generated;
+- all future Core, extension, binding, and conformance documents remain
+  reserved and non-authoritative;
+- the monolith owns the legacy aggregate anchor and identifier namespaces and
+  every registry assigned to it by the catalog; and
+- creating a reserved target file without atomically activating the complete
+  modular document set is an invalid publication state.
+
+`transitional_monolith` does not claim that the specification has already been
+split. It allows tooling and review work to agree on the target boundaries
+before source authority moves.
+
+<a id="document-classes"></a>
+### Document Classes
+
+A modular ASP publication uses the following document roles:
+
+| Role | Responsibility | Normative dependency direction |
+| --- | --- | --- |
+| Core | Common terminology, base objects, canonical JSON hashing and digest rules, discovery, invocation, errors, and compatibility rules needed by every ASP use | MUST NOT depend on an extension, binding, or conformance document |
+| Authorization | Delegated user authority, Grant construction, identity bindings, constraints, lifecycle, and revocation | Exact Core version |
+| Safe Effects | Proposal, preview, approval, Approval Receipts, reservation, commit, compensation, idempotency, effect admission, and the base mandatory Runtime/App Receipt wire shapes and action/effect bindings required by that lifecycle | Exact Core and required Authorization versions |
+| Evidence | Signed or enriched receipt profiles, replay, signatures, provenance composition, and verification semantics layered over the base receipts | Exact Core and only the Authorization or Safe Effects versions whose objects it covers |
+| Privacy | Data exposure, processing path, retention, training-use, and consent semantics | Exact Core and only required lower-layer extension versions |
+| Binding | Mapping of ASP semantics onto one external transport or platform | Exact Core and only the extensions used by that binding |
+| Conformance | Claims, requirements, vectors, reports, and registry rules for exact documents under test | Every exact document version whose requirements it tests |
+
+A document's `kind` and `role` MUST agree. Core has no downstream normative
+dependency. A binding MUST NOT depend normatively on another binding merely to
+inherit transport behavior. A conformance document can test a binding, but a
+normative protocol document MUST NOT depend on a conformance document for its
+wire semantics.
+
+The initial reserved modular graph contains Core, Authorization, Safe Effects,
+Evidence, Privacy, the ASP-over-MCP binding, and Conformance. These reservations
+record migration intent only and are valid only while the catalog is in its
+transitional mode. A modular v1 catalog contains no reservations. A future
+catalog version can define post-activation reservation and multi-version
+selection rules; this one does not. Later document sets MAY add or omit
+extensions and bindings when their exact dependency closure remains valid.
+
+<a id="exact-normative-references"></a>
+### Exact Normative References
+
+Every normative dependency between ASP documents is an exact pair:
+
+```text
+(document_id, version)
+```
+
+Versions such as `latest`, branches, mutable URLs, compatible ranges, and
+implicit repository state are forbidden for an internal ASP document
+dependency. Every selected internal dependency MUST be an active document in
+the same document set. The internal normative dependency graph MUST be closed,
+acyclic, and in canonical dependency-before-dependent publication order.
+
+An externally governed standard is not made an ASP document by being cited.
+An ASP document MAY depend normatively on such a standard only through its
+stable published identifier and an exact edition, revision, or dated version
+when the external publisher defines one. A mutable `latest`, default branch, or
+unversioned draft URL is not an exact external normative reference. External
+references do not own ASP identifiers and do not participate in the internal
+document DAG.
+
+A Markdown link does not create normative authority. A normative reference
+between active ASP documents MUST have all of:
+
+1. a declared exact dependency edge from the referring document; and
+2. a machine-readable reference record in the referring document's catalog
+   entry; and
+3. a target tuple containing the target `document_id`, exact `version`, and
+   exported `anchor_id`, identifier namespace, registry id, or artifact id.
+
+The record also names an exported source anchor in the referring document.
+The publication validator resolves the source anchor, target document,
+dependency edge, and target export as one closed reference. An ordinary
+informative link MAY point outside the graph but MUST NOT be used to supply a
+missing requirement, default, algorithm, validation rule, or security
+decision. A reference cycle cannot be made informative in name while supplying
+normative semantics in practice.
+
+<a id="namespace-and-registry-ownership"></a>
+### Namespace and Registry Ownership
+
+Each exported anchor namespace, protocol or profile identifier namespace,
+registry, and machine-readable normative artifact has exactly one owning active
+document in one document set. A non-owner MAY reference an export through an
+allowed exact dependency. It MUST NOT redefine, shadow, extend, or assign
+fallback meaning to that export.
+
+Registry identity and registry contents are separate versioned concerns. A
+registry entry in the Document Set Catalog names its registry id, exact
+registry version, repository source, and exact owning document. The owner MUST
+declare that registry as an export. Moving ownership requires a new document
+set version and one atomic catalog transition; two documents MUST NOT claim the
+same registry concurrently.
+
+The catalog itself owns publication selection only. It is not the owner of all
+ASP identifiers merely because it lists their document owners.
+
+<a id="stable-anchors-and-compatibility-aliases"></a>
+### Stable Anchors and Compatibility Aliases
+
+New public normative anchors MUST be explicit. Their ids use lowercase ASCII
+letters and digits separated by single hyphens:
+
+```text
+[a-z0-9]+(?:-[a-z0-9]+)*
+```
+
+An explicit Markdown publication anchor appears immediately before its
+heading. Its public reference identity is the exact tuple:
+
+```text
+(document_id, version, anchor_id)
+```
+
+An `anchor_id` MUST be globally unique among active documents in one document
+set. Heading text, file order, renderer-specific slug generation, and duplicate
+heading ordinals are not public identifier algorithms.
+
+An alias in `public_anchors` is local to the same `(document_id, version)` as its
+canonical anchor. It can preserve a renamed local fragment or a legacy fragment
+in the generated aggregate, but it cannot redirect a former document tuple to a
+different document. An alias MUST NOT be reassigned to unrelated semantics.
+Moving a public section across documents requires a first-class relocation
+record that names both exact old and new `(document_id, version, anchor_id)`
+tuples and a resolver that verifies the historical source tuple as well as the
+selected target. Schema version 1 does not define that record. Consequently,
+cross-document relocation of any still-public anchor is fail-closed until the
+publication pipeline and atomic-activation profiles add and validate it.
+
+The transitional monolith predates this rule and contains derived aggregate
+fragments. Its existing tooling has two duplicate-heading suffix conventions:
+the GitHub and generated-TOC convention starts duplicate suffixes at `-1`,
+while existing dashboard and review evidence starts them at `-2`. Neither
+ordinal convention is a valid source of new public ids. A modular activation
+MUST preserve every still-referenced legacy form as an explicit compatibility
+alias or update all consumers in the same atomic transition. Until that
+activation, a legacy fragment remains an aggregate compatibility reference,
+not a document-scoped exported anchor.
+
+Every active document declares each public anchor, its exact heading text, and
+its local immutable aliases in `public_anchors`. The validator requires every
+declared id and alias to appear as an explicit source anchor immediately before
+that heading, rejects undeclared explicit source anchors, and enforces global
+uniqueness. A cross-document normative reference targets this inventory rather
+than recomputing a renderer slug; it is a reference to the selected target, not
+a relocation redirect from an older tuple.
+
+<a id="version-namespaces-and-independent-lifecycles"></a>
+### Version Namespaces and Independent Lifecycles
+
+The following values are distinct and MUST NOT be substituted for one another:
+
+- `protocol_version`, which selects an ASP wire-semantics family;
+- document `version`, which selects immutable prose and exports for one
+  `document_id`;
+- `document_set_version`, which selects an exact ordered document closure;
+- registry version, which selects exact registry contents;
+- runtime `surface_version`, which selects one application-published Agent
+  Surface Manifest snapshot; and
+- compiler revision and build-artifact digests, which identify publication
+  tooling and output provenance.
+
+Changing only a binding does not require a new Core version when Core semantics
+and exports are unchanged. It does require a new binding version and a new
+document-set version that selects it. Because this catalog selects at most one
+version of each `document_id` and every internal dependency is an exact pin,
+changing any selected document version requires republishing every selected
+transitive dependent with a pin to the new version, even when its prose is
+otherwise byte-identical. In the initial planned graph, changing ASP-over-MCP
+therefore also republishes Conformance with the new exact binding pin. A binding
+is independently versioned from Core, but it is a leaf only in a document set
+where no selected document depends on it. This is an explicit lockstep cost for
+upstream changes, not an inference of compatibility. A future versioned
+export-interface mechanism can relax the lockstep rule; v1 does not.
+
+Every active source and registry is bound to an exact SHA-256 digest in the
+catalog, encoded as 64 lowercase hexadecimal digits. The aggregate has its own
+exact digest. Every published document version, including a `-draft.N`
+prerelease snapshot, is immutable together with its selected digest and
+dependency edges. Any later source change requires a new document version, a
+new document-set version, and updated digests before publication or use as
+conformance evidence. A prerelease label communicates stability, not mutable
+identity.
+
+No publication version changes an active Agent Grant, retained manifest,
+`surface_version`, or `surface_hash` by itself. Implementations select protocol
+and surface semantics through their ordinary ASP bindings; they do not fetch a
+new document set and silently reinterpret existing authority.
+
+<a id="aggregate-assembly-and-build-provenance"></a>
+### Aggregate Assembly and Build Provenance
+
+In modular mode, the repository publishes a generated aggregate reading view in
+addition to canonical module sources. The aggregate represents the exact
+selected document set but has no independent namespace ownership or lifecycle.
+Requirements remain owned by their canonical documents. A conflict between an
+aggregate and its selected sources invalidates the aggregate; the aggregate
+cannot override the sources.
+
+The modular aggregate is assembled with Hyperprompt from an entrypoint and
+compiler revision pinned by immutable release or commit identity. The build
+manifest records source and include provenance. The source map records output
+mapping and the aggregate output digest. Those artifacts are build provenance
+only: they are not ASP Grants, signatures, conformance claims, protocol
+registries, or normative owners.
+
+Every content-changing transform, including generated table-of-contents or
+anchor injection, MUST execute before the final provenance-bound assembly.
+Mutating the aggregate after its final source map is produced makes the
+publication stale unless the aggregate and all affected provenance artifacts
+are regenerated and revalidated.
+
+A modular publication build MUST:
+
+1. use the exact compiler revision and catalog-selected sources;
+2. run in a clean staging location and publish no partial output;
+3. fail if an include is missing, undeclared, cyclic, or outside the allowed
+   repository source set;
+4. verify that the source-map output digest equals the final aggregate bytes;
+5. preserve source mapping for the complete output;
+6. produce byte-identical normative output and provenance for identical
+   versioned inputs and the same declared reproducibility environment; and
+7. pass publication, RFC, review, link, and conformance quality gates before
+   publication.
+
+A successful compiler exit alone proves neither normative readiness nor
+atomic publication.
+
+The v1 validator shipped with the transitional catalog deliberately rejects
+`modular` mode. It does not claim to validate Hyperprompt provenance, source-map
+coverage, output digests, cross-document relocation records, or transactional
+readiness yet. The modular mode becomes selectable only with the separately
+reviewed publication-pipeline resolver and its positive and negative tests.
+
+<a id="atomic-modular-activation"></a>
+### Atomic Modular Activation
+
+Changing from `transitional_monolith` to `modular` is one atomic document-set
+transition. It is valid only when:
+
+- every selected canonical module source exists;
+- the exact dependency graph is closed, acyclic, and role-valid;
+- every export and registry has one active owner;
+- the generated aggregate, build manifest, source map, and output digest agree;
+- all legacy public references required by current consumers still resolve
+  through a same-document alias or a validated first-class relocation record;
+- the monolith is no longer selected as an active canonical document; and
+- every publication and repository validator passes against the same source
+  state.
+
+Partial activation is forbidden. On any missing source, unresolved reference,
+duplicate owner, stale sidecar, source-map gap, non-reproducible output, or
+validation failure, publishers and tooling MUST retain the last complete
+document set and MUST NOT present the candidate aggregate or reserved modules
+as a current ASP specification.
+
+Before activation, non-authoritative candidate sources MAY be prepared under a
+catalog-excluded `publication/candidates/` tree. They MUST NOT occupy a reserved
+canonical target path, satisfy a normative dependency, own an export, or be
+presented as a current specification. The first candidate extraction SHOULD be
+a semantic no-op and reproduce the previous aggregate bytes and compatibility
+references. ASP-over-MCP is the pilot candidate. Changes to its protocol
+semantics, requirements, or conformance vectors SHOULD be reviewed separately
+so publication regressions are distinguishable from normative changes.
+
+Activation occurs only after every Core, extension, binding, and conformance
+candidate selected for the first modular set is complete. The atomic transition
+moves all selected candidates to their canonical target paths, removes every
+reservation, selects them as active documents, builds and validates the
+aggregate and provenance, and removes the monolith from active selection in the
+same source state. No incremental module extraction can claim active modular
+authority before that point.
+
 ## Canonical Integrity and Provenance
 
 ### Canonical Object Hash Profile
+
+The Document Set Catalog, canonical-source digests, aggregate digest,
+Hyperprompt manifest, and source map identify specification publication
+artifacts. They do not use or replace the ASP object-hash domains below.
+Conversely, a valid `surface_hash`, `grant_hash`, receipt hash, or other ASP
+object hash proves nothing about which specification document set was used by
+an implementation.
 
 ASP manifests, grants, events, action input schemas, action inputs and outputs,
 action execution contexts, policy decisions, and receipts use the
@@ -14275,6 +14606,12 @@ idempotency key until the application reconciles the authoritative outcome.
 
 ## Versioning and Compatibility
 
+This section defines runtime `surface_version` compatibility. It is separate
+from the publication `document_set_version`, individual specification document
+versions, registry versions, and compiler revisions defined by the Modular RFC
+Publication Architecture. None of those publication values can be substituted
+for a manifest version or hash.
+
 Surface manifests MUST include:
 
 ```json
@@ -14935,6 +15272,17 @@ certification authority. It defines the descriptive machine-readable test
 report below, but that report is not protocol authority. If a future profile
 adds claim metadata to a manifest, that metadata MUST use a closed versioned
 shape and be included in the manifest hashing view.
+
+In the current `transitional_monolith` publication, the conformance harness
+derives the specification digest from the exact bytes of the sole active
+canonical source, and each generated report carries that
+`specification_sha256`. The suite catalog currently records the source path and
+hash domain, not a precomputed specification digest. Before a modular document
+set becomes active, the conformance catalog and report profile MUST
+additionally bind the exact `document_set_id` and `document_set_version` or an
+unambiguous digest of that complete catalog. A report for one document set MUST
+NOT be reused as evidence for another merely because their `protocol_version`
+values match.
 
 ### Conformance Claim and Composition Rules
 

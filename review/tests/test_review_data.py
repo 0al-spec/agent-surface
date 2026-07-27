@@ -834,6 +834,72 @@ class ReviewDataValidationTests(unittest.TestCase):
                 self.assertTrue(removed)
                 self.assert_invalid(payload, "exact authoritative evidence binding")
 
+    def test_publication_machine_validation_requires_exact_evidence(self) -> None:
+        for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.machine_validated_payload()
+                review = next(item for item in payload["reviews"] if item["id"] == 66)
+                removed = False
+                retained = []
+                for item in review["evidence"]:
+                    if item["kind"] == missing_kind and not removed:
+                        removed = True
+                        continue
+                    retained.append(item)
+                review["evidence"] = retained
+                self.assertTrue(removed)
+                self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    def test_publication_machine_validation_rejects_extra_evidence(self) -> None:
+        payload = self.machine_validated_payload()
+        review = next(item for item in payload["reviews"] if item["id"] == 66)
+        review["anchors"].append(
+            {
+                "heading": "Conceptual Architecture",
+                "anchorId": "conceptual-architecture",
+            }
+        )
+        review["evidence"].append(
+            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+        )
+        self.assert_invalid(payload, "exact authoritative evidence binding")
+
+    @mock.patch(
+        "review_data._validate_publication_contract",
+        side_effect=ValueError("document-set tampered"),
+    )
+    def test_publication_machine_validation_rejects_invalid_catalog(
+        self, _publication_check: mock.Mock
+    ) -> None:
+        self.assert_invalid(
+            self.machine_validated_payload(),
+            "document-set tampered",
+        )
+
+    def test_other_review_cannot_borrow_publication_evidence(self) -> None:
+        cases = (
+            (
+                "schema",
+                "publication/document-set.schema.json",
+                "exact bound tooling schema",
+            ),
+            (
+                "registry",
+                "publication/document-set.json",
+                "conformance/v1/suite.json",
+            ),
+            (
+                "implementation",
+                "publication/check.py",
+                "exact bound tooling entry point",
+            ),
+        )
+        for kind, ref, message in cases:
+            with self.subTest(kind=kind):
+                payload = self.valid_payload()
+                payload["reviews"][0]["evidence"].append({"kind": kind, "ref": ref})
+                self.assert_invalid(payload, message)
+
     def test_missing_schema_evidence_is_rejected(self) -> None:
         payload = self.valid_payload()
         payload["reviews"][0]["evidence"].append(
@@ -1029,24 +1095,24 @@ class ReviewDataValidationTests(unittest.TestCase):
     def test_canonical_migration_counts_and_defaults(self) -> None:
         payload = load_review_payload()
         reviews = payload["reviews"]
-        self.assertEqual(len(reviews), 77)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 586)
+        self.assertEqual(len(reviews), 79)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 608)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
             Counter(
                 {
                     "specified": 52,
-                    "machine_validated": 15,
-                    "proposal": 9,
+                    "machine_validated": 16,
+                    "proposal": 10,
                     "implementation_tested": 1,
                 }
             ),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 68, "partial": 2, "missing": 7}),
+            Counter({"present": 71, "partial": 1, "missing": 7}),
         )
-        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 226)
+        self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 231)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
         self.assertEqual(
             [
@@ -1070,7 +1136,7 @@ class ReviewDataValidationTests(unittest.TestCase):
                     "privacy-consent": 10,
                     "identity-passport": 7,
                     "operations-safety": 5,
-                    "conformance-tooling": 16,
+                    "conformance-tooling": 18,
                 }
             ),
         )
@@ -1093,8 +1159,8 @@ class ReviewDataValidationTests(unittest.TestCase):
         reviews_by_id = {review["id"]: review for review in reviews}
         ready_ids = {review["id"] for review in reviews if review["readiness"] == "ready"}
         blocked_ids = set(reviews_by_id) - ready_ids
-        self.assertEqual(blocked_ids, {77})
-        self.assertEqual(len(ready_ids), 76)
+        self.assertEqual(blocked_ids, {77, 79})
+        self.assertEqual(len(ready_ids), 77)
         self.assertEqual(reviews_by_id[16]["status"], "present")
         self.assertEqual(reviews_by_id[16]["maturity"], "specified")
         self.assertEqual(reviews_by_id[16]["readiness"], "ready")
@@ -1459,8 +1525,39 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(reviews_by_id[65]["status"], "present")
         self.assertEqual(reviews_by_id[65]["maturity"], "machine_validated")
         self.assertEqual(reviews_by_id[65]["readiness"], "ready")
-        self.assertEqual(reviews_by_id[66]["status"], "partial")
+        self.assertEqual(reviews_by_id[66]["status"], "present")
+        self.assertEqual(reviews_by_id[66]["maturity"], "machine_validated")
         self.assertEqual(reviews_by_id[66]["readiness"], "ready")
+        self.assertEqual(len(reviews_by_id[66]["evidence"]), 16)
+        self.assertEqual(
+            Counter(item["kind"] for item in reviews_by_id[66]["evidence"]),
+            Counter(
+                {
+                    "rfc_anchor": 13,
+                    "schema": 1,
+                    "registry": 1,
+                    "implementation": 1,
+                }
+            ),
+        )
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[66]["anchors"]],
+            [
+                "protocol-layers",
+                "modular-rfc-publication-architecture",
+                "publication-authority-and-transitional-state",
+                "document-classes",
+                "exact-normative-references",
+                "namespace-and-registry-ownership",
+                "stable-anchors-and-compatibility-aliases",
+                "version-namespaces-and-independent-lifecycles",
+                "aggregate-assembly-and-build-provenance",
+                "atomic-modular-activation",
+                "canonical-integrity-and-provenance",
+                "versioning-and-compatibility",
+                "conformance",
+            ],
+        )
         self.assertEqual(reviews_by_id[67]["status"], "missing")
         self.assertEqual(reviews_by_id[67]["readiness"], "ready")
         self.assertEqual(reviews_by_id[68]["status"], "missing")
@@ -1526,7 +1623,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(reviews_by_id[74]["readiness"], "ready")
         self.assertEqual(reviews_by_id[75]["status"], "partial")
         self.assertEqual(
-            reviews_by_id[75]["depends_on"], [17, 19, 20, 22, 56, 60]
+            reviews_by_id[75]["depends_on"], [17, 19, 20, 22, 56, 60, 66]
         )
         self.assertEqual(reviews_by_id[75]["readiness"], "ready")
         self.assertEqual(reviews_by_id[76]["status"], "present")
@@ -1538,6 +1635,14 @@ class ReviewDataValidationTests(unittest.TestCase):
             [67, 68, 69, 70, 71, 72, 73, 75],
         )
         self.assertEqual(reviews_by_id[77]["readiness"], "blocked")
+        self.assertEqual(reviews_by_id[78]["status"], "present")
+        self.assertEqual(reviews_by_id[78]["maturity"], "proposal")
+        self.assertEqual(reviews_by_id[78]["depends_on"], [66, 69])
+        self.assertEqual(reviews_by_id[78]["readiness"], "ready")
+        self.assertEqual(reviews_by_id[79]["status"], "present")
+        self.assertEqual(reviews_by_id[79]["maturity"], "proposal")
+        self.assertEqual(reviews_by_id[79]["depends_on"], [66, 78])
+        self.assertEqual(reviews_by_id[79]["readiness"], "blocked")
         for review in reviews:
             for dependency_id in review["depends_on"]:
                 self.assertIn(review["id"], reviews_by_id[dependency_id]["blocks"])
@@ -1553,7 +1658,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(len(dashboard_data["profiles"]), 10)
         self.assertEqual(len(dashboard_data["releases"]), 1)
         self.assertEqual(len(dashboard_data["maturity_order"]), 6)
-        self.assertEqual(len(dashboard_data["reviews"]), 77)
+        self.assertEqual(len(dashboard_data["reviews"]), 79)
         self.assertIn("blocks", dashboard_data["reviews"][0])
         self.assertIn("readiness", dashboard_data["reviews"][0])
 

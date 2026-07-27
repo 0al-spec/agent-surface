@@ -5069,14 +5069,54 @@
     {
       "id": 66,
       "title": "Modular RFC Publication Architecture",
-      "description": "спроектировать разбиение монолитного draft на versioned Core, authorization, safe-effects, evidence, privacy и binding documents с общей registry policy.",
+      "description": "зафиксировать normative publication contract для versioned Core, authorization, safe-effects, evidence, privacy, binding и conformance documents с атомарной миграцией из монолита.",
       "category": "Specification architecture",
       "side": "right",
-      "status": "partial",
+      "status": "present",
       "anchors": [
         {
           "heading": "Protocol Layers",
           "anchorId": "protocol-layers"
+        },
+        {
+          "heading": "Modular RFC Publication Architecture",
+          "anchorId": "modular-rfc-publication-architecture"
+        },
+        {
+          "heading": "Publication Authority and Transitional State",
+          "anchorId": "publication-authority-and-transitional-state"
+        },
+        {
+          "heading": "Document Classes",
+          "anchorId": "document-classes"
+        },
+        {
+          "heading": "Exact Normative References",
+          "anchorId": "exact-normative-references"
+        },
+        {
+          "heading": "Namespace and Registry Ownership",
+          "anchorId": "namespace-and-registry-ownership"
+        },
+        {
+          "heading": "Stable Anchors and Compatibility Aliases",
+          "anchorId": "stable-anchors-and-compatibility-aliases"
+        },
+        {
+          "heading": "Version Namespaces and Independent Lifecycles",
+          "anchorId": "version-namespaces-and-independent-lifecycles"
+        },
+        {
+          "heading": "Aggregate Assembly and Build Provenance",
+          "anchorId": "aggregate-assembly-and-build-provenance"
+        },
+        {
+          "heading": "Atomic Modular Activation",
+          "anchorId": "atomic-modular-activation"
+        },
+        {
+          "heading": "Canonical Integrity and Provenance",
+          "anchorId": "canonical-integrity-and-provenance"
         },
         {
           "heading": "Versioning and Compatibility",
@@ -5087,7 +5127,7 @@
           "anchorId": "conformance"
         }
       ],
-      "rationale": "RFC уже имеет слои и самостоятельные profiles, однако их publication, references, version pinning и registry ownership остаются единым документом. Разбиение должно сохранить canonical semantics и hash identifiers, исключить circular normative references и разрешить независимый lifecycle bindings; механическое дробление файла без этих правил не считается выполнением.",
+      "rationale": "Publication contract теперь отделяет active canonical sources от non-authoritative reservations, связывает immutable exact versions с source digests, закрепляет required-role DAG, single ownership, explicit source-validated anchors, local alias scope, internal reference records, version namespaces, Hyperprompt provenance roles и fail-closed atomic activation. Base Runtime/App Receipt lifecycle ownership остаётся в Safe Effects, а Evidence расширяет его signed/replay semantics без dependency cycle. Machine validation относится к transitional contract; modular mode и cross-document anchor relocation намеренно rejected до resolver из #78/#79.",
       "priority": "P2",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -5095,11 +5135,51 @@
         56
       ],
       "target_release": null,
-      "maturity": "proposal",
+      "maturity": "machine_validated",
       "evidence": [
         {
           "kind": "rfc_anchor",
           "ref": "protocol-layers"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "modular-rfc-publication-architecture"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "publication-authority-and-transitional-state"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "document-classes"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "exact-normative-references"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "namespace-and-registry-ownership"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "stable-anchors-and-compatibility-aliases"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "version-namespaces-and-independent-lifecycles"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "aggregate-assembly-and-build-provenance"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "atomic-modular-activation"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "canonical-integrity-and-provenance"
         },
         {
           "kind": "rfc_anchor",
@@ -5108,6 +5188,18 @@
         {
           "kind": "rfc_anchor",
           "ref": "conformance"
+        },
+        {
+          "kind": "schema",
+          "ref": "publication/document-set.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "publication/document-set.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "publication/check.py"
         }
       ]
     },
@@ -5795,7 +5887,8 @@
         20,
         22,
         56,
-        60
+        60,
+        66
       ],
       "target_release": null,
       "maturity": "proposal",
@@ -5927,6 +6020,120 @@
       "target_release": null,
       "maturity": "proposal",
       "evidence": []
+    },
+    {
+      "id": 78,
+      "title": "Reproducible RFC Assembly Pipeline",
+      "description": "реализовать fail-closed Hyperprompt assembly resolver, ASP-over-MCP candidate extraction, complete source-map coverage, output digest и reproducibility checks.",
+      "category": "Specification publication tooling",
+      "side": "right",
+      "status": "present",
+      "anchors": [
+        {
+          "heading": "Modular RFC Publication Architecture",
+          "anchorId": "modular-rfc-publication-architecture"
+        },
+        {
+          "heading": "Stable Anchors and Compatibility Aliases",
+          "anchorId": "stable-anchors-and-compatibility-aliases"
+        },
+        {
+          "heading": "Aggregate Assembly and Build Provenance",
+          "anchorId": "aggregate-assembly-and-build-provenance"
+        },
+        {
+          "heading": "Atomic Modular Activation",
+          "anchorId": "atomic-modular-activation"
+        }
+      ],
+      "rationale": "RFC contract уже определяет pipeline, но текущий publication validator намеренно отклоняет modular mode: он ещё не проверяет Hyperprompt manifest/source map, source/include closure, aggregate digest, local alias coverage, clean staging и transactional readiness. Первый executable slice использует non-authoritative ASP-over-MCP candidate и доказывает byte-identical aggregate без изменения protocol semantics; relocation records остаются activation concern #79.",
+      "priority": "P2",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        66,
+        69
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "modular-rfc-publication-architecture"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "stable-anchors-and-compatibility-aliases"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "aggregate-assembly-and-build-provenance"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "atomic-modular-activation"
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "title": "Atomic Modular RFC Activation",
+      "description": "materialизовать Core, Authorization, Safe Effects, Evidence, Privacy, Binding и Conformance sources и одним переходом активировать modular document set.",
+      "category": "Specification modularization",
+      "side": "left",
+      "status": "present",
+      "anchors": [
+        {
+          "heading": "Publication Authority and Transitional State",
+          "anchorId": "publication-authority-and-transitional-state"
+        },
+        {
+          "heading": "Document Classes",
+          "anchorId": "document-classes"
+        },
+        {
+          "heading": "Exact Normative References",
+          "anchorId": "exact-normative-references"
+        },
+        {
+          "heading": "Stable Anchors and Compatibility Aliases",
+          "anchorId": "stable-anchors-and-compatibility-aliases"
+        },
+        {
+          "heading": "Atomic Modular Activation",
+          "anchorId": "atomic-modular-activation"
+        }
+      ],
+      "rationale": "Reserved identities не являются active documents и их final target paths должны оставаться отсутствующими до перехода. После #78 все candidate modules готовятся вне canonical paths; activation одновременно moves the full source closure, introduces and validates first-class old-to-new anchor relocation records, resolves exact normative references and ownership, republishes selected transitive dependents with exact pins, removes reservations and monolith authority, publishes the verified aggregate and binds modular conformance evidence.",
+      "priority": "P2",
+      "profile": "conformance-tooling",
+      "depends_on": [
+        66,
+        78
+      ],
+      "target_release": null,
+      "maturity": "proposal",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "publication-authority-and-transitional-state"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "document-classes"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "exact-normative-references"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "stable-anchors-and-compatibility-aliases"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "atomic-modular-activation"
+        }
+      ]
     }
   ]
 }

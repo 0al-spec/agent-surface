@@ -160,6 +160,9 @@ VERTICAL_SLICE_IMPLEMENTATIONS = {
 }
 VERTICAL_SLICE_TEST = Path("reference/vertical-slice/check.py")
 VERTICAL_SLICE_VALIDATED_SHA_ENV = "ASP_VERTICAL_SLICE_VALIDATED_SHA"
+PUBLICATION_SCHEMA = Path("publication/document-set.schema.json")
+PUBLICATION_REGISTRY = Path("publication/document-set.json")
+PUBLICATION_IMPLEMENTATION = Path("publication/check.py")
 GIT_OBJECT_ID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
     17: {
@@ -456,6 +459,26 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
             path.as_posix() for path in PURPOSE_TASK_BOUND_GRANT_IMPLEMENTATIONS
         },
     },
+    66: {
+        "rfc_anchor": {
+            "protocol-layers",
+            "modular-rfc-publication-architecture",
+            "publication-authority-and-transitional-state",
+            "document-classes",
+            "exact-normative-references",
+            "namespace-and-registry-ownership",
+            "stable-anchors-and-compatibility-aliases",
+            "version-namespaces-and-independent-lifecycles",
+            "aggregate-assembly-and-build-provenance",
+            "atomic-modular-activation",
+            "canonical-integrity-and-provenance",
+            "versioning-and-compatibility",
+            "conformance",
+        },
+        "schema": {PUBLICATION_SCHEMA.as_posix()},
+        "registry": {PUBLICATION_REGISTRY.as_posix()},
+        "implementation": {PUBLICATION_IMPLEMENTATION.as_posix()},
+    },
     69: {
         "rfc_anchor": {
             "model-context-protocol",
@@ -536,6 +559,7 @@ EXACT_MACHINE_VALIDATED_REVIEW_IDS = {
     61,
     62,
     64,
+    66,
     69,
 }
 MATURITY_ORDER = (
@@ -881,6 +905,9 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
     is_bound_vertical_slice_schema = (
         review_id == 74 and relative_path in VERTICAL_SLICE_SCHEMAS
     )
+    is_bound_publication_schema = (
+        review_id == 66 and relative_path == PUBLICATION_SCHEMA
+    )
     if (
         not is_conformance_schema
         and not is_bound_api_importer_schema
@@ -888,6 +915,7 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
         and not is_bound_replay_schema
         and not is_bound_mock_schema
         and not is_bound_vertical_slice_schema
+        and not is_bound_publication_schema
     ):
         raise ValueError(
             f"Review #{review_id} schema evidence must reference "
@@ -916,6 +944,9 @@ def _validate_schema_document(schema_path: Path) -> None:
 def _validate_registry_evidence(review_id: int, ref: str) -> None:
     registry_path = _resolve_repository_evidence_file(review_id, "registry", ref)
     relative_path = registry_path.relative_to(REPO_ROOT)
+    if review_id == 66 and relative_path == PUBLICATION_REGISTRY:
+        _validate_publication_contract()
+        return
     if review_id == 17 and relative_path == API_IMPORTER_REGISTRY:
         _validate_api_importer_bundle_evidence(review_id, "registry", ref)
         return
@@ -972,6 +1003,9 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         review_id, "implementation", ref
     )
     relative_path = implementation_path.relative_to(REPO_ROOT)
+    if review_id == 66 and relative_path == PUBLICATION_IMPLEMENTATION:
+        _validate_publication_contract()
+        return
     if review_id == 17 and relative_path in API_IMPORTER_IMPLEMENTATIONS:
         _validate_api_importer_bundle_evidence(review_id, "implementation", ref)
         return
@@ -1014,6 +1048,30 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         f"Review #{review_id} implementation evidence must reference an exact "
         f"bound tooling entry point: {ref!r}"
     )
+
+
+@lru_cache(maxsize=1)
+def _validate_publication_contract() -> None:
+    """Validate the canonical document-set catalog through its bound validator."""
+
+    root_is_first = bool(sys.path) and sys.path[0] == str(REPO_ROOT)
+    if not root_is_first:
+        sys.path.insert(0, str(REPO_ROOT))
+    try:
+        publication_check = importlib.import_module("publication.check")
+        module_path = Path(publication_check.__file__).resolve()
+        expected_module_path = REPO_ROOT / PUBLICATION_IMPLEMENTATION
+        if module_path != expected_module_path:
+            raise ValueError(f"loaded non-canonical publication validator: {module_path}")
+        validate_catalog = getattr(publication_check, "validate_catalog")
+        validate_catalog(REPO_ROOT)
+    except Exception as error:
+        raise ValueError(
+            f"Review #66 publication evidence failed canonical contract validation: {error}"
+        ) from error
+    finally:
+        if not root_is_first:
+            sys.path.pop(0)
 
 
 def _validate_test_evidence(review_id: int, ref: str) -> None:

@@ -1,0 +1,1 @@
+"""ASP specification publication contract."""

@@ -51,6 +51,11 @@ jobs:
           set -euo pipefail
           python -m pip install --requirement review/requirements.txt
 
+      - name: Check specification publication contract
+        timeout-minutes: 5
+        shell: bash
+        run: make publication-check
+
       - name: Check conformance catalog
         timeout-minutes: 25
         shell: bash
@@ -89,6 +94,11 @@ jobs:
         timeout-minutes: 5
         shell: bash
         run: make review-test
+
+      - name: Check RFC table of contents
+        timeout-minutes: 2
+        shell: bash
+        run: make rfc-toc-check
 
       - name: Check dashboard artifact and UI state
         timeout-minutes: 5

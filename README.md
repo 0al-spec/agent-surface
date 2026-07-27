@@ -64,6 +64,7 @@ agent-surface/
     workflows/docs.yml       Markdown, RFC, and dashboard checks.
   conformance/             Versioned executable matrix, vectors, schemas, and runner.
   mocks/                   Synthetic Mock App and Mock Runtime suite fixtures.
+  publication/             Versioned RFC document-set catalog, schema, and validator.
   reference/               Executable implementation evidence and vertical slices.
   tools/                   Rust API importer, manifest linter, and passive replay verifier.
   drafts/                  Source RFCs written in Markdown.
@@ -122,6 +123,28 @@ delivery-maturity debt are recorded in
 [`review/rfc-plan-and-debt.md`](review/rfc-plan-and-debt.md). The planning
 document is a maintained view; `review/review-data.json` remains the canonical
 machine-readable backlog.
+
+## Specification Publication Contract
+
+The closed [`publication/document-set.json`](publication/document-set.json)
+catalog records which specification sources are currently normative, their
+exact versions and dependency graph, registry ownership, stable-anchor policy,
+and the atomic transition contract for future modular publication:
+
+```sh
+make publication-check
+```
+
+The current mode is `transitional_monolith`:
+[`drafts/agent-surface.md`](drafts/agent-surface.md) remains the sole canonical
+source. Core, Authorization, Safe Effects, Evidence, Privacy, Conformance, and
+the ASP-over-MCP binding are reserved targets with no authority until a complete
+Hyperprompt-built modular document set, aggregate, manifest, source map, local
+aliases or validated relocation records, and validation results are activated
+together.
+The current validator intentionally rejects modular mode; #78 implements its
+provenance resolver and candidate pilot, and #79 performs the later atomic
+activation.
 
 ## Executable Conformance Suite
 
