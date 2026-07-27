@@ -1014,21 +1014,21 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 77)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 566)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 567)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
             Counter(
                 {
-                    "specified": 52,
+                    "specified": 53,
                     "machine_validated": 14,
-                    "proposal": 10,
+                    "proposal": 9,
                     "implementation_tested": 1,
                 }
             ),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 67, "partial": 3, "missing": 7}),
+            Counter({"present": 68, "partial": 2, "missing": 7}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 226)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -1403,11 +1403,24 @@ class ReviewDataValidationTests(unittest.TestCase):
                 "data-exposure-contract",
             ],
         )
-        self.assertEqual(reviews_by_id[64]["status"], "partial")
+        self.assertEqual(reviews_by_id[64]["status"], "present")
+        self.assertEqual(reviews_by_id[64]["maturity"], "specified")
         self.assertEqual(
             reviews_by_id[64]["depends_on"], [2, 5, 6, 10, 28, 35, 46]
         )
         self.assertEqual(reviews_by_id[64]["readiness"], "ready")
+        self.assertEqual(
+            [anchor["anchorId"] for anchor in reviews_by_id[64]["anchors"]],
+            [
+                "purpose-and-task-bound-agent-grant-profile",
+                "grant-object",
+                "consent-preview-contract",
+                "session-start",
+                "subdelegation",
+                "policy-decision-object",
+                "grant-verification",
+            ],
+        )
         self.assertEqual(reviews_by_id[65]["status"], "present")
         self.assertEqual(reviews_by_id[65]["maturity"], "machine_validated")
         self.assertEqual(reviews_by_id[65]["readiness"], "ready")
