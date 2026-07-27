@@ -97,6 +97,7 @@ class ConformanceSuiteTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.catalog = validate_catalog(ROOT)
+        cls._baseline_fixture_reports: dict[str, dict] = {}
 
     def subject(self, profile_id: str, *, producer_role: str | None = None) -> dict:
         features = sorted(
@@ -177,7 +178,23 @@ class ConformanceSuiteTests(unittest.TestCase):
             probe_configuration_sha256=digest("fixture-probe-configuration"),
             timeout_seconds=timeout_seconds,
             root=ROOT,
+            catalog=self.catalog,
         )
+
+    def baseline_fixture_report(self, profile_id: str) -> dict:
+        """Return an isolated copy of one normal fixture report per profile."""
+
+        baseline = self._baseline_fixture_reports.get(profile_id)
+        if baseline is None:
+            baseline = self.run_subject(self.subject(profile_id))
+            self._baseline_fixture_reports[profile_id] = baseline
+        report = copy.deepcopy(baseline)
+        self.assertIsNot(report, baseline)
+        self.assertIsNot(report["results"], baseline["results"])
+        self.assertIsNot(report["observations"], baseline["observations"])
+        self.assertIsNot(report["results"][0], baseline["results"][0])
+        self.assertIsNot(report["observations"][0], baseline["observations"][0])
+        return report
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
@@ -3091,7 +3108,7 @@ class ConformanceSuiteTests(unittest.TestCase):
                 exercised_vector_ids.update(
                     result["vector_id"] for result in report["results"]
                 )
-                verify_report(report, root=ROOT)
+                verify_report(report, root=ROOT, catalog=self.catalog)
         self.assertEqual(exercised_vector_ids, set(self.catalog.vectors))
 
     def test_repository_fixtures_cannot_claim_implementation_evidence(self) -> None:
@@ -3109,7 +3126,7 @@ class ConformanceSuiteTests(unittest.TestCase):
         )
         self.assertEqual(report["summary"]["suite_verdict"], "fail")
         self.assertGreater(report["summary"]["failed"], 0)
-        verify_report(report, root=ROOT)
+        verify_report(report, root=ROOT, catalog=self.catalog)
 
     def test_malformed_adapter_derives_incomplete(self) -> None:
         profile_id = next(
@@ -3120,7 +3137,7 @@ class ConformanceSuiteTests(unittest.TestCase):
         )
         self.assertEqual(report["summary"]["suite_verdict"], "incomplete")
         self.assertGreater(report["summary"]["errors"], 0)
-        verify_report(report, root=ROOT)
+        verify_report(report, root=ROOT, catalog=self.catalog)
 
     def test_oversized_probe_output_derives_incomplete(self) -> None:
         profile_id = next(
@@ -3178,43 +3195,43 @@ class ConformanceSuiteTests(unittest.TestCase):
         profile_id = next(
             item for item in PROFILE_ROLES if item != RECEIPT_PROFILE
         )
-        report = self.run_subject(self.subject(profile_id))
+        report = self.baseline_fixture_report(profile_id)
         missing = copy.deepcopy(report)
         missing["results"].pop()
         with self.assertRaisesRegex(ConformanceError, "exactly one ordered result"):
-            verify_report(missing, root=ROOT)
+            verify_report(missing, root=ROOT, catalog=self.catalog)
         duplicate = copy.deepcopy(report)
         duplicate["results"].append(copy.deepcopy(duplicate["results"][0]))
         with self.assertRaisesRegex(ConformanceError, "exactly one ordered result"):
-            verify_report(duplicate, root=ROOT)
+            verify_report(duplicate, root=ROOT, catalog=self.catalog)
 
     def test_report_rejects_stale_catalog_and_forged_summary(self) -> None:
         profile_id = next(
             item for item in PROFILE_ROLES if item != RECEIPT_PROFILE
         )
-        report = self.run_subject(self.subject(profile_id))
+        report = self.baseline_fixture_report(profile_id)
         stale = copy.deepcopy(report)
         stale["suite"]["catalog_sha256"] = DIGEST_A
         with self.assertRaisesRegex(ConformanceError, "stale"):
-            verify_report(stale, root=ROOT)
+            verify_report(stale, root=ROOT, catalog=self.catalog)
         forged = copy.deepcopy(report)
         forged["summary"]["suite_verdict"] = "fail"
         forged["summary"]["failed"] = 1
         with self.assertRaisesRegex(ConformanceError, "summary"):
-            verify_report(forged, root=ROOT)
+            verify_report(forged, root=ROOT, catalog=self.catalog)
 
         float_summary = copy.deepcopy(report)
         float_summary["summary"]["passed"] = float(
             float_summary["summary"]["passed"]
         )
         with self.assertRaisesRegex(ConformanceError, "floating-point"):
-            verify_report(float_summary, root=ROOT)
+            verify_report(float_summary, root=ROOT, catalog=self.catalog)
 
     def test_verify_report_cli_is_nonzero_for_valid_incomplete_report(self) -> None:
         profile_id = next(
             item for item in PROFILE_ROLES if item != RECEIPT_PROFILE
         )
-        report = self.run_subject(self.subject(profile_id))
+        report = self.baseline_fixture_report(profile_id)
         with tempfile.TemporaryDirectory() as directory:
             report_path = Path(directory) / "report.json"
             report_path.write_text(json.dumps(report), encoding="utf-8")
@@ -3224,55 +3241,55 @@ class ConformanceSuiteTests(unittest.TestCase):
         profile_id = next(
             item for item in PROFILE_ROLES if item != RECEIPT_PROFILE
         )
-        report = self.run_subject(self.subject(profile_id))
+        report = self.baseline_fixture_report(profile_id)
         report["observations"][0]["tokens"].append("action_accepted")
         with self.assertRaisesRegex(ConformanceError, "status was not derived"):
-            verify_report(report, root=ROOT)
+            verify_report(report, root=ROOT, catalog=self.catalog)
 
     def test_one_role_report_cannot_be_relabelled_as_another(self) -> None:
         profiles = list(PROFILE_ROLES)
-        report = self.run_subject(self.subject(profiles[0]))
+        report = self.baseline_fixture_report(profiles[0])
         relabelled = copy.deepcopy(report)
         relabelled["subject"]["profile_id"] = profiles[1]
         with self.assertRaises(ConformanceError):
-            verify_report(relabelled, root=ROOT)
+            verify_report(relabelled, root=ROOT, catalog=self.catalog)
 
     def test_observations_bind_the_exact_run_and_subject(self) -> None:
         profile_id = next(
             item for item in PROFILE_ROLES if item != RECEIPT_PROFILE
         )
-        report = self.run_subject(self.subject(profile_id))
+        report = self.baseline_fixture_report(profile_id)
 
         relabelled_subject = copy.deepcopy(report)
         relabelled_subject["subject"]["implementation"]["artifact_sha256"] = DIGEST_C
         with self.assertRaises(ConformanceError):
-            verify_report(relabelled_subject, root=ROOT)
+            verify_report(relabelled_subject, root=ROOT, catalog=self.catalog)
 
         relabelled_run = copy.deepcopy(report)
         relabelled_run["run_id"] = "urn:uuid:00000000-0000-4000-8000-000000000000"
         with self.assertRaises(ConformanceError):
-            verify_report(relabelled_run, root=ROOT)
+            verify_report(relabelled_run, root=ROOT, catalog=self.catalog)
 
         relabelled_harness = copy.deepcopy(report)
         relabelled_harness["runner"]["adapter_id"] = "relabelled-adapter"
         with self.assertRaisesRegex(ConformanceError, "binding"):
-            verify_report(relabelled_harness, root=ROOT)
+            verify_report(relabelled_harness, root=ROOT, catalog=self.catalog)
 
     def test_observation_timestamp_must_be_inside_run_interval(self) -> None:
         profile_id = next(
             item for item in PROFILE_ROLES if item != RECEIPT_PROFILE
         )
-        report = self.run_subject(self.subject(profile_id))
+        report = self.baseline_fixture_report(profile_id)
         report["observations"][0]["captured_at"] = "2000-01-01T00:00:00Z"
         with self.assertRaisesRegex(ConformanceError, "outside the run interval"):
-            verify_report(report, root=ROOT)
+            verify_report(report, root=ROOT, catalog=self.catalog)
 
-        invalid_rfc3339 = self.run_subject(self.subject(profile_id))
+        invalid_rfc3339 = self.baseline_fixture_report(profile_id)
         invalid_rfc3339["started_at"] = invalid_rfc3339["started_at"].replace(
             "T", " "
         )
         with self.assertRaises(ConformanceError):
-            verify_report(invalid_rfc3339, root=ROOT)
+            verify_report(invalid_rfc3339, root=ROOT, catalog=self.catalog)
 
 
 if __name__ == "__main__":

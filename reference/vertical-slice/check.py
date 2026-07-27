@@ -647,6 +647,7 @@ def run_conformance(
             probe_configuration_sha256=harness_config_digest,
             timeout_seconds=10,
             root=root,
+            catalog=catalog,
         )
         verify_report(report, root=root, catalog=catalog, adapter=adapter, probe=probe)
         if report["summary"]["suite_verdict"] != "pass":

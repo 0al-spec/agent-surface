@@ -416,6 +416,9 @@ class Catalog:
     """Validated canonical suite data and derived indexes."""
 
     root: Path
+    snapshot_catalog_sha256: str
+    snapshot_specification_sha256: str
+    snapshot_memory_sha256: str
     suite: dict[str, Any]
     vector_catalog: dict[str, Any]
     fixture_catalog: dict[str, Any]
@@ -5925,6 +5928,9 @@ def _semantic_validate_catalog(
     fixture_catalog: dict[str, Any],
     schema_case_catalog: dict[str, Any],
     bundle_registry: dict[str, Any],
+    *,
+    snapshot_catalog_sha256: str,
+    snapshot_specification_sha256: str,
 ) -> Catalog:
     if (
         suite["suite_id"] != SUITE_ID
@@ -6580,6 +6586,22 @@ def _semantic_validate_catalog(
 
     return Catalog(
         root=root,
+        snapshot_catalog_sha256=snapshot_catalog_sha256,
+        snapshot_specification_sha256=snapshot_specification_sha256,
+        snapshot_memory_sha256=_catalog_memory_digest_values(
+            suite=suite,
+            vector_catalog=vector_catalog,
+            fixture_catalog=fixture_catalog,
+            schema_case_catalog=schema_case_catalog,
+            bundle_registry=bundle_registry,
+            requirements=requirements,
+            vectors=vectors,
+            profiles=profiles,
+            features=features,
+            fixtures=fixtures,
+            mutations=mutations,
+            bundles=bundles,
+        ),
         suite=suite,
         vector_catalog=vector_catalog,
         fixture_catalog=fixture_catalog,
@@ -6599,6 +6621,10 @@ def validate_catalog(root: Path = ROOT) -> Catalog:
     """Validate JSON Schemas, catalog shapes, RFC anchors, and matrix closure."""
 
     root = root.resolve()
+    (
+        snapshot_catalog_sha256,
+        snapshot_specification_sha256,
+    ) = _snapshot_source_digests(root)
     v1_dir = root / "conformance" / "v1"
     schema_paths = {
         name: v1_dir / f"{name}.schema.json" for name in SCHEMA_NAMES
@@ -6636,14 +6662,62 @@ def validate_catalog(root: Path = ROOT) -> Catalog:
         registry=registry,
     )
     _validate_schema_cases(root, schema_case_catalog, schemas, registry)
-    return _semantic_validate_catalog(
+    catalog = _semantic_validate_catalog(
         root,
         suite,
         vector_catalog,
         fixture_catalog,
         schema_case_catalog,
         bundle_registry,
+        snapshot_catalog_sha256=snapshot_catalog_sha256,
+        snapshot_specification_sha256=snapshot_specification_sha256,
     )
+    if _snapshot_source_digests(root) != (
+        snapshot_catalog_sha256,
+        snapshot_specification_sha256,
+    ):
+        raise ConformanceError("catalog or specification changed during validation")
+    return catalog
+
+
+def _resolve_catalog(
+    root: Path, catalog: Catalog | None
+) -> tuple[Path, Catalog]:
+    """Return a fresh or explicitly prevalidated catalog for one exact root.
+
+    Explicit reuse is snapshot-scoped. Source and in-memory fingerprints are
+    checked before every reuse. The default path always validates fresh.
+    """
+
+    root = root.resolve()
+    if catalog is None:
+        return root, validate_catalog(root)
+    if catalog.root != root:
+        raise ConformanceError(
+            "prevalidated catalog root does not match the requested root"
+        )
+    current_catalog_sha256, current_specification_sha256 = (
+        _snapshot_source_digests(root)
+    )
+    if current_catalog_sha256 != catalog.snapshot_catalog_sha256:
+        raise ConformanceError(
+            "prevalidated catalog snapshot is stale: catalog source files changed"
+        )
+    if current_specification_sha256 != catalog.snapshot_specification_sha256:
+        raise ConformanceError(
+            "prevalidated catalog snapshot is stale: specification source changed"
+        )
+    try:
+        current_memory_sha256 = _catalog_memory_digest(catalog)
+    except (ConformanceError, TypeError, ValueError) as error:
+        raise ConformanceError(
+            "prevalidated catalog snapshot was mutated in memory"
+        ) from error
+    if current_memory_sha256 != catalog.snapshot_memory_sha256:
+        raise ConformanceError(
+            "prevalidated catalog snapshot was mutated in memory"
+        )
+    return root, catalog
 
 
 def _domain_digest(domain: str, content: bytes) -> str:
@@ -6666,6 +6740,110 @@ def specification_digest(root: Path = ROOT) -> str:
     return _domain_digest(
         "ASP-SPECIFICATION-SOURCE-V1",
         (root / "drafts" / "agent-surface.md").read_bytes(),
+    )
+
+
+def _snapshot_source_digests(root: Path) -> tuple[str, str]:
+    try:
+        return catalog_digest(root), specification_digest(root)
+    except OSError as error:
+        raise ConformanceError(
+            "catalog or specification snapshot source files are unavailable"
+        ) from error
+
+
+def _type_tagged_json(value: Any, path: str = "$") -> dict[str, Any]:
+    """Represent JSON-compatible values without collapsing scalar types."""
+
+    if value is None:
+        return {"type": "null"}
+    if isinstance(value, bool):
+        return {"type": "boolean", "value": value}
+    if isinstance(value, int):
+        return {"type": "integer", "value": str(value)}
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ConformanceError(
+                f"non-finite catalog fingerprint value at {path}"
+            )
+        return {"type": "float64", "value": value.hex()}
+    if isinstance(value, str):
+        _validate_unicode(value, path)
+        return {"type": "string", "value": value}
+    if isinstance(value, list):
+        return {
+            "type": "array",
+            "value": [
+                _type_tagged_json(item, f"{path}[{index}]")
+                for index, item in enumerate(value)
+            ],
+        }
+    if isinstance(value, dict):
+        tagged: dict[str, Any] = {}
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise ConformanceError(
+                    f"catalog fingerprint object key is not a string at {path}"
+                )
+            _validate_unicode(key, f"{path}.<key>")
+            tagged[key] = _type_tagged_json(item, f"{path}.{key}")
+        return {"type": "object", "value": tagged}
+    raise ConformanceError(
+        f"catalog fingerprint value at {path} is not JSON-compatible"
+    )
+
+
+def _catalog_memory_digest_values(
+    *,
+    suite: dict[str, Any],
+    vector_catalog: dict[str, Any],
+    fixture_catalog: dict[str, Any],
+    schema_case_catalog: dict[str, Any],
+    bundle_registry: dict[str, Any],
+    requirements: dict[str, dict[str, Any]],
+    vectors: dict[str, dict[str, Any]],
+    profiles: dict[str, dict[str, Any]],
+    features: dict[str, dict[str, Any]],
+    fixtures: dict[str, dict[str, Any]],
+    mutations: dict[str, dict[str, Any]],
+    bundles: dict[str, dict[str, Any]],
+) -> str:
+    """Bind a validated Catalog to both raw documents and derived indexes."""
+
+    payload = {
+        "suite": suite,
+        "vector_catalog": vector_catalog,
+        "fixture_catalog": fixture_catalog,
+        "schema_case_catalog": schema_case_catalog,
+        "bundle_registry": bundle_registry,
+        "requirements": requirements,
+        "vectors": vectors,
+        "profiles": profiles,
+        "features": features,
+        "fixtures": fixtures,
+        "mutations": mutations,
+        "bundles": bundles,
+    }
+    return _domain_digest(
+        "ASP-CONFORMANCE-CATALOG-MEMORY-V1",
+        _canonical_json_rfc8785(_type_tagged_json(payload)),
+    )
+
+
+def _catalog_memory_digest(catalog: Catalog) -> str:
+    return _catalog_memory_digest_values(
+        suite=catalog.suite,
+        vector_catalog=catalog.vector_catalog,
+        fixture_catalog=catalog.fixture_catalog,
+        schema_case_catalog=catalog.schema_case_catalog,
+        bundle_registry=catalog.bundle_registry,
+        requirements=catalog.requirements,
+        vectors=catalog.vectors,
+        profiles=catalog.profiles,
+        features=catalog.features,
+        fixtures=catalog.fixtures,
+        mutations=catalog.mutations,
+        bundles=catalog.bundles,
     )
 
 
@@ -7184,8 +7362,9 @@ def run_suite(
     probe_configuration_sha256: str,
     timeout_seconds: int = 10,
     root: Path = ROOT,
+    catalog: Catalog | None = None,
 ) -> dict[str, Any]:
-    """Execute every applicable vector and return a validated report object."""
+    """Execute vectors, optionally reusing a snapshot-scoped validated catalog."""
 
     if not 1 <= timeout_seconds <= 30:
         raise ConformanceError("adapter timeout must be between 1 and 30 seconds")
@@ -7200,7 +7379,7 @@ def run_suite(
             raise ConformanceError(f"{label} must be one executable file path")
     adapter = executables["adapter"]
     probe = executables["probe"]
-    catalog = validate_catalog(root)
+    root, catalog = _resolve_catalog(root, catalog)
     validate_subject(subject, catalog)
     if subject["subject_kind"] == "implementation" and any(
         _is_bundled_fixture_executable(executable, root)
@@ -7401,8 +7580,8 @@ def run_suite(
             "suite_id": catalog.suite["suite_id"],
             "suite_version": catalog.suite["suite_version"],
             "protocol_version": catalog.suite["protocol_version"],
-            "catalog_sha256": catalog_digest(root),
-            "specification_sha256": specification_digest(root),
+            "catalog_sha256": catalog.snapshot_catalog_sha256,
+            "specification_sha256": catalog.snapshot_specification_sha256,
         },
         "subject": subject,
         "runner": runner,
@@ -7453,11 +7632,11 @@ def verify_report(
     adapter: Path | None = None,
     probe: Path | None = None,
 ) -> None:
-    """Recompute a report against the current exact catalog and specification."""
+    """Verify a report against a fresh or explicitly prevalidated exact catalog."""
 
     _validate_ijson_value(report)
     _validate_digest_members(report)
-    catalog = catalog or validate_catalog(root)
+    root, catalog = _resolve_catalog(root, catalog)
     _validate_with_schema(
         report,
         _schema_for(catalog, "report"),
@@ -7470,8 +7649,8 @@ def verify_report(
         "suite_id": catalog.suite["suite_id"],
         "suite_version": catalog.suite["suite_version"],
         "protocol_version": catalog.suite["protocol_version"],
-        "catalog_sha256": catalog_digest(root),
-        "specification_sha256": specification_digest(root),
+        "catalog_sha256": catalog.snapshot_catalog_sha256,
+        "specification_sha256": catalog.snapshot_specification_sha256,
     }
     if suite != expected_suite:
         raise ConformanceError("report suite or source digest is stale")

@@ -34,7 +34,7 @@ conformance-validate:
 	$(PYTHON) -B conformance/check.py validate
 
 conformance-test:
-	$(PYTHON) -B -m unittest discover -s conformance/tests -p 'test_*.py'
+	$(PYTHON) -B -m unittest discover -s conformance/tests -p 'test_*.py' --durations 20
 
 conformance-check: conformance-validate conformance-test
 

@@ -1799,6 +1799,7 @@ class MockParticipantSecurityTests(unittest.TestCase):
             probe_version="1.0.0",
             probe_configuration_sha256=digest("mock-probe-configuration"),
             root=ROOT,
+            catalog=self.catalog,
         )
 
     def test_app_and_runtime_role_ownership_is_closed(self) -> None:
