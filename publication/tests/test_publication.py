@@ -1,20 +1,27 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import os
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from jsonschema import Draft202012Validator
 
 from publication.check import (
     PublicationError,
+    _explicit_anchors,
+    _historical_catalogs,
     _validate_normative_references,
     main,
     validate_catalog,
+    validate_catalog_history,
+    validate_history,
 )
 
 
@@ -209,6 +216,233 @@ class PublicationContractTests(unittest.TestCase):
                 with self.assertRaisesRegex(PublicationError, message):
                     validate_catalog(root)
 
+    def test_published_document_version_is_immutable(self) -> None:
+        current = copy.deepcopy(self.catalog)
+        current["document_set_version"] = "0.1.0-draft.2"
+        current["documents"][0]["source_sha256"] = "0" * 64
+        current["aggregate"]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(
+            PublicationError,
+            "published document version.*bump document version",
+        ):
+            validate_catalog_history(
+                current,
+                [("published-commit", self.catalog)],
+            )
+
+    def test_document_set_version_is_immutable(self) -> None:
+        current = copy.deepcopy(self.catalog)
+        current["documents"][0]["version"] = "0.1.0-draft.2"
+        current["aggregate"]["source_document"]["version"] = "0.1.0-draft.2"
+        with self.assertRaisesRegex(
+            PublicationError,
+            "published document-set version.*bump document_set_version",
+        ):
+            validate_catalog_history(
+                current,
+                [("published-commit", self.catalog)],
+            )
+
+    def test_published_registry_version_is_immutable(self) -> None:
+        current = copy.deepcopy(self.catalog)
+        current["document_set_version"] = "0.1.0-draft.2"
+        current["registries"][0]["source_sha256"] = "0" * 64
+        with self.assertRaisesRegex(
+            PublicationError,
+            "published registry version.*bump registry version",
+        ):
+            validate_catalog_history(
+                current,
+                [("published-commit", self.catalog)],
+            )
+
+    def test_conflicting_historical_snapshot_is_rejected(self) -> None:
+        conflicting = copy.deepcopy(self.catalog)
+        conflicting["document_set_version"] = "0.1.0-draft.2"
+        conflicting["documents"][0]["title"] = "Conflicting published title"
+        with self.assertRaisesRegex(
+            PublicationError,
+            "published document version.*conflicts between",
+        ):
+            validate_catalog_history(
+                copy.deepcopy(self.catalog),
+                [
+                    ("first-published-commit", self.catalog),
+                    ("later-published-commit", conflicting),
+                ],
+            )
+
+    def test_new_document_and_set_versions_can_change(self) -> None:
+        current = copy.deepcopy(self.catalog)
+        current["document_set_version"] = "0.1.0-draft.2"
+        current["documents"][0]["version"] = "0.1.0-draft.2"
+        current["documents"][0]["source_sha256"] = "0" * 64
+        current["aggregate"]["source_document"]["version"] = "0.1.0-draft.2"
+        current["aggregate"]["sha256"] = "0" * 64
+        validate_catalog_history(
+            current,
+            [("published-commit", self.catalog)],
+        )
+
+    def test_history_comparison_is_json_structural(self) -> None:
+        reordered_keys = json.loads(
+            json.dumps(self.catalog, ensure_ascii=False, sort_keys=True)
+        )
+        validate_catalog_history(
+            reordered_keys,
+            [("published-commit", self.catalog)],
+        )
+
+        reordered_array = copy.deepcopy(self.catalog)
+        reordered_array["documents"][0]["public_anchors"].reverse()
+        with self.assertRaisesRegex(
+            PublicationError,
+            "published document version",
+        ):
+            validate_catalog_history(
+                reordered_array,
+                [("published-commit", self.catalog)],
+            )
+
+    def test_shallow_git_history_is_rejected(self) -> None:
+        result = mock.Mock(returncode=0, stdout="true\n", stderr="")
+        with mock.patch("publication.check._run_git", return_value=result):
+            with self.assertRaisesRegex(
+                PublicationError,
+                "requires a complete Git history",
+            ):
+                _historical_catalogs(ROOT, "origin/main")
+
+    def test_git_history_rejects_changed_bytes_under_published_version(self) -> None:
+        root, path = self.catalog_copy()
+        for arguments in (
+            ("init", "--quiet"),
+            ("config", "user.name", "Publication Test"),
+            ("config", "user.email", "publication-test@example.invalid"),
+            ("add", "."),
+            ("commit", "--quiet", "-m", "Published baseline"),
+        ):
+            subprocess.run(
+                ["git", *arguments],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        baseline = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+        source = root / self.catalog["documents"][0]["source_path"]
+        source.write_text(
+            source.read_text(encoding="utf-8") + "\n<!-- changed bytes -->\n",
+            encoding="utf-8",
+        )
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        catalog = copy.deepcopy(self.catalog)
+        catalog["documents"][0]["source_sha256"] = digest
+        catalog["aggregate"]["sha256"] = digest
+        self.write_catalog(path, catalog)
+
+        with self.assertRaisesRegex(
+            PublicationError,
+            "published document version.*bump document version",
+        ):
+            validate_history(root, baseline)
+
+    def test_candidate_history_rejects_source_only_intermediate_commit(self) -> None:
+        root, path = self.catalog_copy()
+        for arguments in (
+            ("init", "--quiet"),
+            ("config", "user.name", "Publication Test"),
+            ("config", "user.email", "publication-test@example.invalid"),
+            ("add", "."),
+            ("commit", "--quiet", "-m", "Published baseline"),
+        ):
+            subprocess.run(
+                ["git", *arguments],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        baseline = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+        source = root / self.catalog["documents"][0]["source_path"]
+        source.write_text(
+            source.read_text(encoding="utf-8") + "\n<!-- candidate one -->\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "add", "."],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "commit", "--quiet", "-m", "Stale source-only candidate"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        final_digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        final = copy.deepcopy(self.catalog)
+        final["document_set_version"] = "0.1.0-draft.2"
+        final["documents"][0]["version"] = "0.1.0-draft.2"
+        final["documents"][0]["source_sha256"] = final_digest
+        final["aggregate"]["source_document"]["version"] = "0.1.0-draft.2"
+        final["aggregate"]["sha256"] = final_digest
+        for registry in final["registries"]:
+            registry["owner"]["version"] = "0.1.0-draft.2"
+            major, minor, patch = registry["version"].split(".")
+            registry["version"] = f"{major}.{minor}.{int(patch) + 1}"
+            registry_path = root / registry["source_path"]
+            registry_document = json.loads(
+                registry_path.read_text(encoding="utf-8")
+            )
+            registry_document[registry["version_member"]] = registry["version"]
+            registry_path.write_text(
+                json.dumps(registry_document, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            registry["source_sha256"] = hashlib.sha256(
+                registry_path.read_bytes()
+            ).hexdigest()
+        self.write_catalog(path, final)
+        subprocess.run(
+            ["git", "add", "."],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "commit", "--quiet", "-m", "Publish bumped versions"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        with self.assertRaisesRegex(
+            PublicationError,
+            "historical document .* source digest does not match its Git blob",
+        ):
+            validate_history(root, baseline, "HEAD")
+
     def test_explicit_anchor_inventory_is_bound_to_source(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
@@ -218,6 +452,70 @@ class PublicationContractTests(unittest.TestCase):
         self.write_catalog(path, catalog)
         with self.assertRaisesRegex(PublicationError, "public anchor inventory"):
             validate_catalog(root)
+
+    def test_alternate_valid_html_anchor_syntax_is_detected(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        source = Path(temporary.name) / "source.md"
+        source.write_text(
+            "  <A class='legacy' ID=example-anchor></A>  \n"
+            "## Example Heading\n",
+            encoding="utf-8",
+        )
+        self.assertEqual(
+            _explicit_anchors(source),
+            {"example-anchor": "Example Heading"},
+        )
+
+    def test_non_html_less_than_prose_is_not_an_anchor(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        source = Path(temporary.name) / "source.md"
+        source.write_text(
+            "The value is < a threshold, not an HTML anchor.\n",
+            encoding="utf-8",
+        )
+        self.assertEqual(_explicit_anchors(source), {})
+
+    def test_malformed_or_ambiguous_html_anchor_is_rejected(self) -> None:
+        variants = (
+            "prefix <a id='example-anchor'></a>",
+            "<a id='example-anchor'></a junk>",
+            "<a id='example-anchor'/>",
+            "<a id='example-anchor'>text</a>",
+            "<a id='example-anchor'><span></span></a>",
+            "<a id='example-anchor' id='other-anchor'></a>",
+            "<a class='missing-id'></a>",
+            "<a\n id='example-anchor'></a>",
+        )
+        for line in variants:
+            with self.subTest(line=line):
+                temporary = tempfile.TemporaryDirectory()
+                self.addCleanup(temporary.cleanup)
+                source = Path(temporary.name) / "source.md"
+                source.write_text(
+                    f"{line}\n## Example Heading\n",
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(
+                    PublicationError,
+                    "malformed explicit anchor.*line 1",
+                ):
+                    _explicit_anchors(source)
+
+    def test_alternate_html_anchor_duplicate_is_rejected(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        source = Path(temporary.name) / "source.md"
+        source.write_text(
+            "<a id='same-anchor'></a>\n"
+            "# First\n"
+            "  <A class=legacy ID=same-anchor></A>\n"
+            "# Second\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(PublicationError, "duplicate explicit anchor"):
+            _explicit_anchors(source)
 
     def test_cross_document_anchor_move_is_fail_closed_in_schema_v1(self) -> None:
         root, path = self.catalog_copy()

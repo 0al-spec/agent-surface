@@ -11,6 +11,16 @@ source-checked, globally unique catalog entries. Internal normative references r
 declared exact dependency edge and a resolvable source-anchor/target-export
 record.
 
+The Git-aware history gate walks every commit on the first-parent history of
+`PUBLICATION_BASE_REF` and in
+`PUBLICATION_BASE_REF..PUBLICATION_CANDIDATE_REF`. At each commit it verifies the
+catalog against the source, aggregate, and registry blobs in that exact Git tree,
+then compares every unique catalog snapshot. Reusing an exact document, registry,
+or document-set version with different structural content fails closed, as does
+a stale source-only intermediate commit that a rebase merge could publish. The
+check rejects shallow or non-ancestral history; CI fetches full history and
+compares the exact pull-request head with its exact base.
+
 The current publication mode is deliberately transitional:
 
 - `drafts/agent-surface.md` remains the only active canonical source;
@@ -28,6 +38,15 @@ Validate the contract with:
 
 ```sh
 make publication-check
+```
+
+By default the immutable-history comparison uses `origin/main`. A different
+review base can be selected explicitly:
+
+```sh
+make publication-check \
+  PUBLICATION_BASE_REF=<base-commit-or-ref> \
+  PUBLICATION_CANDIDATE_REF=<candidate-commit-or-ref>
 ```
 
 Non-authoritative extraction fixtures can be prepared under

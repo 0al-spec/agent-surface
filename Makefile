@@ -2,6 +2,9 @@ PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 CARGO ?= cargo
 export CARGO
 
+PUBLICATION_BASE_REF ?= origin/main
+PUBLICATION_CANDIDATE_REF ?= HEAD
+
 REPLAY_FUZZ_TOOLCHAIN ?= nightly-2026-07-01
 REPLAY_FUZZ_TARGETS ?= parse_verify structured_bundle
 REPLAY_FUZZ_SEED ?= 1095979603
@@ -14,15 +17,18 @@ REPLAY_FUZZ_TIMEOUT_CMD ?= timeout
 REPLAY_FUZZ_PARSE_MAX_LEN ?= 262144
 REPLAY_FUZZ_STRUCTURED_MAX_LEN ?= 4096
 
-.PHONY: publication-validate publication-test publication-check conformance-validate conformance-test conformance-check mock-validate mock-test mock-check vertical-slice-validate vertical-slice-test vertical-slice-check rust-workspace-fmt rust-workspace-clippy rust-workspace-test rust-workspace-check rust-tooling-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check api-import-self-check api-import-check replay-self-check replay-check replay-fuzz-smoke rfc-toc rfc-toc-check review-build review-data-check review-test review-js-test review-check
+.PHONY: publication-validate publication-history-check publication-test publication-check conformance-validate conformance-test conformance-check mock-validate mock-test mock-check vertical-slice-validate vertical-slice-test vertical-slice-check rust-workspace-fmt rust-workspace-clippy rust-workspace-test rust-workspace-check rust-tooling-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check api-import-self-check api-import-check replay-self-check replay-check replay-fuzz-smoke rfc-toc rfc-toc-check review-build review-data-check review-test review-js-test review-check
 
 publication-validate:
 	$(PYTHON) -B publication/check.py validate
 
+publication-history-check:
+	$(PYTHON) -B publication/check.py validate-history --base-ref "$(PUBLICATION_BASE_REF)" --candidate-ref "$(PUBLICATION_CANDIDATE_REF)"
+
 publication-test:
 	$(PYTHON) -B -m unittest discover -s publication/tests -p 'test_*.py'
 
-publication-check: publication-validate publication-test
+publication-check: publication-validate publication-history-check publication-test
 
 conformance-validate:
 	$(PYTHON) -B conformance/check.py validate

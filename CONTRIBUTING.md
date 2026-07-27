@@ -68,9 +68,15 @@ agent-surface/
   paths and SHA-256 digests, exact dependency graph, public-anchor inventory,
   normative reference records, and registry ownership consistent and run
   `make publication-check`. Update the RFC table of contents before recording
-  its final source and aggregate digest. Reserved module paths are
-  non-authoritative and must be activated only as one complete modular
-  transition.
+  its final source and aggregate digest. Every changed active document,
+  registry, or document-set binding needs a new exact version; the history gate
+  compares against the complete first-parent history of `origin/main` and every
+  candidate commit through `HEAD`, including the source and registry blobs in
+  each commit's exact Git tree. Squash or fix up conflicting intermediate
+  publication states before review so a permitted rebase merge cannot publish
+  them.
+  Reserved module paths are non-authoritative and must be activated only as one
+  complete modular transition.
 - Keep conformance matrix, vector, fixture, schema, runner, and report changes mutually
   consistent and run `make conformance-check`.
 - Keep the reference mock manifest, schema, entry points, separate authority

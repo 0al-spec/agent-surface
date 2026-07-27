@@ -8,9 +8,11 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 from collections import defaultdict, deque
 from collections.abc import Mapping, Sequence
+from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -65,13 +67,55 @@ KIND_ROLES = {
     "conformance": frozenset({"conformance"}),
 }
 
-EXPLICIT_ANCHOR_LINE = re.compile(r'^<a id="([^"]+)"></a>$')
+RAW_HTML_ANCHOR = re.compile(r"<a(?=[\s/>]|$)", re.IGNORECASE)
+CLOSING_HTML_ANCHOR = re.compile(r"</\s*a\s*>\s*$", re.IGNORECASE)
 HEADING_LINE = re.compile(r"^#{1,6} (?P<title>.+?)\s*$")
 ANCHOR_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 class PublicationError(ValueError):
     """The publication catalog is structurally or semantically invalid."""
+
+
+class _ExplicitAnchorParser(HTMLParser):
+    """Collect the exact structure of one raw HTML anchor line."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.events: list[tuple[str, str]] = []
+        self.attributes: list[tuple[str, str | None]] = []
+
+    def handle_starttag(
+        self, tag: str, attrs: list[tuple[str, str | None]]
+    ) -> None:
+        self.events.append(("start", tag))
+        if tag == "a":
+            self.attributes = attrs
+
+    def handle_startendtag(
+        self, tag: str, attrs: list[tuple[str, str | None]]
+    ) -> None:
+        del attrs
+        self.events.append(("startend", tag))
+
+    def handle_endtag(self, tag: str) -> None:
+        self.events.append(("end", tag))
+
+    def handle_data(self, data: str) -> None:
+        if data.strip():
+            self.events.append(("data", data))
+
+    def handle_comment(self, data: str) -> None:
+        del data
+        self.events.append(("comment", ""))
+
+    def handle_decl(self, decl: str) -> None:
+        del decl
+        self.events.append(("declaration", ""))
+
+    def handle_pi(self, data: str) -> None:
+        del data
+        self.events.append(("processing-instruction", ""))
 
 
 def _strict_object(pairs: Sequence[tuple[str, Any]]) -> dict[str, Any]:
@@ -99,6 +143,411 @@ def _load_json(path: Path) -> Any:
         return loads_strict_json(path.read_text(encoding="utf-8"), source=str(path))
     except OSError as error:
         raise PublicationError(f"cannot read {path}: {error}") from error
+
+
+def _run_git(root: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            ["git", "-C", str(root), *arguments],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as error:
+        raise PublicationError(f"cannot execute git: {error}") from error
+
+
+def _run_git_bytes(
+    root: Path, *arguments: str
+) -> subprocess.CompletedProcess[bytes]:
+    try:
+        return subprocess.run(
+            ["git", "-C", str(root), *arguments],
+            check=False,
+            capture_output=True,
+        )
+    except OSError as error:
+        raise PublicationError(f"cannot execute git: {error}") from error
+
+
+def _historical_repo_path(value: Any, *, label: str) -> str:
+    if not isinstance(value, str) or "\\" in value:
+        raise PublicationError(
+            f"{label} must be a normalized repository-relative POSIX path"
+        )
+    path = PurePosixPath(value)
+    if (
+        path.is_absolute()
+        or not path.parts
+        or any(part in {"", ".", ".."} for part in path.parts)
+        or path.as_posix() != value
+    ):
+        raise PublicationError(
+            f"{label} must be a normalized repository-relative POSIX path"
+        )
+    return value
+
+
+def _historical_blob(
+    root: Path,
+    revision: str,
+    path: Any,
+    *,
+    label: str,
+) -> bytes:
+    source_path = _historical_repo_path(path, label=label)
+    result = _run_git_bytes(root, "show", f"{revision}:{source_path}")
+    if result.returncode != 0:
+        raise PublicationError(
+            f"{label} {source_path!r} is missing at {revision}"
+        )
+    return result.stdout
+
+
+def _validate_historical_catalog_state(
+    root: Path,
+    revision: str,
+    catalog: Mapping[str, Any],
+) -> None:
+    """Verify that one committed catalog exactly describes its Git tree."""
+
+    blob_cache: dict[str, bytes] = {}
+
+    def artifact(path: Any, *, label: str) -> tuple[str, bytes]:
+        source_path = _historical_repo_path(path, label=label)
+        if source_path not in blob_cache:
+            blob_cache[source_path] = _historical_blob(
+                root,
+                revision,
+                source_path,
+                label=label,
+            )
+        return source_path, blob_cache[source_path]
+
+    def verify_digest(
+        path: Any,
+        expected: Any,
+        *,
+        label: str,
+    ) -> tuple[str, bytes]:
+        if not isinstance(expected, str):
+            raise PublicationError(f"{label} digest is invalid at {revision}")
+        source_path, content = artifact(path, label=label)
+        actual = hashlib.sha256(content).hexdigest()
+        if actual != expected:
+            raise PublicationError(
+                f"{label} digest does not match its Git blob at {revision}: "
+                f"expected {expected}, got {actual}"
+            )
+        return source_path, content
+
+    try:
+        documents = catalog["documents"]
+        registries = catalog["registries"]
+        aggregate = catalog["aggregate"]
+        if (
+            not isinstance(documents, Sequence)
+            or isinstance(documents, (str, bytes))
+            or not isinstance(registries, Sequence)
+            or isinstance(registries, (str, bytes))
+            or not isinstance(aggregate, Mapping)
+        ):
+            raise TypeError
+
+        active_by_ref: dict[tuple[str, str], Mapping[str, Any]] = {}
+        for document in documents:
+            if not isinstance(document, Mapping):
+                raise TypeError
+            document_ref = _ref(document)
+            if document_ref in active_by_ref:
+                raise PublicationError(
+                    f"historical publication catalog at {revision} repeats "
+                    f"document reference {document_ref!r}"
+                )
+            verify_digest(
+                document["source_path"],
+                document["source_sha256"],
+                label=f"historical document {document_ref!r} source",
+            )
+            active_by_ref[document_ref] = document
+
+        source_document_ref = _ref(aggregate["source_document"])
+        source_document = active_by_ref.get(source_document_ref)
+        if source_document is None:
+            raise PublicationError(
+                f"historical aggregate at {revision} references inactive "
+                f"document {source_document_ref!r}"
+            )
+        if (
+            aggregate["path"] != source_document["source_path"]
+            or aggregate["sha256"] != source_document["source_sha256"]
+        ):
+            raise PublicationError(
+                f"historical aggregate at {revision} is not the exact "
+                f"representation of {source_document_ref!r}"
+            )
+        verify_digest(
+            aggregate["path"],
+            aggregate["sha256"],
+            label="historical aggregate",
+        )
+
+        for registry in registries:
+            if not isinstance(registry, Mapping):
+                raise TypeError
+            registry_ref = _registry_ref(registry)
+            source_path, content = verify_digest(
+                registry["source_path"],
+                registry["source_sha256"],
+                label=f"historical registry {registry_ref!r} source",
+            )
+            owner_ref = _ref(registry["owner"])
+            if owner_ref not in active_by_ref:
+                raise PublicationError(
+                    f"historical registry {registry_ref!r} at {revision} has "
+                    f"inactive owner {owner_ref!r}"
+                )
+            try:
+                registry_document = loads_strict_json(
+                    content.decode("utf-8"),
+                    source=f"{source_path} at {revision}",
+                )
+            except UnicodeDecodeError as error:
+                raise PublicationError(
+                    f"historical registry {source_path!r} at {revision} is not UTF-8"
+                ) from error
+            if not isinstance(registry_document, Mapping):
+                raise PublicationError(
+                    f"historical registry {source_path!r} at {revision} "
+                    "is not a JSON object"
+                )
+            if (
+                registry_document.get(registry["id_member"]) != registry_ref[0]
+                or registry_document.get(registry["version_member"])
+                != registry_ref[1]
+            ):
+                raise PublicationError(
+                    f"historical registry {registry_ref!r} identity does not "
+                    f"match {source_path!r} at {revision}"
+                )
+    except (KeyError, TypeError) as error:
+        raise PublicationError(
+            f"historical publication catalog at {revision} lacks the fields "
+            "required to verify its Git tree"
+        ) from error
+
+
+def _historical_catalogs(
+    root: Path,
+    base_ref: str,
+    candidate_ref: str | None = None,
+) -> list[tuple[str, Mapping[str, Any]]]:
+    shallow = _run_git(root, "rev-parse", "--is-shallow-repository")
+    if shallow.returncode != 0 or shallow.stdout.strip() not in {"true", "false"}:
+        raise PublicationError("cannot determine whether Git history is shallow")
+    if shallow.stdout.strip() == "true":
+        raise PublicationError(
+            "publication history validation requires a complete Git history"
+        )
+
+    verified = _run_git(
+        root,
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        f"{base_ref}^{{commit}}",
+    )
+    if verified.returncode != 0:
+        raise PublicationError(
+            f"cannot resolve publication history base ref {base_ref!r}"
+        )
+
+    revision_specs = [base_ref]
+    if candidate_ref is not None:
+        candidate = _run_git(
+            root,
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            f"{candidate_ref}^{{commit}}",
+        )
+        if candidate.returncode != 0:
+            raise PublicationError(
+                f"cannot resolve publication candidate ref {candidate_ref!r}"
+            )
+        ancestry = _run_git(
+            root,
+            "merge-base",
+            "--is-ancestor",
+            base_ref,
+            candidate_ref,
+        )
+        if ancestry.returncode != 0:
+            raise PublicationError(
+                f"publication history base {base_ref!r} is not an ancestor of "
+                f"candidate {candidate_ref!r}"
+            )
+        revision_specs.append(f"{base_ref}..{candidate_ref}")
+
+    catalogs: list[tuple[str, Mapping[str, Any]]] = []
+    catalog_cache: dict[str, Mapping[str, Any]] = {}
+    recorded_blobs: set[str] = set()
+    for revision_spec in revision_specs:
+        revisions = _run_git(
+            root,
+            "rev-list",
+            "--first-parent",
+            "--reverse",
+            revision_spec,
+        )
+        if revisions.returncode != 0:
+            raise PublicationError(
+                f"cannot enumerate publication catalog history at "
+                f"{revision_spec!r}: {revisions.stderr.strip()}"
+            )
+        for revision in revisions.stdout.splitlines():
+            object_name = f"{revision}:{CATALOG_PATH.as_posix()}"
+            exists = _run_git(root, "cat-file", "-e", object_name)
+            if exists.returncode != 0:
+                continue
+            blob = _run_git(root, "rev-parse", object_name)
+            if blob.returncode != 0:
+                raise PublicationError(
+                    f"cannot identify historical publication catalog at "
+                    f"{revision}: {blob.stderr.strip()}"
+                )
+            blob_id = blob.stdout.strip()
+            catalog = catalog_cache.get(blob_id)
+            if catalog is None:
+                result = _run_git(root, "show", object_name)
+                if result.returncode != 0:
+                    raise PublicationError(
+                        f"cannot read historical publication catalog at {revision}: "
+                        f"{result.stderr.strip()}"
+                    )
+                loaded = loads_strict_json(
+                    result.stdout,
+                    source=f"{CATALOG_PATH.as_posix()} at {revision}",
+                )
+                if not isinstance(loaded, Mapping):
+                    raise PublicationError(
+                        f"historical publication catalog at {revision} "
+                        "is not an object"
+                    )
+                catalog = loaded
+                catalog_cache[blob_id] = catalog
+            _validate_historical_catalog_state(root, revision, catalog)
+            if blob_id not in recorded_blobs:
+                catalogs.append((revision, catalog))
+                recorded_blobs.add(blob_id)
+    return catalogs
+
+
+def _registry_ref(registry: Mapping[str, Any]) -> tuple[str, str]:
+    try:
+        return registry["registry_id"], registry["version"]
+    except KeyError as error:
+        raise PublicationError(
+            f"historical registry lacks {error.args[0]!r}"
+        ) from error
+
+
+def _canonical_json_bytes(value: Any) -> bytes:
+    try:
+        return json.dumps(
+            value,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    except (TypeError, ValueError) as error:
+        raise PublicationError(
+            f"publication history contains a non-canonical JSON value: {error}"
+        ) from error
+
+
+def validate_catalog_history(
+    current: Mapping[str, Any],
+    historical: Sequence[tuple[str, Mapping[str, Any]]],
+) -> None:
+    """Reject reuse of a published version tuple for different content."""
+
+    seen: dict[
+        tuple[str, tuple[str, str]],
+        tuple[str, bytes],
+    ] = {}
+
+    def record(
+        kind: str,
+        identity: tuple[str, str],
+        value: Any,
+        revision: str,
+        *,
+        current_catalog: bool,
+    ) -> None:
+        key = kind, identity
+        encoded = _canonical_json_bytes(value)
+        previous = seen.get(key)
+        if previous is not None and previous[1] != encoded:
+            if current_catalog:
+                version_field = {
+                    "document": "document version",
+                    "registry": "registry version",
+                    "document-set": "document_set_version",
+                }[kind]
+                raise PublicationError(
+                    f"published {kind} version {identity!r} changed since "
+                    f"{previous[0]}; bump {version_field}"
+                )
+            raise PublicationError(
+                f"published {kind} version {identity!r} conflicts between "
+                f"{previous[0]} and {revision}"
+            )
+        seen.setdefault(key, (revision, encoded))
+
+    def collect(
+        catalog: Mapping[str, Any],
+        revision: str,
+        *,
+        current_catalog: bool,
+    ) -> None:
+        try:
+            for document in catalog["documents"]:
+                record(
+                    "document",
+                    _ref(document),
+                    document,
+                    revision,
+                    current_catalog=current_catalog,
+                )
+            for registry in catalog["registries"]:
+                record(
+                    "registry",
+                    _registry_ref(registry),
+                    registry,
+                    revision,
+                    current_catalog=current_catalog,
+                )
+            record(
+                "document-set",
+                (
+                    catalog["document_set_id"],
+                    catalog["document_set_version"],
+                ),
+                catalog,
+                revision,
+                current_catalog=current_catalog,
+            )
+        except (KeyError, TypeError) as error:
+            raise PublicationError(
+                f"historical publication catalog at {revision} lacks the "
+                "versioned identity fields required for immutability checks"
+            ) from error
+
+    for revision, previous in historical:
+        collect(previous, revision, current_catalog=False)
+    collect(current, "current catalog", current_catalog=True)
 
 
 def _schema_error_path(error: Any) -> str:
@@ -306,25 +755,47 @@ def _validate_active_source_exports(
             )
 
 
+def _explicit_anchor_id(line: str, source_path: Path, line_number: int) -> str:
+    parser = _ExplicitAnchorParser()
+    parser.feed(line)
+    parser.close()
+    if (
+        parser.events != [("start", "a"), ("end", "a")]
+        or CLOSING_HTML_ANCHOR.search(line) is None
+    ):
+        raise PublicationError(
+            f"malformed explicit anchor in {source_path} at line {line_number}: "
+            f"{line!r}"
+        )
+
+    ids = [value for name, value in parser.attributes if name == "id"]
+    if (
+        len(ids) != 1
+        or ids[0] is None
+        or ANCHOR_ID.fullmatch(ids[0]) is None
+    ):
+        raise PublicationError(
+            f"malformed explicit anchor in {source_path} at line {line_number}: "
+            f"{line!r}"
+        )
+    return ids[0]
+
+
 def _explicit_anchors(source_path: Path) -> dict[str, str]:
     lines = source_path.read_text(encoding="utf-8").splitlines()
     anchors: dict[str, str] = {}
     index = 0
     while index < len(lines):
         line = lines[index]
-        if not line.startswith("<a id="):
+        if RAW_HTML_ANCHOR.search(line) is None:
             index += 1
             continue
 
         pending: list[str] = []
-        while index < len(lines) and lines[index].startswith("<a id="):
-            match = EXPLICIT_ANCHOR_LINE.fullmatch(lines[index])
-            if match is None or ANCHOR_ID.fullmatch(match.group(1)) is None:
-                raise PublicationError(
-                    f"malformed explicit anchor in {source_path}: "
-                    f"{lines[index]!r}"
-                )
-            pending.append(match.group(1))
+        while index < len(lines) and RAW_HTML_ANCHOR.search(lines[index]):
+            pending.append(
+                _explicit_anchor_id(lines[index], source_path, index + 1)
+            )
             index += 1
         if index >= len(lines):
             raise PublicationError(
@@ -688,14 +1159,44 @@ def validate_catalog(
     return catalog
 
 
+def validate_history(
+    root: Path = ROOT,
+    base_ref: str = "origin/main",
+    candidate_ref: str = "HEAD",
+) -> int:
+    """Validate immutable identities across base and candidate catalog history."""
+
+    root = root.resolve(strict=True)
+    current = validate_catalog(root)
+    historical = _historical_catalogs(root, base_ref, candidate_ref)
+    validate_catalog_history(current, historical)
+    return len(historical)
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("validate",))
+    parser.add_argument("command", choices=("validate", "validate-history"))
     parser.add_argument(
         "--root",
         type=Path,
         default=ROOT,
         help="repository root containing publication/ (default: repository root)",
+    )
+    parser.add_argument(
+        "--base-ref",
+        default="origin/main",
+        help=(
+            "Git ref whose complete catalog history is immutable "
+            "(default: origin/main)"
+        ),
+    )
+    parser.add_argument(
+        "--candidate-ref",
+        default="HEAD",
+        help=(
+            "Git ref whose commits after base-ref are candidate publication "
+            "snapshots (default: HEAD)"
+        ),
     )
     return parser
 
@@ -703,10 +1204,23 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        catalog = validate_catalog(args.root)
+        if args.command == "validate-history":
+            catalog_count = validate_history(
+                args.root,
+                args.base_ref,
+                args.candidate_ref,
+            )
+        else:
+            catalog = validate_catalog(args.root)
     except (OSError, PublicationError) as error:
         print(f"publication validation failed: {error}", file=sys.stderr)
         return 1
+    if args.command == "validate-history":
+        print(
+            "publication history validation passed: "
+            f"{catalog_count} historical catalog snapshots checked"
+        )
+        return 0
     print(
         "publication validation passed: "
         f"{len(catalog['documents'])} active document, "

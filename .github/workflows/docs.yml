@@ -13,11 +13,13 @@ jobs:
   quality:
     name: RFC quality gates
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -54,12 +56,20 @@ jobs:
       - name: Check specification publication contract
         timeout-minutes: 5
         shell: bash
-        run: make publication-check
+        run: >-
+          make publication-check
+          PUBLICATION_BASE_REF="${{ github.event.pull_request.base.sha || github.event.before }}"
+          PUBLICATION_CANDIDATE_REF="${{ github.event.pull_request.head.sha || github.sha }}"
 
-      - name: Check conformance catalog
-        timeout-minutes: 25
+      - name: Validate conformance catalog
+        timeout-minutes: 5
         shell: bash
-        run: make conformance-check
+        run: make conformance-validate
+
+      - name: Test conformance catalog
+        timeout-minutes: 35
+        shell: bash
+        run: make conformance-test
 
       - name: Check mock bundle
         timeout-minutes: 5
