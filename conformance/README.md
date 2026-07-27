@@ -8,10 +8,10 @@ object.
 
 ## Version 1 artifacts
 
-`conformance/v1/suite.json` is the authoritative Suite 1.9.0 role, feature,
-requirement, and vector matrix: six profiles, 51 requirements, and 163 closed
-declarative scenarios. `conformance/v1/fixtures.json` resolves them through 44
-exact semantic baselines and 117 closed mutation patches.
+`conformance/v1/suite.json` is the authoritative Suite 1.10.0 role, feature,
+requirement, and vector matrix: six profiles, 55 requirements, and 183 closed
+declarative scenarios. `conformance/v1/fixtures.json` resolves them through 48
+exact semantic baselines and 128 closed mutation patches.
 `conformance/v1/bundles.json` defines eight non-linear adoption bundles as
 closed plans over those existing role requirements and vectors; its schema and
 semantic validator reject omitted unconditional requirements, unsupported
@@ -19,7 +19,8 @@ role-feature pairs, missing vectors, duplicate claims, and non-canonical order.
 `conformance/v1/schema-cases.json` carries executable positive and negative
 cases for the Operational Limits declaration, capacity-error envelope, Human
 Elicitation messages, Impact Simulation results, Risk Explanation hints, and
-the ASP-over-MCP wire binding.
+the ASP-over-MCP wire binding, and the Purpose- and Task-Bound Agent Grant
+binding.
 Human cases use their RFC
 8785-compatible parser;
 `ASP-SC-HE-002` exercises binary64 and UTF-16 member-order hash boundaries,
@@ -57,6 +58,20 @@ termination, safe resume, exact completed replay, schema rotation, advisory
 cancellation, and Grant issuance are tested without treating MCP sessions,
 OAuth tokens, annotations, progress, resource links, or receipts as ASP
 authority.
+
+Purpose Binding vectors use the closed
+`purpose-task-bound-grant.schema.json` object and a normalized
+`purpose_binding` fixture projection. The wire object contains only the exact
+opaque purpose reference and optional task reference; authenticated namespace,
+current lifecycle, parent relationship, policy, expiry, consent, returned
+Grant, and session facts remain harness-side authoritative inputs. Surface
+Publisher, Grant Issuer, Action Executor, and Runtime Mediator rows reject
+incomplete advertisement, cross-purpose task substitution, returned or session
+drift, widening, unavailable or suspended state, terminal closure, policy
+denial, missing lifecycle linkage, and attempts to use task goal prose as
+authority. Action checks happen before idempotency, budget, capacity, receipt,
+workload, or effect admission, while terminal Action Request replay is rejected
+without rewriting historical receipt evidence.
 
 Receipt resources are checked through the bounded `asp-replay
 validate-receipts` API for their closed producer shape, hashes, participant and
@@ -166,7 +181,7 @@ production readiness, or arbitrary-implementation interoperability.
 All digests use SHA-256 and the text representation
 `sha-256:<base64url-without-padding>`. The single `catalog_sha256` digest uses
 the exact RFC-defined `ASP-CONFORMANCE-CATALOG-V1` domain. Hash the ASCII domain
-string, one zero octet, and then each of these nineteen canonical repo-relative
+string, one zero octet, and then each of these twenty canonical repo-relative
 paths in lexicographic order:
 
 1. `conformance/v1/bundles.json`
@@ -179,15 +194,16 @@ paths in lexicographic order:
 8. `conformance/v1/mcp-binding.schema.json`
 9. `conformance/v1/observation.schema.json`
 10. `conformance/v1/operational-limits.schema.json`
-11. `conformance/v1/report.schema.json`
-12. `conformance/v1/risk-explanation.schema.json`
-13. `conformance/v1/schema-cases.json`
-14. `conformance/v1/schema-cases.schema.json`
-15. `conformance/v1/subject.schema.json`
-16. `conformance/v1/suite.json`
-17. `conformance/v1/suite.schema.json`
-18. `conformance/v1/vectors.json`
-19. `conformance/v1/vectors.schema.json`
+11. `conformance/v1/purpose-task-bound-grant.schema.json`
+12. `conformance/v1/report.schema.json`
+13. `conformance/v1/risk-explanation.schema.json`
+14. `conformance/v1/schema-cases.json`
+15. `conformance/v1/schema-cases.schema.json`
+16. `conformance/v1/subject.schema.json`
+17. `conformance/v1/suite.json`
+18. `conformance/v1/suite.schema.json`
+19. `conformance/v1/vectors.json`
+20. `conformance/v1/vectors.schema.json`
 
 For each file, hash its path as UTF-8, a zero octet, its exact raw bytes, and a
 final zero octet. No newline, whitespace, Unicode, or JSON member-order

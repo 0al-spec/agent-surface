@@ -2,7 +2,7 @@
   "$schema": "./schema-cases.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.9.0",
+  "suite_version": "1.10.0",
   "cases": [
     {
       "case_id": "ASP-SC-OL-001",
@@ -1467,6 +1467,76 @@
       "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/mcp-binding/v1",
       "polarity": "negative",
       "instance_json": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"asp.action.b72927aec68bc0dfff8631f9084903e8a12406f76231aaf370085768de48bc4d\",\"arguments\":{\"to\":\"a@example.test\"},\"_meta\":{\"io.github.zeroal-spec/asp-over-mcp-v1\":{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1\",\"mcp_protocol_version\":\"2025-11-25\",\"binding_view_id\":\"view-1\",\"surface_version\":\"1\",\"surface_hash\":\"sha-256:not-a-digest\",\"authorization_composition\":\"asp-native\",\"action_request\":{\"type\":\"action.request\",\"payload\":{\"session_id\":\"s1\",\"session_generation\":1,\"grant_id\":\"g1\",\"grant_hash\":\"sha-256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA\",\"surface_hash\":\"sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"action_id\":\"mail.send\",\"input_hash\":\"sha-256:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCE\",\"execution\":{\"mode\":\"commit\",\"execution_id\":\"e1\"},\"idempotency_key\":\"idem-1\"}}},\"progressToken\":\"p1\"}}}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-PB-001",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
+      "polarity": "positive",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1\",\"purpose\":{\"id\":\"pur_01\",\"revision\":\"rev_1\"}}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-PB-002",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
+      "polarity": "positive",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1\",\"purpose\":{\"id\":\" PURPOSE-Δ \",\"revision\":\"007\"},\"task\":{\"id\":\"Task/CaseSensitive\",\"revision\":\"rev-é\"}}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-PB-003",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://example.test/profile\",\"purpose\":{\"id\":\"pur_01\",\"revision\":\"rev_1\"}}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-PB-004",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1\"}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-PB-005",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1\",\"purpose\":{\"id\":\"pur_01\",\"revision\":\"rev_1\"},\"description\":\"not authority\"}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-PB-006",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1\",\"purpose\":{\"id\":\"\",\"revision\":\"rev_1\"}}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-PB-007",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1\",\"purpose\":{\"id\":\"pur_01\"}}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-PB-008",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1\",\"purpose\":{\"id\":\"pur_01\",\"revision\":\"rev_1\"},\"task\":{\"id\":\"tsk_01\"}}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-PB-009",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1\",\"purpose\":{\"id\":\"pur_01\",\"revision\":1}}",
+      "context": {}
+    },
+    {
+      "case_id": "ASP-SC-PB-010",
+      "schema_id": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
+      "polarity": "negative",
+      "instance_json": "{\"profile\":\"https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1\",\"purpose\":{\"id\":\"pur_01\",\"revision\":\"rev_1\"},\"purpose\":{\"id\":\"pur_02\",\"revision\":\"rev_2\"}}",
       "context": {}
     }
   ]

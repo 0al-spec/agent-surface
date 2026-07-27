@@ -153,6 +153,10 @@ ASP_OVER_AHP = (
 ASP_OVER_MCP = (
     "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
 )
+PURPOSE_TASK_BOUND_GRANT = (
+    "https://github.com/0al-spec/agent-surface/profiles/"
+    "purpose-task-bound-grant/v1"
+)
 ASP_OVER_MCP_EXTENSION = "io.github.zeroal-spec/asp-over-mcp-v1"
 ASP_OVER_MCP_PROTOCOL = "2025-11-25"
 HUMAN_ELICITATION = (
@@ -397,16 +401,19 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
         RISK_EXPLANATION,
         ASP_OVER_MCP,
         OPERATIONAL_LIMITS,
+        PURPOSE_TASK_BOUND_GRANT,
     ),
     GI: (
         "https://github.com/0al-spec/agent-surface/profiles/agent-passport-minimal/v1",
         ASP_OVER_MCP,
+        PURPOSE_TASK_BOUND_GRANT,
     ),
     AE: (
         "https://github.com/0al-spec/agent-surface/profiles/approval-receipt/v1",
         ASP_OVER_MCP,
         HUMAN_ELICITATION,
         OPERATIONAL_LIMITS,
+        PURPOSE_TASK_BOUND_GRANT,
         "https://github.com/0al-spec/agent-surface/profiles/runtime-attestation/v1",
         "https://github.com/0al-spec/agent-surface/profiles/runtime-identity/v1",
     ),
@@ -420,6 +427,7 @@ FEATURE_INVENTORY: dict[str, tuple[str, ...]] = {
         "https://github.com/0al-spec/agent-surface/profiles/capability-match-result/v1",
         HUMAN_ELICITATION,
         OPERATIONAL_LIMITS,
+        PURPOSE_TASK_BOUND_GRANT,
         "https://github.com/0al-spec/agent-surface/profiles/remote-processing-privacy/v1",
     ),
     AA: (ASP_OVER_AHP, ASP_OVER_MCP, HUMAN_ELICITATION),
@@ -488,6 +496,208 @@ def _section(document: Mapping[str, Any], name: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise BehaviorError(f"semantic document requires object section {name!r}")
     return value
+
+
+def _purpose_reference(value: Any, label: str) -> dict[str, str]:
+    if (
+        not isinstance(value, Mapping)
+        or set(value) != {"id", "revision"}
+        or any(
+            not isinstance(value.get(member), str) or not value[member]
+            for member in ("id", "revision")
+        )
+    ):
+        raise BehaviorError(f"{label} is not an exact opaque purpose reference")
+    return {"id": value["id"], "revision": value["revision"]}
+
+
+def _purpose_binding(value: Any, label: str) -> dict[str, Any]:
+    if not isinstance(value, Mapping) or set(value) not in (
+        {"profile", "purpose"},
+        {"profile", "purpose", "task"},
+    ):
+        raise BehaviorError(f"{label} is not the closed Purpose Binding shape")
+    if value.get("profile") != PURPOSE_TASK_BOUND_GRANT:
+        raise BehaviorError(f"{label} selects the wrong Purpose Binding profile")
+    result: dict[str, Any] = {
+        "profile": PURPOSE_TASK_BOUND_GRANT,
+        "purpose": _purpose_reference(value.get("purpose"), f"{label}.purpose"),
+    }
+    if "task" in value:
+        result["task"] = _purpose_reference(value.get("task"), f"{label}.task")
+    return result
+
+
+def _purpose_projection(document: Mapping[str, Any]) -> Mapping[str, Any]:
+    projection = _section(document, "purpose_binding")
+    required = {
+        "advertised_profile",
+        "enforcement_ready",
+        "request",
+        "consent",
+        "grant",
+        "returned",
+        "session",
+        "parent",
+        "attenuation",
+        "authenticated_scope",
+        "authoritative",
+        "expiry_within_lifetime",
+        "lifecycle_linked",
+        "goal_authority_use",
+    }
+    if set(projection) != required:
+        raise BehaviorError("Purpose Binding projection is not the closed shape")
+    if not isinstance(projection.get("advertised_profile"), bool) or not isinstance(
+        projection.get("enforcement_ready"), bool
+    ):
+        raise BehaviorError("Purpose Binding advertisement flags must be booleans")
+    for member in ("request", "consent", "grant", "returned", "session", "parent"):
+        _purpose_binding(projection.get(member), f"purpose_binding.{member}")
+    if projection.get("attenuation") not in {"equal", "narrower", "wider"}:
+        raise BehaviorError("Purpose Binding attenuation relation is unknown")
+    scope = projection.get("authenticated_scope")
+    if (
+        not isinstance(scope, Mapping)
+        or set(scope) != {"issuer", "app_id", "subject_user"}
+        or any(
+            not isinstance(scope.get(member), str) or not scope[member]
+            for member in ("issuer", "app_id", "subject_user")
+        )
+    ):
+        raise BehaviorError("Purpose Binding authenticated scope is invalid")
+    authoritative = projection.get("authoritative")
+    if (
+        not isinstance(authoritative, Mapping)
+        or set(authoritative) != {"scope", "purpose", "task"}
+        or authoritative.get("scope") != scope
+    ):
+        raise BehaviorError("Purpose Binding authoritative scope is not exact")
+    purpose_record = authoritative.get("purpose")
+    if (
+        not isinstance(purpose_record, Mapping)
+        or set(purpose_record) != {"id", "revision", "state", "policy"}
+        or purpose_record.get("state")
+        not in {"active", "suspended", "terminal", "unavailable"}
+        or purpose_record.get("policy") not in {"allow", "deny"}
+    ):
+        raise BehaviorError("Purpose Binding authoritative purpose is invalid")
+    _purpose_reference(
+        {
+            "id": purpose_record.get("id"),
+            "revision": purpose_record.get("revision"),
+        },
+        "purpose_binding.authoritative.purpose",
+    )
+    task_record = authoritative.get("task")
+    if task_record is not None:
+        if (
+            not isinstance(task_record, Mapping)
+            or set(task_record)
+            != {"id", "revision", "parent", "state", "policy"}
+            or task_record.get("state")
+            not in {"active", "suspended", "terminal", "unavailable"}
+            or task_record.get("policy") not in {"allow", "deny"}
+        ):
+            raise BehaviorError("Purpose Binding authoritative task is invalid")
+        _purpose_reference(
+            {
+                "id": task_record.get("id"),
+                "revision": task_record.get("revision"),
+            },
+            "purpose_binding.authoritative.task",
+        )
+        _purpose_reference(
+            task_record.get("parent"),
+            "purpose_binding.authoritative.task.parent",
+        )
+    if not isinstance(projection.get("expiry_within_lifetime"), bool):
+        raise BehaviorError("Purpose Binding lifetime projection must be boolean")
+    if not isinstance(projection.get("lifecycle_linked"), bool):
+        raise BehaviorError("Purpose Binding lifecycle projection must be boolean")
+    if projection.get("goal_authority_use") not in {
+        "informational_only",
+        "attempted",
+    }:
+        raise BehaviorError("Purpose Binding goal authority use is unknown")
+    return projection
+
+
+def _purpose_current_state(
+    projection: Mapping[str, Any],
+) -> tuple[str, str]:
+    binding = _purpose_binding(projection["grant"], "purpose_binding.grant")
+    authoritative = projection["authoritative"]
+    purpose = authoritative["purpose"]
+    if (
+        binding["purpose"]
+        != {"id": purpose["id"], "revision": purpose["revision"]}
+    ):
+        raise BehaviorError("Purpose Binding purpose record does not match the Grant")
+    states = [purpose["state"]]
+    policies = [purpose["policy"]]
+    task_binding = binding.get("task")
+    task_record = authoritative["task"]
+    if task_binding is None:
+        if task_record is not None:
+            raise BehaviorError("purpose-only Grant resolved an unexpected task")
+    else:
+        if task_record is None:
+            raise BehaviorError("task-bound Grant has no authoritative task")
+        if task_binding != {
+            "id": task_record["id"],
+            "revision": task_record["revision"],
+        }:
+            raise BehaviorError("Purpose Binding task record does not match the Grant")
+        if task_record["parent"] != binding["purpose"]:
+            raise BehaviorError("Purpose Binding task has the wrong parent purpose")
+        states.append(task_record["state"])
+        policies.append(task_record["policy"])
+    if "unavailable" in states:
+        return "unavailable", "unknown"
+    if "terminal" in states:
+        return "terminal", "deny"
+    if "suspended" in states:
+        return "suspended", "deny"
+    return "active", "allow" if all(item == "allow" for item in policies) else "deny"
+
+
+def _purpose_attenuation_relation(
+    parent_value: Any,
+    child_value: Any,
+) -> str:
+    parent = _purpose_binding(parent_value, "purpose_binding.parent")
+    child = _purpose_binding(child_value, "purpose_binding.grant")
+    if parent == child:
+        return "equal"
+    if parent["purpose"] != child["purpose"]:
+        return "wider"
+    parent_task = parent.get("task")
+    child_task = child.get("task")
+    if parent_task is None and child_task is not None:
+        return "narrower"
+    return "wider"
+
+
+def _purpose_pre_admission(
+    projection: Mapping[str, Any],
+    state: _Transition,
+    *,
+    require_session: bool,
+) -> tuple[str, str]:
+    grant_binding = _purpose_binding(projection["grant"], "purpose_binding.grant")
+    if require_session and _purpose_binding(
+        projection["session"], "purpose_binding.session"
+    ) != grant_binding:
+        return "session_invalid", "binding"
+    state.increment("purpose_binding.resolution_count")
+    current_state, policy = _purpose_current_state(projection)
+    if current_state != "active":
+        return current_state, policy
+    state.increment("purpose_binding.policy_evaluation_count")
+    if policy != "allow":
+        return "denied", policy
+    return "active", "allow"
 
 
 def _reject_embedded_impact(
@@ -3719,6 +3929,27 @@ def _surface(operation: str, document: Mapping[str, Any], state: _Transition) ->
         raise BehaviorError(f"Surface Publisher does not support {operation!r}")
     surface = _section(document, "surface")
     operational = document.get("operational")
+    purpose_projection = document.get("purpose_binding")
+    if purpose_projection is not None:
+        try:
+            purpose_projection = _purpose_projection(document)
+        except BehaviorError:
+            return state.result(
+                "rejected",
+                "purpose_binding_rejected",
+                "manifest_rejected",
+                asp_error="surface_incompatible",
+            )
+        if (
+            purpose_projection.get("advertised_profile") is not True
+            or purpose_projection.get("enforcement_ready") is not True
+        ):
+            return state.result(
+                "rejected",
+                "purpose_binding_rejected",
+                "manifest_rejected",
+                asp_error="surface_incompatible",
+            )
     has_risk_explanation = "risk_explanation" in document
     if has_risk_explanation:
         try:
@@ -3750,6 +3981,13 @@ def _surface(operation: str, document: Mapping[str, Any], state: _Transition) ->
         )
     state.increment("manifest.accepted_count")
     state.increment("surface.version_binding_count")
+    if purpose_projection is not None:
+        return state.result(
+            "accepted",
+            "purpose_binding_advertised",
+            "purpose_binding_validated",
+            "manifest_published",
+        )
     if operational is not None:
         if has_risk_explanation:
             return state.result(
@@ -3812,6 +4050,74 @@ def _grant(operation: str, document: Mapping[str, Any], state: _Transition) -> B
     if operation == "issue_grant":
         if surface.get("status") != "current":
             return state.result("rejected", "grant_rejected", "current_state_checked")
+        if "purpose_binding" in document:
+            try:
+                purpose = _purpose_projection(document)
+                request = _purpose_binding(
+                    purpose["request"], "purpose_binding.request"
+                )
+                if any(
+                    _purpose_binding(purpose[member], f"purpose_binding.{member}")
+                    != request
+                    for member in ("consent", "grant", "returned")
+                ):
+                    raise BehaviorError(
+                        "Purpose Binding changed between request, consent, and Grant"
+                    )
+                relation = _purpose_attenuation_relation(
+                    purpose["parent"], purpose["grant"]
+                )
+                if (
+                    purpose["advertised_profile"] is not True
+                    or purpose["enforcement_ready"] is not True
+                    or purpose["expiry_within_lifetime"] is not True
+                    or purpose["lifecycle_linked"] is not True
+                    or purpose["attenuation"] != relation
+                    or relation == "wider"
+                ):
+                    raise BehaviorError(
+                        "Purpose Binding issuance is not a closed attenuation"
+                    )
+                current_state, purpose_policy = _purpose_pre_admission(
+                    purpose,
+                    state,
+                    require_session=False,
+                )
+            except BehaviorError:
+                return state.result(
+                    "rejected",
+                    "purpose_binding_rejected",
+                    "grant_rejected",
+                    "credential_withheld",
+                    asp_error="integrity_mismatch",
+                )
+            if current_state == "unavailable":
+                return state.result(
+                    "rejected",
+                    "purpose_binding_state_checked",
+                    "purpose_binding_rejected",
+                    "grant_rejected",
+                    "credential_withheld",
+                    asp_error="purpose_binding_status_unavailable",
+                )
+            if current_state == "terminal":
+                return state.result(
+                    "rejected",
+                    "purpose_binding_state_checked",
+                    "purpose_binding_rejected",
+                    "grant_rejected",
+                    "credential_withheld",
+                    asp_error="grant_revoked",
+                )
+            if current_state != "active" or purpose_policy != "allow":
+                return state.result(
+                    "rejected",
+                    "purpose_binding_state_checked",
+                    "purpose_binding_rejected",
+                    "grant_rejected",
+                    "credential_withheld",
+                    asp_error="purpose_binding_denied",
+                )
         requested = grant.get("requested_actions")
         issued = grant.get("issued_actions")
         if not isinstance(requested, list) or not isinstance(issued, list):
@@ -3824,6 +4130,17 @@ def _grant(operation: str, document: Mapping[str, Any], state: _Transition) -> B
             return state.result("rejected", "grant_rejected", "current_state_checked")
         state.increment("grant.issued_count")
         state.increment("credential.issued_count")
+        if "purpose_binding" in document:
+            return state.result(
+                "accepted",
+                "purpose_binding_validated",
+                "purpose_binding_state_checked",
+                "purpose_binding_policy_checked",
+                "purpose_binding_attenuation_checked",
+                "grant_issued",
+                "tuple_checked",
+                "credential_withheld",
+            )
         return state.result("accepted", "grant_issued", "tuple_checked")
     if operation != "revoke_grant":
         raise BehaviorError(f"Grant Issuer does not support {operation!r}")
@@ -4015,6 +4332,55 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
             "accepted", "event_first_delivery_admitted", "event_transmitted"
         )
     if operation == "replay_action":
+        if "purpose_binding" in document:
+            try:
+                purpose = _purpose_projection(document)
+                current_state, purpose_policy = _purpose_pre_admission(
+                    purpose,
+                    state,
+                    require_session=True,
+                )
+            except BehaviorError:
+                return state.result(
+                    "rejected",
+                    "purpose_binding_rejected",
+                    "action_rejected",
+                    asp_error="integrity_mismatch",
+                )
+            if current_state == "session_invalid":
+                return state.result(
+                    "rejected",
+                    "purpose_binding_rejected",
+                    "action_rejected",
+                    asp_error="session_invalid",
+                )
+            if current_state != "active" or purpose_policy != "allow":
+                state.increment("purpose_binding.session_fence_count")
+                if current_state == "terminal":
+                    state.set("grant.lifecycle", "revoked")
+                    return state.result(
+                        "rejected",
+                        "purpose_binding_state_checked",
+                        "purpose_binding_rejected",
+                        "session_fenced",
+                        "semantic_grant_revocation_applied",
+                        "action_rejected",
+                        "retry_suppressed",
+                        asp_error="grant_revoked",
+                    )
+                return state.result(
+                    "rejected",
+                    "purpose_binding_state_checked",
+                    "purpose_binding_rejected",
+                    "session_fenced",
+                    "action_rejected",
+                    "retry_suppressed",
+                    asp_error=(
+                        "purpose_binding_status_unavailable"
+                        if current_state == "unavailable"
+                        else "purpose_binding_denied"
+                    ),
+                )
         if execution.get("input_schema_hash") != execution.get("recorded_input_schema_hash"):
             return state.result(
                 "rejected",
@@ -4097,6 +4463,74 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
         return state.result(
             "rejected", "action_rejected", "current_state_checked", asp_error="runtime_untrusted"
         )
+    purpose: Mapping[str, Any] | None = None
+    if "purpose_binding" in document:
+        try:
+            purpose = _purpose_projection(document)
+            current_state, purpose_policy = _purpose_pre_admission(
+                purpose,
+                state,
+                require_session=True,
+            )
+        except BehaviorError:
+            return state.result(
+                "rejected",
+                "purpose_binding_rejected",
+                "action_rejected",
+                asp_error="integrity_mismatch",
+            )
+        if current_state == "session_invalid":
+            return state.result(
+                "rejected",
+                "purpose_binding_rejected",
+                "action_rejected",
+                asp_error="session_invalid",
+            )
+        if current_state in {"unavailable", "suspended", "terminal"}:
+            state.increment("purpose_binding.session_fence_count")
+            if current_state == "terminal":
+                state.set("grant.lifecycle", "revoked")
+                return state.result(
+                    "rejected",
+                    "purpose_binding_state_checked",
+                    "purpose_binding_rejected",
+                    "session_fenced",
+                    "semantic_grant_revocation_applied",
+                    "action_rejected",
+                    asp_error="grant_revoked",
+                )
+            error_code = (
+                "purpose_binding_status_unavailable"
+                if current_state == "unavailable"
+                else "purpose_binding_denied"
+            )
+            return state.result(
+                "rejected",
+                "purpose_binding_state_checked",
+                "purpose_binding_rejected",
+                "session_fenced",
+                "action_rejected",
+                asp_error=error_code,
+            )
+        if purpose_policy != "allow":
+            return state.result(
+                "rejected",
+                "purpose_binding_state_checked",
+                "purpose_binding_policy_checked",
+                "purpose_binding_rejected",
+                "action_rejected",
+                asp_error="purpose_binding_denied",
+            )
+        if purpose["goal_authority_use"] != "informational_only":
+            return state.result(
+                "rejected",
+                "purpose_binding_state_checked",
+                "purpose_binding_policy_checked",
+                "purpose_binding_goal_authority_rejected",
+                "purpose_binding_rejected",
+                "action_rejected",
+                asp_error="purpose_binding_denied",
+            )
     if execution.get("policy") != "allow":
         state.increment("receipt.application_count")
         return state.result(
@@ -4149,6 +4583,18 @@ def _action(operation: str, document: Mapping[str, Any], state: _Transition) -> 
         "receipt.application_count",
     ):
         state.increment(name)
+    if purpose is not None:
+        return state.result(
+            "accepted",
+            "purpose_binding_validated",
+            "purpose_binding_state_checked",
+            "purpose_binding_policy_checked",
+            "purpose_binding_session_bound",
+            "action_accepted",
+            "tuple_checked",
+            "current_state_checked",
+            "application_receipt_emitted",
+        )
     return state.result(
         "accepted",
         "action_accepted",
@@ -4565,6 +5011,95 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
                 "mediation_stopped",
                 asp_error="integrity_mismatch",
             )
+        if "purpose_binding" in document:
+            try:
+                purpose = _purpose_projection(document)
+                confirmed = _purpose_binding(
+                    purpose["consent"], "purpose_binding.consent"
+                )
+                if any(
+                    _purpose_binding(purpose[member], f"purpose_binding.{member}")
+                    != confirmed
+                    for member in ("request", "grant", "returned")
+                ):
+                    raise BehaviorError(
+                        "returned Purpose Binding differs from the confirmed request"
+                    )
+                if (
+                    purpose["advertised_profile"] is not True
+                    or purpose["enforcement_ready"] is not True
+                    or purpose["expiry_within_lifetime"] is not True
+                    or purpose["lifecycle_linked"] is not True
+                ):
+                    raise BehaviorError(
+                        "Purpose Binding enforcement projection is incomplete"
+                    )
+                current_state, purpose_policy = _purpose_pre_admission(
+                    purpose,
+                    state,
+                    require_session=True,
+                )
+            except BehaviorError:
+                return state.result(
+                    "rejected",
+                    "purpose_binding_rejected",
+                    "grant_rejected",
+                    "mediation_stopped",
+                    asp_error="integrity_mismatch",
+                )
+            if current_state == "session_invalid":
+                return state.result(
+                    "rejected",
+                    "purpose_binding_rejected",
+                    "grant_rejected",
+                    "mediation_stopped",
+                    asp_error="session_invalid",
+                )
+            if current_state in {"unavailable", "suspended", "terminal"}:
+                state.increment("purpose_binding.session_fence_count")
+                if current_state == "terminal":
+                    state.set("grant.lifecycle", "revoked")
+                    return state.result(
+                        "stopped",
+                        "purpose_binding_state_checked",
+                        "purpose_binding_rejected",
+                        "session_fenced",
+                        "semantic_grant_revocation_applied",
+                        "mediation_stopped",
+                        asp_error="grant_revoked",
+                    )
+                error_code = (
+                    "purpose_binding_status_unavailable"
+                    if current_state == "unavailable"
+                    else "purpose_binding_denied"
+                )
+                return state.result(
+                    "stopped",
+                    "purpose_binding_state_checked",
+                    "purpose_binding_rejected",
+                    "session_fenced",
+                    "mediation_stopped",
+                    asp_error=error_code,
+                )
+            if purpose_policy != "allow":
+                return state.result(
+                    "rejected",
+                    "purpose_binding_state_checked",
+                    "purpose_binding_policy_checked",
+                    "purpose_binding_rejected",
+                    "mediation_stopped",
+                    asp_error="purpose_binding_denied",
+                )
+            if purpose["goal_authority_use"] != "informational_only":
+                return state.result(
+                    "rejected",
+                    "purpose_binding_state_checked",
+                    "purpose_binding_policy_checked",
+                    "purpose_binding_goal_authority_rejected",
+                    "purpose_binding_rejected",
+                    "mediation_stopped",
+                    asp_error="purpose_binding_denied",
+                )
         if runtime.get("returned_grant_width") != "equal":
             return state.result(
                 "rejected",
@@ -4577,6 +5112,15 @@ def _runtime(operation: str, document: Mapping[str, Any], state: _Transition) ->
                 "rejected", "mediation_stopped", match_reason="input_unknown"
             )
         state.increment("runtime.stored_grant_width")
+        if "purpose_binding" in document:
+            return state.result(
+                "accepted",
+                "purpose_binding_validated",
+                "purpose_binding_state_checked",
+                "purpose_binding_policy_checked",
+                "purpose_binding_session_bound",
+                "tuple_checked",
+            )
         return state.result("accepted", "tuple_checked")
     if operation == "retry_outcome":
         if execution.get("outcome_state") == "unknown" and execution.get("retry_key") == "new":

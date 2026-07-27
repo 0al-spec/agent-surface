@@ -1,8 +1,8 @@
 # Agent Surface RFC Plan and Debt
 
 - Status: active planning snapshot
-- Snapshot date: 2026-07-26
-- Snapshot base: `ad2e71803160ec6b6bfa1e91f5c44c7b28ba8ca9`
+- Snapshot date: 2026-07-27
+- Snapshot base: `baa154e123fda7718c2f07fac4db1f68867a0743`
 - Canonical machine-readable source: [`review-data.json`](review-data.json)
 
 ## Purpose and authority
@@ -40,8 +40,8 @@ The active coverage debt is therefore **9 cards**: 3 P2 and 6 P3.
 | Maturity | Cards |
 | --- | ---: |
 | `proposal` | 9 |
-| `specified` | 53 |
-| `machine_validated` | 14 |
+| `specified` | 52 |
+| `machine_validated` | 15 |
 | `implementation_tested` | 1 |
 | `interop_tested` | 0 |
 | `stable` | 0 |
@@ -100,9 +100,9 @@ ASP Grant, approval, effect claim, or receipt.
 
 ### Broader maturity debt
 
-The current 53 `specified` cards still need card-appropriate executable schemas,
+The current 52 `specified` cards still need card-appropriate executable schemas,
 registries, validators, and positive and negative vectors before they can move
-to `machine_validated`. The 14 `machine_validated` cards need evidence from
+to `machine_validated`. The 15 `machine_validated` cards need evidence from
 real implementations before they can move to `implementation_tested`.
 
 The project still needs:
@@ -148,7 +148,7 @@ completed #63 and #69 contracts.
 ### Lane D: delegation hardening
 
 ```text
-#64 Purpose- and Task-Bound Agent Grants (specified)
+#64 Purpose- and Task-Bound Agent Grants (machine-validated)
 ```
 
 ### Lane E: publication and authoring tooling
@@ -172,14 +172,14 @@ completed #63 and #69 contracts.
 ```
 
 The intake's P1 delivery lane is complete through **#74 Independent Reference
-Vertical Slice**, and the normative contract for **#64 Purpose- and Task-Bound
-Agent Grants** is specified. Its separate executable follow-up should add
-schemas, registries, validators, and positive and negative vectors before the
-card can advance to `machine_validated`. The next recommended normative slice
-is **#66 Modular RFC Publication Architecture**. **#70 ASP-over-WebMCP Binding**
-is the ready transport alternative, but remains P2 while WebMCP is
-experimental. Lower-priority mappings should advance only when their upstream
-specification is sufficiently stable and there is concrete adopter demand.
+Vertical Slice**. **#64 Purpose- and Task-Bound Agent Grants** now has an
+executable schema, closed catalog vectors, semantic validation, and reference
+mock behavior, so the card is `machine_validated`. The next recommended
+normative slice is **#66 Modular RFC Publication Architecture**. **#70
+ASP-over-WebMCP Binding** is the ready transport alternative, but remains P2
+while WebMCP is experimental. Lower-priority mappings should advance only when
+their upstream specification is sufficiently stable and there is concrete
+adopter demand.
 
 ## Definition of done for a protocol slice
 

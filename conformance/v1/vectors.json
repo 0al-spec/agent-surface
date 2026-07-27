@@ -2,7 +2,7 @@
   "$schema": "./vectors.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.9.0",
+  "suite_version": "1.10.0",
   "vectors": [
     {
       "vector_id": "ASP-V-SP-001",
@@ -8274,6 +8274,1469 @@
         }
     ],
     "expected_policy_reason": "binding_invalid"
-}
+},
+    {
+      "vector_id": "ASP-V-SP-014",
+      "title": "Advertise Purpose Binding only after complete enforcement is available",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-SP-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "publish_manifest",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "purpose_binding_advertised",
+        "purpose_binding_validated",
+        "manifest_published"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_rejected",
+        "manifest_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "surface.version_binding_count",
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-SP-015",
+      "title": "Reject Purpose Binding advertisement with incomplete enforcement",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-SP-014",
+      "requirement_ids": [
+        "ASP-SP-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "static",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "publish_manifest",
+        "input_variant": "purpose_binding_enforcement_incomplete"
+      },
+      "required_observations": [
+        "purpose_binding_rejected",
+        "manifest_rejected"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_advertised",
+        "manifest_published"
+      ],
+      "state_deltas": [
+        {
+          "state": "manifest.accepted_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "surface.version_binding_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "surface_incompatible"
+    },
+    {
+      "vector_id": "ASP-V-GI-011",
+      "title": "Issue an exact task-bound child under one active purpose",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-GI-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "issue_grant",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "purpose_binding_validated",
+        "purpose_binding_state_checked",
+        "purpose_binding_policy_checked",
+        "purpose_binding_attenuation_checked",
+        "grant_issued",
+        "tuple_checked",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_rejected",
+        "grant_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.issued_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "credential.issued_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-GI-012",
+      "title": "Reject a task whose authoritative parent is another purpose",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-GI-011",
+      "requirement_ids": [
+        "ASP-GI-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "issue_grant",
+        "input_variant": "purpose_binding_task_parent_mismatch"
+      },
+      "required_observations": [
+        "purpose_binding_rejected",
+        "grant_rejected",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_validated",
+        "grant_issued"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "integrity_mismatch"
+    },
+    {
+      "vector_id": "ASP-V-GI-013",
+      "title": "Reject a returned sibling task substituted after consent",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-GI-011",
+      "requirement_ids": [
+        "ASP-GI-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "issue_grant",
+        "input_variant": "purpose_binding_returned_substitution"
+      },
+      "required_observations": [
+        "purpose_binding_rejected",
+        "grant_rejected",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_validated",
+        "grant_issued"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "integrity_mismatch"
+    },
+    {
+      "vector_id": "ASP-V-GI-014",
+      "title": "Reject a purpose derivation represented as wider attenuation",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-GI-011",
+      "requirement_ids": [
+        "ASP-GI-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "issue_grant",
+        "input_variant": "purpose_binding_attenuation_widening"
+      },
+      "required_observations": [
+        "purpose_binding_rejected",
+        "grant_rejected",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_attenuation_checked",
+        "grant_issued"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "integrity_mismatch"
+    },
+    {
+      "vector_id": "ASP-V-GI-015",
+      "title": "Fail closed when authoritative purpose state is unavailable",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-GI-011",
+      "requirement_ids": [
+        "ASP-GI-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "issue_grant",
+        "input_variant": "purpose_binding_status_unavailable"
+      },
+      "required_observations": [
+        "purpose_binding_state_checked",
+        "purpose_binding_rejected",
+        "grant_rejected",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_policy_checked",
+        "grant_issued"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "purpose_binding_status_unavailable"
+    },
+    {
+      "vector_id": "ASP-V-GI-016",
+      "title": "Reject an exchanged binding without source lifecycle linkage",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-GI-011",
+      "requirement_ids": [
+        "ASP-GI-006"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "issue_grant",
+        "input_variant": "purpose_binding_lifecycle_unlinked"
+      },
+      "required_observations": [
+        "purpose_binding_rejected",
+        "grant_rejected",
+        "credential_withheld"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_attenuation_checked",
+        "grant_issued"
+      ],
+      "state_deltas": [
+        {
+          "state": "grant.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.issued_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "integrity_mismatch"
+    },
+    {
+      "vector_id": "ASP-V-AE-038",
+      "title": "Admit an action only after exact current Purpose Binding checks",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-AE-014"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "purpose_binding_validated",
+        "purpose_binding_state_checked",
+        "purpose_binding_policy_checked",
+        "purpose_binding_session_bound",
+        "action_accepted",
+        "tuple_checked",
+        "current_state_checked",
+        "application_receipt_emitted"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_rejected",
+        "action_rejected"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "application.workload_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-AE-039",
+      "title": "Reject a session whose Purpose Binding revision differs from the Grant",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-038",
+      "requirement_ids": [
+        "ASP-AE-014"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "purpose_binding_session_mismatch"
+      },
+      "required_observations": [
+        "purpose_binding_rejected",
+        "action_rejected"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_state_checked",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "application.workload_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "session_invalid"
+    },
+    {
+      "vector_id": "ASP-V-AE-040",
+      "title": "Fence action admission while purpose state is unavailable",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-038",
+      "requirement_ids": [
+        "ASP-AE-014"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "purpose_binding_status_unavailable"
+      },
+      "required_observations": [
+        "purpose_binding_state_checked",
+        "purpose_binding_rejected",
+        "session_fenced",
+        "action_rejected"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_policy_checked",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "application.workload_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 1
+        }
+      ],
+      "expected_error": "purpose_binding_status_unavailable"
+    },
+    {
+      "vector_id": "ASP-V-AE-041",
+      "title": "Fence action admission for a suspended purpose",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-038",
+      "requirement_ids": [
+        "ASP-AE-014"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "purpose_binding_suspended"
+      },
+      "required_observations": [
+        "purpose_binding_state_checked",
+        "purpose_binding_rejected",
+        "session_fenced",
+        "action_rejected"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_policy_checked",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "application.workload_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 1
+        }
+      ],
+      "expected_error": "purpose_binding_denied"
+    },
+    {
+      "vector_id": "ASP-V-AE-042",
+      "title": "Apply semantic Grant revocation before new work for a terminal purpose",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-038",
+      "requirement_ids": [
+        "ASP-AE-014"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "purpose_binding_terminal"
+      },
+      "required_observations": [
+        "purpose_binding_state_checked",
+        "purpose_binding_rejected",
+        "session_fenced",
+        "semantic_grant_revocation_applied",
+        "action_rejected"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_policy_checked",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "application.workload_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "grant.lifecycle",
+          "before": "active",
+          "after": "revoked"
+        }
+      ],
+      "expected_error": "grant_revoked"
+    },
+    {
+      "vector_id": "ASP-V-AE-043",
+      "title": "Reject an action denied by current purpose policy before admission",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-038",
+      "requirement_ids": [
+        "ASP-AE-014"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "invoke_action",
+        "input_variant": "purpose_binding_policy_denied"
+      },
+      "required_observations": [
+        "purpose_binding_state_checked",
+        "purpose_binding_policy_checked",
+        "purpose_binding_rejected",
+        "action_rejected"
+      ],
+      "forbidden_observations": [
+        "action_accepted",
+        "application_receipt_emitted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "application.workload_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "purpose_binding_denied"
+    },
+    {
+      "vector_id": "ASP-V-AE-044",
+      "title": "Reject Action Request replay after terminal purpose closure",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-AE-038",
+      "requirement_ids": [
+        "ASP-AE-014"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "replay_action",
+        "input_variant": "purpose_binding_terminal"
+      },
+      "required_observations": [
+        "purpose_binding_state_checked",
+        "purpose_binding_rejected",
+        "session_fenced",
+        "semantic_grant_revocation_applied",
+        "action_rejected",
+        "retry_suppressed"
+      ],
+      "forbidden_observations": [
+        "original_result_replayed",
+        "action_accepted"
+      ],
+      "state_deltas": [
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.effect_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "application.workload_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "credential.agent_visible_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "grant.lifecycle",
+          "before": "active",
+          "after": "revoked"
+        }
+      ],
+      "expected_error": "grant_revoked"
+    },
+    {
+      "vector_id": "ASP-V-RM-081",
+      "title": "Retain an exact returned Purpose Binding and copy it into the session",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "positive",
+      "requirement_ids": [
+        "ASP-RM-016"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "mediate_grant",
+        "input_variant": "valid"
+      },
+      "required_observations": [
+        "purpose_binding_validated",
+        "purpose_binding_state_checked",
+        "purpose_binding_policy_checked",
+        "purpose_binding_session_bound",
+        "tuple_checked"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_rejected",
+        "mediation_stopped"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "vector_id": "ASP-V-RM-082",
+      "title": "Reject a returned Purpose Binding substituted after confirmation",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-081",
+      "requirement_ids": [
+        "ASP-RM-016"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "mediate_grant",
+        "input_variant": "purpose_binding_returned_substitution"
+      },
+      "required_observations": [
+        "purpose_binding_rejected",
+        "grant_rejected",
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_validated",
+        "tuple_checked"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "integrity_mismatch"
+    },
+    {
+      "vector_id": "ASP-V-RM-083",
+      "title": "Reject a session Purpose Binding that differs from the Grant",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-081",
+      "requirement_ids": [
+        "ASP-RM-016"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "mediate_grant",
+        "input_variant": "purpose_binding_session_mismatch"
+      },
+      "required_observations": [
+        "purpose_binding_rejected",
+        "grant_rejected",
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_state_checked",
+        "tuple_checked"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "session_invalid"
+    },
+    {
+      "vector_id": "ASP-V-RM-084",
+      "title": "Fence local work while authenticated purpose state is unavailable",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-081",
+      "requirement_ids": [
+        "ASP-RM-016"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": false,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "mediate_grant",
+        "input_variant": "purpose_binding_status_unavailable"
+      },
+      "required_observations": [
+        "purpose_binding_state_checked",
+        "purpose_binding_rejected",
+        "session_fenced",
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_policy_checked",
+        "tuple_checked"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 1
+        }
+      ],
+      "expected_error": "purpose_binding_status_unavailable"
+    },
+    {
+      "vector_id": "ASP-V-RM-085",
+      "title": "Reject use of informational task goal as Purpose Binding authority",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "polarity": "negative",
+      "baseline_vector_id": "ASP-V-RM-081",
+      "requirement_ids": [
+        "ASP-RM-016"
+      ],
+      "features": [
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      ],
+      "execution_class": "behavioral",
+      "cross_role_attack": true,
+      "setup": [
+        "current_surface",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
+      ],
+      "stimulus": {
+        "operation": "mediate_grant",
+        "input_variant": "purpose_binding_goal_authority_attempt"
+      },
+      "required_observations": [
+        "purpose_binding_state_checked",
+        "purpose_binding_policy_checked",
+        "purpose_binding_goal_authority_rejected",
+        "purpose_binding_rejected",
+        "mediation_stopped"
+      ],
+      "forbidden_observations": [
+        "purpose_binding_validated",
+        "tuple_checked"
+      ],
+      "state_deltas": [
+        {
+          "state": "runtime.stored_grant_width",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "action.dispatch_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "idempotency.record_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "budget.application_charge",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "receipt.application_count",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "state": "purpose_binding.resolution_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.policy_evaluation_count",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "state": "purpose_binding.session_fence_count",
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "expected_error": "purpose_binding_denied"
+    }
   ]
 }

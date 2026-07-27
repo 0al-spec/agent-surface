@@ -25,7 +25,7 @@
     "suite_id": {
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
-    "suite_version": { "const": "1.9.0" },
+    "suite_version": { "const": "1.10.0" },
     "protocol_version": { "const": "agent-surface/0.1" },
     "claim_effect": { "const": "descriptive_only" },
     "bundles": {
@@ -82,7 +82,7 @@
         "producer_role": { "enum": ["application", "runtime"] },
         "feature_ids": {
           "type": "array",
-          "maxItems": 14,
+          "maxItems": 15,
           "uniqueItems": true,
           "items": {
             "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/suite/v1#/$defs/featureId"

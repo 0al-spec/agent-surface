@@ -126,7 +126,10 @@
         "rate_limited",
         "capacity_state_unavailable",
         "service_unavailable",
-        "elicitation_invalid"
+        "elicitation_invalid",
+        "purpose_binding_status_unavailable",
+        "purpose_binding_denied",
+        "session_invalid"
       ]
     },
     "observationToken": {
@@ -259,7 +262,17 @@
         "application_dry_run_suppressed",
         "application_dry_run_invoked",
         "impact_simulation_agent_projection_suppressed",
-        "impact_simulation_agent_projected"
+        "impact_simulation_agent_projected",
+        "purpose_binding_advertised",
+        "purpose_binding_validated",
+        "purpose_binding_rejected",
+        "purpose_binding_state_checked",
+        "purpose_binding_policy_checked",
+        "purpose_binding_session_bound",
+        "purpose_binding_attenuation_checked",
+        "purpose_binding_goal_authority_rejected",
+        "session_fenced",
+        "semantic_grant_revocation_applied"
       ]
     },
     "stateName": {
@@ -326,7 +339,10 @@
         "runtime.risk_explanation_presentation_count",
         "runtime.impact_simulation_presentation_count",
         "application.proposal_revision",
-        "application.proposal_update_count"
+        "application.proposal_update_count",
+        "purpose_binding.resolution_count",
+        "purpose_binding.policy_evaluation_count",
+        "purpose_binding.session_fence_count"
       ]
     },
     "stateValue": {

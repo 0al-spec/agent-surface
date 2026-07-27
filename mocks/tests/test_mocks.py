@@ -145,10 +145,60 @@ class MockBehaviorSecurityTests(unittest.TestCase):
                 "state_deltas",
             }
         )
-        self.assertEqual(len(self.catalog.vectors), 163)
+        self.assertEqual(len(self.catalog.vectors), 183)
         for vector_id in self.catalog.vectors:
             with self.subTest(vector_id=vector_id):
                 self.assert_matches_catalog_oracle(vector_id)
+
+    def test_purpose_binding_is_exact_scoped_and_pre_admission(self) -> None:
+        for vector_id in (
+            "ASP-V-GI-012",
+            "ASP-V-GI-013",
+            "ASP-V-GI-014",
+            "ASP-V-GI-015",
+            "ASP-V-GI-016",
+            "ASP-V-AE-039",
+            "ASP-V-AE-040",
+            "ASP-V-AE-041",
+            "ASP-V-AE-042",
+            "ASP-V-AE-043",
+            "ASP-V-AE-044",
+            "ASP-V-RM-082",
+            "ASP-V-RM-083",
+            "ASP-V-RM-084",
+            "ASP-V-RM-085",
+        ):
+            with self.subTest(vector_id=vector_id):
+                result = self.assert_matches_catalog_oracle(vector_id)
+                for state_name in (
+                    "action.dispatch_count",
+                    "action.effect_count",
+                    "idempotency.record_count",
+                    "budget.application_charge",
+                    "receipt.application_count",
+                    "application.workload_count",
+                ):
+                    if state_name in result.state_after:
+                        self.assertEqual(result.state_after[state_name], 0)
+
+        vector = self.catalog.vectors["ASP-V-AE-039"]
+        document = copy.deepcopy(
+            self.catalog.fixtures["ASP-F-AE-038"]["document"]
+        )
+        document["purpose_binding"]["authoritative"]["scope"][
+            "subject_user"
+        ] = "user_b"
+        result = self.evaluate_document(vector, document)
+        self.assertEqual(result.asp_error, "integrity_mismatch")
+        self.assertEqual(
+            set(result.tokens),
+            {"purpose_binding_rejected", "action_rejected"},
+        )
+        self.assertTrue(all(value == 0 for value in result.state_after.values()))
+
+        replay = self.assert_matches_catalog_oracle("ASP-V-AE-044")
+        self.assertNotIn("original_result_replayed", replay.tokens)
+        self.assertEqual(replay.state_after["grant.lifecycle"], "revoked")
 
     def test_impact_simulation_is_supplemental_and_never_authority(self) -> None:
         for vector_id in (

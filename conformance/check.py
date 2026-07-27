@@ -56,6 +56,7 @@ SCHEMA_NAMES = (
     "mcp-binding",
     "observation",
     "operational-limits",
+    "purpose-task-bound-grant",
     "report",
     "risk-explanation",
     "schema-cases",
@@ -146,6 +147,7 @@ HUMAN_ELICITATION_SCHEMA_ID = SCHEMA_IDS["human-elicitation"]
 IMPACT_SIMULATION_SCHEMA_ID = SCHEMA_IDS["impact-simulation"]
 RISK_EXPLANATION_SCHEMA_ID = SCHEMA_IDS["risk-explanation"]
 MCP_BINDING_SCHEMA_ID = SCHEMA_IDS["mcp-binding"]
+PURPOSE_TASK_BOUND_GRANT_SCHEMA_ID = SCHEMA_IDS["purpose-task-bound-grant"]
 OPERATIONAL_LIMITS_FEATURE_ID = (
     "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1"
 )
@@ -154,6 +156,10 @@ ASP_OVER_AHP_FEATURE_ID = (
 )
 ASP_OVER_MCP_FEATURE_ID = (
     "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+)
+PURPOSE_TASK_BOUND_GRANT_FEATURE_ID = (
+    "https://github.com/0al-spec/agent-surface/profiles/"
+    "purpose-task-bound-grant/v1"
 )
 ASP_OVER_MCP_EXTENSION_ID = "io.github.zeroal-spec/asp-over-mcp-v1"
 ASP_OVER_MCP_PROTOCOL_VERSION = "2025-11-25"
@@ -5681,6 +5687,7 @@ def _validate_schema_cases(
         IMPACT_SIMULATION_SCHEMA_ID: set(),
         RISK_EXPLANATION_SCHEMA_ID: set(),
         MCP_BINDING_SCHEMA_ID: set(),
+        PURPOSE_TASK_BOUND_GRANT_SCHEMA_ID: set(),
     }
     for case in catalog["cases"]:
         schema_id = case["schema_id"]
@@ -5691,6 +5698,7 @@ def _validate_schema_cases(
             IMPACT_SIMULATION_SCHEMA_ID: "ASP-SC-IS-",
             RISK_EXPLANATION_SCHEMA_ID: "ASP-SC-RE-",
             MCP_BINDING_SCHEMA_ID: "ASP-SC-MB-",
+            PURPOSE_TASK_BOUND_GRANT_SCHEMA_ID: "ASP-SC-PB-",
         }[schema_id]
         if not case["case_id"].startswith(expected_prefix):
             raise ConformanceError(
@@ -5748,6 +5756,13 @@ def _validate_schema_cases(
                     registry=registry,
                 )
                 validate_mcp_wire_semantics(instance, **case["context"])
+            elif schema_id == PURPOSE_TASK_BOUND_GRANT_SCHEMA_ID:
+                _validate_with_schema(
+                    instance,
+                    schemas["purpose-task-bound-grant"],
+                    "Purpose Binding case",
+                    registry=registry,
+                )
             else:
                 validate_risk_explanation(
                     instance,
@@ -5773,6 +5788,99 @@ def _validate_schema_cases(
             raise ConformanceError(
                 f"schema case catalog requires both polarities for {schema_id}"
             )
+
+
+def validate_purpose_task_bound_grant_projection(
+    projection: dict[str, Any],
+    *,
+    root: Path = ROOT,
+    registry: Registry | None = None,
+) -> None:
+    registry = registry or _schema_registry(root)
+    binding_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": PURPOSE_TASK_BOUND_GRANT_SCHEMA_ID,
+    }
+    bindings: dict[str, dict[str, Any]] = {}
+    for member in ("request", "consent", "grant", "returned", "session", "parent"):
+        binding = projection[member]
+        _validate_with_schema(
+            binding,
+            binding_schema,
+            f"Purpose Binding projection member {member}",
+            registry=registry,
+        )
+        bindings[member] = binding
+    if any(
+        bindings[member] != bindings["request"]
+        for member in ("consent", "grant", "returned", "session")
+    ):
+        raise ConformanceError(
+            "Purpose Binding baseline does not preserve exact request, consent, "
+            "Grant, returned, and session objects"
+        )
+    if (
+        projection["advertised_profile"] is not True
+        or projection["enforcement_ready"] is not True
+        or projection["expiry_within_lifetime"] is not True
+        or projection["lifecycle_linked"] is not True
+        or projection["goal_authority_use"] != "informational_only"
+    ):
+        raise ConformanceError(
+            "Purpose Binding baseline does not represent complete fail-closed enforcement"
+        )
+    if projection["authenticated_scope"] != projection["authoritative"]["scope"]:
+        raise ConformanceError(
+            "Purpose Binding baseline crosses its authenticated namespace"
+        )
+    purpose_ref = bindings["grant"]["purpose"]
+    purpose_record = projection["authoritative"]["purpose"]
+    if (
+        purpose_ref
+        != {"id": purpose_record["id"], "revision": purpose_record["revision"]}
+        or purpose_record["state"] != "active"
+        or purpose_record["policy"] != "allow"
+    ):
+        raise ConformanceError(
+            "Purpose Binding baseline lacks an exact active allowed purpose record"
+        )
+    task_ref = bindings["grant"].get("task")
+    task_record = projection["authoritative"]["task"]
+    if task_ref is None:
+        if task_record is not None:
+            raise ConformanceError(
+                "purpose-only baseline resolves an unexpected task record"
+            )
+    elif (
+        task_record is None
+        or task_ref
+        != {"id": task_record["id"], "revision": task_record["revision"]}
+        or task_record["parent"] != purpose_ref
+        or task_record["state"] != "active"
+        or task_record["policy"] != "allow"
+    ):
+        raise ConformanceError(
+            "task-bound baseline lacks its exact active parent relationship"
+        )
+    parent = bindings["parent"]
+    expected_relation = (
+        "equal"
+        if parent == bindings["grant"]
+        else (
+            "narrower"
+            if parent["purpose"] == purpose_ref
+            and "task" not in parent
+            and task_ref is not None
+            else "wider"
+        )
+    )
+    if (
+        projection["attenuation"] != expected_relation
+        or expected_relation == "wider"
+    ):
+        raise ConformanceError(
+            "Purpose Binding baseline violates the portable attenuation order"
+        )
 
 
 def _slugify(value: str) -> str:
@@ -6281,6 +6389,48 @@ def _semantic_validate_catalog(
                 fixture["document"]["surface"],
                 fixture["document"]["grant"],
                 fixture["document"]["execution"],
+                root=root,
+            )
+        has_purpose_binding_feature = (
+            PURPOSE_TASK_BOUND_GRANT_FEATURE_ID in vector["features"]
+        )
+        has_purpose_binding_projection = (
+            "purpose_binding" in fixture["document"]
+        )
+        selects_purpose_binding = (
+            "purpose_task_binding_selected" in vector["setup"]
+        )
+        if (
+            has_purpose_binding_feature
+            != has_purpose_binding_projection
+            or has_purpose_binding_feature != selects_purpose_binding
+        ):
+            raise ConformanceError(
+                f"Purpose Binding vector {vector_id} feature, setup, and fixture "
+                "state differ"
+            )
+        if has_purpose_binding_feature:
+            allowed_operations = {
+                "https://github.com/0al-spec/agent-surface/conformance/"
+                "surface-publisher/v1": {"publish_manifest"},
+                "https://github.com/0al-spec/agent-surface/conformance/"
+                "grant-issuer/v1": {"issue_grant"},
+                "https://github.com/0al-spec/agent-surface/conformance/"
+                "action-executor/v1": {"invoke_action", "replay_action"},
+                "https://github.com/0al-spec/agent-surface/conformance/"
+                "runtime-mediator/v1": {"mediate_grant"},
+            }
+            if (
+                profile_id not in allowed_operations
+                or operation not in allowed_operations[profile_id]
+                or "authenticated_purpose_records" not in vector["setup"]
+            ):
+                raise ConformanceError(
+                    f"Purpose Binding vector {vector_id} targets an invalid role, "
+                    "operation, or record source"
+                )
+            validate_purpose_task_bound_grant_projection(
+                fixture["document"]["purpose_binding"],
                 root=root,
             )
         if vector["polarity"] == "negative":
@@ -7064,7 +7214,7 @@ def run_suite(
     started_at = _utc_now()
     runner = {
         "runner_id": "asp-reference-conformance-runner",
-        "runner_version": "1.9.0",
+        "runner_version": "1.10.0",
         "runner_artifact_sha256": file_digest(
             "ASP-CONFORMANCE-RUNNER-V1", root / "conformance" / "check.py"
         ),

@@ -114,6 +114,18 @@ or AHP translation operations. The mock never turns
 simulation into a Grant, approval interaction, application `dry_run`, action
 dispatch, effect, receipt, or agent projection.
 
+The Purpose / Task Binding paths preserve the exact opaque `{id, revision}`
+references requested by the Runtime, shown in consent, issued in the Grant,
+returned by the application, and bound to the active Session. A Task reference
+is accepted only when its authenticated authoritative record names the exact
+Purpose parent, and portable attenuation may narrow Purpose to Task but may
+never widen Task back to Purpose. Mock App and Mock Runtime resolve records in
+the authenticated principal/application scope, require current lifecycle and
+policy state, and fence unavailable or suspended records before idempotency,
+budget, workload, effect, dispatch, replay, or receipt processing. Terminal
+records semantically revoke the affected Grant. Session goal prose remains
+informational and is never treated as Purpose or Task authority.
+
 The internal `asp-mock-participant/1` protocol is test control plumbing, not an
 ASP wire binding. `mock_app.py` and `mock_runtime.py` accept one closed envelope
 on standard input:

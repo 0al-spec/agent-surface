@@ -818,6 +818,22 @@ class ReviewDataValidationTests(unittest.TestCase):
         ]
         self.assert_invalid(payload, "missing bound evidence")
 
+    def test_purpose_binding_machine_validation_requires_exact_evidence(self) -> None:
+        for missing_kind in ("rfc_anchor", "schema", "registry", "implementation"):
+            with self.subTest(missing_kind=missing_kind):
+                payload = self.machine_validated_payload()
+                review = next(item for item in payload["reviews"] if item["id"] == 64)
+                removed = False
+                retained = []
+                for item in review["evidence"]:
+                    if item["kind"] == missing_kind and not removed:
+                        removed = True
+                        continue
+                    retained.append(item)
+                review["evidence"] = retained
+                self.assertTrue(removed)
+                self.assert_invalid(payload, "exact authoritative evidence binding")
+
     def test_missing_schema_evidence_is_rejected(self) -> None:
         payload = self.valid_payload()
         payload["reviews"][0]["evidence"].append(
@@ -1014,13 +1030,13 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 77)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 567)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 586)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
             Counter(
                 {
-                    "specified": 53,
-                    "machine_validated": 14,
+                    "specified": 52,
+                    "machine_validated": 15,
                     "proposal": 9,
                     "implementation_tested": 1,
                 }
@@ -1368,7 +1384,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             ],
         )
         self.assertEqual(reviews_by_id[60]["readiness"], "ready")
-        self.assertEqual(len(reviews_by_id[60]["evidence"]), 24)
+        self.assertEqual(len(reviews_by_id[60]["evidence"]), 25)
         self.assertEqual(reviews_by_id[61]["status"], "present")
         self.assertEqual(reviews_by_id[61]["maturity"], "machine_validated")
         self.assertEqual(reviews_by_id[61]["depends_on"], [53, 58, 60])
@@ -1404,11 +1420,23 @@ class ReviewDataValidationTests(unittest.TestCase):
             ],
         )
         self.assertEqual(reviews_by_id[64]["status"], "present")
-        self.assertEqual(reviews_by_id[64]["maturity"], "specified")
+        self.assertEqual(reviews_by_id[64]["maturity"], "machine_validated")
         self.assertEqual(
             reviews_by_id[64]["depends_on"], [2, 5, 6, 10, 28, 35, 46]
         )
         self.assertEqual(reviews_by_id[64]["readiness"], "ready")
+        self.assertEqual(len(reviews_by_id[64]["evidence"]), 25)
+        self.assertEqual(
+            Counter(item["kind"] for item in reviews_by_id[64]["evidence"]),
+            Counter(
+                {
+                    "rfc_anchor": 14,
+                    "schema": 4,
+                    "registry": 4,
+                    "implementation": 3,
+                }
+            ),
+        )
         self.assertEqual(
             [anchor["anchorId"] for anchor in reviews_by_id[64]["anchors"]],
             [
@@ -1419,6 +1447,13 @@ class ReviewDataValidationTests(unittest.TestCase):
                 "subdelegation",
                 "policy-decision-object",
                 "grant-verification",
+                "error-model",
+                "interoperability-test-suite",
+                "reference-mock-participants",
+                "surface-publisher-profile",
+                "grant-issuer-profile",
+                "action-executor-profile",
+                "runtime-mediator-profile",
             ],
         )
         self.assertEqual(reviews_by_id[65]["status"], "present")

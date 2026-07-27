@@ -22,12 +22,12 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.9.0"
+      "const": "1.10.0"
     },
     "vectors": {
       "type": "array",
-      "minItems": 163,
-      "maxItems": 163,
+      "minItems": 183,
+      "maxItems": 183,
       "items": {
         "$ref": "#/$defs/vector"
       }
@@ -59,7 +59,8 @@
         "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1",
         "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
         "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
-        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
       ]
     },
     "requirementId": {
@@ -122,7 +123,9 @@
         "risk_explanation_present",
         "impact_simulation_selected",
         "asp_over_mcp_selected",
-        "authenticated_mcp_channel"
+        "authenticated_mcp_channel",
+        "purpose_task_binding_selected",
+        "authenticated_purpose_records"
       ]
     },
     "operation": {
@@ -275,7 +278,18 @@
         "mcp_cancellation_new_key"
         , "mcp_agent_meta_exposed"
         , "mcp_agent_credential_exposed"
-        , "mcp_full_result_exposed"
+        , "mcp_full_result_exposed",
+        "purpose_binding_enforcement_incomplete",
+        "purpose_binding_task_parent_mismatch",
+        "purpose_binding_returned_substitution",
+        "purpose_binding_attenuation_widening",
+        "purpose_binding_status_unavailable",
+        "purpose_binding_lifecycle_unlinked",
+        "purpose_binding_session_mismatch",
+        "purpose_binding_goal_authority_attempt",
+        "purpose_binding_suspended",
+        "purpose_binding_terminal",
+        "purpose_binding_policy_denied"
       ]
     },
     "aspError": {
@@ -299,7 +313,10 @@
         "rate_limited",
         "capacity_state_unavailable",
         "service_unavailable",
-        "elicitation_invalid"
+        "elicitation_invalid",
+        "purpose_binding_status_unavailable",
+        "purpose_binding_denied",
+        "session_invalid"
       ]
     },
     "policyReason": {
@@ -451,7 +468,17 @@
         "application_dry_run_suppressed",
         "application_dry_run_invoked",
         "impact_simulation_agent_projection_suppressed",
-        "impact_simulation_agent_projected"
+        "impact_simulation_agent_projected",
+        "purpose_binding_advertised",
+        "purpose_binding_validated",
+        "purpose_binding_rejected",
+        "purpose_binding_state_checked",
+        "purpose_binding_policy_checked",
+        "purpose_binding_session_bound",
+        "purpose_binding_attenuation_checked",
+        "purpose_binding_goal_authority_rejected",
+        "session_fenced",
+        "semantic_grant_revocation_applied"
       ]
     },
     "stateName": {
@@ -518,7 +545,10 @@
         "runtime.risk_explanation_presentation_count",
         "runtime.impact_simulation_presentation_count",
         "application.proposal_revision",
-        "application.proposal_update_count"
+        "application.proposal_update_count",
+        "purpose_binding.resolution_count",
+        "purpose_binding.policy_evaluation_count",
+        "purpose_binding.session_fence_count"
       ]
     },
     "stateValue": {

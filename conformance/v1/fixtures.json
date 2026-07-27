@@ -2,7 +2,7 @@
   "$schema": "./fixtures.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.9.0",
+  "suite_version": "1.10.0",
   "fixture_catalog_id": "agent-surface/conformance/fixtures/v1",
   "fixtures": [
     {
@@ -3573,7 +3573,691 @@
             "transport_error_exposure": "internal_safe_classification_only"
         }
     }
-}
+},
+    {
+      "fixture_id": "ASP-F-SP-014",
+      "baseline_vector_id": "ASP-V-SP-014",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "application",
+          "claimed_observation": "application_effect",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "purpose_binding": {
+          "advertised_profile": true,
+          "enforcement_ready": true,
+          "request": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "consent": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "grant": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "returned": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "session": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "parent": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            }
+          },
+          "attenuation": "narrower",
+          "authenticated_scope": {
+            "issuer": "issuer_a",
+            "app_id": "app.example",
+            "subject_user": "user_a"
+          },
+          "authoritative": {
+            "scope": {
+              "issuer": "issuer_a",
+              "app_id": "app.example",
+              "subject_user": "user_a"
+            },
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3",
+              "state": "active",
+              "policy": "allow"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7",
+              "parent": {
+                "id": "pur_01J2Q7M4K8X5",
+                "revision": "rev_3"
+              },
+              "state": "active",
+              "policy": "allow"
+            }
+          },
+          "expiry_within_lifetime": true,
+          "lifecycle_linked": true,
+          "goal_authority_use": "informational_only"
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-GI-011",
+      "baseline_vector_id": "ASP-V-GI-011",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "application",
+          "claimed_observation": "application_effect",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "purpose_binding": {
+          "advertised_profile": true,
+          "enforcement_ready": true,
+          "request": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "consent": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "grant": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "returned": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "session": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "parent": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            }
+          },
+          "attenuation": "narrower",
+          "authenticated_scope": {
+            "issuer": "issuer_a",
+            "app_id": "app.example",
+            "subject_user": "user_a"
+          },
+          "authoritative": {
+            "scope": {
+              "issuer": "issuer_a",
+              "app_id": "app.example",
+              "subject_user": "user_a"
+            },
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3",
+              "state": "active",
+              "policy": "allow"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7",
+              "parent": {
+                "id": "pur_01J2Q7M4K8X5",
+                "revision": "rev_3"
+              },
+              "state": "active",
+              "policy": "allow"
+            }
+          },
+          "expiry_within_lifetime": true,
+          "lifecycle_linked": true,
+          "goal_authority_use": "informational_only"
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-AE-038",
+      "baseline_vector_id": "ASP-V-AE-038",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "application",
+          "claimed_observation": "application_effect",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "purpose_binding": {
+          "advertised_profile": true,
+          "enforcement_ready": true,
+          "request": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "consent": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "grant": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "returned": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "session": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "parent": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            }
+          },
+          "attenuation": "narrower",
+          "authenticated_scope": {
+            "issuer": "issuer_a",
+            "app_id": "app.example",
+            "subject_user": "user_a"
+          },
+          "authoritative": {
+            "scope": {
+              "issuer": "issuer_a",
+              "app_id": "app.example",
+              "subject_user": "user_a"
+            },
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3",
+              "state": "active",
+              "policy": "allow"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7",
+              "parent": {
+                "id": "pur_01J2Q7M4K8X5",
+                "revision": "rev_3"
+              },
+              "state": "active",
+              "policy": "allow"
+            }
+          },
+          "expiry_within_lifetime": true,
+          "lifecycle_linked": true,
+          "goal_authority_use": "informational_only"
+        }
+      }
+    },
+    {
+      "fixture_id": "ASP-F-RM-081",
+      "baseline_vector_id": "ASP-V-RM-081",
+      "document": {
+        "surface": {
+          "status": "current",
+          "version": "surface_v1",
+          "retained_hash": "surface_hash_a",
+          "candidate_hash": "surface_hash_a",
+          "references": "complete",
+          "mode": "standard",
+          "action_semantics": "closed_read_propose"
+        },
+        "grant": {
+          "status": "active",
+          "issuer": "issuer_a",
+          "claimed_issuer": "issuer_a",
+          "requested_actions": [
+            "action.read"
+          ],
+          "issued_actions": [
+            "action.read"
+          ],
+          "companion_closure": "closed",
+          "passport_status": "current",
+          "revocation_state": "active",
+          "revocation_request_hash": "revocation_hash_a",
+          "recorded_revocation_request_hash": "revocation_hash_a"
+        },
+        "execution": {
+          "input_hash": "input_hash_a",
+          "recorded_input_hash": "input_hash_a",
+          "input_schema_hash": "input_schema_hash_a",
+          "recorded_input_schema_hash": "input_schema_hash_a",
+          "normalization": "fixed_point",
+          "execution_hash": "execution_hash_a",
+          "recorded_execution_hash": "execution_hash_a",
+          "approval_hash": "approval_hash_a",
+          "recorded_approval_hash": "approval_hash_a",
+          "policy": "allow",
+          "runtime_identity": "runtime_identity_a",
+          "bound_runtime_identity": "runtime_identity_a",
+          "sender_credential_audience": "credential_audience_a",
+          "bound_credential_audience": "credential_audience_a",
+          "proof_session_binding": "session_binding_a",
+          "bound_session_binding": "session_binding_a",
+          "attestation": "current",
+          "outcome_state": "known",
+          "retry_key": "same"
+        },
+        "receipt": {
+          "producer_role": "runtime",
+          "claimed_observation": "runtime_observation",
+          "integrity": "valid",
+          "authority_use": "prohibited",
+          "origin": "observed"
+        },
+        "runtime": {
+          "returned_grant_width": "equal",
+          "credential_release": "none",
+          "revocation_state": "current",
+          "remote_path": "known",
+          "training_policy": "exact",
+          "capability_match": "current"
+        },
+        "adapter": {
+          "credential_input": "none",
+          "action_authority": "exact",
+          "receipt_evidence": "observed",
+          "unknown_outcome_handling": "stop"
+        },
+        "purpose_binding": {
+          "advertised_profile": true,
+          "enforcement_ready": true,
+          "request": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "consent": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "grant": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "returned": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "session": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7"
+            }
+          },
+          "parent": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            }
+          },
+          "attenuation": "narrower",
+          "authenticated_scope": {
+            "issuer": "issuer_a",
+            "app_id": "app.example",
+            "subject_user": "user_a"
+          },
+          "authoritative": {
+            "scope": {
+              "issuer": "issuer_a",
+              "app_id": "app.example",
+              "subject_user": "user_a"
+            },
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3",
+              "state": "active",
+              "policy": "allow"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_7",
+              "parent": {
+                "id": "pur_01J2Q7M4K8X5",
+                "revision": "rev_3"
+              },
+              "state": "active",
+              "policy": "allow"
+            }
+          },
+          "expiry_within_lifetime": true,
+          "lifecycle_linked": true,
+          "goal_authority_use": "informational_only"
+        }
+      }
+    }
   ],
   "mutations": [
     {
@@ -5088,6 +5772,150 @@
         "value": "dpop"
         }
     ]
-}
+},
+    {
+      "mutation_id": "ASP-M-PURPOSE-ENFORCEMENT-INCOMPLETE",
+      "input_variant": "purpose_binding_enforcement_incomplete",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/purpose_binding/enforcement_ready",
+          "value": false
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PURPOSE-TASK-PARENT-MISMATCH",
+      "input_variant": "purpose_binding_task_parent_mismatch",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/purpose_binding/authoritative/task/parent",
+          "value": {
+            "id": "pur_01J2Q7OTHER",
+            "revision": "rev_3"
+          }
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PURPOSE-RETURNED-SUBSTITUTION",
+      "input_variant": "purpose_binding_returned_substitution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/purpose_binding/returned",
+          "value": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7SIBLING",
+              "revision": "rev_7"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PURPOSE-ATTENUATION-WIDENING",
+      "input_variant": "purpose_binding_attenuation_widening",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/purpose_binding/attenuation",
+          "value": "wider"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PURPOSE-STATUS-UNAVAILABLE",
+      "input_variant": "purpose_binding_status_unavailable",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/purpose_binding/authoritative/purpose/state",
+          "value": "unavailable"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PURPOSE-LIFECYCLE-UNLINKED",
+      "input_variant": "purpose_binding_lifecycle_unlinked",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/purpose_binding/lifecycle_linked",
+          "value": false
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PURPOSE-SESSION-MISMATCH",
+      "input_variant": "purpose_binding_session_mismatch",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/purpose_binding/session",
+          "value": {
+            "profile": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+            "purpose": {
+              "id": "pur_01J2Q7M4K8X5",
+              "revision": "rev_3"
+            },
+            "task": {
+              "id": "tsk_01J2Q7N9C3V6",
+              "revision": "rev_8"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PURPOSE-GOAL-AUTHORITY-ATTEMPT",
+      "input_variant": "purpose_binding_goal_authority_attempt",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/purpose_binding/goal_authority_use",
+          "value": "attempted"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PURPOSE-SUSPENDED",
+      "input_variant": "purpose_binding_suspended",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/purpose_binding/authoritative/purpose/state",
+          "value": "suspended"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PURPOSE-TERMINAL",
+      "input_variant": "purpose_binding_terminal",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/purpose_binding/authoritative/purpose/state",
+          "value": "terminal"
+        }
+      ]
+    },
+    {
+      "mutation_id": "ASP-M-PURPOSE-POLICY-DENIED",
+      "input_variant": "purpose_binding_policy_denied",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/purpose_binding/authoritative/purpose/policy",
+          "value": "deny"
+        }
+      ]
+    }
   ]
 }

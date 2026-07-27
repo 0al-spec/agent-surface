@@ -36,6 +36,7 @@ CONFORMANCE_SCHEMAS = {
         "mcp-binding",
         "observation",
         "operational-limits",
+        "purpose-task-bound-grant",
         "report",
         "risk-explanation",
         "schema-cases",
@@ -49,6 +50,7 @@ OPERATIONAL_LIMITS_CONFORMANCE_SCHEMAS = CONFORMANCE_SCHEMAS - {
     Path("conformance/v1/human-elicitation.schema.json"),
     Path("conformance/v1/impact-simulation.schema.json"),
     Path("conformance/v1/mcp-binding.schema.json"),
+    Path("conformance/v1/purpose-task-bound-grant.schema.json"),
     Path("conformance/v1/risk-explanation.schema.json"),
 }
 CONFORMANCE_REGISTRIES = {
@@ -110,6 +112,11 @@ ASP_OVER_AHP_IMPLEMENTATIONS = {
     Path("mocks/mock_runtime.py"),
 }
 ASP_OVER_MCP_IMPLEMENTATIONS = {
+    Path("mocks/behavior.py"),
+    Path("mocks/mock_app.py"),
+    Path("mocks/mock_runtime.py"),
+}
+PURPOSE_TASK_BOUND_GRANT_IMPLEMENTATIONS = {
     Path("mocks/behavior.py"),
     Path("mocks/mock_app.py"),
     Path("mocks/mock_runtime.py"),
@@ -416,6 +423,39 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
             path.as_posix() for path in HTTP_CAPACITY_IMPLEMENTATIONS
         },
     },
+    64: {
+        "rfc_anchor": {
+            "purpose-and-task-bound-agent-grant-profile",
+            "grant-object",
+            "consent-preview-contract",
+            "session-start",
+            "subdelegation",
+            "policy-decision-object",
+            "grant-verification",
+            "error-model",
+            "interoperability-test-suite",
+            "reference-mock-participants",
+            "surface-publisher-profile",
+            "grant-issuer-profile",
+            "action-executor-profile",
+            "runtime-mediator-profile",
+        },
+        "schema": {
+            "conformance/v1/purpose-task-bound-grant.schema.json",
+            "conformance/v1/fixtures.schema.json",
+            "conformance/v1/observation.schema.json",
+            "conformance/v1/vectors.schema.json",
+        },
+        "registry": {
+            "conformance/v1/suite.json",
+            "conformance/v1/vectors.json",
+            "conformance/v1/fixtures.json",
+            "conformance/v1/schema-cases.json",
+        },
+        "implementation": {
+            path.as_posix() for path in PURPOSE_TASK_BOUND_GRANT_IMPLEMENTATIONS
+        },
+    },
     69: {
         "rfc_anchor": {
             "model-context-protocol",
@@ -495,6 +535,7 @@ EXACT_MACHINE_VALIDATED_REVIEW_IDS = {
     59,
     61,
     62,
+    64,
     69,
 }
 MATURITY_ORDER = (
@@ -947,6 +988,9 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         _validate_mock_bundle_evidence(review_id, "implementation", ref)
         return
     if review_id == 62 and relative_path in HTTP_CAPACITY_IMPLEMENTATIONS:
+        _validate_mock_bundle_evidence(review_id, "implementation", ref)
+        return
+    if review_id == 64 and relative_path in PURPOSE_TASK_BOUND_GRANT_IMPLEMENTATIONS:
         _validate_mock_bundle_evidence(review_id, "implementation", ref)
         return
     if review_id == 27 and relative_path in ASP_OVER_AHP_IMPLEMENTATIONS:

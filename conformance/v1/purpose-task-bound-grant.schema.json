@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
+  "title": "ASP Purpose- and Task-Bound Agent Grant Binding v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "purpose"
+  ],
+  "properties": {
+    "profile": {
+      "const": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+    },
+    "purpose": {
+      "$ref": "#/$defs/reference"
+    },
+    "task": {
+      "$ref": "#/$defs/reference"
+    }
+  },
+  "$defs": {
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "revision"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
