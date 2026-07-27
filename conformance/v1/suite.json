@@ -2,7 +2,7 @@
   "$schema": "./suite.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.9.0",
+  "suite_version": "1.10.0",
   "protocol_version": "agent-surface/0.1",
   "specification": {
     "path": "drafts/agent-surface.md",
@@ -17,7 +17,8 @@
         "ASP-SP-002",
         "ASP-SP-003",
         "ASP-SP-004",
-        "ASP-SP-005"
+        "ASP-SP-005",
+        "ASP-SP-006"
       ]
     },
     {
@@ -28,7 +29,8 @@
         "ASP-GI-002",
         "ASP-GI-003",
         "ASP-GI-004",
-        "ASP-GI-005"
+        "ASP-GI-005",
+        "ASP-GI-006"
       ]
     },
     {
@@ -47,7 +49,8 @@
         "ASP-AE-010",
         "ASP-AE-011",
         "ASP-AE-012",
-        "ASP-AE-013"
+        "ASP-AE-013",
+        "ASP-AE-014"
       ]
     },
     {
@@ -80,7 +83,8 @@
         "ASP-RM-012",
         "ASP-RM-013",
         "ASP-RM-014",
-        "ASP-RM-015"
+        "ASP-RM-015",
+        "ASP-RM-016"
       ]
     },
     {
@@ -221,6 +225,17 @@
         "ASP-RM-015",
         "ASP-AA-007",
         "ASP-GI-005"
+      ]
+    },
+    {
+      "feature_id": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1",
+      "title": "Purpose- and Task-Bound Agent Grant Profile",
+      "rfc_anchor": "purpose-and-task-bound-agent-grant-profile",
+      "requirement_ids": [
+        "ASP-SP-006",
+        "ASP-GI-006",
+        "ASP-AE-014",
+        "ASP-RM-016"
       ]
     }
   ],
@@ -1018,21 +1033,93 @@
         "ASP-V-AA-015"
       ]
     },
-{
-    "requirement_id": "ASP-GI-005",
-    "title": "Bind each ASP-over-MCP Grant to the exact manifest-selected endpoint and compatible authorization composition",
-    "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
-    "rfc_anchor": "asp-over-mcp-binding-profile",
-    "applicability": {
+    {
+      "requirement_id": "ASP-GI-005",
+      "title": "Bind each ASP-over-MCP Grant to the exact manifest-selected endpoint and compatible authorization composition",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "rfc_anchor": "asp-over-mcp-binding-profile",
+      "applicability": {
         "kind": "feature",
         "feature_id": "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
-    },
-    "execution_class": "behavioral",
-    "vector_ids": [
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
         "ASP-V-GI-008",
         "ASP-V-GI-009",
         "ASP-V-GI-010"
-    ]
-}
+      ]
+    },
+    {
+      "requirement_id": "ASP-SP-006",
+      "title": "Advertise Purpose Binding only with complete fail-closed enforcement",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/surface-publisher/v1",
+      "rfc_anchor": "purpose-and-task-bound-agent-grant-profile",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      },
+      "execution_class": "static",
+      "vector_ids": [
+        "ASP-V-SP-014",
+        "ASP-V-SP-015"
+      ]
+    },
+    {
+      "requirement_id": "ASP-GI-006",
+      "title": "Issue and attenuate only exact active scoped Purpose Bindings",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/grant-issuer/v1",
+      "rfc_anchor": "issuance-consent-and-returned-grant",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-GI-011",
+        "ASP-V-GI-012",
+        "ASP-V-GI-013",
+        "ASP-V-GI-014",
+        "ASP-V-GI-015",
+        "ASP-V-GI-016"
+      ]
+    },
+    {
+      "requirement_id": "ASP-AE-014",
+      "title": "Resolve current Purpose Binding state before every action or replay admission",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/action-executor/v1",
+      "rfc_anchor": "session-and-action-enforcement",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-AE-038",
+        "ASP-V-AE-039",
+        "ASP-V-AE-040",
+        "ASP-V-AE-041",
+        "ASP-V-AE-042",
+        "ASP-V-AE-043",
+        "ASP-V-AE-044"
+      ]
+    },
+    {
+      "requirement_id": "ASP-RM-016",
+      "title": "Confirm exact returned and session Purpose Bindings and fence unavailable state",
+      "profile_id": "https://github.com/0al-spec/agent-surface/conformance/runtime-mediator/v1",
+      "rfc_anchor": "lifecycle-revocation-recovery-and-replay",
+      "applicability": {
+        "kind": "feature",
+        "feature_id": "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
+      },
+      "execution_class": "behavioral",
+      "vector_ids": [
+        "ASP-V-RM-081",
+        "ASP-V-RM-082",
+        "ASP-V-RM-083",
+        "ASP-V-RM-084",
+        "ASP-V-RM-085"
+      ]
+    }
   ]
 }

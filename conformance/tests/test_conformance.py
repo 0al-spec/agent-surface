@@ -181,14 +181,14 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.9.0")
-        self.assertEqual(len(self.catalog.features), 14)
-        self.assertEqual(len(self.catalog.requirements), 51)
-        self.assertEqual(len(self.catalog.vectors), 163)
+        self.assertEqual(self.catalog.suite["suite_version"], "1.10.0")
+        self.assertEqual(len(self.catalog.features), 15)
+        self.assertEqual(len(self.catalog.requirements), 55)
+        self.assertEqual(len(self.catalog.vectors), 183)
         self.assertEqual(len(self.catalog.bundles), 8)
-        self.assertEqual(len(self.catalog.fixtures), 44)
-        self.assertEqual(len(self.catalog.mutations), 117)
-        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 124)
+        self.assertEqual(len(self.catalog.fixtures), 48)
+        self.assertEqual(len(self.catalog.mutations), 128)
+        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 134)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
 
     def test_adoption_bundles_are_non_linear_closed_vector_plans(self) -> None:
@@ -301,6 +301,8 @@ class ConformanceSuiteTests(unittest.TestCase):
             "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/mcp-binding/v1",
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1",
         }:
             self.assertEqual(
                 {case["polarity"] for case in cases if case["schema_id"] == schema_id},
@@ -322,6 +324,27 @@ class ConformanceSuiteTests(unittest.TestCase):
         path.write_text(json.dumps(corpus), encoding="utf-8")
         with self.assertRaisesRegex(ConformanceError, "negative schema case .* passed"):
             validate_catalog(root)
+
+    def test_purpose_binding_schema_preserves_opaque_exact_references(self) -> None:
+        cases = {
+            case["case_id"]: case
+            for case in self.catalog.schema_case_catalog["cases"]
+        }
+        task_bound = loads_strict_json(
+            cases["ASP-SC-PB-002"]["instance_json"],
+            source="ASP-SC-PB-002",
+        )
+        self.assertEqual(task_bound["purpose"]["id"], " PURPOSE-Δ ")
+        self.assertEqual(task_bound["purpose"]["revision"], "007")
+        self.assertEqual(task_bound["task"]["id"], "Task/CaseSensitive")
+        self.assertEqual(task_bound["task"]["revision"], "rev-é")
+
+        duplicate = cases["ASP-SC-PB-010"]["instance_json"]
+        with self.assertRaisesRegex(
+            ConformanceError,
+            "duplicate JSON object member",
+        ):
+            loads_strict_json(duplicate, source="ASP-SC-PB-010")
 
     def test_risk_explanation_schema_rejects_terminal_lf_without_semantics(
         self,

@@ -31,7 +31,7 @@ The manifest pins:
 
 - review card `74`;
 - protocol version `agent-surface/0.1`;
-- conformance suite version `1.9.0`;
+- conformance suite version `1.10.0`;
 - the exact Application-Audited Effects bundle;
 - six canonical role/profile claims with empty feature selections;
 - all 9 positive and 26 negative bundle vectors;

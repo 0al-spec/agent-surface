@@ -24,15 +24,15 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.9.0"
+      "const": "1.10.0"
     },
     "fixture_catalog_id": {
       "const": "agent-surface/conformance/fixtures/v1"
     },
     "fixtures": {
       "type": "array",
-      "minItems": 44,
-      "maxItems": 44,
+      "minItems": 48,
+      "maxItems": 48,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/fixture"
@@ -43,8 +43,8 @@
     },
     "mutations": {
       "type": "array",
-      "minItems": 117,
-      "maxItems": 117,
+      "minItems": 128,
+      "maxItems": 128,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/mutation"
@@ -100,7 +100,11 @@
         "ASP-F-AE-032",
         "ASP-F-RM-072",
         "ASP-F-GI-008",
-        "ASP-F-AA-012"
+        "ASP-F-AA-012",
+        "ASP-F-SP-014",
+        "ASP-F-GI-011",
+        "ASP-F-AE-038",
+        "ASP-F-RM-081"
       ]
     },
     "baselineVectorId": {
@@ -148,7 +152,11 @@
         "ASP-V-AE-032",
         "ASP-V-RM-072",
         "ASP-V-GI-008",
-        "ASP-V-AA-012"
+        "ASP-V-AA-012",
+        "ASP-V-SP-014",
+        "ASP-V-GI-011",
+        "ASP-V-AE-038",
+        "ASP-V-RM-081"
       ]
     },
     "mutationId": {
@@ -269,7 +277,18 @@
         "ASP-M-MCP-CANCELLATION-NEW-KEY",
         "ASP-M-MCP-AGENT-META-EXPOSED",
         "ASP-M-MCP-AGENT-CREDENTIAL-EXPOSED",
-        "ASP-M-MCP-FULL-RESULT-EXPOSED"
+        "ASP-M-MCP-FULL-RESULT-EXPOSED",
+        "ASP-M-PURPOSE-ENFORCEMENT-INCOMPLETE",
+        "ASP-M-PURPOSE-TASK-PARENT-MISMATCH",
+        "ASP-M-PURPOSE-RETURNED-SUBSTITUTION",
+        "ASP-M-PURPOSE-ATTENUATION-WIDENING",
+        "ASP-M-PURPOSE-STATUS-UNAVAILABLE",
+        "ASP-M-PURPOSE-LIFECYCLE-UNLINKED",
+        "ASP-M-PURPOSE-SESSION-MISMATCH",
+        "ASP-M-PURPOSE-GOAL-AUTHORITY-ATTEMPT",
+        "ASP-M-PURPOSE-SUSPENDED",
+        "ASP-M-PURPOSE-TERMINAL",
+        "ASP-M-PURPOSE-POLICY-DENIED"
       ]
     },
     "inputVariant": {
@@ -390,7 +409,18 @@
         "mcp_agent_credential_exposed",
         "mcp_full_result_exposed",
         "mcp_grant_endpoint_substitution",
-        "mcp_grant_dual_use_dpop"
+        "mcp_grant_dual_use_dpop",
+        "purpose_binding_enforcement_incomplete",
+        "purpose_binding_task_parent_mismatch",
+        "purpose_binding_returned_substitution",
+        "purpose_binding_attenuation_widening",
+        "purpose_binding_status_unavailable",
+        "purpose_binding_lifecycle_unlinked",
+        "purpose_binding_session_mismatch",
+        "purpose_binding_goal_authority_attempt",
+        "purpose_binding_suspended",
+        "purpose_binding_terminal",
+        "purpose_binding_policy_denied"
       ]
     },
     "actionSet": {
@@ -1748,6 +1778,173 @@
         }
       }
     },
+    "purposeBindingScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "issuer",
+        "app_id",
+        "subject_user"
+      ],
+      "properties": {
+        "issuer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "app_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_user": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "purposeBindingRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "revision",
+        "state",
+        "policy"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state": {
+          "enum": ["active", "suspended", "terminal", "unavailable"]
+        },
+        "policy": {
+          "enum": ["allow", "deny"]
+        }
+      }
+    },
+    "purposeBindingTaskRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "revision",
+        "parent",
+        "state",
+        "policy"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1#/$defs/reference"
+        },
+        "state": {
+          "enum": ["active", "suspended", "terminal", "unavailable"]
+        },
+        "policy": {
+          "enum": ["allow", "deny"]
+        }
+      }
+    },
+    "purposeBindingProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "advertised_profile",
+        "enforcement_ready",
+        "request",
+        "consent",
+        "grant",
+        "returned",
+        "session",
+        "parent",
+        "attenuation",
+        "authenticated_scope",
+        "authoritative",
+        "expiry_within_lifetime",
+        "lifecycle_linked",
+        "goal_authority_use"
+      ],
+      "properties": {
+        "advertised_profile": {
+          "type": "boolean"
+        },
+        "enforcement_ready": {
+          "type": "boolean"
+        },
+        "request": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1"
+        },
+        "consent": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1"
+        },
+        "grant": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1"
+        },
+        "returned": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1"
+        },
+        "session": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1"
+        },
+        "parent": {
+          "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1"
+        },
+        "attenuation": {
+          "enum": ["equal", "narrower", "wider"]
+        },
+        "authenticated_scope": {
+          "$ref": "#/$defs/purposeBindingScope"
+        },
+        "authoritative": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope",
+            "purpose",
+            "task"
+          ],
+          "properties": {
+            "scope": {
+              "$ref": "#/$defs/purposeBindingScope"
+            },
+            "purpose": {
+              "$ref": "#/$defs/purposeBindingRecord"
+            },
+            "task": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/purposeBindingTaskRecord"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "expiry_within_lifetime": {
+          "type": "boolean"
+        },
+        "lifecycle_linked": {
+          "type": "boolean"
+        },
+        "goal_authority_use": {
+          "enum": ["informational_only", "attempted"]
+        }
+      }
+    },
     "semanticDocument": {
       "type": "object",
       "additionalProperties": false,
@@ -1773,7 +1970,8 @@
         "mcp": { "$ref": "#/$defs/mcp" },
         "elicitation": { "$ref": "#/$defs/elicitation" },
         "risk_explanation": { "$ref": "#/$defs/riskExplanation" },
-        "impact_simulation": { "$ref": "#/$defs/impactSimulation" }
+        "impact_simulation": { "$ref": "#/$defs/impactSimulation" },
+        "purpose_binding": { "$ref": "#/$defs/purposeBindingProjection" }
       }
     },
     "fixture": {
@@ -1949,7 +2147,16 @@
         "/impact_simulation/result/examples/1/reasons",
         "/impact_simulation/result/examples/2/outcome",
         "/impact_simulation/result/examples/2/reasons",
-        "/impact_simulation/source/requested_action_ids"
+        "/impact_simulation/source/requested_action_ids",
+        "/purpose_binding/enforcement_ready",
+        "/purpose_binding/authoritative/task/parent",
+        "/purpose_binding/returned",
+        "/purpose_binding/attenuation",
+        "/purpose_binding/authoritative/purpose/state",
+        "/purpose_binding/lifecycle_linked",
+        "/purpose_binding/session",
+        "/purpose_binding/goal_authority_use",
+        "/purpose_binding/authoritative/purpose/policy"
       ]
     },
     "pathAndValue": {
@@ -2109,7 +2316,16 @@
         { "properties": { "path": { "const": "/impact_simulation/result/valid_until" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1#/$defs/timestamp" } } },
         { "properties": { "path": { "enum": ["/impact_simulation/result/examples/0/outcome", "/impact_simulation/result/examples/1/outcome", "/impact_simulation/result/examples/2/outcome"] }, "value": { "const": "not_covered" } } },
         { "properties": { "path": { "enum": ["/impact_simulation/result/examples/0/reasons", "/impact_simulation/result/examples/1/reasons", "/impact_simulation/result/examples/2/reasons"] }, "value": { "const": ["policy_denied"] } } },
-        { "properties": { "path": { "const": "/impact_simulation/source/requested_action_ids" }, "value": { "type": "array", "minItems": 65, "maxItems": 65, "uniqueItems": true, "items": { "type": "string", "pattern": "^action\\.[0-9]{3}$" } } } }
+        { "properties": { "path": { "const": "/impact_simulation/source/requested_action_ids" }, "value": { "type": "array", "minItems": 65, "maxItems": 65, "uniqueItems": true, "items": { "type": "string", "pattern": "^action\\.[0-9]{3}$" } } } },
+        { "properties": { "path": { "const": "/purpose_binding/enforcement_ready" }, "value": { "type": "boolean" } } },
+        { "properties": { "path": { "const": "/purpose_binding/authoritative/task/parent" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1#/$defs/reference" } } },
+        { "properties": { "path": { "const": "/purpose_binding/returned" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1" } } },
+        { "properties": { "path": { "const": "/purpose_binding/attenuation" }, "value": { "enum": ["equal", "narrower", "wider"] } } },
+        { "properties": { "path": { "const": "/purpose_binding/authoritative/purpose/state" }, "value": { "enum": ["active", "suspended", "terminal", "unavailable"] } } },
+        { "properties": { "path": { "const": "/purpose_binding/lifecycle_linked" }, "value": { "type": "boolean" } } },
+        { "properties": { "path": { "const": "/purpose_binding/session" }, "value": { "$ref": "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1" } } },
+        { "properties": { "path": { "const": "/purpose_binding/goal_authority_use" }, "value": { "enum": ["informational_only", "attempted"] } } },
+        { "properties": { "path": { "const": "/purpose_binding/authoritative/purpose/policy" }, "value": { "enum": ["allow", "deny"] } } }
       ]
     },
     "patchOperation": {
@@ -2207,7 +2423,11 @@
         { "properties": { "fixture_id": { "const": "ASP-F-AE-032" }, "baseline_vector_id": { "const": "ASP-V-AE-032" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-RM-072" }, "baseline_vector_id": { "const": "ASP-V-RM-072" } }, "required": ["fixture_id", "baseline_vector_id"] },
         { "properties": { "fixture_id": { "const": "ASP-F-GI-008" }, "baseline_vector_id": { "const": "ASP-V-GI-008" } }, "required": ["fixture_id", "baseline_vector_id"] },
-        { "properties": { "fixture_id": { "const": "ASP-F-AA-012" }, "baseline_vector_id": { "const": "ASP-V-AA-012" } }, "required": ["fixture_id", "baseline_vector_id"] }
+        { "properties": { "fixture_id": { "const": "ASP-F-AA-012" }, "baseline_vector_id": { "const": "ASP-V-AA-012" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-SP-014" }, "baseline_vector_id": { "const": "ASP-V-SP-014" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-GI-011" }, "baseline_vector_id": { "const": "ASP-V-GI-011" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-AE-038" }, "baseline_vector_id": { "const": "ASP-V-AE-038" } }, "required": ["fixture_id", "baseline_vector_id"] },
+        { "properties": { "fixture_id": { "const": "ASP-F-RM-081" }, "baseline_vector_id": { "const": "ASP-V-RM-081" } }, "required": ["fixture_id", "baseline_vector_id"] }
       ]
     },
     "mutationBinding": {
@@ -2328,7 +2548,18 @@
         { "properties": { "mutation_id": { "const": "ASP-M-MCP-AGENT-CREDENTIAL-EXPOSED" }, "input_variant": { "const": "mcp_agent_credential_exposed" } }, "required": ["mutation_id", "input_variant"] },
         { "properties": { "mutation_id": { "const": "ASP-M-MCP-FULL-RESULT-EXPOSED" }, "input_variant": { "const": "mcp_full_result_exposed" } }, "required": ["mutation_id", "input_variant"] }
         ,{ "properties": { "mutation_id": { "const": "ASP-M-MCP-GRANT-ENDPOINT-SUBSTITUTION" }, "input_variant": { "const": "mcp_grant_endpoint_substitution" } }, "required": ["mutation_id", "input_variant"] }
-        ,{ "properties": { "mutation_id": { "const": "ASP-M-MCP-GRANT-DUAL-USE-DPOP" }, "input_variant": { "const": "mcp_grant_dual_use_dpop" } }, "required": ["mutation_id", "input_variant"] }
+        ,{ "properties": { "mutation_id": { "const": "ASP-M-MCP-GRANT-DUAL-USE-DPOP" }, "input_variant": { "const": "mcp_grant_dual_use_dpop" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PURPOSE-ENFORCEMENT-INCOMPLETE" }, "input_variant": { "const": "purpose_binding_enforcement_incomplete" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PURPOSE-TASK-PARENT-MISMATCH" }, "input_variant": { "const": "purpose_binding_task_parent_mismatch" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PURPOSE-RETURNED-SUBSTITUTION" }, "input_variant": { "const": "purpose_binding_returned_substitution" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PURPOSE-ATTENUATION-WIDENING" }, "input_variant": { "const": "purpose_binding_attenuation_widening" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PURPOSE-STATUS-UNAVAILABLE" }, "input_variant": { "const": "purpose_binding_status_unavailable" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PURPOSE-LIFECYCLE-UNLINKED" }, "input_variant": { "const": "purpose_binding_lifecycle_unlinked" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PURPOSE-SESSION-MISMATCH" }, "input_variant": { "const": "purpose_binding_session_mismatch" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PURPOSE-GOAL-AUTHORITY-ATTEMPT" }, "input_variant": { "const": "purpose_binding_goal_authority_attempt" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PURPOSE-SUSPENDED" }, "input_variant": { "const": "purpose_binding_suspended" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PURPOSE-TERMINAL" }, "input_variant": { "const": "purpose_binding_terminal" } }, "required": ["mutation_id", "input_variant"] },
+        { "properties": { "mutation_id": { "const": "ASP-M-PURPOSE-POLICY-DENIED" }, "input_variant": { "const": "purpose_binding_policy_denied" } }, "required": ["mutation_id", "input_variant"] }
       ]
     },
     "fixtureCoverage": {
@@ -2376,7 +2607,11 @@
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-032" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-072" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "fixture_id": { "const": "ASP-F-GI-008" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AA-012" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AA-012" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-SP-014" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-GI-011" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-AE-038" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "fixture_id": { "const": "ASP-F-RM-081" } }, "required": ["fixture_id"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "mutationCoverage": {
@@ -2497,7 +2732,18 @@
         { "contains": { "properties": { "input_variant": { "const": "mcp_agent_credential_exposed" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
         { "contains": { "properties": { "input_variant": { "const": "mcp_full_result_exposed" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
         ,{ "contains": { "properties": { "input_variant": { "const": "mcp_grant_endpoint_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
-        ,{ "contains": { "properties": { "input_variant": { "const": "mcp_grant_dual_use_dpop" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
+        ,{ "contains": { "properties": { "input_variant": { "const": "mcp_grant_dual_use_dpop" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "purpose_binding_enforcement_incomplete" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "purpose_binding_task_parent_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "purpose_binding_returned_substitution" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "purpose_binding_attenuation_widening" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "purpose_binding_status_unavailable" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "purpose_binding_lifecycle_unlinked" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "purpose_binding_session_mismatch" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "purpose_binding_goal_authority_attempt" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "purpose_binding_suspended" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "purpose_binding_terminal" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "input_variant": { "const": "purpose_binding_policy_denied" } }, "required": ["input_variant"] }, "minContains": 1, "maxContains": 1 }
       ]
     },
     "limitIdSet": {

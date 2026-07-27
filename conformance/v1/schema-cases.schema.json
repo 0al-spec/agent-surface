@@ -22,12 +22,12 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.9.0"
+      "const": "1.10.0"
     },
     "cases": {
       "type": "array",
-      "minItems": 124,
-      "maxItems": 124,
+      "minItems": 134,
+      "maxItems": 134,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/case"
@@ -311,7 +311,7 @@
       "properties": {
         "case_id": {
           "type": "string",
-          "pattern": "^ASP-SC-(OL|CE|HE|IS|RE|MB)-[0-9]{3}$"
+          "pattern": "^ASP-SC-(OL|CE|HE|IS|RE|MB|PB)-[0-9]{3}$"
         },
         "schema_id": {
           "enum": [
@@ -320,7 +320,8 @@
             "https://github.com/0al-spec/agent-surface/conformance/schemas/human-elicitation/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/impact-simulation/v1",
             "https://github.com/0al-spec/agent-surface/conformance/schemas/risk-explanation/v1",
-            "https://github.com/0al-spec/agent-surface/conformance/schemas/mcp-binding/v1"
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/mcp-binding/v1",
+            "https://github.com/0al-spec/agent-surface/conformance/schemas/purpose-task-bound-grant/v1"
           ]
         },
         "polarity": {

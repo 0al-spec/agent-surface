@@ -4523,6 +4523,10 @@
         },
         {
           "kind": "schema",
+          "ref": "conformance/v1/purpose-task-bound-grant.schema.json"
+        },
+        {
+          "kind": "schema",
           "ref": "conformance/v1/report.schema.json"
         },
         {
@@ -4854,9 +4858,37 @@
         {
           "heading": "Grant Verification",
           "anchorId": "grant-verification"
+        },
+        {
+          "heading": "Error Model",
+          "anchorId": "error-model"
+        },
+        {
+          "heading": "Interoperability Test Suite",
+          "anchorId": "interoperability-test-suite"
+        },
+        {
+          "heading": "Reference Mock Participants",
+          "anchorId": "reference-mock-participants"
+        },
+        {
+          "heading": "Surface Publisher Profile",
+          "anchorId": "surface-publisher-profile"
+        },
+        {
+          "heading": "Grant Issuer Profile",
+          "anchorId": "grant-issuer-profile"
+        },
+        {
+          "heading": "Action Executor Profile",
+          "anchorId": "action-executor-profile"
+        },
+        {
+          "heading": "Runtime Mediator Profile",
+          "anchorId": "runtime-mediator-profile"
         }
       ],
-      "rationale": "RFC определяет optional issuer-owned Purpose- and Task-Bound Agent Grant Profile: exact purpose/task identity и request/session binding, bounded expiry, Policy Decision inputs и application-side enforcement на каждом action. Digest связывает canonical bytes, но не доказывает semantic purpose; человекочитаемое описание остаётся informational. Subdelegation может только сохранить или сузить binding, а widening создаёт новый Grant и требует fresh consent.",
+      "rationale": "RFC определяет optional issuer-owned Purpose- and Task-Bound Agent Grant Profile: exact purpose/task identity, request/session binding, bounded expiry, Policy Decision inputs и application-side enforcement на каждом action. Conformance Suite 1.10.0 и reference mocks проверяют closed wire object, exact issuer namespace, revisions и relationship, attenuation order, fail-closed lifecycle admission, session fencing, terminal revocation и исторический replay boundary. Digest связывает canonical bytes, но не доказывает semantic purpose; labels, goals и external task ids остаются informational.",
       "priority": "P2",
       "profile": "oauth-grants",
       "depends_on": [
@@ -4869,7 +4901,7 @@
         46
       ],
       "target_release": null,
-      "maturity": "specified",
+      "maturity": "machine_validated",
       "evidence": [
         {
           "kind": "rfc_anchor",
@@ -4898,6 +4930,78 @@
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "error-model"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "interoperability-test-suite"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "reference-mock-participants"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "surface-publisher-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "grant-issuer-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "action-executor-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "runtime-mediator-profile"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/fixtures.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/observation.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/purpose-task-bound-grant.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "conformance/v1/vectors.schema.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/fixtures.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/schema-cases.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/suite.json"
+        },
+        {
+          "kind": "registry",
+          "ref": "conformance/v1/vectors.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/behavior.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_app.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": "mocks/mock_runtime.py"
         }
       ]
     },

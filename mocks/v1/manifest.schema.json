@@ -29,7 +29,7 @@
       "const": "https://github.com/0al-spec/agent-surface/mocks/v1"
     },
     "manifest_version": {
-      "const": "1.8.0"
+      "const": "1.9.0"
     },
     "protocol_version": {
       "const": "agent-surface/0.1"
@@ -207,7 +207,8 @@
         "https://github.com/0al-spec/agent-surface/profiles/operational-limits/v1",
         "https://github.com/0al-spec/agent-surface/profiles/asp-over-ahp/v1",
         "https://github.com/0al-spec/agent-surface/profiles/human-elicitation/v1",
-        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1"
+        "https://github.com/0al-spec/agent-surface/profiles/asp-over-mcp/v1",
+        "https://github.com/0al-spec/agent-surface/profiles/purpose-task-bound-grant/v1"
       ]
     },
     "features": {
