@@ -6046,7 +6046,7 @@
           "anchorId": "atomic-modular-activation"
         }
       ],
-      "rationale": "78A фиксирует Hyperprompt v0.2.0 по tag object, source commit и release artifact digests, вводит closed candidate schema, проверку declared/derived source closure, disposable clean staging и fail-closed negative fixtures. Modular mode по-прежнему намеренно отклоняется: 78B должен извлечь non-authoritative ASP-over-MCP candidate и доказать byte-identical aggregate с complete manifest/source-map coverage, а 78C — закрепить cross-platform reproducibility. Relocation records остаются activation concern #79.",
+      "rationale": "78A фиксирует Hyperprompt v0.2.0 и closed candidate contract. 78B извлекает non-authoritative ASP-over-MCP source, проверяет его точную canonical derivation, собирает prefix/module/suffix в disposable staging и дважды доказывает byte-identical aggregate, exact manifest dependency closure и one-to-one source-map coverage. CI устанавливает release artifact только после проверки archive и embedded binary digests. Modular mode по-прежнему намеренно отклоняется: 78C должен закрепить cross-platform reproduction на macOS/Linux и clean-checkout evidence. Relocation records остаются activation concern #79.",
       "priority": "P2",
       "profile": "conformance-tooling",
       "depends_on": [

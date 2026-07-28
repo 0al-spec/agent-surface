@@ -6,12 +6,18 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import platform as host_platform
+import re
 import shutil
+import subprocess
 import sys
 import tarfile
 import tempfile
+import urllib.request
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -35,6 +41,8 @@ MEDIA_SUFFIXES = {
     "markdown": ".md",
     "cascade": ".hcs",
 }
+ATX_HEADING = re.compile(rb"^( {0,3})(#{1,6})(?=[ \t]|$)")
+FENCE_OPEN = re.compile(rb"^( {0,3})(`{3,}|~{3,})(.*)$")
 
 
 class AssemblyError(ValueError):
@@ -265,6 +273,84 @@ def _canonical_bytes(
     return content
 
 
+def promote_atx_headings_one_level(content: bytes) -> bytes:
+    """Remove one ATX marker outside ordinary CommonMark fences."""
+
+    output: list[bytes] = []
+    active_fence: tuple[bytes, int] | None = None
+    for line in content.splitlines(keepends=True):
+        body = line.rstrip(b"\r\n")
+        if active_fence is not None:
+            marker, length = active_fence
+            stripped = body.lstrip(b" ")
+            indent = len(body) - len(stripped)
+            count = len(stripped) - len(stripped.lstrip(marker))
+            remainder = stripped[count:]
+            if (
+                indent <= 3
+                and count >= length
+                and remainder.strip(b" \t") == b""
+            ):
+                active_fence = None
+            output.append(line)
+            continue
+
+        opening = FENCE_OPEN.match(body)
+        if opening is not None:
+            fence = opening.group(2)
+            remainder = opening.group(3)
+            if fence[:1] == b"~" or b"`" not in remainder:
+                active_fence = (fence[:1], len(fence))
+            output.append(line)
+            continue
+
+        heading = ATX_HEADING.match(body)
+        if heading is None:
+            output.append(line)
+            continue
+        hashes = heading.group(2)
+        if len(hashes) == 1:
+            raise AssemblyError("cannot promote an ATX level-1 heading")
+        marker_end = heading.end(2)
+        output.append(line[: marker_end - 1] + line[marker_end:])
+    return b"".join(output)
+
+
+def _canonical_derivation_bytes(
+    canonical: bytes,
+    extraction: Mapping[str, Any],
+    *,
+    label: str,
+) -> bytes:
+    if extraction["source_path"] != "drafts/agent-surface.md":
+        raise AssemblyError(f"{label} is not bound to the canonical source")
+    start = extraction["start_byte"]
+    end = extraction["end_byte"]
+    if start >= end or end > len(canonical):
+        raise AssemblyError(f"{label} has an invalid byte range")
+    if start and canonical[start - 1 : start] != b"\n":
+        raise AssemblyError(f"{label} does not start on a line boundary")
+    if end < len(canonical) and canonical[end - 1 : end] != b"\n":
+        raise AssemblyError(f"{label} does not end on a line boundary")
+
+    content = canonical[start:end]
+    try:
+        content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise AssemblyError(f"{label} splits UTF-8 text") from error
+
+    transform = extraction.get("transform", "identity")
+    if transform == "promote_atx_headings_one_level":
+        transformed = promote_atx_headings_one_level(content)
+    elif transform == "identity":
+        transformed = content
+    else:
+        raise AssemblyError(f"{label} uses an unsupported transform")
+    if transformed.count(b"\n") != content.count(b"\n"):
+        raise AssemblyError(f"{label} transform changed line coverage")
+    return transformed
+
+
 def _source_bytes(
     root: Path,
     candidate_dir: Path,
@@ -332,27 +418,27 @@ def _source_bytes(
                 raise AssemblyError(
                     f"cannot read committed source {source_path}"
                 ) from error
+            canonical_derivation = source.get("canonical_derivation")
+            if canonical_derivation is not None:
+                expected = _canonical_derivation_bytes(
+                    canonical,
+                    canonical_derivation,
+                    label=f"committed source {stage_name!r}",
+                )
+                if content != expected:
+                    raise AssemblyError(
+                        f"committed source {stage_name!r} is stale relative "
+                        "to its canonical derivation"
+                    )
         else:
             extraction = source["extraction"]
             if not isinstance(extraction, Mapping):
                 raise AssemblyError(f"derived source {stage_name!r} has no extraction")
-            if extraction["source_path"] != candidate["canonical"]["path"]:
-                raise AssemblyError(
-                    f"derived source {stage_name!r} is not bound to the canonical source"
-                )
-            start = extraction["start_byte"]
-            end = extraction["end_byte"]
-            if start >= end or end > len(canonical):
-                raise AssemblyError(
-                    f"derived source {stage_name!r} has an invalid byte range"
-                )
-            content = canonical[start:end]
-            try:
-                content.decode("utf-8")
-            except UnicodeDecodeError as error:
-                raise AssemblyError(
-                    f"derived source {stage_name!r} splits UTF-8 text"
-                ) from error
+            content = _canonical_derivation_bytes(
+                canonical,
+                extraction,
+                label=f"derived source {stage_name!r}",
+            )
 
         actual = _sha256_bytes(content)
         if actual != source["sha256"]:
@@ -544,21 +630,48 @@ def materialize_candidate(
     return candidate
 
 
+def _artifact_for_platform(
+    lock: Mapping[str, Any],
+    platform_name: str,
+) -> Mapping[str, Any]:
+    artifact = next(
+        (item for item in lock["artifacts"] if item["platform"] == platform_name),
+        None,
+    )
+    if artifact is None:
+        raise AssemblyError(f"platform is not locked: {platform_name}")
+    return artifact
+
+
+def _host_platform() -> str:
+    system = host_platform.system().lower()
+    machine = host_platform.machine().lower()
+    if system == "darwin" and machine in {"arm64", "aarch64"}:
+        return "macos-arm64"
+    if system == "linux" and machine in {"x86_64", "amd64"}:
+        return "linux-amd64"
+    raise AssemblyError(f"unsupported Hyperprompt host: {system}-{machine}")
+
+
 def verify_archive(
     archive_path: Path,
     platform: str,
     *,
     root: Path = ROOT,
-) -> None:
+) -> bytes:
     """Verify a downloaded Hyperprompt release archive without extracting it."""
 
     lock = validate_lock(root)
-    artifact = next(
-        (item for item in lock["artifacts"] if item["platform"] == platform),
-        None,
-    )
-    if artifact is None:
-        raise AssemblyError(f"platform is not locked: {platform}")
+    artifact = _artifact_for_platform(lock, platform)
+    try:
+        actual_size = archive_path.stat().st_size
+    except OSError as error:
+        raise AssemblyError(f"cannot inspect {archive_path}: {error}") from error
+    if actual_size != artifact["size"]:
+        raise AssemblyError(
+            f"Hyperprompt archive size mismatch for {platform}: "
+            f"expected {artifact['size']}, got {actual_size}"
+        )
     actual_sha = _sha256_file(archive_path)
     if actual_sha != artifact["sha256"]:
         raise AssemblyError(
@@ -623,6 +736,17 @@ def verify_archive(
             if not files["hyperprompt"].mode & 0o111:
                 raise AssemblyError("Hyperprompt archive binary is not executable")
 
+            binary_file = archive.extractfile(files["hyperprompt"])
+            if binary_file is None:
+                raise AssemblyError("cannot read Hyperprompt binary")
+            binary = binary_file.read()
+            actual_binary_sha = _sha256_bytes(binary)
+            if actual_binary_sha != artifact["binary_sha256"]:
+                raise AssemblyError(
+                    f"Hyperprompt binary digest mismatch for {platform}: "
+                    f"expected {artifact['binary_sha256']}, got {actual_binary_sha}"
+                )
+
             metadata_file = archive.extractfile(files["hyperprompt-artifact.json"])
             if metadata_file is None:
                 raise AssemblyError("cannot read Hyperprompt artifact metadata")
@@ -659,6 +783,421 @@ def verify_archive(
         or not metadata["workflow_run_id"].isdigit()
     ):
         raise AssemblyError("Hyperprompt workflow_run_id must be a decimal string")
+    return binary
+
+
+def verify_compiler(
+    compiler: Path,
+    *,
+    root: Path = ROOT,
+    platform_name: str | None = None,
+) -> Mapping[str, Any]:
+    """Verify the installed binary identity and reported version."""
+
+    if compiler.is_symlink() or not compiler.is_file():
+        raise AssemblyError(f"Hyperprompt compiler must be a regular file: {compiler}")
+    lock = validate_lock(root)
+    platform_value = platform_name or _host_platform()
+    artifact = _artifact_for_platform(lock, platform_value)
+    actual = _sha256_file(compiler)
+    if actual != artifact["binary_sha256"]:
+        raise AssemblyError(
+            f"Hyperprompt compiler digest mismatch for {platform_value}: "
+            f"expected {artifact['binary_sha256']}, got {actual}"
+        )
+    try:
+        result = subprocess.run(
+            [str(compiler), "--version"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise AssemblyError(f"cannot execute Hyperprompt compiler: {error}") from error
+    if result.returncode != 0 or result.stdout.strip() != lock["release"]["version"]:
+        raise AssemblyError(
+            "Hyperprompt compiler version does not match the locked release"
+        )
+    return artifact
+
+
+def install_toolchain(
+    root: Path,
+    destination: Path,
+    *,
+    platform_name: str | None = None,
+) -> Path:
+    """Download, verify, and atomically install the exact locked compiler."""
+
+    platform_value = platform_name or _host_platform()
+    lock = validate_lock(root)
+    artifact = _artifact_for_platform(lock, platform_value)
+    if destination.exists():
+        verify_compiler(
+            destination,
+            root=root,
+            platform_name=platform_value,
+        )
+        return destination
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix="hyperprompt-download-",
+        dir=destination.parent,
+    ) as temporary:
+        archive_path = Path(temporary) / artifact["asset"]
+        try:
+            request = urllib.request.Request(
+                artifact["url"],
+                headers={"User-Agent": "agent-surface-publication-assembly/1"},
+            )
+            with urllib.request.urlopen(request, timeout=30) as response:
+                if not response.geturl().startswith("https://"):
+                    raise AssemblyError("Hyperprompt download was redirected off HTTPS")
+                content = response.read(artifact["size"] + 1)
+        except (OSError, TimeoutError) as error:
+            raise AssemblyError(f"cannot download Hyperprompt: {error}") from error
+        if len(content) != artifact["size"]:
+            raise AssemblyError(
+                "downloaded Hyperprompt archive does not have the locked size"
+            )
+        archive_path.write_bytes(content)
+        binary = verify_archive(archive_path, platform_value, root=root)
+        temporary_binary = destination.with_name(destination.name + ".tmp")
+        temporary_binary.write_bytes(binary)
+        temporary_binary.chmod(0o755)
+        os.replace(temporary_binary, destination)
+
+    try:
+        verify_compiler(
+            destination,
+            root=root,
+            platform_name=platform_value,
+        )
+    except AssemblyError:
+        destination.unlink(missing_ok=True)
+        raise
+    return destination
+
+
+def _load_artifact_json(path: Path, *, label: str) -> Mapping[str, Any]:
+    value = _load_json(path)
+    if not isinstance(value, Mapping):
+        raise AssemblyError(f"{label} must be a JSON object")
+    return value
+
+
+def _validate_manifest(
+    manifest_path: Path,
+    *,
+    candidate: Mapping[str, Any],
+    staged_sources: Mapping[str, bytes],
+    compiler_version: str,
+) -> bytes:
+    content = manifest_path.read_bytes()
+    manifest = _load_artifact_json(manifest_path, label="assembly manifest")
+    required_keys = {
+        "dependencies",
+        "root",
+        "schemaVersion",
+        "sources",
+        "timestamp",
+        "version",
+    }
+    if set(manifest) != required_keys:
+        raise AssemblyError("assembly manifest has an unexpected shape")
+    if manifest["schemaVersion"] != 1:
+        raise AssemblyError("assembly manifest schemaVersion must be 1")
+    if manifest["root"] != candidate["sources"]["entrypoint"]:
+        raise AssemblyError("assembly manifest root does not match the entrypoint")
+    if manifest["version"] != compiler_version:
+        raise AssemblyError("assembly manifest compiler version does not match the lock")
+    expected_timestamp = datetime.fromtimestamp(
+        candidate["assembly"]["source_date_epoch"],
+        tz=UTC,
+    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if manifest["timestamp"] != expected_timestamp:
+        raise AssemblyError("assembly manifest timestamp is not reproducible")
+
+    expected_types = {
+        source["path"]: source["media_type"]
+        for source in candidate["sources"]["declared"]
+    }
+    expected_entries = [
+        {
+            "path": path,
+            "sha256": _sha256_bytes(staged_sources[path]),
+            "size": len(staged_sources[path]),
+            "type": expected_types[path],
+        }
+        for path in sorted(staged_sources)
+    ]
+    if manifest["sources"] != expected_entries:
+        raise AssemblyError(
+            "assembly manifest does not describe the exact staged source closure"
+        )
+
+    dependencies = manifest["dependencies"]
+    if not isinstance(dependencies, list):
+        raise AssemblyError("assembly manifest dependencies must be an array")
+    normalized_edges: list[tuple[str, str]] = []
+    for edge in dependencies:
+        if not isinstance(edge, Mapping) or set(edge) != {"from", "to"}:
+            raise AssemblyError("assembly manifest dependency has an unexpected shape")
+        pair = (edge["from"], edge["to"])
+        if pair[0] not in staged_sources or pair[1] not in staged_sources:
+            raise AssemblyError("assembly manifest dependency leaves the source closure")
+        normalized_edges.append(pair)
+    if normalized_edges != sorted(set(normalized_edges)):
+        raise AssemblyError(
+            "assembly manifest dependencies must be unique and deterministically sorted"
+        )
+
+    entrypoint = candidate["sources"]["entrypoint"]
+    reachable = {entrypoint}
+    changed = True
+    while changed:
+        changed = False
+        for source, target in normalized_edges:
+            if source in reachable and target not in reachable:
+                reachable.add(target)
+                changed = True
+    if reachable != set(staged_sources):
+        raise AssemblyError("assembly manifest dependency graph is not a closed build graph")
+    if _sha256_bytes(content) != candidate["expected"]["manifest_sha256"]:
+        raise AssemblyError("assembly manifest digest does not match the candidate")
+    return content
+
+
+def _validate_source_map(
+    source_map_path: Path,
+    *,
+    candidate: Mapping[str, Any],
+    staged_sources: Mapping[str, bytes],
+    output: bytes,
+) -> bytes:
+    content = source_map_path.read_bytes()
+    source_map = _load_artifact_json(source_map_path, label="assembly source map")
+    if set(source_map) != {
+        "lineBase",
+        "mappings",
+        "outputSha256",
+        "schemaVersion",
+    }:
+        raise AssemblyError("assembly source map has an unexpected shape")
+    if source_map["schemaVersion"] != 1 or source_map["lineBase"] != 1:
+        raise AssemblyError("assembly source map version or line base is unsupported")
+    if source_map["outputSha256"] != _sha256_bytes(output):
+        raise AssemblyError("assembly source map output digest is stale")
+    mappings = source_map["mappings"]
+    expected_lines = len(output.splitlines())
+    if not isinstance(mappings, list) or len(mappings) != expected_lines:
+        raise AssemblyError("assembly source map does not cover every output line")
+
+    line_counts = {
+        path: len(source.splitlines())
+        for path, source in staged_sources.items()
+    }
+    observed_sources: set[str] = set()
+    observed_lines: dict[str, list[int]] = {}
+    separator_lines: list[int] = []
+    allowed_kinds = {"markdown", "hypercode_heading", "generated_separator"}
+    for index, mapping in enumerate(mappings, start=1):
+        if not isinstance(mapping, Mapping) or set(mapping) != {
+            "generatedLine",
+            "kind",
+            "source",
+        }:
+            raise AssemblyError("assembly source map mapping has an unexpected shape")
+        if mapping["generatedLine"] != index or mapping["kind"] not in allowed_kinds:
+            raise AssemblyError("assembly source map line coverage is not contiguous")
+        source = mapping["source"]
+        if mapping["kind"] == "generated_separator":
+            if source is not None:
+                raise AssemblyError("generated source-map separator has a source")
+            separator_lines.append(index)
+            continue
+        if not isinstance(source, Mapping) or set(source) != {
+            "path",
+            "startLine",
+            "endLine",
+        }:
+            raise AssemblyError("assembly source map span has an unexpected shape")
+        path = source["path"]
+        if path not in staged_sources:
+            raise AssemblyError("assembly source map references an undeclared source")
+        if (
+            not isinstance(source["startLine"], int)
+            or not isinstance(source["endLine"], int)
+            or source["startLine"] < 1
+            or source["endLine"] < source["startLine"]
+            or source["endLine"] > line_counts[path]
+        ):
+            raise AssemblyError("assembly source map has an invalid source span")
+        if mapping["kind"] != "markdown" or source["startLine"] != source["endLine"]:
+            raise AssemblyError(
+                "this assembly candidate requires one-to-one Markdown provenance"
+            )
+        observed_sources.add(path)
+        observed_lines.setdefault(path, []).append(source["startLine"])
+
+    expected_markdown = {
+        source["path"]
+        for source in candidate["sources"]["declared"]
+        if source["media_type"] == "markdown"
+    }
+    if not expected_markdown.issubset(observed_sources):
+        raise AssemblyError("assembly source map omits an emitted Markdown source")
+    for path in expected_markdown:
+        if observed_lines.get(path) != list(range(1, line_counts[path] + 1)):
+            raise AssemblyError(
+                f"assembly source map does not cover {path!r} exactly once"
+            )
+    if separator_lines != candidate["expected"]["generated_separator_lines"]:
+        raise AssemblyError("assembly source map generated separators are unexpected")
+    if _sha256_bytes(content) != candidate["expected"]["source_map_sha256"]:
+        raise AssemblyError("assembly source map digest does not match the candidate")
+    return content
+
+
+def _assert_exact_staging_inventory(
+    staging: Path,
+    expected: set[str],
+) -> None:
+    actual: set[str] = set()
+    for path in staging.rglob("*"):
+        if path.is_symlink():
+            raise AssemblyError(f"assembly staging contains a symlink: {path}")
+        if path.is_file():
+            actual.add(path.relative_to(staging).as_posix())
+    if actual != expected:
+        raise AssemblyError(
+            "assembly staging inventory mismatch: "
+            f"expected {sorted(expected)}, got {sorted(actual)}"
+        )
+
+
+def run_candidate_build(
+    root: Path,
+    candidate_path: Path,
+    compiler: Path,
+) -> tuple[bytes, bytes, bytes]:
+    """Build and validate one executable candidate in disposable staging."""
+
+    candidate = validate_candidate(root, candidate_path)
+    if candidate["candidate_stage"] != "executable":
+        raise AssemblyError("only executable candidates can be built")
+    lock = validate_lock(root)
+    verify_compiler(compiler, root=root)
+
+    with disposable_staging() as staging:
+        canonical = _canonical_bytes(root, candidate, _load_catalog(root))
+        staged_sources = _source_bytes(
+            root,
+            candidate_path.parent,
+            candidate,
+            canonical,
+        )
+        for relative, content in staged_sources.items():
+            destination = staging / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(content)
+
+        assembly = candidate["assembly"]
+        output_path = staging / assembly["output"]
+        manifest_path = staging / assembly["manifest"]
+        source_map_path = staging / assembly["source_map"]
+        for artifact_path in (output_path, manifest_path, source_map_path):
+            artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "SOURCE_DATE_EPOCH": str(assembly["source_date_epoch"]),
+                "LC_ALL": "C",
+                "TZ": "UTC",
+            }
+        )
+        command = [
+            str(compiler.resolve()),
+            "compile",
+            candidate["sources"]["entrypoint"],
+            "--root",
+            str(staging),
+            "--output",
+            assembly["output"],
+            "--manifest",
+            assembly["manifest"],
+            "--source-map",
+            assembly["source_map"],
+        ]
+        try:
+            result = subprocess.run(
+                command,
+                cwd=staging,
+                env=environment,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise AssemblyError(f"Hyperprompt candidate build failed: {error}") from error
+        if result.returncode != 0:
+            raise AssemblyError(
+                "Hyperprompt candidate build exited non-zero: "
+                + (result.stderr.strip() or result.stdout.strip())
+            )
+
+        expected_inventory = set(staged_sources) | {
+            assembly["output"],
+            assembly["manifest"],
+            assembly["source_map"],
+        }
+        _assert_exact_staging_inventory(staging, expected_inventory)
+        try:
+            output = output_path.read_bytes()
+        except OSError as error:
+            raise AssemblyError(f"cannot read generated RFC candidate: {error}") from error
+        if output != canonical:
+            raise AssemblyError(
+                "generated RFC candidate is not byte-identical to the canonical RFC"
+            )
+        if _sha256_bytes(output) != candidate["expected"]["aggregate_sha256"]:
+            raise AssemblyError("generated RFC candidate digest does not match expected")
+        manifest = _validate_manifest(
+            manifest_path,
+            candidate=candidate,
+            staged_sources=staged_sources,
+            compiler_version=lock["release"]["version"],
+        )
+        source_map = _validate_source_map(
+            source_map_path,
+            candidate=candidate,
+            staged_sources=staged_sources,
+            output=output,
+        )
+        return output, manifest, source_map
+
+
+def build_repository(root: Path, compiler: Path) -> int:
+    """Build every executable candidate twice and compare all artifacts."""
+
+    count = 0
+    for descriptor in discover_candidates(root):
+        candidate = validate_candidate(root, descriptor)
+        if candidate["candidate_stage"] != "executable":
+            continue
+        first = run_candidate_build(root, descriptor, compiler)
+        second = run_candidate_build(root, descriptor, compiler)
+        if first != second:
+            raise AssemblyError(
+                f"candidate {candidate['candidate_id']!r} is not reproducible"
+            )
+        count += 1
+    if count == 0:
+        raise AssemblyError("repository has no executable assembly candidate")
+    return count
 
 
 def validate_repository(root: Path = ROOT) -> list[Path]:
@@ -694,6 +1233,19 @@ def _parser() -> argparse.ArgumentParser:
     verify.add_argument("--root", type=Path, default=ROOT)
     verify.add_argument("--platform", required=True, choices=sorted(EXPECTED_PLATFORMS))
     verify.add_argument("--archive", required=True, type=Path)
+
+    install = subparsers.add_parser("install-toolchain")
+    install.add_argument("--root", type=Path, default=ROOT)
+    install.add_argument(
+        "--destination",
+        type=Path,
+        default=Path(".tools/hyperprompt/hyperprompt"),
+    )
+    install.add_argument("--platform", choices=sorted(EXPECTED_PLATFORMS))
+
+    build = subparsers.add_parser("build")
+    build.add_argument("--root", type=Path, default=ROOT)
+    build.add_argument("--compiler", required=True, type=Path)
     return parser
 
 
@@ -706,13 +1258,26 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "publication assembly foundation is valid "
                 f"({len(candidates)} candidate descriptors)"
             )
-        else:
+        elif args.command == "verify-archive":
             verify_archive(
                 args.archive.resolve(),
                 args.platform,
                 root=args.root.resolve(),
             )
             print(f"Hyperprompt archive is valid for {args.platform}")
+        elif args.command == "install-toolchain":
+            installed = install_toolchain(
+                args.root.resolve(),
+                args.destination.resolve(),
+                platform_name=args.platform,
+            )
+            print(f"installed locked Hyperprompt compiler at {installed}")
+        else:
+            count = build_repository(
+                args.root.resolve(),
+                args.compiler.resolve(),
+            )
+            print(f"publication assembly is reproducible ({count} candidates)")
     except AssemblyError as error:
         print(f"publication assembly error: {error}", file=sys.stderr)
         return 1

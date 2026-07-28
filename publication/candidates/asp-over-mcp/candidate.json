@@ -1,0 +1,86 @@
+{
+  "$schema": "../../assembly/candidate.schema.json",
+  "schema_version": 1,
+  "candidate_stage": "executable",
+  "candidate_id": "asp-over-mcp",
+  "description": "Non-authoritative ASP-over-MCP extraction proving byte-identical assembly of the current canonical RFC.",
+  "authority": "non_authoritative",
+  "publication_mode_required": "transitional_monolith",
+  "compiler": {
+    "lock_path": "publication/assembly/hyperprompt.lock.json",
+    "lock_sha256": "5f9b32fc66e8f199ff0c8f2900e30d700155e3e3806df3ff063e27bf8747e18c"
+  },
+  "canonical": {
+    "path": "drafts/agent-surface.md",
+    "sha256": "03bea8968cbcc47b64fe1ddadc811464e361e2f0c78946e510c53565973915d8"
+  },
+  "sources": {
+    "committed_root": "sources",
+    "entrypoint": "root.hc",
+    "declared": [
+      {
+        "path": "root.hc",
+        "media_type": "hypercode",
+        "origin": "committed_candidate",
+        "sha256": "b1cb302119b7004360356ff8c17b11176b499ba2b9b8c78758b768fb54a03dc9",
+        "repository_path": "publication/candidates/asp-over-mcp/sources/root.hc"
+      },
+      {
+        "path": "fragments/prefix.md",
+        "media_type": "markdown",
+        "origin": "derived_canonical",
+        "sha256": "f607ae11a8a66728c73a1393a323b9b98111ebffc7e34dce49a20413e8d5b8bf",
+        "extraction": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 0,
+          "end_byte": 29631,
+          "transform": "identity"
+        }
+      },
+      {
+        "path": "sections/asp-over-mcp.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "7adc09f2c3347aeedd10e0dfb30431acaf359df12bdcf1a230d147dca196b73c",
+        "repository_path": "publication/candidates/asp-over-mcp/sources/sections/asp-over-mcp.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 29631,
+          "end_byte": 84815,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "fragments/suffix.md",
+        "media_type": "markdown",
+        "origin": "derived_canonical",
+        "sha256": "a9866ab57f0a36b5631ffe664e57015141a8a034c112753681fe388505010bb6",
+        "extraction": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 84816,
+          "end_byte": 904141,
+          "transform": "promote_atx_headings_one_level"
+        }
+      }
+    ]
+  },
+  "assembly": {
+    "staging_policy": "disposable_empty_directory",
+    "source_date_epoch": 1700000000,
+    "output": "artifacts/agent-surface.md",
+    "manifest": "artifacts/agent-surface.manifest.json",
+    "source_map": "artifacts/agent-surface.source-map.json"
+  },
+  "expected": {
+    "equivalence": "byte_identical_to_canonical",
+    "aggregate_sha256": "03bea8968cbcc47b64fe1ddadc811464e361e2f0c78946e510c53565973915d8",
+    "manifest_sha256": "0f09a2aba7a54286a00c8dfa8d015bc087a01f188ef0a0e0e20c0d67296967a0",
+    "source_map_sha256": "b3a7517de508b2308b313662b1939876d7363b20423507207b8be6bcc0475978",
+    "generated_separator_lines": [
+      1692
+    ]
+  }
+}
