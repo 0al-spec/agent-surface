@@ -1,0 +1,8 @@
+{
+  "publication_mode": "transitional_monolith",
+  "aggregate": {
+    "path": "drafts/agent-surface.md",
+    "sha256": "670a1aad6d5fc27d4385d12743879c56ce8a080fa88fcaf832145bfce6eb34ee",
+    "generated": false
+  }
+}

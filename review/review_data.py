@@ -163,6 +163,12 @@ VERTICAL_SLICE_VALIDATED_SHA_ENV = "ASP_VERTICAL_SLICE_VALIDATED_SHA"
 PUBLICATION_SCHEMA = Path("publication/document-set.schema.json")
 PUBLICATION_REGISTRY = Path("publication/document-set.json")
 PUBLICATION_IMPLEMENTATION = Path("publication/check.py")
+PUBLICATION_ASSEMBLY_SCHEMAS = {
+    Path("publication/assembly/hyperprompt.lock.schema.json"),
+    Path("publication/assembly/candidate.schema.json"),
+}
+PUBLICATION_ASSEMBLY_IMPLEMENTATION = Path("publication/assembly/check.py")
+PUBLICATION_ASSEMBLY_TEST = Path("publication/assembly/tests/test_assembly.py")
 GIT_OBJECT_ID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
     17: {
@@ -908,6 +914,9 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
     is_bound_publication_schema = (
         review_id == 66 and relative_path == PUBLICATION_SCHEMA
     )
+    is_bound_publication_assembly_schema = (
+        review_id == 78 and relative_path in PUBLICATION_ASSEMBLY_SCHEMAS
+    )
     if (
         not is_conformance_schema
         and not is_bound_api_importer_schema
@@ -916,6 +925,7 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
         and not is_bound_mock_schema
         and not is_bound_vertical_slice_schema
         and not is_bound_publication_schema
+        and not is_bound_publication_assembly_schema
     ):
         raise ValueError(
             f"Review #{review_id} schema evidence must reference "
@@ -1006,6 +1016,12 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
     if review_id == 66 and relative_path == PUBLICATION_IMPLEMENTATION:
         _validate_publication_contract()
         return
+    if (
+        review_id == 78
+        and relative_path == PUBLICATION_ASSEMBLY_IMPLEMENTATION
+    ):
+        _validate_publication_assembly()
+        return
     if review_id == 17 and relative_path in API_IMPORTER_IMPLEMENTATIONS:
         _validate_api_importer_bundle_evidence(review_id, "implementation", ref)
         return
@@ -1077,6 +1093,9 @@ def _validate_publication_contract() -> None:
 def _validate_test_evidence(review_id: int, ref: str) -> None:
     test_path = _resolve_repository_evidence_file(review_id, "test", ref)
     relative_path = test_path.relative_to(REPO_ROOT)
+    if review_id == 78 and relative_path == PUBLICATION_ASSEMBLY_TEST:
+        _run_publication_assembly_tests()
+        return
     if review_id != 74 or relative_path != VERTICAL_SLICE_TEST:
         raise ValueError(
             f"Review #{review_id} test evidence kind is not supported until "
@@ -1089,6 +1108,61 @@ def _validate_test_evidence(review_id: int, ref: str) -> None:
             f"Review #{review_id} test evidence failed authoritative vertical "
             f"slice validation: {ref!r}: {error}"
         ) from error
+
+
+@lru_cache(maxsize=1)
+def _validate_publication_assembly() -> None:
+    """Validate the canonical non-authoritative assembly foundation once."""
+
+    root_is_first = bool(sys.path) and sys.path[0] == str(REPO_ROOT)
+    if not root_is_first:
+        sys.path.insert(0, str(REPO_ROOT))
+    try:
+        assembly_check = importlib.import_module("publication.assembly.check")
+        module_path = Path(assembly_check.__file__).resolve()
+        expected_module_path = REPO_ROOT / PUBLICATION_ASSEMBLY_IMPLEMENTATION
+        if module_path != expected_module_path:
+            raise ValueError(
+                f"loaded non-canonical publication assembly validator: {module_path}"
+            )
+        validate_repository = getattr(assembly_check, "validate_repository")
+        validate_repository(REPO_ROOT)
+    except Exception as error:
+        raise ValueError(
+            f"Review #78 publication assembly evidence failed validation: {error}"
+        ) from error
+    finally:
+        if not root_is_first:
+            sys.path.pop(0)
+
+
+@lru_cache(maxsize=1)
+def _run_publication_assembly_tests() -> None:
+    """Run the exact bound assembly test suite once per review-data process."""
+
+    process = subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "publication/assembly/tests",
+            "-p",
+            "test_*.py",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    if process.returncode != 0:
+        details = process.stderr.strip() or process.stdout.strip()
+        raise ValueError(
+            "Review #78 publication assembly tests failed: "
+            + (details or f"exit status {process.returncode}")
+        )
 
 
 @lru_cache(maxsize=1)

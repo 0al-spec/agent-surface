@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/publication/schemas/hyperprompt-lock/v1",
+  "title": "ASP Hyperprompt Toolchain Lock v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "repository",
+    "release",
+    "artifacts"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./hyperprompt.lock.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "repository": {
+      "const": "https://github.com/0al-spec/Hyperprompt"
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "tag",
+        "tag_object",
+        "commit",
+        "url"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "tag": {
+          "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "type": "string"
+        },
+        "tag_object": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "url": {
+          "format": "uri",
+          "type": "string"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    }
+  },
+  "$defs": {
+    "version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "type": "string"
+    },
+    "gitObject": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform",
+        "os",
+        "arch",
+        "linkage",
+        "asset",
+        "url",
+        "sha256",
+        "archive_root"
+      ],
+      "properties": {
+        "platform": {
+          "enum": [
+            "linux-amd64",
+            "macos-arm64"
+          ]
+        },
+        "os": {
+          "enum": [
+            "linux",
+            "macos"
+          ]
+        },
+        "arch": {
+          "enum": [
+            "x86_64",
+            "arm64"
+          ]
+        },
+        "linkage": {
+          "enum": [
+            "static-swift-stdlib",
+            "platform-default"
+          ]
+        },
+        "asset": {
+          "pattern": "^hyperprompt-[0-9]+\\.[0-9]+\\.[0-9]+-(?:linux-amd64|macos-arm64)\\.tar\\.gz$",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "archive_root": {
+          "pattern": "^hyperprompt-[0-9]+\\.[0-9]+\\.[0-9]+-(?:linux-amd64|macos-arm64)$",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

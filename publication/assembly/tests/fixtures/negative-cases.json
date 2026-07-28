@@ -1,0 +1,34 @@
+{
+  "cases": [
+    {
+      "name": "wrong_lock_digest",
+      "operation": "replace_lock_digest",
+      "expected_error": "compiler lock digest"
+    },
+    {
+      "name": "undeclared_committed_source",
+      "operation": "add_undeclared_source",
+      "expected_error": "undeclared committed sources"
+    },
+    {
+      "name": "stale_candidate_artifact",
+      "operation": "add_file_outside_source_root",
+      "expected_error": "unexpected files outside the committed source root"
+    },
+    {
+      "name": "source_path_traversal",
+      "operation": "replace_staged_path_with_traversal",
+      "expected_error": "schema violation"
+    },
+    {
+      "name": "canonical_digest_drift",
+      "operation": "modify_canonical_source",
+      "expected_error": "canonical source digest mismatch"
+    },
+    {
+      "name": "artifact_source_collision",
+      "operation": "collide_output_with_entrypoint",
+      "expected_error": "collide with staged sources"
+    }
+  ]
+}

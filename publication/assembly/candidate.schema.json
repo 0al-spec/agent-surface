@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/publication/schemas/assembly-candidate/v1",
+  "title": "ASP Non-Authoritative Assembly Candidate v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "candidate_id",
+    "description",
+    "authority",
+    "publication_mode_required",
+    "compiler",
+    "canonical",
+    "sources",
+    "assembly",
+    "expected"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "../../assembly/candidate.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "candidate_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "description": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "authority": {
+      "const": "non_authoritative"
+    },
+    "publication_mode_required": {
+      "const": "transitional_monolith"
+    },
+    "compiler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lock_path",
+        "lock_sha256"
+      ],
+      "properties": {
+        "lock_path": {
+          "const": "publication/assembly/hyperprompt.lock.json"
+        },
+        "lock_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "canonical": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "const": "drafts/agent-surface.md"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "committed_root",
+        "entrypoint",
+        "declared"
+      ],
+      "properties": {
+        "committed_root": {
+          "const": "sources"
+        },
+        "entrypoint": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "declared": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/source"
+          }
+        }
+      }
+    },
+    "assembly": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "staging_policy",
+        "source_date_epoch",
+        "output",
+        "manifest",
+        "source_map"
+      ],
+      "properties": {
+        "staging_policy": {
+          "const": "disposable_empty_directory"
+        },
+        "source_date_epoch": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "output": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "manifest": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "source_map": {
+          "$ref": "#/$defs/relativePath"
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "equivalence",
+        "aggregate_sha256"
+      ],
+      "properties": {
+        "equivalence": {
+          "const": "byte_identical_to_canonical"
+        },
+        "aggregate_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "relativePath": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*\\\\).+$",
+      "type": "string"
+    },
+    "sourceBase": {
+      "type": "object",
+      "required": [
+        "path",
+        "media_type",
+        "origin",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "media_type": {
+          "enum": [
+            "hypercode",
+            "markdown",
+            "cascade"
+          ]
+        },
+        "origin": {
+          "enum": [
+            "committed_candidate",
+            "derived_canonical"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "source": {
+      "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/sourceBase"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "media_type",
+                "origin",
+                "sha256",
+                "repository_path"
+              ],
+              "properties": {
+                "path": {
+                  "$ref": "#/$defs/relativePath"
+                },
+                "media_type": {
+                  "enum": [
+                    "hypercode",
+                    "markdown",
+                    "cascade"
+                  ]
+                },
+                "origin": {
+                  "const": "committed_candidate"
+                },
+                "sha256": {
+                  "$ref": "#/$defs/sha256"
+                },
+                "repository_path": {
+                  "$ref": "#/$defs/relativePath"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/sourceBase"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "media_type",
+                "origin",
+                "sha256",
+                "extraction"
+              ],
+              "properties": {
+                "path": {
+                  "$ref": "#/$defs/relativePath"
+                },
+                "media_type": {
+                  "const": "markdown"
+                },
+                "origin": {
+                  "const": "derived_canonical"
+                },
+                "sha256": {
+                  "$ref": "#/$defs/sha256"
+                },
+                "extraction": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "method",
+                    "source_path",
+                    "start_byte",
+                    "end_byte"
+                  ],
+                  "properties": {
+                    "method": {
+                      "const": "byte_range"
+                    },
+                    "source_path": {
+                      "const": "drafts/agent-surface.md"
+                    },
+                    "start_byte": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "end_byte": {
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
