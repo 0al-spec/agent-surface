@@ -6,7 +6,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
+import unicodedata
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -24,6 +27,8 @@ MATERIALIZATION_PATH = Path("publication/migration/materialization.json")
 MATERIALIZATION_SCHEMA_PATH = Path(
     "publication/migration/materialization.schema.json"
 )
+STANDALONE_PATH = Path("publication/migration/standalone.json")
+STANDALONE_SCHEMA_PATH = Path("publication/migration/standalone.schema.json")
 
 
 class OwnershipError(ValueError):
@@ -544,6 +549,282 @@ def validate_materialization(
     return materialization
 
 
+def _slugify(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value).encode(
+        "ascii", "ignore"
+    ).decode()
+    return re.sub(r"[^a-z0-9]+", "-", normalized.lower()).strip("-") or "section"
+
+
+def _candidate_heading_anchors(path: Path) -> dict[str, list[str]]:
+    tokens = MarkdownIt("commonmark", {"html": True}).parse(
+        path.read_text(encoding="utf-8")
+    )
+    occurrences: Counter[str] = Counter()
+    anchors: dict[str, list[str]] = {}
+    for index, token in enumerate(tokens):
+        if token.type != "heading_open":
+            continue
+        title = tokens[index + 1].content.strip()
+        base = _slugify(title)
+        suffix = occurrences[base]
+        occurrences[base] += 1
+        anchor = base if suffix == 0 else f"{base}-{suffix}"
+        anchors.setdefault(title, []).append(anchor)
+    return anchors
+
+
+def validate_standalone(
+    root: Path = ROOT,
+    ownership_map: Mapping[str, Any] | None = None,
+    materialization: Mapping[str, Any] | None = None,
+) -> Mapping[str, Any]:
+    """Validate standalone candidates, exact references, and anchor relocation."""
+
+    active_map = (
+        ownership_map
+        if ownership_map is not None
+        else validate_ownership_map(root)
+    )
+    active_materialization = (
+        materialization
+        if materialization is not None
+        else validate_materialization(root, active_map)
+    )
+    standalone = _load_json(root / STANDALONE_PATH)
+    schema = _load_json(root / STANDALONE_SCHEMA_PATH)
+    _validate_schema(standalone, schema)
+
+    catalog = _load_json(root / active_map["catalog_path"])
+    if catalog["publication_mode"] != standalone["publication_mode_required"]:
+        raise OwnershipError(
+            "standalone candidates are valid only during transitional_monolith mode"
+        )
+    expected_refs = (
+        (MAP_PATH, standalone["ownership_map"]),
+        (MATERIALIZATION_PATH, standalone["materialization"]),
+    )
+    for expected_path, reference in expected_refs:
+        if reference["path"] != expected_path.as_posix():
+            raise OwnershipError(
+                f"standalone contract references unexpected input: {reference['path']}"
+            )
+        if _sha256(root / expected_path) != reference["sha256"]:
+            raise OwnershipError(
+                f"standalone input digest is stale: {expected_path}"
+            )
+
+    reserved = catalog["reserved_documents"]
+    materialized_by_id = {
+        item["document_id"]: item
+        for item in active_materialization["modules"]
+    }
+    candidate_paths = {
+        item["document_id"]: (
+            "publication/migration/documents/"
+            + Path(item["target_source_path"])
+            .relative_to("drafts/modules")
+            .as_posix()
+        )
+        for item in reserved
+    }
+    documents = standalone["documents"]
+    if len(documents) != len(reserved):
+        raise OwnershipError(
+            "standalone set must contain every reserved document exactly once"
+        )
+    document_by_id: dict[str, Mapping[str, Any]] = {}
+    heading_anchors: dict[str, dict[str, list[str]]] = {}
+    for actual, expected in zip(documents, reserved, strict=True):
+        document_id = expected["document_id"]
+        references = [
+            {
+                "document_id": reference["document_id"],
+                "version": reference["version"],
+                "candidate_path": candidate_paths[reference["document_id"]],
+            }
+            for reference in expected["normative_dependencies"]
+        ]
+        expected_metadata = {
+            "document_id": document_id,
+            "version": expected["version"],
+            "title": expected["title"],
+            "target_source_path": expected["target_source_path"],
+            "candidate_path": candidate_paths[document_id],
+            "content_fragments": materialized_by_id[document_id]["fragments"],
+            "normative_references": references,
+        }
+        for key, value in expected_metadata.items():
+            if actual[key] != value:
+                raise OwnershipError(
+                    f"standalone document metadata is stale for {document_id}: {key}"
+                )
+        candidate_path = root / actual["candidate_path"]
+        if not candidate_path.is_file() or candidate_path.is_symlink():
+            raise OwnershipError(
+                f"standalone candidate document is missing: {candidate_path}"
+            )
+        if _sha256(candidate_path) != actual["sha256"]:
+            raise OwnershipError(
+                f"standalone candidate digest is stale: {actual['candidate_path']}"
+            )
+        candidate_text = candidate_path.read_text(encoding="utf-8")
+        tokens = MarkdownIt("commonmark", {"html": True}).parse(candidate_text)
+        h1_titles = [
+            tokens[index + 1].content.strip()
+            for index, token in enumerate(tokens)
+            if token.type == "heading_open" and token.tag == "h1"
+        ]
+        if h1_titles != [expected["title"]]:
+            raise OwnershipError(
+                "standalone candidate must have exactly one reserved H1: "
+                f"{actual['candidate_path']}"
+            )
+        canonical_target = root / expected["target_source_path"]
+        if canonical_target.exists() or canonical_target.is_symlink():
+            raise OwnershipError(
+                "standalone candidate must not materialize its canonical target: "
+                f"{canonical_target}"
+            )
+        document_by_id[document_id] = actual
+        heading_anchors[document_id] = _candidate_heading_anchors(candidate_path)
+
+    canonical_path = root / active_map["canonical_source"]["path"]
+    canonical_headings = _headings(canonical_path)
+    module_ids = {item["document_id"] for item in active_map["modules"]}
+    resolved, _ = _validate_sections(active_map, canonical_headings, module_ids)
+    core = next(item for item in reserved if item["role"] == "core")
+    navigation = standalone["navigation_references"]
+    h2_owners = {
+        resolved[index]
+        for index, heading in enumerate(canonical_headings)
+        if heading.level == 2
+    }
+    fallback_owners: set[str] = set()
+    expected_navigation_headings = []
+    for index, heading in enumerate(canonical_headings):
+        owner = resolved[index]
+        is_owner_fallback = (
+            owner not in h2_owners and owner not in fallback_owners
+        )
+        if heading.level != 2 and not is_owner_fallback:
+            continue
+        if is_owner_fallback:
+            fallback_owners.add(owner)
+        expected_navigation_headings.append((index, heading))
+    if {resolved[index] for index, _ in expected_navigation_headings} != {
+        item["document_id"] for item in reserved
+    }:
+        raise OwnershipError(
+            "navigation references must include every reserved document"
+        )
+    if len(navigation) != len(expected_navigation_headings):
+        raise OwnershipError(
+            "navigation references must exactly cover canonical level-two "
+            "sections and one fallback heading for every otherwise "
+            "undiscoverable document"
+        )
+    for actual, (index, heading) in zip(
+        navigation, expected_navigation_headings, strict=True
+    ):
+        owner = resolved[index]
+        target = document_by_id[owner]
+        same_title_before = sum(
+            1
+            for previous_index, previous in enumerate(canonical_headings[:index])
+            if resolved[previous_index] == owner
+            and previous.title == heading.title
+        )
+        anchors = heading_anchors[owner].get(heading.title, [])
+        if same_title_before >= len(anchors):
+            raise OwnershipError(
+                f"standalone navigation target is missing: {heading.title}"
+            )
+        anchor = anchors[same_title_before]
+        expected_navigation = {
+            "heading": heading.title,
+            "source_document_id": core["document_id"],
+            "target_document_id": owner,
+            "target_version": target["version"],
+            "target_candidate_path": target["candidate_path"],
+            "target_anchor_id": anchor,
+        }
+        if actual != expected_navigation:
+            raise OwnershipError(
+                f"standalone navigation reference is stale: {heading.title}"
+            )
+        core_text = (
+            root / document_by_id[core["document_id"]]["candidate_path"]
+        ).read_text(encoding="utf-8")
+        relative_target = Path(target["candidate_path"]).relative_to(
+            "publication/migration/documents"
+        )
+        expected_link = (
+            f"]({relative_target.as_posix()}#{anchor})"
+        )
+        if expected_link not in core_text:
+            raise OwnershipError(
+                f"core navigation link is missing: {heading.title}"
+            )
+
+    active = catalog["documents"][0]
+    expected_public = active["public_anchors"]
+    relocations = standalone["public_anchor_relocations"]
+    if len(relocations) != len(expected_public):
+        raise OwnershipError(
+            "public anchor relocations must exactly cover active public anchors"
+        )
+    public_owner = {
+        item["anchor_id"]: item["owner_document_id"]
+        for item in active_map["public_anchor_assignments"]
+    }
+    try:
+        from publication.check import _explicit_anchors
+    except ImportError as error:
+        raise OwnershipError(
+            f"cannot load explicit-anchor validator: {error}"
+        ) from error
+    for actual, anchor in zip(relocations, expected_public, strict=True):
+        anchor_id = anchor["anchor_id"]
+        owner = public_owner[anchor_id]
+        replacement = document_by_id[owner]
+        expected_relocation = {
+            "heading": anchor["heading"],
+            "previous": {
+                "document_id": active["document_id"],
+                "version": active["version"],
+                "anchor_id": anchor_id,
+            },
+            "replacement": {
+                "document_id": owner,
+                "version": replacement["version"],
+                "anchor_id": anchor_id,
+            },
+            "compatibility_aliases": [
+                {
+                    "kind": "legacy_aggregate_path_fragment",
+                    "value": f"{active['source_path']}#{anchor_id}",
+                    "status": "transition_only",
+                },
+                {
+                    "kind": "legacy_aggregate_fragment",
+                    "value": f"#{anchor_id}",
+                    "status": "transition_only",
+                },
+            ],
+        }
+        if actual != expected_relocation:
+            raise OwnershipError(
+                f"public anchor relocation is stale: {anchor_id}"
+            )
+        explicit = _explicit_anchors(root / replacement["candidate_path"])
+        if explicit.get(anchor_id) != anchor["heading"]:
+            raise OwnershipError(
+                f"replacement public anchor is missing or moved: {anchor_id}"
+            )
+    return standalone
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("validate",))
@@ -559,6 +840,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.root.resolve(),
             ownership_map,
         )
+        standalone = validate_standalone(
+            args.root.resolve(),
+            ownership_map,
+            materialization,
+        )
     except OwnershipError as error:
         print(f"module ownership validation failed: {error}")
         return 1
@@ -567,7 +853,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"{len(ownership_map['modules'])} modules, "
         f"{len(ownership_map['section_assignments'])} section assignments, "
         f"{sum(len(item['fragments']) for item in materialization['modules'])} "
-        "candidate fragments"
+        f"candidate fragments, {len(standalone['documents'])} standalone documents"
     )
     return 0
 
