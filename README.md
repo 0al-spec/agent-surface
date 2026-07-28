@@ -144,8 +144,9 @@ Hyperprompt-built modular document set, aggregate, manifest, source map, local
 aliases or validated relocation records, and validation results are activated
 together.
 The current validator intentionally rejects modular mode. #78A established the
-assembly contract, #78B adds the executable ASP-over-MCP candidate, and #79
-performs the later atomic activation after the remaining #78 work.
+assembly contract, #78B added the executable ASP-over-MCP candidate, and #78C
+adds clean-checkout Linux/macOS evidence. #79 performs the later atomic
+activation.
 
 ## Executable Conformance Suite
 

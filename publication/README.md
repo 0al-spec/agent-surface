@@ -38,7 +38,9 @@ The `publication/assembly/` gate is the non-authoritative #78 pipeline. It pins
 Hyperprompt release artifacts, validates closed candidate descriptors and
 their declared inputs, and builds the ASP-over-MCP pilot twice in fail-closed
 disposable staging. The generated aggregate must be byte-identical to the
-canonical monolith; the candidate does not become authoritative.
+canonical monolith. A separate Linux/macOS workflow compares revision-bound
+machine-readable build reports; neither the candidate nor its reports become
+authoritative.
 
 Validate the contract with:
 

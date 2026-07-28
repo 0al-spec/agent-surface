@@ -1096,7 +1096,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 79)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 612)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 615)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
             Counter(

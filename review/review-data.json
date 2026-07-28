@@ -6046,7 +6046,7 @@
           "anchorId": "atomic-modular-activation"
         }
       ],
-      "rationale": "78A фиксирует Hyperprompt v0.2.0 и closed candidate contract. 78B извлекает non-authoritative ASP-over-MCP source, проверяет его точную canonical derivation, собирает prefix/module/suffix в disposable staging и дважды доказывает byte-identical aggregate, exact manifest dependency closure и one-to-one source-map coverage. CI устанавливает release artifact только после проверки archive и embedded binary digests. Modular mode по-прежнему намеренно отклоняется: 78C должен закрепить cross-platform reproduction на macOS/Linux и clean-checkout evidence. Relocation records остаются activation concern #79.",
+      "rationale": "78A фиксирует Hyperprompt v0.2.0 и closed candidate contract. 78B извлекает non-authoritative ASP-over-MCP source, проверяет canonical derivation и дважды доказывает byte-identical aggregate, exact manifest dependency closure и one-to-one source-map coverage. 78C запускает locked release из exact clean checkout на linux-amd64 и ARM64 macos-15; каждый runner выпускает revision-bound platform report, а отдельный job принимает ровно два требуемых platform evidence artifacts, сравнивает candidate и output digests и выпускает cross-platform summary. Reports остаются run-scoped provenance, поэтому maturity консервативно остаётся proposal; modular mode и relocation records остаются activation concern #79.",
       "priority": "P2",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -6081,8 +6081,20 @@
           "ref": "publication/assembly/candidate.schema.json"
         },
         {
+          "kind": "schema",
+          "ref": "publication/assembly/platform-report.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "publication/assembly/cross-platform-report.schema.json"
+        },
+        {
           "kind": "implementation",
           "ref": "publication/assembly/check.py"
+        },
+        {
+          "kind": "implementation",
+          "ref": ".github/workflows/rfc-assembly.yml"
         },
         {
           "kind": "test",

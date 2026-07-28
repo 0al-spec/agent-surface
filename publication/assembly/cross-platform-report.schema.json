@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/publication/schemas/assembly-cross-platform-report/v1",
+  "title": "ASP RFC Assembly Cross-Platform Report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "report_kind",
+    "authority",
+    "source_revision",
+    "platforms",
+    "platform_report_sha256",
+    "toolchain",
+    "candidates",
+    "result"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://github.com/0al-spec/agent-surface/publication/schemas/assembly-cross-platform-report/v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "report_kind": {
+      "const": "asp_rfc_assembly_cross_platform"
+    },
+    "authority": {
+      "const": "provenance_only"
+    },
+    "source_revision": {
+      "$ref": "#/$defs/gitObject"
+    },
+    "platforms": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": "linux-amd64"
+        },
+        {
+          "const": "macos-arm64"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "platform_report_sha256": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "linux-amd64",
+        "macos-arm64"
+      ],
+      "properties": {
+        "linux-amd64": {
+          "$ref": "#/$defs/sha256"
+        },
+        "macos-arm64": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "release_commit",
+        "lock_sha256"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "release_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "lock_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    },
+    "result": {
+      "const": "cross_platform_reproducible"
+    }
+  },
+  "$defs": {
+    "version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "type": "string"
+    },
+    "gitObject": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "identifier": {
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "type": "string"
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "descriptor_sha256",
+        "canonical_sha256",
+        "aggregate_sha256",
+        "aggregate_size",
+        "manifest_sha256",
+        "source_map_sha256"
+      ],
+      "properties": {
+        "candidate_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "descriptor_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "canonical_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "aggregate_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "aggregate_size": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_map_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}
