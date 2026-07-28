@@ -18,7 +18,7 @@ REPLAY_FUZZ_TIMEOUT_CMD ?= timeout
 REPLAY_FUZZ_PARSE_MAX_LEN ?= 262144
 REPLAY_FUZZ_STRUCTURED_MAX_LEN ?= 4096
 
-.PHONY: publication-assembly-toolchain publication-assembly-validate publication-assembly-test publication-assembly-build publication-assembly-check publication-ownership-validate publication-ownership-test publication-ownership-check publication-validate publication-history-check publication-test publication-check conformance-validate conformance-test conformance-check mock-validate mock-test mock-check vertical-slice-validate vertical-slice-test vertical-slice-check rust-workspace-fmt rust-workspace-clippy rust-workspace-test rust-workspace-check rust-tooling-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check api-import-self-check api-import-check replay-self-check replay-check replay-fuzz-smoke rfc-toc rfc-toc-check review-build review-data-check review-test review-js-test review-check
+.PHONY: publication-assembly-toolchain publication-assembly-validate publication-assembly-test publication-assembly-build publication-assembly-check publication-materialization-generate publication-materialization-check publication-ownership-validate publication-ownership-test publication-ownership-check publication-validate publication-history-check publication-test publication-check conformance-validate conformance-test conformance-check mock-validate mock-test mock-check vertical-slice-validate vertical-slice-test vertical-slice-check rust-workspace-fmt rust-workspace-clippy rust-workspace-test rust-workspace-check rust-tooling-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check api-import-self-check api-import-check replay-self-check replay-check replay-fuzz-smoke rfc-toc rfc-toc-check review-build review-data-check review-test review-js-test review-check
 
 publication-assembly-toolchain:
 	$(PYTHON) -B publication/assembly/check.py install-toolchain --destination "$(HYPERPROMPT_BIN)"
@@ -33,6 +33,12 @@ publication-assembly-build:
 	$(PYTHON) -B publication/assembly/check.py build --compiler "$(HYPERPROMPT_BIN)"
 
 publication-assembly-check: publication-assembly-validate publication-assembly-test publication-assembly-build
+
+publication-materialization-generate:
+	$(PYTHON) -B publication/migration/materialize.py generate --compiler "$(HYPERPROMPT_BIN)"
+
+publication-materialization-check:
+	$(PYTHON) -B publication/migration/materialize.py check --compiler "$(HYPERPROMPT_BIN)"
 
 publication-ownership-validate:
 	$(PYTHON) -B publication/migration/check.py validate
@@ -51,7 +57,7 @@ publication-history-check:
 publication-test:
 	$(PYTHON) -B -m unittest discover -s publication/tests -p 'test_*.py'
 
-publication-check: publication-assembly-check publication-ownership-check publication-validate publication-history-check publication-test
+publication-check: publication-materialization-check publication-assembly-check publication-ownership-check publication-validate publication-history-check publication-test
 
 conformance-validate:
 	$(PYTHON) -B conformance/check.py validate

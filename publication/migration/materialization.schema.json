@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/publication/schemas/module-materialization/v1",
+  "title": "ASP Non-Authoritative Module Materialization v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "materialization_id",
+    "authority",
+    "publication_mode_required",
+    "ownership_map",
+    "candidate",
+    "partition_policy",
+    "separator_policy",
+    "modules"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./materialization.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "materialization_id": {
+      "const": "https://github.com/0al-spec/agent-surface/publication/module-materialization/v1"
+    },
+    "authority": {
+      "const": "non_authoritative_migration_candidate"
+    },
+    "publication_mode_required": {
+      "const": "transitional_monolith"
+    },
+    "ownership_map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "const": "publication/migration/module-ownership.json"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "descriptor_path"
+      ],
+      "properties": {
+        "candidate_id": {
+          "const": "modular-document-set"
+        },
+        "descriptor_path": {
+          "const": "publication/candidates/modular-document-set/candidate.json"
+        }
+      }
+    },
+    "partition_policy": {
+      "const": "maximal_consecutive_heading_ownership"
+    },
+    "separator_policy": {
+      "const": "hyperprompt_sibling_separator_replaces_canonical_lf"
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "document_id",
+          "version",
+          "target_source_path",
+          "fragments"
+        ],
+        "properties": {
+          "document_id": {
+            "$ref": "#/$defs/documentId"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$"
+          },
+          "target_source_path": {
+            "$ref": "#/$defs/repoPath"
+          },
+          "fragments": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/relativePath"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "documentId": {
+      "type": "string",
+      "pattern": "^https://github\\.com/0al-spec/agent-surface/documents/[a-z0-9]+(?:[/-][a-z0-9]+)*$"
+    },
+    "repoPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[^/\\\\](?:[^\\\\]*[^/\\\\])?$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*\\\\).+$"
+    }
+  }
+}

@@ -64,7 +64,7 @@ class AssemblyFoundationTests(unittest.TestCase):
         candidates = validate_repository(ROOT)
         self.assertEqual(
             [path.parent.name for path in candidates],
-            ["asp-over-mcp"],
+            ["asp-over-mcp", "modular-document-set"],
         )
         lock = validate_lock(ROOT)
         self.assertEqual(lock["release"]["version"], "0.2.0")

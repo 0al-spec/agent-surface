@@ -1,0 +1,93 @@
+{
+  "$schema": "./materialization.schema.json",
+  "schema_version": 1,
+  "materialization_id": "https://github.com/0al-spec/agent-surface/publication/module-materialization/v1",
+  "authority": "non_authoritative_migration_candidate",
+  "publication_mode_required": "transitional_monolith",
+  "ownership_map": {
+    "path": "publication/migration/module-ownership.json",
+    "sha256": "befb554baf301051b89e16802a814b4c13ca674192f9fd2cafe182b3eb09fe0f"
+  },
+  "candidate": {
+    "candidate_id": "modular-document-set",
+    "descriptor_path": "publication/candidates/modular-document-set/candidate.json"
+  },
+  "partition_policy": "maximal_consecutive_heading_ownership",
+  "separator_policy": "hyperprompt_sibling_separator_replaces_canonical_lf",
+  "modules": [
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+      "version": "0.1.0-draft.1",
+      "target_source_path": "drafts/modules/core.md",
+      "fragments": [
+        "modules/core/part-01.md",
+        "modules/core/part-02.md",
+        "modules/core/part-03.md",
+        "modules/core/part-04.md",
+        "modules/core/part-05.md",
+        "modules/core/part-06.md",
+        "modules/core/part-07.md",
+        "modules/core/part-08.md"
+      ]
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
+      "version": "0.1.0-draft.1",
+      "target_source_path": "drafts/modules/authorization.md",
+      "fragments": [
+        "modules/authorization/part-01.md",
+        "modules/authorization/part-02.md",
+        "modules/authorization/part-03.md",
+        "modules/authorization/part-04.md",
+        "modules/authorization/part-05.md"
+      ]
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
+      "version": "0.1.0-draft.1",
+      "target_source_path": "drafts/modules/safe-effects.md",
+      "fragments": [
+        "modules/safe-effects/part-01.md",
+        "modules/safe-effects/part-02.md",
+        "modules/safe-effects/part-03.md",
+        "modules/safe-effects/part-04.md"
+      ]
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
+      "version": "0.1.0-draft.1",
+      "target_source_path": "drafts/modules/evidence.md",
+      "fragments": [
+        "modules/evidence/part-01.md",
+        "modules/evidence/part-02.md",
+        "modules/evidence/part-03.md"
+      ]
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
+      "version": "0.1.0-draft.1",
+      "target_source_path": "drafts/modules/privacy.md",
+      "fragments": [
+        "modules/privacy/part-01.md",
+        "modules/privacy/part-02.md",
+        "modules/privacy/part-03.md"
+      ]
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
+      "version": "0.1.0-draft.1",
+      "target_source_path": "drafts/modules/bindings/asp-over-mcp.md",
+      "fragments": [
+        "modules/bindings/asp-over-mcp/part-01.md"
+      ]
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
+      "version": "0.1.0-draft.1",
+      "target_source_path": "drafts/modules/conformance.md",
+      "fragments": [
+        "modules/conformance/part-01.md"
+      ]
+    }
+  ]
+}

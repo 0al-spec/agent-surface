@@ -91,3 +91,16 @@ the destination already exists.
 modular publication or make the candidate source normative. Until the atomic
 activation in `#79`, candidate sources, manifests, source maps, reports, and
 aggregates are provenance or test artifacts only.
+
+## 79B complete modular candidate
+
+`publication/candidates/modular-document-set/` extends the rehearsal from the
+single ASP-over-MCP extraction to the complete seven-document ownership map.
+Its 25 committed Markdown fragments form seven module source closures while
+remaining ordered for a byte-identical aggregate build. The migration
+validator proves that every fragment is a maximal canonical ownership run and
+that all reserved canonical module paths remain absent.
+
+This candidate does not supersede the earlier ASP-over-MCP fixture: CI builds
+both, so the focused extraction remains a regression test while the complete
+candidate proves full RFC coverage.

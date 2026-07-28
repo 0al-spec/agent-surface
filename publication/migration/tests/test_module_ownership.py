@@ -10,8 +10,10 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 
 from publication.migration.check import (
+    MATERIALIZATION_PATH,
     OwnershipError,
     SCHEMA_PATH,
+    validate_materialization,
     validate_ownership_map,
 )
 
@@ -116,6 +118,91 @@ class ModuleOwnershipTests(unittest.TestCase):
         self.write(path, value)
         with self.assertRaisesRegex(OwnershipError, "conflicts with its section"):
             validate_ownership_map(root)
+
+
+class ModuleMaterializationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.ownership_map = validate_ownership_map(ROOT)
+        cls.materialization = validate_materialization(ROOT, cls.ownership_map)
+
+    def fixture(self) -> tuple[Path, Path, Path]:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        shutil.copytree(ROOT / "publication", root / "publication")
+        shutil.copytree(ROOT / "drafts", root / "drafts")
+        return (
+            root,
+            root / MATERIALIZATION_PATH,
+            root / "publication/candidates/modular-document-set/candidate.json",
+        )
+
+    @staticmethod
+    def write(path: Path, value: dict) -> None:
+        path.write_text(
+            json.dumps(value, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
+    def test_complete_candidate_materializes_all_reserved_modules(self) -> None:
+        self.assertEqual(len(self.materialization["modules"]), 7)
+        self.assertEqual(
+            sum(
+                len(module["fragments"])
+                for module in self.materialization["modules"]
+            ),
+            25,
+        )
+
+    def test_stale_ownership_map_digest_is_rejected(self) -> None:
+        root, path, _ = self.fixture()
+        value = copy.deepcopy(self.materialization)
+        value["ownership_map"]["sha256"] = "0" * 64
+        self.write(path, value)
+        with self.assertRaisesRegex(OwnershipError, "ownership-map digest is stale"):
+            validate_materialization(root)
+
+    def test_fragment_reassignment_is_rejected(self) -> None:
+        root, path, _ = self.fixture()
+        value = copy.deepcopy(self.materialization)
+        moved = value["modules"][0]["fragments"].pop()
+        value["modules"][1]["fragments"].append(moved)
+        self.write(path, value)
+        with self.assertRaisesRegex(OwnershipError, "fragment ownership is stale"):
+            validate_materialization(root)
+
+    def test_candidate_fragment_order_is_closed(self) -> None:
+        root, _, candidate_path = self.fixture()
+        candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
+        candidate["sources"]["declared"][1], candidate["sources"]["declared"][2] = (
+            candidate["sources"]["declared"][2],
+            candidate["sources"]["declared"][1],
+        )
+        self.write(candidate_path, candidate)
+        with self.assertRaisesRegex(OwnershipError, "fragment order"):
+            validate_materialization(root)
+
+    def test_stale_fragment_derivation_is_rejected(self) -> None:
+        root, _, candidate_path = self.fixture()
+        candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
+        candidate["sources"]["declared"][1]["canonical_derivation"][
+            "end_byte"
+        ] -= 1
+        self.write(candidate_path, candidate)
+        with self.assertRaisesRegex(
+            OwnershipError,
+            "modular candidate is invalid|derivation is stale",
+        ):
+            validate_materialization(root)
+
+    def test_reserved_canonical_target_must_remain_absent(self) -> None:
+        root, _, _ = self.fixture()
+        target = root / self.materialization["modules"][0]["target_source_path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("# Premature canonical module\n", encoding="utf-8")
+        with self.assertRaisesRegex(OwnershipError, "must remain absent"):
+            validate_materialization(root)
 
 
 if __name__ == "__main__":
