@@ -121,6 +121,21 @@ def _inside(path: Path, parent: Path, *, label: str) -> Path:
     return resolved
 
 
+def _validate_staged_paths(
+    entries: Sequence[tuple[str, PurePosixPath]],
+) -> None:
+    """Reject file paths that are equal or ancestors of other staged files."""
+
+    for index, (left_label, left) in enumerate(entries):
+        for right_label, right in entries[index + 1 :]:
+            if left == right or left in right.parents or right in left.parents:
+                raise AssemblyError(
+                    "staged path collision between "
+                    f"{left_label}={left.as_posix()!r} and "
+                    f"{right_label}={right.as_posix()!r}"
+                )
+
+
 def validate_lock(root: Path = ROOT) -> Mapping[str, Any]:
     """Validate the exact Hyperprompt release and artifact lock."""
 
@@ -422,21 +437,24 @@ def validate_candidate(
     _source_bytes(root, candidate_dir, candidate, canonical)
 
     assembly = candidate["assembly"]
-    outputs = [
-        _relative_path(assembly[key], label=f"assembly.{key}").as_posix()
-        for key in ("output", "manifest", "source_map")
+    staged_paths = [
+        (
+            f"sources.declared[{index}].path",
+            _relative_path(
+                source["path"],
+                label=f"sources.declared[{index}].path",
+            ),
+        )
+        for index, source in enumerate(candidate["sources"]["declared"])
     ]
-    if len(set(outputs)) != len(outputs):
-        raise AssemblyError(
-            "assembly output, manifest, and source map must be distinct"
+    staged_paths.extend(
+        (
+            f"assembly.{key}",
+            _relative_path(assembly[key], label=f"assembly.{key}"),
         )
-
-    declared_paths = {source["path"] for source in candidate["sources"]["declared"]}
-    collisions = sorted(set(outputs) & declared_paths)
-    if collisions:
-        raise AssemblyError(
-            "assembly artifacts collide with staged sources: " + ", ".join(collisions)
-        )
+        for key in ("output", "manifest", "source_map")
+    )
+    _validate_staged_paths(staged_paths)
     if candidate["expected"]["aggregate_sha256"] != candidate["canonical"]["sha256"]:
         raise AssemblyError(
             "byte-identical candidate expectation must equal the canonical digest"

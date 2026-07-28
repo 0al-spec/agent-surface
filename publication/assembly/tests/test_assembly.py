@@ -156,6 +156,17 @@ class AssemblyFoundationTests(unittest.TestCase):
                 elif operation == "collide_output_with_entrypoint":
                     candidate["assembly"]["output"] = "root.hc"
                     self.write_json(path, candidate)
+                elif operation == "nest_output_under_entrypoint":
+                    candidate["assembly"]["output"] = "root.hc/result.md"
+                    self.write_json(path, candidate)
+                elif operation == "nest_manifest_under_output":
+                    candidate["assembly"]["manifest"] = (
+                        candidate["assembly"]["output"] + "/manifest.json"
+                    )
+                    self.write_json(path, candidate)
+                elif operation == "nest_source_under_entrypoint":
+                    candidate["sources"]["declared"][1]["path"] = "root.hc/module.md"
+                    self.write_json(path, candidate)
                 else:
                     self.fail(f"unknown negative fixture operation: {operation}")
 

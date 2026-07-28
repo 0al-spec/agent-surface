@@ -28,7 +28,22 @@
     {
       "name": "artifact_source_collision",
       "operation": "collide_output_with_entrypoint",
-      "expected_error": "collide with staged sources"
+      "expected_error": "staged path collision"
+    },
+    {
+      "name": "artifact_below_source",
+      "operation": "nest_output_under_entrypoint",
+      "expected_error": "staged path collision"
+    },
+    {
+      "name": "artifact_below_artifact",
+      "operation": "nest_manifest_under_output",
+      "expected_error": "staged path collision"
+    },
+    {
+      "name": "source_below_source",
+      "operation": "nest_source_under_entrypoint",
+      "expected_error": "staged path collision"
     }
   ]
 }
