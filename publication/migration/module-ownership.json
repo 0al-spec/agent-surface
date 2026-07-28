@@ -1,0 +1,447 @@
+{
+  "$schema": "./module-ownership.schema.json",
+  "schema_version": 1,
+  "map_id": "https://github.com/0al-spec/agent-surface/publication/module-ownership/v1",
+  "authority": "non_authoritative_migration_plan",
+  "required_publication_mode": "transitional_monolith",
+  "canonical_source": {
+    "path": "drafts/agent-surface.md",
+    "sha256": "03bea8968cbcc47b64fe1ddadc811464e361e2f0c78946e510c53565973915d8"
+  },
+  "catalog_path": "publication/document-set.json",
+  "ownership_model": "nearest_explicit_heading_ancestor",
+  "modules": [
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp"
+    },
+    {
+      "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance"
+    }
+  ],
+  "section_assignments": [
+    {
+      "source_line": 1,
+      "level": 1,
+      "heading": "Agent Surface Protocol Specification",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 5,
+      "level": 2,
+      "heading": "Authors' Contact Information",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 12,
+      "level": 2,
+      "heading": "Status of this Memo",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 22,
+      "level": 2,
+      "heading": "Copyright Notice and Licensing",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 97,
+      "level": 2,
+      "heading": "Abstract",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 129,
+      "level": 2,
+      "heading": "Normative and Informative Sections",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 183,
+      "level": 2,
+      "heading": "Motivation",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 228,
+      "level": 2,
+      "heading": "Goals",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 253,
+      "level": 2,
+      "heading": "Non-Goals",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 270,
+      "level": 2,
+      "heading": "Conventions",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 279,
+      "level": 2,
+      "heading": "Terminology",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 534,
+      "level": 2,
+      "heading": "Design Principles",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 672,
+      "level": 2,
+      "heading": "Relationship to Existing Protocols",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 728,
+      "level": 3,
+      "heading": "ASP-over-MCP Binding Profile",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp"
+    },
+    {
+      "source_line": 1819,
+      "level": 2,
+      "heading": "Conceptual Architecture",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 1856,
+      "level": 2,
+      "heading": "Protocol Layers",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 2445,
+      "level": 2,
+      "heading": "Modular RFC Publication Architecture",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 2760,
+      "level": 2,
+      "heading": "Canonical Integrity and Provenance",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/evidence"
+    },
+    {
+      "source_line": 2915,
+      "level": 2,
+      "heading": "Agent Surface Manifest",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 5686,
+      "level": 3,
+      "heading": "Data Exposure Contract",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/privacy"
+    },
+    {
+      "source_line": 5885,
+      "level": 2,
+      "heading": "Action Execution Model",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects"
+    },
+    {
+      "source_line": 6494,
+      "level": 2,
+      "heading": "Risk Taxonomy",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects"
+    },
+    {
+      "source_line": 6647,
+      "level": 2,
+      "heading": "Effect Model",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects"
+    },
+    {
+      "source_line": 6751,
+      "level": 2,
+      "heading": "Approval Semantics",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects"
+    },
+    {
+      "source_line": 6887,
+      "level": 2,
+      "heading": "Idempotency",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects"
+    },
+    {
+      "source_line": 7070,
+      "level": 2,
+      "heading": "Pluggable Agent Identity Evidence Profile",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/authorization"
+    },
+    {
+      "source_line": 7414,
+      "level": 2,
+      "heading": "Minimal Agent Passport Grant-Issuance Profile",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/authorization"
+    },
+    {
+      "source_line": 7735,
+      "level": 2,
+      "heading": "Runtime Identity Profile",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/authorization"
+    },
+    {
+      "source_line": 7969,
+      "level": 2,
+      "heading": "Remote Processing Privacy Profile",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/privacy"
+    },
+    {
+      "source_line": 8222,
+      "level": 2,
+      "heading": "Agent Training Use Policy Profile",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/privacy"
+    },
+    {
+      "source_line": 8431,
+      "level": 2,
+      "heading": "Runtime Attestation Optional Profile",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/authorization"
+    },
+    {
+      "source_line": 8752,
+      "level": 2,
+      "heading": "Agent Grant",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/authorization"
+    },
+    {
+      "source_line": 9268,
+      "level": 3,
+      "heading": "Consent Preview Contract",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects"
+    },
+    {
+      "source_line": 9575,
+      "level": 3,
+      "heading": "Impact Simulation",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects"
+    },
+    {
+      "source_line": 11079,
+      "level": 2,
+      "heading": "Purpose- and Task-Bound Agent Grant Profile",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/authorization"
+    },
+    {
+      "source_line": 11352,
+      "level": 2,
+      "heading": "Capability Matching",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/authorization"
+    },
+    {
+      "source_line": 11780,
+      "level": 2,
+      "heading": "Observability Context",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/evidence"
+    },
+    {
+      "source_line": 11845,
+      "level": 2,
+      "heading": "Sessions and Actions",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 11847,
+      "level": 3,
+      "heading": "Session Authority and Lifecycle",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/authorization"
+    },
+    {
+      "source_line": 12247,
+      "level": 3,
+      "heading": "Runtime Runaway Protection",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects"
+    },
+    {
+      "source_line": 12698,
+      "level": 3,
+      "heading": "Proposal Flow",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects"
+    },
+    {
+      "source_line": 12734,
+      "level": 2,
+      "heading": "Receipts",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/evidence"
+    },
+    {
+      "source_line": 13493,
+      "level": 2,
+      "heading": "Portable Replay Bundle Profile",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/evidence"
+    },
+    {
+      "source_line": 13843,
+      "level": 2,
+      "heading": "Revocation Semantics",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/authorization"
+    },
+    {
+      "source_line": 14246,
+      "level": 2,
+      "heading": "Error Model",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 14607,
+      "level": 2,
+      "heading": "Versioning and Compatibility",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 14722,
+      "level": 2,
+      "heading": "Security Considerations",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 15092,
+      "level": 2,
+      "heading": "Privacy Considerations",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/privacy"
+    },
+    {
+      "source_line": 15253,
+      "level": 2,
+      "heading": "Conformance",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/conformance"
+    },
+    {
+      "source_line": 16599,
+      "level": 2,
+      "heading": "Application MVP Mapping",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/conformance"
+    },
+    {
+      "source_line": 16653,
+      "level": 2,
+      "heading": "Example End-to-End Flow",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/conformance"
+    },
+    {
+      "source_line": 16720,
+      "level": 2,
+      "heading": "Open Questions",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 16731,
+      "level": 2,
+      "heading": "References",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 16858,
+      "level": 2,
+      "heading": "Appendix A: Why This Is Not Just an API Token",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 16877,
+      "level": 2,
+      "heading": "Appendix B: Why This Is Not Just Computer Use",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "source_line": 16898,
+      "level": 2,
+      "heading": "Appendix C: Product Positioning",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    }
+  ],
+  "export_assignments": [
+    {
+      "kind": "anchor_namespace",
+      "id": "https://github.com/0al-spec/agent-surface/anchors/legacy-aggregate",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "kind": "identifier_namespace",
+      "id": "https://github.com/0al-spec/agent-surface/identifiers/agent-surface-0.1",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "kind": "registry",
+      "id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/conformance"
+    },
+    {
+      "kind": "registry",
+      "id": "https://github.com/0al-spec/agent-surface/conformance/bundles/v1",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/conformance"
+    }
+  ],
+  "public_anchor_assignments": [
+    {
+      "anchor_id": "modular-rfc-publication-architecture",
+      "heading": "Modular RFC Publication Architecture",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "anchor_id": "publication-authority-and-transitional-state",
+      "heading": "Publication Authority and Transitional State",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "anchor_id": "document-classes",
+      "heading": "Document Classes",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "anchor_id": "exact-normative-references",
+      "heading": "Exact Normative References",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "anchor_id": "namespace-and-registry-ownership",
+      "heading": "Namespace and Registry Ownership",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "anchor_id": "stable-anchors-and-compatibility-aliases",
+      "heading": "Stable Anchors and Compatibility Aliases",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "anchor_id": "version-namespaces-and-independent-lifecycles",
+      "heading": "Version Namespaces and Independent Lifecycles",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "anchor_id": "aggregate-assembly-and-build-provenance",
+      "heading": "Aggregate Assembly and Build Provenance",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    },
+    {
+      "anchor_id": "atomic-modular-activation",
+      "heading": "Atomic Modular Activation",
+      "owner_document_id": "https://github.com/0al-spec/agent-surface/documents/core"
+    }
+  ],
+  "aggregate_artifact": {
+    "id": "drafts/agent-surface.md",
+    "disposition": "retained_by_transitional_monolith"
+  }
+}

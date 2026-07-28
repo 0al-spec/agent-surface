@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/publication/schemas/module-ownership/v1",
+  "title": "ASP Transitional Module Ownership Map v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "map_id",
+    "authority",
+    "required_publication_mode",
+    "canonical_source",
+    "catalog_path",
+    "ownership_model",
+    "modules",
+    "section_assignments",
+    "export_assignments",
+    "public_anchor_assignments",
+    "aggregate_artifact"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./module-ownership.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "map_id": {
+      "const": "https://github.com/0al-spec/agent-surface/publication/module-ownership/v1"
+    },
+    "authority": {
+      "const": "non_authoritative_migration_plan"
+    },
+    "required_publication_mode": {
+      "const": "transitional_monolith"
+    },
+    "canonical_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256Hex"
+        }
+      }
+    },
+    "catalog_path": {
+      "const": "publication/document-set.json"
+    },
+    "ownership_model": {
+      "const": "nearest_explicit_heading_ancestor"
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "document_id"
+        ],
+        "properties": {
+          "document_id": {
+            "$ref": "#/$defs/documentId"
+          }
+        }
+      }
+    },
+    "section_assignments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_line",
+          "level",
+          "heading",
+          "owner_document_id"
+        ],
+        "properties": {
+          "source_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "heading": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner_document_id": {
+            "$ref": "#/$defs/documentId"
+          }
+        }
+      }
+    },
+    "export_assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "id",
+          "owner_document_id"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "anchor_namespace",
+              "identifier_namespace",
+              "registry"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner_document_id": {
+            "$ref": "#/$defs/documentId"
+          }
+        }
+      }
+    },
+    "public_anchor_assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "anchor_id",
+          "heading",
+          "owner_document_id"
+        ],
+        "properties": {
+          "anchor_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "heading": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner_document_id": {
+            "$ref": "#/$defs/documentId"
+          }
+        }
+      }
+    },
+    "aggregate_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "disposition"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/repoPath"
+        },
+        "disposition": {
+          "const": "retained_by_transitional_monolith"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256Hex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repoPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[^/\\\\](?:[^\\\\]*[^/\\\\])?$"
+    },
+    "documentId": {
+      "type": "string",
+      "pattern": "^https://github\\.com/0al-spec/agent-surface/documents/[a-z0-9]+(?:[/-][a-z0-9]+)*$"
+    }
+  }
+}
