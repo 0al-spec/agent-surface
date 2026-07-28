@@ -53,6 +53,11 @@ jobs:
           set -euo pipefail
           python -m pip install --requirement review/requirements.txt
 
+      - name: Install locked Hyperprompt toolchain
+        timeout-minutes: 3
+        shell: bash
+        run: make publication-assembly-toolchain
+
       - name: Check specification publication contract
         timeout-minutes: 5
         shell: bash

@@ -7,6 +7,7 @@
   "required": [
     "$schema",
     "schema_version",
+    "candidate_stage",
     "candidate_id",
     "description",
     "authority",
@@ -23,6 +24,12 @@
     },
     "schema_version": {
       "const": 1
+    },
+    "candidate_stage": {
+      "enum": [
+        "descriptor_fixture",
+        "executable"
+      ]
     },
     "candidate_id": {
       "$ref": "#/$defs/identifier"
@@ -135,10 +142,51 @@
         },
         "aggregate_sha256": {
           "$ref": "#/$defs/sha256"
+        },
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_map_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "generated_separator_lines": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          }
         }
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "candidate_stage": {
+            "const": "executable"
+          }
+        },
+        "required": [
+          "candidate_stage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "expected": {
+            "required": [
+              "equivalence",
+              "aggregate_sha256",
+              "manifest_sha256",
+              "source_map_sha256",
+              "generated_separator_lines"
+            ]
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "identifier": {
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
@@ -219,6 +267,9 @@
                 },
                 "repository_path": {
                   "$ref": "#/$defs/relativePath"
+                },
+                "canonical_derivation": {
+                  "$ref": "#/$defs/extraction"
                 }
               }
             }
@@ -253,36 +304,45 @@
                   "$ref": "#/$defs/sha256"
                 },
                 "extraction": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "method",
-                    "source_path",
-                    "start_byte",
-                    "end_byte"
-                  ],
-                  "properties": {
-                    "method": {
-                      "const": "byte_range"
-                    },
-                    "source_path": {
-                      "const": "drafts/agent-surface.md"
-                    },
-                    "start_byte": {
-                      "minimum": 0,
-                      "type": "integer"
-                    },
-                    "end_byte": {
-                      "minimum": 1,
-                      "type": "integer"
-                    }
-                  }
+                  "$ref": "#/$defs/extraction"
                 }
               }
             }
           ]
         }
       ]
+    },
+    "extraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "source_path",
+        "start_byte",
+        "end_byte"
+      ],
+      "properties": {
+        "method": {
+          "const": "byte_range"
+        },
+        "source_path": {
+          "const": "drafts/agent-surface.md"
+        },
+        "start_byte": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "end_byte": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "transform": {
+          "enum": [
+            "identity",
+            "promote_atx_headings_one_level"
+          ]
+        }
+      }
     }
   }
 }

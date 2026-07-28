@@ -1,13 +1,14 @@
 {
   "$schema": "../../assembly/candidate.schema.json",
   "schema_version": 1,
+  "candidate_stage": "descriptor_fixture",
   "candidate_id": "abstract-pilot",
   "description": "Abstract non-authoritative RFC assembly fixture.",
   "authority": "non_authoritative",
   "publication_mode_required": "transitional_monolith",
   "compiler": {
     "lock_path": "publication/assembly/hyperprompt.lock.json",
-    "lock_sha256": "6d73279edb2e7a2b73da9f9b5f49c0ff6e1ad5f32b40721e48c65e27b4fb76fa"
+    "lock_sha256": "5f9b32fc66e8f199ff0c8f2900e30d700155e3e3806df3ff063e27bf8747e18c"
   },
   "canonical": {
     "path": "drafts/agent-surface.md",

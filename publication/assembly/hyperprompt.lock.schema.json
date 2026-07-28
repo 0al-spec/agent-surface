@@ -83,7 +83,9 @@
         "linkage",
         "asset",
         "url",
+        "size",
         "sha256",
+        "binary_sha256",
         "archive_root"
       ],
       "properties": {
@@ -119,7 +121,14 @@
           "format": "uri",
           "type": "string"
         },
+        "size": {
+          "minimum": 1,
+          "type": "integer"
+        },
         "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "binary_sha256": {
           "$ref": "#/$defs/sha256"
         },
         "archive_root": {

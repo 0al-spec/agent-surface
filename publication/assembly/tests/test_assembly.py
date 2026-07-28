@@ -11,8 +11,11 @@ from pathlib import Path
 
 from publication.assembly.check import (
     AssemblyError,
+    _validate_manifest,
+    _validate_source_map,
     disposable_staging,
     materialize_candidate,
+    promote_atx_headings_one_level,
     require_empty_staging,
     validate_candidate,
     validate_lock,
@@ -58,7 +61,11 @@ class AssemblyFoundationTests(unittest.TestCase):
         )
 
     def test_repository_foundation_and_exact_release_lock_are_valid(self) -> None:
-        self.assertIsInstance(validate_repository(ROOT), list)
+        candidates = validate_repository(ROOT)
+        self.assertEqual(
+            [path.parent.name for path in candidates],
+            ["asp-over-mcp"],
+        )
         lock = validate_lock(ROOT)
         self.assertEqual(lock["release"]["version"], "0.2.0")
         self.assertEqual(lock["release"]["tag"], "v0.2.0")
@@ -70,6 +77,160 @@ class AssemblyFoundationTests(unittest.TestCase):
             {artifact["platform"] for artifact in lock["artifacts"]},
             {"linux-amd64", "macos-arm64"},
         )
+        self.assertTrue(
+            all(artifact["size"] > 0 for artifact in lock["artifacts"])
+        )
+        self.assertTrue(
+            all(len(artifact["binary_sha256"]) == 64 for artifact in lock["artifacts"])
+        )
+
+    def test_real_candidate_materializes_complete_declared_source_closure(self) -> None:
+        path = (
+            ROOT
+            / "publication"
+            / "candidates"
+            / "asp-over-mcp"
+            / "candidate.json"
+        )
+        candidate = validate_candidate(ROOT, path)
+        self.assertEqual(candidate["candidate_stage"], "executable")
+        with disposable_staging() as staging:
+            materialize_candidate(ROOT, path, staging)
+            actual = sorted(
+                item.relative_to(staging).as_posix()
+                for item in staging.rglob("*")
+                if item.is_file()
+            )
+            self.assertEqual(
+                actual,
+                [
+                    "fragments/prefix.md",
+                    "fragments/suffix.md",
+                    "root.hc",
+                    "sections/asp-over-mcp.md",
+                ],
+            )
+
+    def test_heading_promotion_is_fence_aware_and_rejects_level_one(self) -> None:
+        source = (
+            b"## Outside\n"
+            b"```markdown\n"
+            b"## Inside\n"
+            b"```\n"
+            b"   ### Indented\n"
+        )
+        self.assertEqual(
+            promote_atx_headings_one_level(source),
+            (
+                b"# Outside\n"
+                b"```markdown\n"
+                b"## Inside\n"
+                b"```\n"
+                b"   ## Indented\n"
+            ),
+        )
+        with self.assertRaisesRegex(AssemblyError, "level-1"):
+            promote_atx_headings_one_level(b"# Cannot promote\n")
+
+    def test_committed_canonical_derivation_rejects_stale_content(self) -> None:
+        root = self.fixture_root()
+        candidate_path = self.candidate_path(root)
+        candidate = self.read_json(candidate_path)
+        module_path = candidate_path.parent / "sources" / "sections" / "module.md"
+        canonical_path = root / "drafts" / "agent-surface.md"
+        canonical = module_path.read_bytes()
+        canonical_path.write_bytes(canonical)
+        canonical_sha = hashlib.sha256(canonical).hexdigest()
+        catalog_path = root / "publication" / "document-set.json"
+        catalog = self.read_json(catalog_path)
+        catalog["aggregate"]["sha256"] = canonical_sha
+        self.write_json(catalog_path, catalog)
+        candidate["canonical"]["sha256"] = canonical_sha
+        candidate["expected"]["aggregate_sha256"] = canonical_sha
+        module = candidate["sources"]["declared"][1]
+        module["canonical_derivation"] = {
+            "method": "byte_range",
+            "source_path": "drafts/agent-surface.md",
+            "start_byte": 0,
+            "end_byte": len(canonical),
+            "transform": "identity",
+        }
+        self.write_json(candidate_path, candidate)
+        validate_candidate(root, candidate_path)
+
+        stale = canonical + b"\nStale candidate prose.\n"
+        module_path.write_bytes(stale)
+        module["sha256"] = hashlib.sha256(stale).hexdigest()
+        self.write_json(candidate_path, candidate)
+        with self.assertRaisesRegex(AssemblyError, "stale relative"):
+            validate_candidate(root, candidate_path)
+
+    def test_generated_artifacts_fail_closed_on_incomplete_provenance(self) -> None:
+        staged = {"root.hc": b'"section.md"\n', "section.md": b"# Section\n"}
+        candidate = {
+            "sources": {
+                "entrypoint": "root.hc",
+                "declared": [
+                    {"path": "root.hc", "media_type": "hypercode"},
+                    {"path": "section.md", "media_type": "markdown"},
+                ],
+            },
+            "assembly": {"source_date_epoch": 1700000000},
+            "expected": {
+                "manifest_sha256": "0" * 64,
+                "source_map_sha256": "0" * 64,
+                "generated_separator_lines": [],
+            },
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            artifact_root = Path(temporary)
+            manifest_path = artifact_root / "manifest.json"
+            self.write_json(
+                manifest_path,
+                {
+                    "dependencies": [],
+                    "root": "root.hc",
+                    "schemaVersion": 1,
+                    "sources": [],
+                    "timestamp": "2023-11-14T22:13:20Z",
+                    "version": "0.2.0",
+                },
+            )
+            with self.assertRaisesRegex(AssemblyError, "exact staged source closure"):
+                _validate_manifest(
+                    manifest_path,
+                    candidate=candidate,
+                    staged_sources=staged,
+                    compiler_version="0.2.0",
+                )
+
+            source_map_path = artifact_root / "source-map.json"
+            self.write_json(
+                source_map_path,
+                {
+                    "lineBase": 1,
+                    "mappings": [
+                        {
+                            "generatedLine": 2,
+                            "kind": "markdown",
+                            "source": {
+                                "path": "section.md",
+                                "startLine": 1,
+                                "endLine": 1,
+                            },
+                        }
+                    ],
+                    "outputSha256": hashlib.sha256(b"# Section\n").hexdigest(),
+                    "schemaVersion": 1,
+                },
+            )
+            with self.assertRaisesRegex(AssemblyError, "not contiguous"):
+                _validate_source_map(
+                    source_map_path,
+                    candidate=candidate,
+                    staged_sources=staged,
+                    output=b"# Section\n",
+                )
 
     def test_abstract_positive_candidate_is_valid_and_materializes(self) -> None:
         root = self.fixture_root()
@@ -250,11 +411,13 @@ class AssemblyFoundationTests(unittest.TestCase):
                 archive.addfile(info, io.BytesIO(content))
 
         artifact["sha256"] = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+        artifact["size"] = archive_path.stat().st_size
+        artifact["binary_sha256"] = hashlib.sha256(members["hyperprompt"][0]).hexdigest()
         self.write_json(lock_path, lock)
         verify_archive(archive_path, "macos-arm64", root=root)
 
         archive_path.write_bytes(archive_path.read_bytes() + b"corruption")
-        with self.assertRaisesRegex(AssemblyError, "archive digest mismatch"):
+        with self.assertRaisesRegex(AssemblyError, "archive size mismatch"):
             verify_archive(archive_path, "macos-arm64", root=root)
 
 

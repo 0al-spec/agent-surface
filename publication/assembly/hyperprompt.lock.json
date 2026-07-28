@@ -17,7 +17,9 @@
       "linkage": "static-swift-stdlib",
       "asset": "hyperprompt-0.2.0-linux-amd64.tar.gz",
       "url": "https://github.com/0al-spec/Hyperprompt/releases/download/v0.2.0/hyperprompt-0.2.0-linux-amd64.tar.gz",
+      "size": 30091029,
       "sha256": "7825108e7f58a3c87b583549f53bce8ecf900a7d74616c59d281f6c5362ed05d",
+      "binary_sha256": "4d2bf53649d3eca7cbab01b3b4e4485a1610dffce7029cb9719a269c9150a6d1",
       "archive_root": "hyperprompt-0.2.0-linux-amd64"
     },
     {
@@ -27,7 +29,9 @@
       "linkage": "platform-default",
       "asset": "hyperprompt-0.2.0-macos-arm64.tar.gz",
       "url": "https://github.com/0al-spec/Hyperprompt/releases/download/v0.2.0/hyperprompt-0.2.0-macos-arm64.tar.gz",
+      "size": 851633,
       "sha256": "52b319ebbdfec405f05363167fbb7c09fcb64382e8cd05be4b258cef87e4bf3c",
+      "binary_sha256": "cfa6df6babfa8e84d029b018f7fb2f7f26fc4cdf4415982f6b95229c09893c35",
       "archive_root": "hyperprompt-0.2.0-macos-arm64"
     }
   ]

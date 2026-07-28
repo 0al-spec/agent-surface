@@ -132,6 +132,7 @@ exact versions and dependency graph, registry ownership, stable-anchor policy,
 and the atomic transition contract for future modular publication:
 
 ```sh
+make publication-assembly-toolchain
 make publication-check
 ```
 
@@ -142,9 +143,9 @@ the ASP-over-MCP binding are reserved targets with no authority until a complete
 Hyperprompt-built modular document set, aggregate, manifest, source map, local
 aliases or validated relocation records, and validation results are activated
 together.
-The current validator intentionally rejects modular mode; #78 implements its
-provenance resolver and candidate pilot, and #79 performs the later atomic
-activation.
+The current validator intentionally rejects modular mode. #78A established the
+assembly contract, #78B adds the executable ASP-over-MCP candidate, and #79
+performs the later atomic activation after the remaining #78 work.
 
 ## Executable Conformance Suite
 
