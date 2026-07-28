@@ -34,6 +34,11 @@ The current publication mode is deliberately transitional:
 - the current validator rejects `modular` mode until #78 supplies the complete
   Hyperprompt provenance, source-map, anchor, digest, and readiness resolver.
 
+The `publication/assembly/` gate is the first non-authoritative #78 foundation.
+It pins Hyperprompt release artifacts, validates closed candidate descriptors
+and their declared inputs, and provides fail-closed disposable staging. It does
+not yet extract RFC prose or make a candidate aggregate authoritative.
+
 Validate the contract with:
 
 ```sh

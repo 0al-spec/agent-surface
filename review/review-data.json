@@ -6046,7 +6046,7 @@
           "anchorId": "atomic-modular-activation"
         }
       ],
-      "rationale": "RFC contract уже определяет pipeline, но текущий publication validator намеренно отклоняет modular mode: он ещё не проверяет Hyperprompt manifest/source map, source/include closure, aggregate digest, local alias coverage, clean staging и transactional readiness. Первый executable slice использует non-authoritative ASP-over-MCP candidate и доказывает byte-identical aggregate без изменения protocol semantics; relocation records остаются activation concern #79.",
+      "rationale": "78A фиксирует Hyperprompt v0.2.0 по tag object, source commit и release artifact digests, вводит closed candidate schema, проверку declared/derived source closure, disposable clean staging и fail-closed negative fixtures. Modular mode по-прежнему намеренно отклоняется: 78B должен извлечь non-authoritative ASP-over-MCP candidate и доказать byte-identical aggregate с complete manifest/source-map coverage, а 78C — закрепить cross-platform reproducibility. Relocation records остаются activation concern #79.",
       "priority": "P2",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -6071,6 +6071,22 @@
         {
           "kind": "rfc_anchor",
           "ref": "atomic-modular-activation"
+        },
+        {
+          "kind": "schema",
+          "ref": "publication/assembly/hyperprompt.lock.schema.json"
+        },
+        {
+          "kind": "schema",
+          "ref": "publication/assembly/candidate.schema.json"
+        },
+        {
+          "kind": "implementation",
+          "ref": "publication/assembly/check.py"
+        },
+        {
+          "kind": "test",
+          "ref": "publication/assembly/tests/test_assembly.py"
         }
       ]
     },

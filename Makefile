@@ -17,7 +17,15 @@ REPLAY_FUZZ_TIMEOUT_CMD ?= timeout
 REPLAY_FUZZ_PARSE_MAX_LEN ?= 262144
 REPLAY_FUZZ_STRUCTURED_MAX_LEN ?= 4096
 
-.PHONY: publication-validate publication-history-check publication-test publication-check conformance-validate conformance-test conformance-check mock-validate mock-test mock-check vertical-slice-validate vertical-slice-test vertical-slice-check rust-workspace-fmt rust-workspace-clippy rust-workspace-test rust-workspace-check rust-tooling-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check api-import-self-check api-import-check replay-self-check replay-check replay-fuzz-smoke rfc-toc rfc-toc-check review-build review-data-check review-test review-js-test review-check
+.PHONY: publication-assembly-validate publication-assembly-test publication-assembly-check publication-validate publication-history-check publication-test publication-check conformance-validate conformance-test conformance-check mock-validate mock-test mock-check vertical-slice-validate vertical-slice-test vertical-slice-check rust-workspace-fmt rust-workspace-clippy rust-workspace-test rust-workspace-check rust-tooling-check manifest-lint-fmt manifest-lint-clippy manifest-lint-test manifest-lint-self-check manifest-lint-check api-import-self-check api-import-check replay-self-check replay-check replay-fuzz-smoke rfc-toc rfc-toc-check review-build review-data-check review-test review-js-test review-check
+
+publication-assembly-validate:
+	$(PYTHON) -B publication/assembly/check.py validate
+
+publication-assembly-test:
+	$(PYTHON) -B -m unittest discover -s publication/assembly/tests -p 'test_*.py'
+
+publication-assembly-check: publication-assembly-validate publication-assembly-test
 
 publication-validate:
 	$(PYTHON) -B publication/check.py validate
@@ -28,7 +36,7 @@ publication-history-check:
 publication-test:
 	$(PYTHON) -B -m unittest discover -s publication/tests -p 'test_*.py'
 
-publication-check: publication-validate publication-history-check publication-test
+publication-check: publication-assembly-check publication-validate publication-history-check publication-test
 
 conformance-validate:
 	$(PYTHON) -B conformance/check.py validate

@@ -1,0 +1,34 @@
+{
+  "$schema": "./hyperprompt.lock.schema.json",
+  "schema_version": 1,
+  "repository": "https://github.com/0al-spec/Hyperprompt",
+  "release": {
+    "version": "0.2.0",
+    "tag": "v0.2.0",
+    "tag_object": "30f46c905aacf5547bad66b65949ee94c2b18577",
+    "commit": "d76e0a057c44fd249cf4f62fe856bf6054b1c264",
+    "url": "https://github.com/0al-spec/Hyperprompt/releases/tag/v0.2.0"
+  },
+  "artifacts": [
+    {
+      "platform": "linux-amd64",
+      "os": "linux",
+      "arch": "x86_64",
+      "linkage": "static-swift-stdlib",
+      "asset": "hyperprompt-0.2.0-linux-amd64.tar.gz",
+      "url": "https://github.com/0al-spec/Hyperprompt/releases/download/v0.2.0/hyperprompt-0.2.0-linux-amd64.tar.gz",
+      "sha256": "7825108e7f58a3c87b583549f53bce8ecf900a7d74616c59d281f6c5362ed05d",
+      "archive_root": "hyperprompt-0.2.0-linux-amd64"
+    },
+    {
+      "platform": "macos-arm64",
+      "os": "macos",
+      "arch": "arm64",
+      "linkage": "platform-default",
+      "asset": "hyperprompt-0.2.0-macos-arm64.tar.gz",
+      "url": "https://github.com/0al-spec/Hyperprompt/releases/download/v0.2.0/hyperprompt-0.2.0-macos-arm64.tar.gz",
+      "sha256": "52b319ebbdfec405f05363167fbb7c09fcb64382e8cd05be4b258cef87e4bf3c",
+      "archive_root": "hyperprompt-0.2.0-macos-arm64"
+    }
+  ]
+}

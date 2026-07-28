@@ -1,0 +1,47 @@
+{
+  "$schema": "../../assembly/candidate.schema.json",
+  "schema_version": 1,
+  "candidate_id": "abstract-pilot",
+  "description": "Abstract non-authoritative RFC assembly fixture.",
+  "authority": "non_authoritative",
+  "publication_mode_required": "transitional_monolith",
+  "compiler": {
+    "lock_path": "publication/assembly/hyperprompt.lock.json",
+    "lock_sha256": "6d73279edb2e7a2b73da9f9b5f49c0ff6e1ad5f32b40721e48c65e27b4fb76fa"
+  },
+  "canonical": {
+    "path": "drafts/agent-surface.md",
+    "sha256": "670a1aad6d5fc27d4385d12743879c56ce8a080fa88fcaf832145bfce6eb34ee"
+  },
+  "sources": {
+    "committed_root": "sources",
+    "entrypoint": "root.hc",
+    "declared": [
+      {
+        "path": "root.hc",
+        "media_type": "hypercode",
+        "origin": "committed_candidate",
+        "sha256": "66d421dff42cb5b5931456d0d46fb6d294dd86fb831b033834902f9eb327cfc2",
+        "repository_path": "publication/candidates/abstract-pilot/sources/root.hc"
+      },
+      {
+        "path": "sections/module.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "5c90cc8c1f40529d87a23a51ad2e3b796d4eacea3a61601ed7f4a0f7c1515eaa",
+        "repository_path": "publication/candidates/abstract-pilot/sources/sections/module.md"
+      }
+    ]
+  },
+  "assembly": {
+    "staging_policy": "disposable_empty_directory",
+    "source_date_epoch": 1700000000,
+    "output": "artifacts/agent-surface.md",
+    "manifest": "artifacts/agent-surface.manifest.json",
+    "source_map": "artifacts/agent-surface.map.json"
+  },
+  "expected": {
+    "equivalence": "byte_identical_to_canonical",
+    "aggregate_sha256": "670a1aad6d5fc27d4385d12743879c56ce8a080fa88fcaf832145bfce6eb34ee"
+  }
+}
