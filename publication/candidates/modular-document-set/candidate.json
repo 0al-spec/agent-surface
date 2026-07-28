@@ -1,0 +1,418 @@
+{
+  "$schema": "../../assembly/candidate.schema.json",
+  "schema_version": 1,
+  "candidate_stage": "executable",
+  "candidate_id": "modular-document-set",
+  "description": "Non-authoritative seven-module source closure proving byte-identical assembly of every RFC section under the 79A ownership map.",
+  "authority": "non_authoritative",
+  "publication_mode_required": "transitional_monolith",
+  "compiler": {
+    "lock_path": "publication/assembly/hyperprompt.lock.json",
+    "lock_sha256": "5f9b32fc66e8f199ff0c8f2900e30d700155e3e3806df3ff063e27bf8747e18c"
+  },
+  "canonical": {
+    "path": "drafts/agent-surface.md",
+    "sha256": "03bea8968cbcc47b64fe1ddadc811464e361e2f0c78946e510c53565973915d8"
+  },
+  "sources": {
+    "committed_root": "sources",
+    "entrypoint": "root.hc",
+    "declared": [
+      {
+        "path": "root.hc",
+        "media_type": "hypercode",
+        "origin": "committed_candidate",
+        "sha256": "e436d495d8cd9a3d4a3edee48f6933ecf18228e677b790460581e985a0a053bf",
+        "repository_path": "publication/candidates/modular-document-set/sources/root.hc"
+      },
+      {
+        "path": "modules/core/part-01.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "f607ae11a8a66728c73a1393a323b9b98111ebffc7e34dce49a20413e8d5b8bf",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/core/part-01.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 0,
+          "end_byte": 29631,
+          "transform": "identity"
+        }
+      },
+      {
+        "path": "modules/bindings/asp-over-mcp/part-01.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "7adc09f2c3347aeedd10e0dfb30431acaf359df12bdcf1a230d147dca196b73c",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/bindings/asp-over-mcp/part-01.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 29631,
+          "end_byte": 84815,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/core/part-02.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "05ca77ccac7f208b3abeb01135e57f45903bf35fd5f612cd2868096f7066166d",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/core/part-02.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 84816,
+          "end_byte": 136786,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/evidence/part-01.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "1c959a130d030884ba24cc783920680ecb85551c0771cef367360d35ffa72439",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/evidence/part-01.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 136787,
+          "end_byte": 147380,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/core/part-03.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "8285603336b065576b86f3fb890e9be8638218482419063248ac5ed6a64836d2",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/core/part-03.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 147381,
+          "end_byte": 284300,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/privacy/part-01.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "3d12fe5b61806ef86c4da4f3b6562f4b880476593406840614fa803357370696",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/privacy/part-01.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 284301,
+          "end_byte": 295182,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/safe-effects/part-01.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "7c46abef4a94472eff61770367c0d0bc21646903856ce8cbda14ebd5063066d7",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/safe-effects/part-01.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 295183,
+          "end_byte": 355726,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/authorization/part-01.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "42de277a6f32afc22c59351d6a6f7a693693d96cb471b839a34275d7e3d78b3b",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/authorization/part-01.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 355727,
+          "end_byte": 402686,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/privacy/part-02.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "d681f0d60c9b6b4b897dc490fe0f3b980ce292e8b6df265b898baceb6a11169b",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/privacy/part-02.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 402687,
+          "end_byte": 427655,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/authorization/part-02.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "19ab3a6724166e68e5cbfcf9fe9d81d4213eea4aa96297e008616353005a6001",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/authorization/part-02.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 427656,
+          "end_byte": 470407,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/safe-effects/part-02.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "7f832db99d6a7c2aaf1fa8ff85c99be1e716241ce0ee958a811568fc8b8cab80",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/safe-effects/part-02.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 470408,
+          "end_byte": 514722,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/authorization/part-03.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "927ff018f8e83631d1a997e72a51fdc4b4c671a3da268ac133284fc3c125e8ce",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/authorization/part-03.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 514723,
+          "end_byte": 610453,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/evidence/part-02.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "3442efefb9bd6dd6a5834417339323190a78747f95be6d80c2daaf8c2fe595d2",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/evidence/part-02.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 610454,
+          "end_byte": 614426,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/core/part-04.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "5fbb88a7a171e28dc0e0087814873f332b3e9ebd8891f4bdae2145269590501a",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/core/part-04.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 614427,
+          "end_byte": 614451,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/authorization/part-04.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "803dc490d8d96c614a39bde9e25c4504471cffeca0dec6a26f688decb0d3f9e4",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/authorization/part-04.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 614452,
+          "end_byte": 622879,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/core/part-05.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "1975565878d1445d0e3562bc43da94584b3e0c9fedbf6a40b0964c95cc0d9b6c",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/core/part-05.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 622880,
+          "end_byte": 636860,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/safe-effects/part-03.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "4140f4ecf5a748ddbcecabd9fcbcd11ac68cc17fcb48b9be0dc29f75358a609a",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/safe-effects/part-03.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 636861,
+          "end_byte": 652187,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/core/part-06.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "f631845cec8bd90477dfbf17a4b4e9e57dc7416bc93349998cccb782123fc930",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/core/part-06.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 652188,
+          "end_byte": 662470,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/safe-effects/part-04.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "fc3a2eabc5a1b421f723736c976967e9f8205b92b92bb0fda8981dc0e63636d0",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/safe-effects/part-04.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 662471,
+          "end_byte": 663825,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/evidence/part-03.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "0bf1425c4fe118c4f7901ba96f85b24d916b7d470628277231d1dc957e51c8c6",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/evidence/part-03.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 663826,
+          "end_byte": 719062,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/authorization/part-05.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "483e1470ec7de72e900aeb229afec6b8ae9ffbd9026b42fb6fbdc741440ada20",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/authorization/part-05.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 719063,
+          "end_byte": 741643,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/core/part-07.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "8f1c3dfa69557e1770950207787ff516efaa5f5c9384ce2ecde2abb5896f61ca",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/core/part-07.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 741644,
+          "end_byte": 793949,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/privacy/part-03.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "929b29f370deb915cb46d66fd90048d1029adc9ee2ccbed2c0e3b088f793b1cb",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/privacy/part-03.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 793950,
+          "end_byte": 804001,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/conformance/part-01.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "753909d2f3394b15853595e0aced1b20e5f371f568632b29cf8fb497c73d4f10",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/conformance/part-01.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 804002,
+          "end_byte": 896681,
+          "transform": "promote_atx_headings_one_level"
+        }
+      },
+      {
+        "path": "modules/core/part-08.md",
+        "media_type": "markdown",
+        "origin": "committed_candidate",
+        "sha256": "2f31f1fd79a44bc8a90463a9fed3a7b35fc17c5c3269d70f5cdb14051e86655f",
+        "repository_path": "publication/candidates/modular-document-set/sources/modules/core/part-08.md",
+        "canonical_derivation": {
+          "method": "byte_range",
+          "source_path": "drafts/agent-surface.md",
+          "start_byte": 896682,
+          "end_byte": 904141,
+          "transform": "promote_atx_headings_one_level"
+        }
+      }
+    ]
+  },
+  "assembly": {
+    "staging_policy": "disposable_empty_directory",
+    "source_date_epoch": 1700000000,
+    "output": "artifacts/agent-surface.md",
+    "manifest": "artifacts/agent-surface.manifest.json",
+    "source_map": "artifacts/agent-surface.source-map.json"
+  },
+  "expected": {
+    "equivalence": "byte_identical_to_canonical",
+    "aggregate_sha256": "03bea8968cbcc47b64fe1ddadc811464e361e2f0c78946e510c53565973915d8",
+    "manifest_sha256": "34a64eb5fe2b284b1583d1cfc1fc89fd5122143a35762d6d21eee8fc8d31ef0e",
+    "source_map_sha256": "1a07607d617d783396df326c1eca3b730531f48d875a4c2c84b671825e881ee3",
+    "generated_separator_lines": [
+      1692,
+      2759,
+      2914,
+      5685,
+      5884,
+      7069,
+      7968,
+      8430,
+      9267,
+      10017,
+      11779,
+      11844,
+      11846,
+      11964,
+      12246,
+      12479,
+      12697,
+      12733,
+      13842,
+      14245,
+      15091,
+      15252,
+      16719
+    ]
+  }
+}

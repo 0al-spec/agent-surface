@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -15,8 +16,14 @@ from markdown_it import MarkdownIt
 
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 MAP_PATH = Path("publication/migration/module-ownership.json")
 SCHEMA_PATH = Path("publication/migration/module-ownership.schema.json")
+MATERIALIZATION_PATH = Path("publication/migration/materialization.json")
+MATERIALIZATION_SCHEMA_PATH = Path(
+    "publication/migration/materialization.schema.json"
+)
 
 
 class OwnershipError(ValueError):
@@ -29,6 +36,17 @@ class Heading:
     level: int
     title: str
     parent: int | None
+
+
+@dataclass(frozen=True)
+class MaterializationFragment:
+    """One maximal canonical byte range with a single future document owner."""
+
+    owner_document_id: str
+    start_byte: int
+    end_byte: int
+    canonical_end_byte: int
+    transform: str
 
 
 def _strict_object(pairs: Sequence[tuple[str, Any]]) -> dict[str, Any]:
@@ -101,6 +119,71 @@ def _headings(path: Path) -> list[Heading]:
     if not headings:
         raise OwnershipError(f"canonical source has no headings: {path}")
     return headings
+
+
+def materialization_fragments(
+    root: Path,
+    ownership_map: Mapping[str, Any],
+) -> list[MaterializationFragment]:
+    """Partition the canonical RFC into maximal consecutive ownership runs."""
+
+    source_path = root / ownership_map["canonical_source"]["path"]
+    canonical = source_path.read_bytes()
+    headings = _headings(source_path)
+    module_ids = {item["document_id"] for item in ownership_map["modules"]}
+    resolved, _ = _validate_sections(ownership_map, headings, module_ids)
+
+    lines = canonical.splitlines(keepends=True)
+    offsets = [0]
+    for line in lines:
+        offsets.append(offsets[-1] + len(line))
+    if offsets[-1] != len(canonical):
+        raise OwnershipError("canonical source line offsets are incomplete")
+
+    runs: list[tuple[int, int, str]] = []
+    for index, heading in enumerate(headings):
+        start = offsets[heading.line - 1]
+        end = (
+            offsets[headings[index + 1].line - 1]
+            if index + 1 < len(headings)
+            else len(canonical)
+        )
+        owner = resolved[index]
+        if runs and runs[-1][2] == owner:
+            runs[-1] = (runs[-1][0], end, owner)
+        else:
+            runs.append((start, end, owner))
+
+    fragments: list[MaterializationFragment] = []
+    for index, (start, canonical_end, owner) in enumerate(runs):
+        if index == 1:
+            start -= 1
+        end = canonical_end
+        if index < len(runs) - 1:
+            if canonical[end - 2 : end] != b"\n\n":
+                raise OwnershipError(
+                    "module boundary lacks the canonical blank line required "
+                    "for deterministic Hyperprompt separator replacement"
+                )
+            end -= 1
+        fragments.append(
+            MaterializationFragment(
+                owner_document_id=owner,
+                start_byte=start,
+                end_byte=end,
+                canonical_end_byte=canonical_end,
+                transform=(
+                    "identity"
+                    if index == 0
+                    else "promote_atx_headings_one_level"
+                ),
+            )
+        )
+    if not fragments or fragments[0].start_byte != 0:
+        raise OwnershipError("module materialization does not start at byte zero")
+    if fragments[-1].canonical_end_byte != len(canonical):
+        raise OwnershipError("module materialization does not reach canonical EOF")
+    return fragments
 
 
 def _active_document(catalog: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -311,6 +394,156 @@ def validate_ownership_map(root: Path = ROOT) -> Mapping[str, Any]:
     return ownership_map
 
 
+def _module_fragment_path(
+    target_source_path: str,
+    sequence: int,
+) -> str:
+    target = Path(target_source_path)
+    try:
+        relative = target.relative_to("drafts/modules")
+    except ValueError as error:
+        raise OwnershipError(
+            f"reserved target is outside drafts/modules: {target_source_path}"
+        ) from error
+    module = relative.with_suffix("").as_posix()
+    return f"modules/{module}/part-{sequence:02d}.md"
+
+
+def validate_materialization(
+    root: Path = ROOT,
+    ownership_map: Mapping[str, Any] | None = None,
+) -> Mapping[str, Any]:
+    """Validate the complete seven-module candidate against the ownership map."""
+
+    active_map = (
+        ownership_map
+        if ownership_map is not None
+        else validate_ownership_map(root)
+    )
+    materialization = _load_json(root / MATERIALIZATION_PATH)
+    schema = _load_json(root / MATERIALIZATION_SCHEMA_PATH)
+    _validate_schema(materialization, schema)
+
+    catalog = _load_json(root / active_map["catalog_path"])
+    if (
+        catalog["publication_mode"]
+        != materialization["publication_mode_required"]
+    ):
+        raise OwnershipError(
+            "module materialization is valid only during transitional_monolith mode"
+        )
+    ownership_ref = materialization["ownership_map"]
+    if ownership_ref["path"] != MAP_PATH.as_posix():
+        raise OwnershipError("materialization references an unexpected ownership map")
+    if _sha256(root / MAP_PATH) != ownership_ref["sha256"]:
+        raise OwnershipError("materialization ownership-map digest is stale")
+
+    candidate_ref = materialization["candidate"]
+    descriptor_path = root / candidate_ref["descriptor_path"]
+    try:
+        from publication.assembly.check import (
+            AssemblyError,
+            validate_candidate,
+        )
+
+        candidate = validate_candidate(root, descriptor_path)
+    except AssemblyError as error:
+        raise OwnershipError(
+            f"modular candidate is invalid: {error}"
+        ) from error
+    if candidate["candidate_id"] != candidate_ref["candidate_id"]:
+        raise OwnershipError("materialization candidate identity is inconsistent")
+    if candidate["canonical"] != active_map["canonical_source"]:
+        raise OwnershipError(
+            "materialization candidate does not bind the ownership-map source"
+        )
+
+    reserved = catalog["reserved_documents"]
+    reserved_by_id = {item["document_id"]: item for item in reserved}
+    fragments = materialization_fragments(root, active_map)
+    counters: dict[str, int] = {}
+    expected_paths: list[str] = []
+    expected_by_owner: dict[str, list[str]] = {
+        item["document_id"]: [] for item in reserved
+    }
+    for fragment in fragments:
+        document = reserved_by_id[fragment.owner_document_id]
+        target = document["target_source_path"]
+        counters[target] = counters.get(target, 0) + 1
+        path = _module_fragment_path(target, counters[target])
+        expected_paths.append(path)
+        expected_by_owner[fragment.owner_document_id].append(path)
+
+    declared = candidate["sources"]["declared"]
+    if not declared or declared[0]["path"] != "root.hc":
+        raise OwnershipError("modular candidate must declare root.hc first")
+    markdown_sources = declared[1:]
+    actual_paths = [item["path"] for item in markdown_sources]
+    if actual_paths != expected_paths:
+        raise OwnershipError(
+            "candidate fragment order does not match canonical ownership runs"
+        )
+    if len(markdown_sources) != len(fragments):
+        raise OwnershipError("candidate fragment closure is incomplete")
+
+    candidate_root = Path(candidate_ref["descriptor_path"]).parent
+    root_lines = []
+    for index, (source, fragment) in enumerate(
+        zip(markdown_sources, fragments, strict=True)
+    ):
+        expected_derivation = {
+            "method": "byte_range",
+            "source_path": "drafts/agent-surface.md",
+            "start_byte": fragment.start_byte,
+            "end_byte": fragment.end_byte,
+            "transform": fragment.transform,
+        }
+        if source.get("canonical_derivation") != expected_derivation:
+            raise OwnershipError(
+                f"candidate fragment derivation is stale: {source['path']}"
+            )
+        expected_repository_path = (
+            candidate_root / "sources" / source["path"]
+        ).as_posix()
+        if source.get("repository_path") != expected_repository_path:
+            raise OwnershipError(
+                f"candidate fragment repository path is stale: {source['path']}"
+            )
+        root_lines.append(f'{"    " if index else ""}"{source["path"]}"')
+
+    expected_root = ("\n".join(root_lines) + "\n").encode("utf-8")
+    root_source = declared[0]
+    root_path = root / root_source["repository_path"]
+    if root_path.read_bytes() != expected_root:
+        raise OwnershipError(
+            "modular candidate root does not preserve canonical fragment order"
+        )
+
+    actual_modules = materialization["modules"]
+    if len(actual_modules) != len(reserved):
+        raise OwnershipError(
+            "materialization must contain every reserved document exactly once"
+        )
+    for actual, document in zip(actual_modules, reserved, strict=True):
+        expected_module = {
+            "document_id": document["document_id"],
+            "version": document["version"],
+            "target_source_path": document["target_source_path"],
+            "fragments": expected_by_owner[document["document_id"]],
+        }
+        if actual != expected_module:
+            raise OwnershipError(
+                "materialized module metadata or fragment ownership is stale: "
+                f"{document['document_id']}"
+            )
+        target = root / document["target_source_path"]
+        if target.exists() or target.is_symlink():
+            raise OwnershipError(
+                f"reserved canonical module path must remain absent in 79B: {target}"
+            )
+    return materialization
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("validate",))
@@ -322,13 +555,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         ownership_map = validate_ownership_map(args.root.resolve())
+        materialization = validate_materialization(
+            args.root.resolve(),
+            ownership_map,
+        )
     except OwnershipError as error:
         print(f"module ownership validation failed: {error}")
         return 1
     print(
-        "Validated transitional module ownership map: "
+        "Validated transitional module ownership and materialization: "
         f"{len(ownership_map['modules'])} modules, "
-        f"{len(ownership_map['section_assignments'])} section assignments"
+        f"{len(ownership_map['section_assignments'])} section assignments, "
+        f"{sum(len(item['fragments']) for item in materialization['modules'])} "
+        "candidate fragments"
     )
     return 0
 
