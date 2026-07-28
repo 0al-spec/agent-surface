@@ -29,6 +29,12 @@ ROOT = Path(__file__).resolve().parents[2]
 LOCK_PATH = Path("publication/assembly/hyperprompt.lock.json")
 LOCK_SCHEMA_PATH = Path("publication/assembly/hyperprompt.lock.schema.json")
 CANDIDATE_SCHEMA_PATH = Path("publication/assembly/candidate.schema.json")
+PLATFORM_REPORT_SCHEMA_PATH = Path(
+    "publication/assembly/platform-report.schema.json"
+)
+CROSS_PLATFORM_REPORT_SCHEMA_PATH = Path(
+    "publication/assembly/cross-platform-report.schema.json"
+)
 CATALOG_PATH = Path("publication/document-set.json")
 CANDIDATES_PATH = Path("publication/candidates")
 
@@ -43,6 +49,7 @@ MEDIA_SUFFIXES = {
 }
 ATX_HEADING = re.compile(rb"^( {0,3})(#{1,6})(?=[ \t]|$)")
 FENCE_OPEN = re.compile(rb"^( {0,3})(`{3,}|~{3,})(.*)$")
+GIT_OBJECT_ID = re.compile(r"^[0-9a-f]{40}$")
 
 
 class AssemblyError(ValueError):
@@ -888,6 +895,94 @@ def _load_artifact_json(path: Path, *, label: str) -> Mapping[str, Any]:
     return value
 
 
+def _load_checked_schema(root: Path, relative: Path, *, label: str) -> Mapping[str, Any]:
+    path = root / relative
+    if path.is_symlink() or not path.is_file():
+        raise AssemblyError(f"{label} must be a regular file")
+    schema = _load_json(path)
+    if not isinstance(schema, Mapping):
+        raise AssemblyError(f"{label} must be a JSON object")
+    try:
+        Draft202012Validator.check_schema(schema)
+    except SchemaError as error:
+        raise AssemblyError(f"{label} is invalid: {error.message}") from error
+    return schema
+
+
+def _run_git(root: Path, arguments: Sequence[str], *, label: str) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), *arguments],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise AssemblyError(f"cannot inspect {label}: {error}") from error
+    if result.returncode != 0:
+        raise AssemblyError(
+            f"cannot inspect {label}: "
+            + (result.stderr.strip() or result.stdout.strip())
+        )
+    return result.stdout.strip()
+
+
+def require_clean_checkout(root: Path, source_revision: str) -> None:
+    """Require an exact clean Git checkout at one immutable revision."""
+
+    if GIT_OBJECT_ID.fullmatch(source_revision) is None:
+        raise AssemblyError("source revision must be a lowercase 40-character Git id")
+    top_level = Path(
+        _run_git(root, ["rev-parse", "--show-toplevel"], label="Git checkout root")
+    )
+    try:
+        if top_level.resolve(strict=True) != root.resolve(strict=True):
+            raise AssemblyError("assembly root is not the Git checkout root")
+    except OSError as error:
+        raise AssemblyError("cannot resolve the Git checkout root") from error
+    head = _run_git(root, ["rev-parse", "HEAD"], label="Git HEAD")
+    if head != source_revision:
+        raise AssemblyError(
+            f"clean-checkout revision mismatch: expected {source_revision}, got {head}"
+        )
+    status = _run_git(
+        root,
+        ["status", "--porcelain=v1", "--untracked-files=all"],
+        label="Git worktree",
+    )
+    if status:
+        raise AssemblyError("assembly evidence requires a clean Git worktree")
+
+
+def _write_new_report(root: Path, path: Path, report: Mapping[str, Any]) -> bytes:
+    """Write one deterministic report outside the checkout without overwriting."""
+
+    try:
+        path.resolve().relative_to(root.resolve(strict=True))
+    except ValueError:
+        pass
+    else:
+        raise AssemblyError("assembly evidence reports must be written outside the checkout")
+    if path.exists() or path.is_symlink():
+        raise AssemblyError(f"assembly evidence report already exists: {path}")
+    if path.parent.is_symlink() or not path.parent.is_dir():
+        raise AssemblyError("assembly evidence report parent must be a regular directory")
+    content = (
+        json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    ).encode("utf-8")
+    temporary = path.with_name(path.name + ".tmp")
+    if temporary.exists() or temporary.is_symlink():
+        raise AssemblyError(f"stale temporary report exists: {temporary}")
+    try:
+        temporary.write_bytes(content)
+        os.replace(temporary, path)
+    except OSError as error:
+        temporary.unlink(missing_ok=True)
+        raise AssemblyError(f"cannot write assembly evidence report: {error}") from error
+    return content
+
+
 def _validate_manifest(
     manifest_path: Path,
     *,
@@ -1180,8 +1275,143 @@ def run_candidate_build(
         return output, manifest, source_map
 
 
-def build_repository(root: Path, compiler: Path) -> int:
-    """Build every executable candidate twice and compare all artifacts."""
+def _expected_candidate_evidence(
+    root: Path,
+    descriptor: Path,
+    candidate: Mapping[str, Any],
+) -> dict[str, Any]:
+    canonical = _canonical_bytes(root, candidate, _load_catalog(root))
+    return {
+        "candidate_id": candidate["candidate_id"],
+        "descriptor_sha256": _sha256_file(descriptor),
+        "canonical_sha256": candidate["canonical"]["sha256"],
+        "aggregate_sha256": candidate["expected"]["aggregate_sha256"],
+        "aggregate_size": len(canonical),
+        "manifest_sha256": candidate["expected"]["manifest_sha256"],
+        "source_map_sha256": candidate["expected"]["source_map_sha256"],
+    }
+
+
+def _expected_candidate_evidence_set(root: Path) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for descriptor in discover_candidates(root):
+        candidate = validate_candidate(root, descriptor)
+        if candidate["candidate_stage"] != "executable":
+            continue
+        entries.append(_expected_candidate_evidence(root, descriptor, candidate))
+    return sorted(entries, key=lambda entry: entry["candidate_id"])
+
+
+def validate_platform_report_data(
+    root: Path,
+    report: Mapping[str, Any],
+    *,
+    expected_source_revision: str | None = None,
+) -> Mapping[str, Any]:
+    """Validate one platform report against the current locked repository."""
+
+    schema = _load_checked_schema(
+        root,
+        PLATFORM_REPORT_SCHEMA_PATH,
+        label="assembly platform report schema",
+    )
+    _validate_schema(report, schema, label="assembly platform report")
+    if (
+        expected_source_revision is not None
+        and report["source_revision"] != expected_source_revision
+    ):
+        raise AssemblyError("assembly platform report source revision mismatch")
+
+    lock = validate_lock(root)
+    artifact = _artifact_for_platform(lock, report["platform"])
+    expected_toolchain = {
+        "version": lock["release"]["version"],
+        "release_commit": lock["release"]["commit"],
+        "lock_sha256": _sha256_file(root / LOCK_PATH),
+        "binary_sha256": artifact["binary_sha256"],
+    }
+    if report["toolchain"] != expected_toolchain:
+        raise AssemblyError("assembly platform report toolchain does not match the lock")
+    if report["candidates"] != _expected_candidate_evidence_set(root):
+        raise AssemblyError(
+            "assembly platform report candidates do not match the repository"
+        )
+    return report
+
+
+def validate_platform_report(
+    root: Path,
+    path: Path,
+    *,
+    expected_source_revision: str | None = None,
+) -> Mapping[str, Any]:
+    if path.is_symlink() or not path.is_file():
+        raise AssemblyError(f"assembly platform report must be a regular file: {path}")
+    report = _load_artifact_json(path, label="assembly platform report")
+    return validate_platform_report_data(
+        root,
+        report,
+        expected_source_revision=expected_source_revision,
+    )
+
+
+def _build_platform_report(
+    root: Path,
+    *,
+    platform_name: str,
+    source_revision: str,
+    compiler_artifact: Mapping[str, Any],
+) -> dict[str, Any]:
+    lock = validate_lock(root)
+    return {
+        "$schema": (
+            "https://github.com/0al-spec/agent-surface/publication/"
+            "schemas/assembly-platform-report/v1"
+        ),
+        "schema_version": 1,
+        "report_kind": "asp_rfc_assembly_platform",
+        "authority": "provenance_only",
+        "source_revision": source_revision,
+        "checkout": "clean_before_and_after",
+        "platform": platform_name,
+        "toolchain": {
+            "version": lock["release"]["version"],
+            "release_commit": lock["release"]["commit"],
+            "lock_sha256": _sha256_file(root / LOCK_PATH),
+            "binary_sha256": compiler_artifact["binary_sha256"],
+        },
+        "candidates": _expected_candidate_evidence_set(root),
+        "repetitions": 2,
+        "result": "reproducible",
+    }
+
+
+def build_repository(
+    root: Path,
+    compiler: Path,
+    *,
+    platform_name: str | None = None,
+    source_revision: str | None = None,
+    report_path: Path | None = None,
+) -> int:
+    """Build every executable candidate twice and optionally emit clean evidence."""
+
+    platform_value = platform_name or _host_platform()
+    if platform_value != _host_platform():
+        raise AssemblyError(
+            f"declared platform {platform_value} does not match this host"
+        )
+    if (source_revision is None) != (report_path is None):
+        raise AssemblyError(
+            "source revision and report path must be supplied together"
+        )
+    if source_revision is not None:
+        require_clean_checkout(root, source_revision)
+    compiler_artifact = verify_compiler(
+        compiler,
+        root=root,
+        platform_name=platform_value,
+    )
 
     count = 0
     for descriptor in discover_candidates(root):
@@ -1197,7 +1427,133 @@ def build_repository(root: Path, compiler: Path) -> int:
         count += 1
     if count == 0:
         raise AssemblyError("repository has no executable assembly candidate")
+    if source_revision is not None and report_path is not None:
+        require_clean_checkout(root, source_revision)
+        report = _build_platform_report(
+            root,
+            platform_name=platform_value,
+            source_revision=source_revision,
+            compiler_artifact=compiler_artifact,
+        )
+        validate_platform_report_data(
+            root,
+            report,
+            expected_source_revision=source_revision,
+        )
+        _write_new_report(root, report_path, report)
     return count
+
+
+def validate_cross_platform_report_data(
+    root: Path,
+    report: Mapping[str, Any],
+    *,
+    expected_source_revision: str | None = None,
+) -> Mapping[str, Any]:
+    schema = _load_checked_schema(
+        root,
+        CROSS_PLATFORM_REPORT_SCHEMA_PATH,
+        label="assembly cross-platform report schema",
+    )
+    _validate_schema(report, schema, label="assembly cross-platform report")
+    if (
+        expected_source_revision is not None
+        and report["source_revision"] != expected_source_revision
+    ):
+        raise AssemblyError("assembly cross-platform report source revision mismatch")
+    lock = validate_lock(root)
+    expected_toolchain = {
+        "version": lock["release"]["version"],
+        "release_commit": lock["release"]["commit"],
+        "lock_sha256": _sha256_file(root / LOCK_PATH),
+    }
+    if report["toolchain"] != expected_toolchain:
+        raise AssemblyError(
+            "assembly cross-platform report toolchain does not match the lock"
+        )
+    if report["candidates"] != _expected_candidate_evidence_set(root):
+        raise AssemblyError(
+            "assembly cross-platform report candidates do not match the repository"
+        )
+    return report
+
+
+def compare_platform_reports(
+    root: Path,
+    report_paths: Sequence[Path],
+    *,
+    source_revision: str,
+    output_path: Path,
+) -> Mapping[str, Any]:
+    """Compare the exact Linux/macOS evidence set and emit one summary."""
+
+    if len(report_paths) != len(EXPECTED_PLATFORMS):
+        raise AssemblyError("cross-platform comparison requires exactly two reports")
+    try:
+        resolved = [path.resolve(strict=True) for path in report_paths]
+    except OSError as error:
+        raise AssemblyError(f"cannot resolve assembly platform report: {error}") from error
+    if len(set(resolved)) != len(resolved):
+        raise AssemblyError("cross-platform comparison received duplicate reports")
+    reports = [
+        validate_platform_report(
+            root,
+            path,
+            expected_source_revision=source_revision,
+        )
+        for path in report_paths
+    ]
+    by_platform = {report["platform"]: report for report in reports}
+    path_by_platform = {
+        report["platform"]: path
+        for report, path in zip(reports, report_paths, strict=True)
+    }
+    if set(by_platform) != set(EXPECTED_PLATFORMS):
+        raise AssemblyError(
+            "cross-platform comparison requires linux-amd64 and macos-arm64"
+        )
+    if len(by_platform) != len(reports):
+        raise AssemblyError("cross-platform comparison has duplicate platforms")
+
+    linux = by_platform["linux-amd64"]
+    macos = by_platform["macos-arm64"]
+    if linux["candidates"] != macos["candidates"]:
+        raise AssemblyError("cross-platform candidate artifacts are not identical")
+    common_toolchain_keys = ("version", "release_commit", "lock_sha256")
+    linux_toolchain = {
+        key: linux["toolchain"][key] for key in common_toolchain_keys
+    }
+    macos_toolchain = {
+        key: macos["toolchain"][key] for key in common_toolchain_keys
+    }
+    if linux_toolchain != macos_toolchain:
+        raise AssemblyError("cross-platform reports use different toolchain locks")
+
+    report = {
+        "$schema": (
+            "https://github.com/0al-spec/agent-surface/publication/"
+            "schemas/assembly-cross-platform-report/v1"
+        ),
+        "schema_version": 1,
+        "report_kind": "asp_rfc_assembly_cross_platform",
+        "authority": "provenance_only",
+        "source_revision": source_revision,
+        "platforms": ["linux-amd64", "macos-arm64"],
+        "platform_report_sha256": {
+            platform: _sha256_file(path_by_platform[platform])
+            for platform in ("linux-amd64", "macos-arm64")
+        },
+        "toolchain": linux_toolchain,
+        "candidates": linux["candidates"],
+        "result": "cross_platform_reproducible",
+    }
+    validate_cross_platform_report_data(
+        root,
+        report,
+        expected_source_revision=source_revision,
+    )
+    _write_new_report(root, output_path, report)
+    return report
 
 
 def validate_repository(root: Path = ROOT) -> list[Path]:
@@ -1208,11 +1564,15 @@ def validate_repository(root: Path = ROOT) -> list[Path]:
 
 def _check_repository(root: Path) -> list[Path]:
     lock = validate_lock(root)
-    candidate_schema = _load_json(root / CANDIDATE_SCHEMA_PATH)
-    try:
-        Draft202012Validator.check_schema(candidate_schema)
-    except SchemaError as error:
-        raise AssemblyError(f"candidate schema is invalid: {error.message}") from error
+    for relative, label in (
+        (CANDIDATE_SCHEMA_PATH, "candidate schema"),
+        (PLATFORM_REPORT_SCHEMA_PATH, "assembly platform report schema"),
+        (
+            CROSS_PLATFORM_REPORT_SCHEMA_PATH,
+            "assembly cross-platform report schema",
+        ),
+    ):
+        _load_checked_schema(root, relative, label=label)
     _load_catalog(root)
     candidates = discover_candidates(root)
     for descriptor in candidates:
@@ -1246,6 +1606,26 @@ def _parser() -> argparse.ArgumentParser:
     build = subparsers.add_parser("build")
     build.add_argument("--root", type=Path, default=ROOT)
     build.add_argument("--compiler", required=True, type=Path)
+    build.add_argument("--platform", choices=sorted(EXPECTED_PLATFORMS))
+    build.add_argument("--source-revision")
+    build.add_argument("--report", type=Path)
+
+    validate_report = subparsers.add_parser("validate-report")
+    validate_report.add_argument("--root", type=Path, default=ROOT)
+    validate_report.add_argument("--report", required=True, type=Path)
+    validate_report.add_argument("--source-revision")
+
+    compare = subparsers.add_parser("compare-reports")
+    compare.add_argument("--root", type=Path, default=ROOT)
+    compare.add_argument(
+        "--report",
+        required=True,
+        action="append",
+        dest="reports",
+        type=Path,
+    )
+    compare.add_argument("--source-revision", required=True)
+    compare.add_argument("--output", required=True, type=Path)
     return parser
 
 
@@ -1272,12 +1652,36 @@ def main(argv: Sequence[str] | None = None) -> int:
                 platform_name=args.platform,
             )
             print(f"installed locked Hyperprompt compiler at {installed}")
-        else:
+        elif args.command == "build":
             count = build_repository(
                 args.root.resolve(),
                 args.compiler.resolve(),
+                platform_name=args.platform,
+                source_revision=args.source_revision,
+                report_path=args.report.resolve() if args.report is not None else None,
             )
             print(f"publication assembly is reproducible ({count} candidates)")
+        elif args.command == "validate-report":
+            report = validate_platform_report(
+                args.root.resolve(),
+                args.report.resolve(),
+                expected_source_revision=args.source_revision,
+            )
+            print(
+                "publication assembly platform report is valid "
+                f"({report['platform']})"
+            )
+        else:
+            report = compare_platform_reports(
+                args.root.resolve(),
+                [path.resolve() for path in args.reports],
+                source_revision=args.source_revision,
+                output_path=args.output.resolve(),
+            )
+            print(
+                "publication assembly is cross-platform reproducible "
+                f"({', '.join(report['platforms'])})"
+            )
     except AssemblyError as error:
         print(f"publication assembly error: {error}", file=sys.stderr)
         return 1

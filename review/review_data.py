@@ -166,8 +166,11 @@ PUBLICATION_IMPLEMENTATION = Path("publication/check.py")
 PUBLICATION_ASSEMBLY_SCHEMAS = {
     Path("publication/assembly/hyperprompt.lock.schema.json"),
     Path("publication/assembly/candidate.schema.json"),
+    Path("publication/assembly/platform-report.schema.json"),
+    Path("publication/assembly/cross-platform-report.schema.json"),
 }
 PUBLICATION_ASSEMBLY_IMPLEMENTATION = Path("publication/assembly/check.py")
+PUBLICATION_ASSEMBLY_WORKFLOW = Path(".github/workflows/rfc-assembly.yml")
 PUBLICATION_ASSEMBLY_TEST = Path("publication/assembly/tests/test_assembly.py")
 GIT_OBJECT_ID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
@@ -1018,7 +1021,11 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
         return
     if (
         review_id == 78
-        and relative_path == PUBLICATION_ASSEMBLY_IMPLEMENTATION
+        and relative_path
+        in {
+            PUBLICATION_ASSEMBLY_IMPLEMENTATION,
+            PUBLICATION_ASSEMBLY_WORKFLOW,
+        }
     ):
         _validate_publication_assembly()
         return

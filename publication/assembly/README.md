@@ -53,9 +53,41 @@ Candidate builds create a new staging directory, verify that it is empty,
 discard it after any failure, and only treat compiler exit status `0` plus
 validated artifacts as readiness.
 
+## 78C cross-platform evidence
+
+The `RFC assembly cross-platform` workflow executes the candidate from an exact
+clean checkout on:
+
+- `ubuntu-latest` as `linux-amd64`;
+- ARM64 `macos-15` as `macos-arm64`.
+
+Each runner emits a closed platform report bound to the checked-out Git
+revision, candidate descriptor digest, canonical RFC, locked compiler release
+and binary, and aggregate/manifest/source-map digests. A separate comparison
+job accepts exactly one report from each required platform, rejects revision or
+artifact drift, and emits a machine-readable cross-platform summary.
+
+Reports are run-scoped CI provenance with 30-day retention. They are not
+committed because a report for an earlier Git revision must never be mistaken
+for evidence about the current checkout.
+
+A platform report can also be produced from a clean local checkout:
+
+```sh
+revision="$(git rev-parse HEAD)"
+.venv/bin/python -B publication/assembly/check.py build \
+  --compiler .tools/hyperprompt/hyperprompt \
+  --source-revision "${revision}" \
+  --report "/tmp/rfc-assembly-${revision}.json"
+```
+
+The command fails if `HEAD` differs from `--source-revision`, the worktree is
+dirty before or after compilation, the report path is inside the checkout, or
+the destination already exists.
+
 ## Boundaries
 
-78B does not activate modular publication or make the candidate source
-normative. Cross-platform reproduction and the final assembly contract remain
-in 78C. Until the atomic activation in `#79`, candidate sources, manifests,
-source maps, and aggregates are provenance or test artifacts only.
+78C completes the non-authoritative assembly rehearsal, but does not activate
+modular publication or make the candidate source normative. Until the atomic
+activation in `#79`, candidate sources, manifests, source maps, reports, and
+aggregates are provenance or test artifacts only.
