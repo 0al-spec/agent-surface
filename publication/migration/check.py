@@ -695,17 +695,37 @@ def validate_standalone(
     resolved, _ = _validate_sections(active_map, canonical_headings, module_ids)
     core = next(item for item in reserved if item["role"] == "core")
     navigation = standalone["navigation_references"]
-    expected_h2 = [
-        (index, heading)
+    h2_owners = {
+        resolved[index]
         for index, heading in enumerate(canonical_headings)
         if heading.level == 2
-    ]
-    if len(navigation) != len(expected_h2):
+    }
+    fallback_owners: set[str] = set()
+    expected_navigation_headings = []
+    for index, heading in enumerate(canonical_headings):
+        owner = resolved[index]
+        is_owner_fallback = (
+            owner not in h2_owners and owner not in fallback_owners
+        )
+        if heading.level != 2 and not is_owner_fallback:
+            continue
+        if is_owner_fallback:
+            fallback_owners.add(owner)
+        expected_navigation_headings.append((index, heading))
+    if {resolved[index] for index, _ in expected_navigation_headings} != {
+        item["document_id"] for item in reserved
+    }:
         raise OwnershipError(
-            "navigation references must exactly cover canonical level-two sections"
+            "navigation references must include every reserved document"
+        )
+    if len(navigation) != len(expected_navigation_headings):
+        raise OwnershipError(
+            "navigation references must exactly cover canonical level-two "
+            "sections and one fallback heading for every otherwise "
+            "undiscoverable document"
         )
     for actual, (index, heading) in zip(
-        navigation, expected_h2, strict=True
+        navigation, expected_navigation_headings, strict=True
     ):
         owner = resolved[index]
         target = document_by_id[owner]

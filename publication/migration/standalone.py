@@ -251,13 +251,24 @@ def generate(root: Path) -> dict[Path, bytes]:
     navigation: list[dict[str, Any]] = []
     contents_lines = ["## Document Set Contents", ""]
     heading_occurrences: dict[tuple[str, str], int] = {}
+    h2_owners = {
+        resolved[index]
+        for index, heading in enumerate(headings)
+        if heading.level == 2
+    }
+    fallback_owners: set[str] = set()
     for index, heading in enumerate(headings):
         owner = resolved[index]
         occurrence_key = (owner, heading.title)
         occurrence = heading_occurrences.get(occurrence_key, 0)
         heading_occurrences[occurrence_key] = occurrence + 1
-        if heading.level != 2:
+        is_owner_fallback = (
+            owner not in h2_owners and owner not in fallback_owners
+        )
+        if heading.level != 2 and not is_owner_fallback:
             continue
+        if is_owner_fallback:
+            fallback_owners.add(owner)
         target = reserved_by_id[owner]
         matches = anchors[owner].get(heading.title, [])
         if occurrence >= len(matches):

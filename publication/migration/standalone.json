@@ -31,7 +31,7 @@
       "title": "ASP Core",
       "target_source_path": "drafts/modules/core.md",
       "candidate_path": "publication/migration/documents/core.md",
-      "sha256": "e763fbf577b9518660ca3acf6d602c0cbdea83a9cbe7741c67f5702953e11009",
+      "sha256": "e39ff3f119f32c1f7c1897551754de4a64e7b2c55feeb208959bb5e5c8e68097",
       "content_fragments": [
         "modules/core/part-01.md",
         "modules/core/part-02.md",
@@ -325,6 +325,14 @@
       "target_version": "0.1.0-draft.1",
       "target_candidate_path": "publication/migration/documents/core.md",
       "target_anchor_id": "relationship-to-existing-protocols"
+    },
+    {
+      "heading": "ASP-over-MCP Binding Profile",
+      "source_document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+      "target_document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
+      "target_version": "0.1.0-draft.1",
+      "target_candidate_path": "publication/migration/documents/bindings/asp-over-mcp.md",
+      "target_anchor_id": "asp-over-mcp-binding-profile"
     },
     {
       "heading": "Conceptual Architecture",

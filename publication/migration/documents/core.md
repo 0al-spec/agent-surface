@@ -26,6 +26,7 @@
 - [Terminology](core.md#terminology)
 - [Design Principles](core.md#design-principles)
 - [Relationship to Existing Protocols](core.md#relationship-to-existing-protocols)
+- [ASP-over-MCP Binding Profile](bindings/asp-over-mcp.md#asp-over-mcp-binding-profile)
 - [Conceptual Architecture](core.md#conceptual-architecture)
 - [Protocol Layers](core.md#protocol-layers)
 - [Modular RFC Publication Architecture](core.md#modular-rfc-publication-architecture)

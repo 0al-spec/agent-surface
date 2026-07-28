@@ -238,7 +238,17 @@ class StandaloneModuleTests(unittest.TestCase):
         self,
     ) -> None:
         self.assertEqual(len(self.standalone["documents"]), 7)
-        self.assertEqual(len(self.standalone["navigation_references"]), 48)
+        self.assertEqual(len(self.standalone["navigation_references"]), 49)
+        self.assertEqual(
+            {
+                reference["target_document_id"]
+                for reference in self.standalone["navigation_references"]
+            },
+            {
+                document["document_id"]
+                for document in self.standalone["documents"]
+            },
+        )
         self.assertEqual(len(self.standalone["public_anchor_relocations"]), 9)
 
     def test_stale_materialization_digest_is_rejected(self) -> None:
