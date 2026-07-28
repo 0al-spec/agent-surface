@@ -56,3 +56,42 @@ make publication-check
 This remains a rehearsal. It does not create canonical module files, relocate
 public anchors, rewrite cross-document references, or change
 `publication_mode`.
+
+## 79C standalone documents and relocation plan
+
+`standalone.json` promotes the seven fragment closures into seven independently
+readable candidate documents under `publication/migration/documents/`.
+Generation is still non-authoritative and keeps every reserved
+`drafts/modules/*` target absent.
+
+Each document receives:
+
+- the exact reserved document ID and version;
+- its planned canonical path;
+- the exact pinned normative dependency list;
+- its owned content in canonical order;
+- heading repair for a subtree whose original parent belongs to another
+  module.
+
+The aggregate table of contents is replaced by a document-set navigation index
+with 48 checked candidate-local links. These navigation slugs are explicitly
+non-public and do not expand the protocol anchor namespace.
+
+The relocation plan covers exactly the nine current public anchors. Every
+record maps the old monolith document/version/anchor tuple to its future exact
+module tuple and declares two transition-only compatibility aliases:
+
+- the old aggregate path plus fragment;
+- the old aggregate fragment alone.
+
+Refresh and validate:
+
+```sh
+make publication-standalone-generate
+make publication-standalone-check
+make publication-ownership-check
+```
+
+79C does not activate the relocation records, rewrite the normative catalog,
+or make the candidate documents authoritative. Those changes remain part of
+the atomic activation slice.

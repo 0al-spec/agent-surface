@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import shutil
 import tempfile
@@ -13,8 +14,10 @@ from publication.migration.check import (
     MATERIALIZATION_PATH,
     OwnershipError,
     SCHEMA_PATH,
+    STANDALONE_PATH,
     validate_materialization,
     validate_ownership_map,
+    validate_standalone,
 )
 
 
@@ -203,6 +206,122 @@ class ModuleMaterializationTests(unittest.TestCase):
         target.write_text("# Premature canonical module\n", encoding="utf-8")
         with self.assertRaisesRegex(OwnershipError, "must remain absent"):
             validate_materialization(root)
+
+
+class StandaloneModuleTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.ownership_map = validate_ownership_map(ROOT)
+        cls.materialization = validate_materialization(ROOT, cls.ownership_map)
+        cls.standalone = validate_standalone(
+            ROOT,
+            cls.ownership_map,
+            cls.materialization,
+        )
+
+    def fixture(self) -> tuple[Path, Path]:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        shutil.copytree(ROOT / "publication", root / "publication")
+        shutil.copytree(ROOT / "drafts", root / "drafts")
+        return root, root / STANDALONE_PATH
+
+    @staticmethod
+    def write(path: Path, value: dict) -> None:
+        path.write_text(
+            json.dumps(value, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
+    def test_complete_standalone_set_has_closed_reference_and_anchor_maps(
+        self,
+    ) -> None:
+        self.assertEqual(len(self.standalone["documents"]), 7)
+        self.assertEqual(len(self.standalone["navigation_references"]), 48)
+        self.assertEqual(len(self.standalone["public_anchor_relocations"]), 9)
+
+    def test_stale_materialization_digest_is_rejected(self) -> None:
+        root, path = self.fixture()
+        value = copy.deepcopy(self.standalone)
+        value["materialization"]["sha256"] = "0" * 64
+        self.write(path, value)
+        with self.assertRaisesRegex(OwnershipError, "input digest is stale"):
+            validate_standalone(root)
+
+    def test_missing_normative_reference_is_rejected(self) -> None:
+        root, path = self.fixture()
+        value = copy.deepcopy(self.standalone)
+        value["documents"][1]["normative_references"] = []
+        self.write(path, value)
+        with self.assertRaisesRegex(
+            OwnershipError,
+            "standalone document metadata is stale",
+        ):
+            validate_standalone(root)
+
+    def test_navigation_cannot_target_the_wrong_document(self) -> None:
+        root, path = self.fixture()
+        value = copy.deepcopy(self.standalone)
+        value["navigation_references"][0]["target_document_id"] = (
+            value["documents"][1]["document_id"]
+        )
+        self.write(path, value)
+        with self.assertRaisesRegex(OwnershipError, "navigation reference is stale"):
+            validate_standalone(root)
+
+    def test_public_relocation_requires_both_compatibility_aliases(self) -> None:
+        root, path = self.fixture()
+        value = copy.deepcopy(self.standalone)
+        value["public_anchor_relocations"][0]["compatibility_aliases"].pop()
+        self.write(path, value)
+        with self.assertRaisesRegex(
+            OwnershipError,
+            "schema violation|relocation is stale",
+        ):
+            validate_standalone(root)
+
+    def test_stale_candidate_document_digest_is_rejected(self) -> None:
+        root, _ = self.fixture()
+        document = self.standalone["documents"][0]
+        candidate = root / document["candidate_path"]
+        candidate.write_text(
+            candidate.read_text(encoding="utf-8") + "\nStale prose.\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(OwnershipError, "candidate digest is stale"):
+            validate_standalone(root)
+
+    def test_standalone_document_must_have_one_reserved_h1(self) -> None:
+        root, path = self.fixture()
+        value = copy.deepcopy(self.standalone)
+        document = value["documents"][1]
+        candidate = root / document["candidate_path"]
+        content = candidate.read_text(encoding="utf-8") + "\n# Extra root\n"
+        candidate.write_text(content, encoding="utf-8")
+        document["sha256"] = hashlib.sha256(candidate.read_bytes()).hexdigest()
+        self.write(path, value)
+        with self.assertRaisesRegex(OwnershipError, "exactly one reserved H1"):
+            validate_standalone(root)
+
+    def test_replacement_public_anchor_must_exist(self) -> None:
+        root, path = self.fixture()
+        value = copy.deepcopy(self.standalone)
+        document = value["documents"][0]
+        candidate = root / document["candidate_path"]
+        content = candidate.read_text(encoding="utf-8").replace(
+            '<a id="modular-rfc-publication-architecture"></a>\n',
+            "",
+            1,
+        )
+        candidate.write_text(content, encoding="utf-8")
+        document["sha256"] = hashlib.sha256(candidate.read_bytes()).hexdigest()
+        self.write(path, value)
+        with self.assertRaisesRegex(
+            OwnershipError,
+            "replacement public anchor is missing",
+        ):
+            validate_standalone(root)
 
 
 if __name__ == "__main__":
