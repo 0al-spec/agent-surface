@@ -6,7 +6,7 @@
   "review_id": 74,
   "protocol_version": "agent-surface/0.1",
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.10.0",
+  "suite_version": "1.10.1",
   "bundle_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/application-audited-effects/v1",
   "claim_effect": "descriptive_only",
   "max_maturity": "implementation_tested",

@@ -8,7 +8,7 @@ object.
 
 ## Version 1 artifacts
 
-`conformance/v1/suite.json` is the authoritative Suite 1.10.0 role, feature,
+`conformance/v1/suite.json` is the authoritative Suite 1.10.1 role, feature,
 requirement, and vector matrix: six profiles, 55 requirements, and 183 closed
 declarative scenarios. `conformance/v1/fixtures.json` resolves them through 48
 exact semantic baselines and 128 closed mutation patches.

@@ -6743,6 +6743,25 @@ def specification_digest(root: Path = ROOT) -> str:
     )
 
 
+def document_set_binding(root: Path = ROOT) -> tuple[str, str, str]:
+    """Return the exact active publication catalog identity and digest."""
+
+    path = root / "publication" / "document-set.json"
+    document_set = load_strict_json(path)
+    try:
+        document_set_id = document_set["document_set_id"]
+        document_set_version = document_set["document_set_version"]
+    except (KeyError, TypeError) as error:
+        raise ConformanceError(
+            "publication document-set identity is unavailable"
+        ) from error
+    return (
+        document_set_id,
+        document_set_version,
+        file_digest("ASP-DOCUMENT-SET-CATALOG-V1", path),
+    )
+
+
 def _snapshot_source_digests(root: Path) -> tuple[str, str]:
     try:
         return catalog_digest(root), specification_digest(root)
@@ -7393,7 +7412,7 @@ def run_suite(
     started_at = _utc_now()
     runner = {
         "runner_id": "asp-reference-conformance-runner",
-        "runner_version": "1.10.0",
+        "runner_version": "1.10.1",
         "runner_artifact_sha256": file_digest(
             "ASP-CONFORMANCE-RUNNER-V1", root / "conformance" / "check.py"
         ),
@@ -7569,6 +7588,9 @@ def run_suite(
             result["failure_token"] = "assertion_failed"
         results.append(result)
 
+    document_set_id, document_set_version, document_set_sha256 = (
+        document_set_binding(root)
+    )
     report = {
         "$schema": "./report.schema.json",
         "schema_version": 1,
@@ -7580,6 +7602,9 @@ def run_suite(
             "suite_id": catalog.suite["suite_id"],
             "suite_version": catalog.suite["suite_version"],
             "protocol_version": catalog.suite["protocol_version"],
+            "document_set_id": document_set_id,
+            "document_set_version": document_set_version,
+            "document_set_sha256": document_set_sha256,
             "catalog_sha256": catalog.snapshot_catalog_sha256,
             "specification_sha256": catalog.snapshot_specification_sha256,
         },
@@ -7645,10 +7670,16 @@ def verify_report(
     )
     validate_subject(report["subject"], catalog)
     suite = report["suite"]
+    document_set_id, document_set_version, document_set_sha256 = (
+        document_set_binding(root)
+    )
     expected_suite = {
         "suite_id": catalog.suite["suite_id"],
         "suite_version": catalog.suite["suite_version"],
         "protocol_version": catalog.suite["protocol_version"],
+        "document_set_id": document_set_id,
+        "document_set_version": document_set_version,
+        "document_set_sha256": document_set_sha256,
         "catalog_sha256": catalog.snapshot_catalog_sha256,
         "specification_sha256": catalog.snapshot_specification_sha256,
     }

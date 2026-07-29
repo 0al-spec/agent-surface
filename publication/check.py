@@ -271,26 +271,59 @@ def _validate_historical_catalog_state(
             )
             active_by_ref[document_ref] = document
 
-        source_document_ref = _ref(aggregate["source_document"])
-        source_document = active_by_ref.get(source_document_ref)
-        if source_document is None:
-            raise PublicationError(
-                f"historical aggregate at {revision} references inactive "
-                f"document {source_document_ref!r}"
-            )
-        if (
-            aggregate["path"] != source_document["source_path"]
-            or aggregate["sha256"] != source_document["source_sha256"]
-        ):
-            raise PublicationError(
-                f"historical aggregate at {revision} is not the exact "
-                f"representation of {source_document_ref!r}"
-            )
-        verify_digest(
+        aggregate_path, aggregate_content = verify_digest(
             aggregate["path"],
             aggregate["sha256"],
             label="historical aggregate",
         )
+        if catalog.get("publication_mode") == "modular":
+            assembly = aggregate.get("assembly")
+            if not isinstance(assembly, Mapping):
+                raise PublicationError(
+                    f"historical modular aggregate at {revision} lacks assembly"
+                )
+            _, source_map_content = artifact(
+                assembly["source_map"],
+                label="historical aggregate source map",
+            )
+            artifact(
+                assembly["manifest"],
+                label="historical aggregate manifest",
+            )
+            try:
+                source_map = loads_strict_json(
+                    source_map_content.decode("utf-8"),
+                    source=f"{assembly['source_map']} at {revision}",
+                )
+            except UnicodeDecodeError as error:
+                raise PublicationError(
+                    f"historical source map at {revision} is not UTF-8"
+                ) from error
+            if (
+                not isinstance(source_map, Mapping)
+                or source_map.get("outputSha256") != aggregate["sha256"]
+                or hashlib.sha256(aggregate_content).hexdigest()
+                != aggregate["sha256"]
+            ):
+                raise PublicationError(
+                    f"historical modular aggregate provenance is stale at {revision}"
+                )
+        else:
+            source_document_ref = _ref(aggregate["source_document"])
+            source_document = active_by_ref.get(source_document_ref)
+            if source_document is None:
+                raise PublicationError(
+                    f"historical aggregate at {revision} references inactive "
+                    f"document {source_document_ref!r}"
+                )
+            if (
+                aggregate_path != source_document["source_path"]
+                or aggregate["sha256"] != source_document["source_sha256"]
+            ):
+                raise PublicationError(
+                    f"historical aggregate at {revision} is not the exact "
+                    f"representation of {source_document_ref!r}"
+                )
 
         for registry in registries:
             if not isinstance(registry, Mapping):
@@ -547,6 +580,56 @@ def validate_catalog_history(
 
     for revision, previous in historical:
         collect(previous, revision, current_catalog=False)
+
+    historical_documents: dict[
+        tuple[str, str], tuple[str, Mapping[str, Any]]
+    ] = {}
+    has_transitional_history = False
+    for revision, previous in historical:
+        has_transitional_history = has_transitional_history or (
+            previous.get("publication_mode") == "transitional_monolith"
+        )
+        for document in previous["documents"]:
+            historical_documents.setdefault(_ref(document), (revision, document))
+    for relocation in (
+        current.get("anchor_relocations", [])
+        if has_transitional_history
+        else []
+    ):
+        previous_anchor = relocation["previous"]
+        previous_ref = (
+            previous_anchor["document_id"],
+            previous_anchor["version"],
+        )
+        historical = historical_documents.get(previous_ref)
+        if historical is None:
+            raise PublicationError(
+                "anchor relocation lacks a published historical source "
+                f"document: {previous_ref!r}"
+            )
+        revision, document = historical
+        historical_anchors = _declared_anchor_map(document)
+        anchor_id = previous_anchor["anchor_id"]
+        if historical_anchors.get(anchor_id) != relocation["heading"]:
+            raise PublicationError(
+                "anchor relocation historical tuple does not resolve at "
+                f"{revision}: {(previous_ref[0], previous_ref[1], anchor_id)!r}"
+            )
+        expected_aliases = {
+            (
+                "legacy_aggregate_path_fragment",
+                f"{document['source_path']}#{anchor_id}",
+            ),
+            ("legacy_aggregate_fragment", f"#{anchor_id}"),
+        }
+        actual_aliases = {
+            (item["kind"], item["value"])
+            for item in relocation["compatibility_aliases"]
+        }
+        if actual_aliases != expected_aliases:
+            raise PublicationError(
+                f"anchor relocation aliases are incomplete for {anchor_id!r}"
+            )
     collect(current, "current catalog", current_catalog=True)
 
 
@@ -927,6 +1010,101 @@ def _validate_normative_references(
             )
 
 
+def _validate_anchor_relocations(
+    catalog: Mapping[str, Any],
+    active_by_ref: Mapping[tuple[str, str], Mapping[str, Any]],
+) -> None:
+    relocations = catalog["anchor_relocations"]
+    if catalog["publication_mode"] == "transitional_monolith":
+        if (
+            catalog["anchor_policy"]["move_policy"]
+            != "reject_cross_document_move_until_relocation_profile"
+            or catalog["anchor_policy"]["cross_document_relocation"]
+            != "unsupported_in_schema_v1"
+        ):
+            raise PublicationError(
+                "transitional publication cannot select relocation policy"
+            )
+        if relocations:
+            raise PublicationError(
+                "transitional publication cannot activate anchor relocations"
+            )
+        return
+    if not relocations:
+        raise PublicationError(
+            "modular activation requires explicit anchor relocations"
+        )
+    if (
+        catalog["anchor_policy"]["move_policy"]
+        != "validated_cross_document_relocation"
+        or catalog["anchor_policy"]["cross_document_relocation"]
+        != "exact_old_to_new_tuple_v1"
+    ):
+        raise PublicationError(
+            "modular activation requires the validated relocation policy"
+        )
+    seen_previous: set[tuple[str, str, str]] = set()
+    seen_replacement: set[tuple[str, str, str]] = set()
+    seen_aliases: set[tuple[str, str]] = set()
+    for relocation in relocations:
+        previous = relocation["previous"]
+        replacement = relocation["replacement"]
+        previous_tuple = (
+            previous["document_id"],
+            previous["version"],
+            previous["anchor_id"],
+        )
+        replacement_tuple = (
+            replacement["document_id"],
+            replacement["version"],
+            replacement["anchor_id"],
+        )
+        if previous_tuple in seen_previous:
+            raise PublicationError(
+                f"duplicate historical anchor relocation: {previous_tuple!r}"
+            )
+        if replacement_tuple in seen_replacement:
+            raise PublicationError(
+                f"duplicate replacement anchor relocation: {replacement_tuple!r}"
+            )
+        seen_previous.add(previous_tuple)
+        seen_replacement.add(replacement_tuple)
+        target = active_by_ref.get(
+            (replacement["document_id"], replacement["version"])
+        )
+        if target is None:
+            raise PublicationError(
+                f"anchor relocation target is inactive: {replacement_tuple!r}"
+            )
+        target_anchors = _declared_anchor_map(target)
+        if target_anchors.get(replacement["anchor_id"]) != relocation["heading"]:
+            raise PublicationError(
+                f"anchor relocation target does not resolve: {replacement_tuple!r}"
+            )
+        if (
+            previous["document_id"]
+            == replacement["document_id"]
+            and previous["version"] == replacement["version"]
+        ):
+            raise PublicationError(
+                "cross-document relocation must change the document tuple"
+            )
+        for alias in relocation["compatibility_aliases"]:
+            alias_key = alias["kind"], alias["value"]
+            if alias_key in seen_aliases:
+                raise PublicationError(
+                    f"duplicate relocation compatibility alias: {alias_key!r}"
+                )
+            seen_aliases.add(alias_key)
+            if not alias["value"].endswith(
+                "#" + previous["anchor_id"]
+            ):
+                raise PublicationError(
+                    "relocation compatibility alias does not preserve the "
+                    f"historical fragment {previous['anchor_id']!r}"
+                )
+
+
 def _validate_registries(
     root: Path,
     registries: Sequence[Mapping[str, Any]],
@@ -1031,11 +1209,77 @@ def _validate_mode(
         )
 
     if catalog["publication_mode"] == "modular":
-        raise PublicationError(
-            "modular publication mode is unsupported until the Hyperprompt "
-            "provenance, source-map, anchor, and atomic-readiness resolver is "
-            "implemented"
+        if len(documents) < 2 or any(
+            document["role"] == "monolith" for document in documents
+        ):
+            raise PublicationError(
+                "modular mode requires multiple active non-monolith documents"
+            )
+        if catalog["reserved_documents"]:
+            raise PublicationError(
+                "modular activation cannot retain reserved documents"
+            )
+        assembly = aggregate["assembly"]
+        if assembly["entrypoint"] != "publication/modular/root.hc":
+            raise PublicationError(
+                "modular aggregate must use the authoritative entrypoint"
+            )
+        manifest_path = _repo_file(
+            root,
+            assembly["manifest"],
+            label="modular assembly manifest",
+            must_exist=True,
         )
+        source_map_path = _repo_file(
+            root,
+            assembly["source_map"],
+            label="modular assembly source map",
+            must_exist=True,
+        )
+        manifest = _load_json(manifest_path)
+        source_map = _load_json(source_map_path)
+        expected_sources = {
+            document["source_path"] for document in documents
+        }
+        if (
+            not isinstance(manifest, Mapping)
+            or manifest.get("schemaVersion") != 1
+            or manifest.get("root") != assembly["entrypoint"]
+        ):
+            raise PublicationError("modular assembly manifest is invalid")
+        dependencies = manifest.get("dependencies")
+        if not isinstance(dependencies, list) or {
+            item.get("to")
+            for item in dependencies
+            if isinstance(item, Mapping)
+        } != expected_sources:
+            raise PublicationError(
+                "modular assembly manifest does not select exact active sources"
+            )
+        if (
+            not isinstance(source_map, Mapping)
+            or source_map.get("schemaVersion") != 1
+            or source_map.get("lineBase") != 1
+            or source_map.get("outputSha256") != aggregate["sha256"]
+        ):
+            raise PublicationError(
+                "modular source map does not bind the aggregate digest"
+            )
+        mappings = source_map.get("mappings")
+        if not isinstance(mappings, list) or not mappings:
+            raise PublicationError("modular source map has no mappings")
+        mapped_sources = {
+            item["source"]["path"]
+            for item in mappings
+            if isinstance(item, Mapping)
+            and item.get("kind") == "markdown"
+            and isinstance(item.get("source"), Mapping)
+        }
+        if mapped_sources != expected_sources:
+            raise PublicationError(
+                "modular source map does not cover exact active sources"
+            )
+        return
 
     if catalog["publication_mode"] == "transitional_monolith":
         if len(documents) != 1 or documents[0]["role"] != "monolith":
@@ -1154,6 +1398,7 @@ def validate_catalog(
     _validate_active_source_exports(active)
     _validate_public_anchors(root, active)
     _validate_normative_references(active, active_by_ref)
+    _validate_anchor_relocations(catalog, active_by_ref)
     _validate_registries(root, catalog["registries"], active_by_ref)
     _validate_mode(root, catalog, active_by_ref)
     return catalog

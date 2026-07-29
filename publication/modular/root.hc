@@ -1,0 +1,7 @@
+"drafts/modules/core.md"
+    "drafts/modules/authorization.md"
+    "drafts/modules/safe-effects.md"
+    "drafts/modules/evidence.md"
+    "drafts/modules/privacy.md"
+    "drafts/modules/bindings/asp-over-mcp.md"
+    "drafts/modules/conformance.md"

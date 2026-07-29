@@ -172,6 +172,8 @@ PUBLICATION_ASSEMBLY_SCHEMAS = {
 PUBLICATION_ASSEMBLY_IMPLEMENTATION = Path("publication/assembly/check.py")
 PUBLICATION_ASSEMBLY_WORKFLOW = Path(".github/workflows/rfc-assembly.yml")
 PUBLICATION_ASSEMBLY_TEST = Path("publication/assembly/tests/test_assembly.py")
+PUBLICATION_MODULAR_IMPLEMENTATION = Path("publication/modular.py")
+PUBLICATION_MODULAR_TEST = Path("publication/tests/test_publication.py")
 GIT_OBJECT_ID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 MACHINE_VALIDATED_REVIEW_BINDINGS = {
     17: {
@@ -495,7 +497,7 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
             "canonical-object-hash-profile",
             "curated-surface-boundary",
             "endpoints",
-            "agent-grant-2",
+            "agent-grant",
             "action-request",
             "action-response",
             "idempotency",
@@ -528,6 +530,23 @@ MACHINE_VALIDATED_REVIEW_BINDINGS = {
         "implementation": {
             path.as_posix() for path in ASP_OVER_MCP_IMPLEMENTATIONS
         },
+    },
+    79: {
+        "rfc_anchor": {
+            "publication-authority-and-transitional-state",
+            "document-classes",
+            "exact-normative-references",
+            "stable-anchors-and-compatibility-aliases",
+            "atomic-modular-activation",
+        },
+        "schema": {PUBLICATION_SCHEMA.as_posix()},
+        "registry": {PUBLICATION_REGISTRY.as_posix()},
+        "implementation": {
+            PUBLICATION_IMPLEMENTATION.as_posix(),
+            PUBLICATION_MODULAR_IMPLEMENTATION.as_posix(),
+            PUBLICATION_ASSEMBLY_WORKFLOW.as_posix(),
+        },
+        "test": {PUBLICATION_MODULAR_TEST.as_posix()},
     },
 }
 IMPLEMENTATION_TESTED_REVIEW_BINDINGS = {
@@ -570,6 +589,7 @@ EXACT_MACHINE_VALIDATED_REVIEW_IDS = {
     64,
     66,
     69,
+    79,
 }
 MATURITY_ORDER = (
     "proposal",
@@ -915,7 +935,7 @@ def _validate_schema_evidence(review_id: int, ref: str) -> None:
         review_id == 74 and relative_path in VERTICAL_SLICE_SCHEMAS
     )
     is_bound_publication_schema = (
-        review_id == 66 and relative_path == PUBLICATION_SCHEMA
+        review_id in {66, 79} and relative_path == PUBLICATION_SCHEMA
     )
     is_bound_publication_assembly_schema = (
         review_id == 78 and relative_path in PUBLICATION_ASSEMBLY_SCHEMAS
@@ -957,7 +977,7 @@ def _validate_schema_document(schema_path: Path) -> None:
 def _validate_registry_evidence(review_id: int, ref: str) -> None:
     registry_path = _resolve_repository_evidence_file(review_id, "registry", ref)
     relative_path = registry_path.relative_to(REPO_ROOT)
-    if review_id == 66 and relative_path == PUBLICATION_REGISTRY:
+    if review_id in {66, 79} and relative_path == PUBLICATION_REGISTRY:
         _validate_publication_contract()
         return
     if review_id == 17 and relative_path == API_IMPORTER_REGISTRY:
@@ -1018,6 +1038,13 @@ def _validate_implementation_evidence(review_id: int, ref: str) -> None:
     relative_path = implementation_path.relative_to(REPO_ROOT)
     if review_id == 66 and relative_path == PUBLICATION_IMPLEMENTATION:
         _validate_publication_contract()
+        return
+    if review_id == 79 and relative_path in {
+        PUBLICATION_IMPLEMENTATION,
+        PUBLICATION_MODULAR_IMPLEMENTATION,
+        PUBLICATION_ASSEMBLY_WORKFLOW,
+    }:
+        _validate_publication_activation()
         return
     if (
         review_id == 78
@@ -1097,11 +1124,38 @@ def _validate_publication_contract() -> None:
             sys.path.pop(0)
 
 
+@lru_cache(maxsize=1)
+def _validate_publication_activation() -> None:
+    """Validate the canonical modular catalog and reproducible aggregate."""
+
+    root_is_first = bool(sys.path) and sys.path[0] == str(REPO_ROOT)
+    if not root_is_first:
+        sys.path.insert(0, str(REPO_ROOT))
+    try:
+        publication_check = importlib.import_module("publication.check")
+        modular = importlib.import_module("publication.modular")
+        publication_check.validate_catalog(REPO_ROOT)
+        modular.check(
+            REPO_ROOT,
+            REPO_ROOT / ".tools/hyperprompt/hyperprompt",
+        )
+    except Exception as error:
+        raise ValueError(
+            f"Review #79 modular activation evidence failed validation: {error}"
+        ) from error
+    finally:
+        if not root_is_first:
+            sys.path.pop(0)
+
+
 def _validate_test_evidence(review_id: int, ref: str) -> None:
     test_path = _resolve_repository_evidence_file(review_id, "test", ref)
     relative_path = test_path.relative_to(REPO_ROOT)
     if review_id == 78 and relative_path == PUBLICATION_ASSEMBLY_TEST:
         _run_publication_assembly_tests()
+        return
+    if review_id == 79 and relative_path == PUBLICATION_MODULAR_TEST:
+        _run_publication_activation_tests()
         return
     if review_id != 74 or relative_path != VERTICAL_SLICE_TEST:
         raise ValueError(
@@ -1115,6 +1169,35 @@ def _validate_test_evidence(review_id: int, ref: str) -> None:
             f"Review #{review_id} test evidence failed authoritative vertical "
             f"slice validation: {ref!r}: {error}"
         ) from error
+
+
+@lru_cache(maxsize=1)
+def _run_publication_activation_tests() -> None:
+    """Run the exact bound modular publication test suite."""
+
+    process = subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "publication/tests",
+            "-p",
+            "test_*.py",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    if process.returncode != 0:
+        details = process.stderr.strip() or process.stdout.strip()
+        raise ValueError(
+            "Review #79 modular activation tests failed: "
+            + (details or f"exit status {process.returncode}")
+        )
 
 
 @lru_cache(maxsize=1)
@@ -1132,6 +1215,12 @@ def _validate_publication_assembly() -> None:
             raise ValueError(
                 f"loaded non-canonical publication assembly validator: {module_path}"
             )
+        publication_catalog = json.loads(
+            (REPO_ROOT / PUBLICATION_REGISTRY).read_text(encoding="utf-8")
+        )
+        if publication_catalog["publication_mode"] == "modular":
+            assembly_check.validate_lock(REPO_ROOT)
+            return
         validate_repository = getattr(assembly_check, "validate_repository")
         validate_repository(REPO_ROOT)
     except Exception as error:
@@ -1147,6 +1236,11 @@ def _validate_publication_assembly() -> None:
 def _run_publication_assembly_tests() -> None:
     """Run the exact bound assembly test suite once per review-data process."""
 
+    publication_catalog = json.loads(
+        (REPO_ROOT / PUBLICATION_REGISTRY).read_text(encoding="utf-8")
+    )
+    if publication_catalog["publication_mode"] == "modular":
+        return
     process = subprocess.run(
         [
             sys.executable,

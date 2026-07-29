@@ -1,0 +1,86 @@
+{
+  "dependencies" : [
+    {
+      "from" : "publication/modular/root.hc",
+      "to" : "drafts/modules/authorization.md"
+    },
+    {
+      "from" : "publication/modular/root.hc",
+      "to" : "drafts/modules/bindings/asp-over-mcp.md"
+    },
+    {
+      "from" : "publication/modular/root.hc",
+      "to" : "drafts/modules/conformance.md"
+    },
+    {
+      "from" : "publication/modular/root.hc",
+      "to" : "drafts/modules/core.md"
+    },
+    {
+      "from" : "publication/modular/root.hc",
+      "to" : "drafts/modules/evidence.md"
+    },
+    {
+      "from" : "publication/modular/root.hc",
+      "to" : "drafts/modules/privacy.md"
+    },
+    {
+      "from" : "publication/modular/root.hc",
+      "to" : "drafts/modules/safe-effects.md"
+    }
+  ],
+  "root" : "publication/modular/root.hc",
+  "schemaVersion" : 1,
+  "sources" : [
+    {
+      "path" : "drafts/modules/authorization.md",
+      "sha256" : "adee7eb7e751d90b15fd2793fe807cb9e0eb02634fe7ce25cf9525b51c137f79",
+      "size" : 216997,
+      "type" : "markdown"
+    },
+    {
+      "path" : "drafts/modules/bindings/asp-over-mcp.md",
+      "sha256" : "5b5b4472d04e63d46376a96bc6b140bbe6cd5796b8c03c102b3917ed3145d949",
+      "size" : 56119,
+      "type" : "markdown"
+    },
+    {
+      "path" : "drafts/modules/conformance.md",
+      "sha256" : "15d461028daace7e3eb2937b55f639774e3c779cbc7072250cd2e8ee9678bf2d",
+      "size" : 93673,
+      "type" : "markdown"
+    },
+    {
+      "path" : "drafts/modules/core.md",
+      "sha256" : "b1010d279dd1f9f82b28a575748822a02bcf445f133b512c7750200bafaf5cce",
+      "size" : 302997,
+      "type" : "markdown"
+    },
+    {
+      "path" : "drafts/modules/evidence.md",
+      "sha256" : "5982bde1469ba1d2503943220d56590cf65594482f412d3d7ccbd778e81ec6f8",
+      "size" : 70578,
+      "type" : "markdown"
+    },
+    {
+      "path" : "drafts/modules/privacy.md",
+      "sha256" : "071d36a8b3866e666d6f20f16bfabd7d8ade16ff0f96dccfcc3b8f727477ce8d",
+      "size" : 46664,
+      "type" : "markdown"
+    },
+    {
+      "path" : "drafts/modules/safe-effects.md",
+      "sha256" : "a276875efd07c6173910e57013c12a1a1656d2d7fb74659721e772103b8d8f29",
+      "size" : 122194,
+      "type" : "markdown"
+    },
+    {
+      "path" : "publication/modular/root.hc",
+      "sha256" : "a4a345010595b9af0be50602243ea8e05e49c2e9f4efa3a814ffdff8af02d05f",
+      "size" : 247,
+      "type" : "hypercode"
+    }
+  ],
+  "timestamp" : "2023-11-14T22:13:20Z",
+  "version" : "0.2.0"
+}

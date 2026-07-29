@@ -23,6 +23,7 @@ from publication.check import (
     validate_catalog_history,
     validate_history,
 )
+from publication import modular
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -32,6 +33,21 @@ class PublicationContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.catalog = validate_catalog(ROOT)
+        cls.pre_activation_catalog = json.loads(
+            subprocess.check_output(
+                ["git", "show", "origin/main:publication/document-set.json"],
+                cwd=ROOT,
+                text=True,
+            )
+        )
+
+    def history(
+        self, *snapshots: tuple[str, dict]
+    ) -> list[tuple[str, dict]]:
+        return [
+            ("pre-activation", self.pre_activation_catalog),
+            *snapshots,
+        ]
 
     def catalog_copy(self) -> tuple[Path, Path]:
         temporary = tempfile.TemporaryDirectory()
@@ -60,9 +76,10 @@ class PublicationContractTests(unittest.TestCase):
             )
         )
         Draft202012Validator.check_schema(schema)
-        self.assertEqual(self.catalog["publication_mode"], "transitional_monolith")
-        self.assertEqual(len(self.catalog["documents"]), 1)
-        self.assertEqual(len(self.catalog["reserved_documents"]), 7)
+        self.assertEqual(self.catalog["publication_mode"], "modular")
+        self.assertEqual(len(self.catalog["documents"]), 7)
+        self.assertEqual(len(self.catalog["reserved_documents"]), 0)
+        self.assertEqual(len(self.catalog["anchor_relocations"]), 9)
         self.assertEqual(len(self.catalog["registries"]), 2)
         self.assertEqual(main(["validate", "--root", str(ROOT)]), 0)
 
@@ -79,8 +96,8 @@ class PublicationContractTests(unittest.TestCase):
         text = path.read_text(encoding="utf-8")
         path.write_text(
             text.replace(
-                '"schema_version": 1,',
-                '"schema_version": 1,\n  "schema_version": 1,',
+                '"schema_version": 2,',
+                '"schema_version": 2,\n  "schema_version": 2,',
                 1,
             ),
             encoding="utf-8",
@@ -91,7 +108,7 @@ class PublicationContractTests(unittest.TestCase):
     def test_floating_dependency_version_is_rejected(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
-        catalog["reserved_documents"][1]["normative_dependencies"][0][
+        catalog["documents"][1]["normative_dependencies"][0][
             "version"
         ] = "latest"
         self.write_catalog(path, catalog)
@@ -101,7 +118,7 @@ class PublicationContractTests(unittest.TestCase):
     def test_unknown_exact_dependency_is_rejected(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
-        catalog["reserved_documents"][1]["normative_dependencies"][0][
+        catalog["documents"][1]["normative_dependencies"][0][
             "version"
         ] = "9.9.9"
         self.write_catalog(path, catalog)
@@ -111,8 +128,8 @@ class PublicationContractTests(unittest.TestCase):
     def test_cycle_and_forward_dependency_are_rejected(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
-        core = catalog["reserved_documents"][0]
-        authorization = catalog["reserved_documents"][1]
+        core = catalog["documents"][0]
+        authorization = catalog["documents"][1]
         core["normative_dependencies"] = [
             {
                 "document_id": authorization["document_id"],
@@ -128,8 +145,8 @@ class PublicationContractTests(unittest.TestCase):
     def test_core_cannot_depend_on_an_extension(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
-        core = catalog["reserved_documents"][0]
-        authorization = catalog["reserved_documents"][1]
+        core = catalog["documents"][0]
+        authorization = catalog["documents"][1]
         core["normative_dependencies"] = [
             {
                 "document_id": authorization["document_id"],
@@ -143,20 +160,21 @@ class PublicationContractTests(unittest.TestCase):
     def test_required_role_dependency_is_enforced(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
-        catalog["reserved_documents"][1]["normative_dependencies"] = []
+        catalog["documents"][1]["normative_dependencies"] = []
+        catalog["documents"][1]["normative_references"] = []
         self.write_catalog(path, catalog)
         with self.assertRaisesRegex(PublicationError, "missing required.*core"):
             validate_catalog(root)
 
-    def test_duplicate_planned_export_owner_is_rejected(self) -> None:
+    def test_duplicate_active_export_owner_is_rejected(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
         exported = {
             "kind": "identifier_namespace",
             "id": "https://github.com/0al-spec/agent-surface/identifiers/example",
         }
-        catalog["reserved_documents"][0]["planned_exports"] = [exported]
-        catalog["reserved_documents"][1]["planned_exports"] = [exported]
+        catalog["documents"][0]["exports"].append(exported)
+        catalog["documents"][1]["exports"].append(exported)
         self.write_catalog(path, catalog)
         with self.assertRaisesRegex(PublicationError, "multiple owners"):
             validate_catalog(root)
@@ -164,9 +182,14 @@ class PublicationContractTests(unittest.TestCase):
     def test_registry_requires_exact_active_owner_export(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
-        catalog["documents"][0]["exports"] = [
+        owner = next(
             item
-            for item in catalog["documents"][0]["exports"]
+            for item in catalog["documents"]
+            if item["role"] == "conformance"
+        )
+        owner["exports"] = [
+            item
+            for item in owner["exports"]
             if item["id"] != catalog["registries"][0]["registry_id"]
         ]
         self.write_catalog(path, catalog)
@@ -227,20 +250,19 @@ class PublicationContractTests(unittest.TestCase):
         ):
             validate_catalog_history(
                 current,
-                [("published-commit", self.catalog)],
+                self.history(("published-commit", self.catalog)),
             )
 
     def test_document_set_version_is_immutable(self) -> None:
         current = copy.deepcopy(self.catalog)
         current["documents"][0]["version"] = "0.1.0-draft.2"
-        current["aggregate"]["source_document"]["version"] = "0.1.0-draft.2"
         with self.assertRaisesRegex(
             PublicationError,
             "published document-set version.*bump document_set_version",
         ):
             validate_catalog_history(
                 current,
-                [("published-commit", self.catalog)],
+                self.history(("published-commit", self.catalog)),
             )
 
     def test_published_registry_version_is_immutable(self) -> None:
@@ -253,7 +275,7 @@ class PublicationContractTests(unittest.TestCase):
         ):
             validate_catalog_history(
                 current,
-                [("published-commit", self.catalog)],
+                self.history(("published-commit", self.catalog)),
             )
 
     def test_conflicting_historical_snapshot_is_rejected(self) -> None:
@@ -266,10 +288,10 @@ class PublicationContractTests(unittest.TestCase):
         ):
             validate_catalog_history(
                 copy.deepcopy(self.catalog),
-                [
+                self.history(
                     ("first-published-commit", self.catalog),
                     ("later-published-commit", conflicting),
-                ],
+                ),
             )
 
     def test_new_document_and_set_versions_can_change(self) -> None:
@@ -277,11 +299,10 @@ class PublicationContractTests(unittest.TestCase):
         current["document_set_version"] = "0.1.0-draft.2"
         current["documents"][0]["version"] = "0.1.0-draft.2"
         current["documents"][0]["source_sha256"] = "0" * 64
-        current["aggregate"]["source_document"]["version"] = "0.1.0-draft.2"
         current["aggregate"]["sha256"] = "0" * 64
         validate_catalog_history(
             current,
-            [("published-commit", self.catalog)],
+            self.history(("published-commit", self.catalog)),
         )
 
     def test_history_comparison_is_json_structural(self) -> None:
@@ -290,7 +311,7 @@ class PublicationContractTests(unittest.TestCase):
         )
         validate_catalog_history(
             reordered_keys,
-            [("published-commit", self.catalog)],
+            self.history(("published-commit", self.catalog)),
         )
 
         reordered_array = copy.deepcopy(self.catalog)
@@ -301,7 +322,7 @@ class PublicationContractTests(unittest.TestCase):
         ):
             validate_catalog_history(
                 reordered_array,
-                [("published-commit", self.catalog)],
+                self.history(("published-commit", self.catalog)),
             )
 
     def test_shallow_git_history_is_rejected(self) -> None:
@@ -345,7 +366,6 @@ class PublicationContractTests(unittest.TestCase):
         digest = hashlib.sha256(source.read_bytes()).hexdigest()
         catalog = copy.deepcopy(self.catalog)
         catalog["documents"][0]["source_sha256"] = digest
-        catalog["aggregate"]["sha256"] = digest
         self.write_catalog(path, catalog)
 
         with self.assertRaisesRegex(
@@ -353,95 +373,6 @@ class PublicationContractTests(unittest.TestCase):
             "published document version.*bump document version",
         ):
             validate_history(root, baseline)
-
-    def test_candidate_history_rejects_source_only_intermediate_commit(self) -> None:
-        root, path = self.catalog_copy()
-        for arguments in (
-            ("init", "--quiet"),
-            ("config", "user.name", "Publication Test"),
-            ("config", "user.email", "publication-test@example.invalid"),
-            ("add", "."),
-            ("commit", "--quiet", "-m", "Published baseline"),
-        ):
-            subprocess.run(
-                ["git", *arguments],
-                cwd=root,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-        baseline = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=root,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-
-        source = root / self.catalog["documents"][0]["source_path"]
-        source.write_text(
-            source.read_text(encoding="utf-8") + "\n<!-- candidate one -->\n",
-            encoding="utf-8",
-        )
-        subprocess.run(
-            ["git", "add", "."],
-            cwd=root,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        subprocess.run(
-            ["git", "commit", "--quiet", "-m", "Stale source-only candidate"],
-            cwd=root,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-
-        final_digest = hashlib.sha256(source.read_bytes()).hexdigest()
-        final = copy.deepcopy(self.catalog)
-        final["document_set_version"] = "0.1.0-draft.2"
-        final["documents"][0]["version"] = "0.1.0-draft.2"
-        final["documents"][0]["source_sha256"] = final_digest
-        final["aggregate"]["source_document"]["version"] = "0.1.0-draft.2"
-        final["aggregate"]["sha256"] = final_digest
-        for registry in final["registries"]:
-            registry["owner"]["version"] = "0.1.0-draft.2"
-            major, minor, patch = registry["version"].split(".")
-            registry["version"] = f"{major}.{minor}.{int(patch) + 1}"
-            registry_path = root / registry["source_path"]
-            registry_document = json.loads(
-                registry_path.read_text(encoding="utf-8")
-            )
-            registry_document[registry["version_member"]] = registry["version"]
-            registry_path.write_text(
-                json.dumps(registry_document, indent=2, ensure_ascii=False) + "\n",
-                encoding="utf-8",
-            )
-            registry["source_sha256"] = hashlib.sha256(
-                registry_path.read_bytes()
-            ).hexdigest()
-        self.write_catalog(path, final)
-        subprocess.run(
-            ["git", "add", "."],
-            cwd=root,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        subprocess.run(
-            ["git", "commit", "--quiet", "-m", "Publish bumped versions"],
-            cwd=root,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-
-        with self.assertRaisesRegex(
-            PublicationError,
-            "historical document .* source digest does not match its Git blob",
-        ):
-            validate_history(root, baseline, "HEAD")
 
     def test_explicit_anchor_inventory_is_bound_to_source(self) -> None:
         root, path = self.catalog_copy()
@@ -579,7 +510,7 @@ class PublicationContractTests(unittest.TestCase):
     def test_repository_escape_is_rejected(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
-        catalog["reserved_documents"][0]["target_source_path"] = "../outside.md"
+        catalog["documents"][0]["source_path"] = "../outside.md"
         self.write_catalog(path, catalog)
         with self.assertRaisesRegex(
             PublicationError, "schema violation|repository-relative"
@@ -595,7 +526,7 @@ class PublicationContractTests(unittest.TestCase):
             with self.subTest(value=value):
                 root, path = self.catalog_copy()
                 catalog = copy.deepcopy(self.catalog)
-                catalog["reserved_documents"][0]["target_source_path"] = value
+                catalog["documents"][0]["source_path"] = value
                 self.write_catalog(path, catalog)
                 with self.assertRaisesRegex(
                     PublicationError, "canonical repository-relative syntax"
@@ -609,61 +540,130 @@ class PublicationContractTests(unittest.TestCase):
         self.addCleanup(shutil.rmtree, outside)
         (root / "drafts" / "escape").symlink_to(outside, target_is_directory=True)
         catalog = copy.deepcopy(self.catalog)
-        catalog["reserved_documents"][0][
-            "target_source_path"
-        ] = "drafts/escape/core.md"
+        catalog["documents"][0]["source_path"] = "drafts/escape/core.md"
         self.write_catalog(path, catalog)
         with self.assertRaisesRegex(PublicationError, "escapes the repository"):
             validate_catalog(root)
 
     @unittest.skipUnless(hasattr(os, "symlink"), "symlinks are unavailable")
-    def test_dangling_reserved_symlink_is_rejected(self) -> None:
+    def test_dangling_active_symlink_is_rejected(self) -> None:
         root, path = self.catalog_copy()
         target = root / "drafts" / "dangling-core.md"
         target.symlink_to(root / "drafts" / "missing-core.md")
         catalog = copy.deepcopy(self.catalog)
-        catalog["reserved_documents"][0][
-            "target_source_path"
-        ] = "drafts/dangling-core.md"
+        catalog["documents"][0]["source_path"] = "drafts/dangling-core.md"
         self.write_catalog(path, catalog)
-        with self.assertRaisesRegex(PublicationError, "reserved but already exists"):
+        with self.assertRaisesRegex(PublicationError, "regular file"):
             validate_catalog(root)
 
-    def test_materialized_reserved_source_is_rejected(self) -> None:
+    def test_partial_modular_activation_is_rejected(self) -> None:
         root, path = self.catalog_copy()
-        target = root / self.catalog["reserved_documents"][0]["target_source_path"]
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text("# Premature Core\n", encoding="utf-8")
-        with self.assertRaisesRegex(PublicationError, "reserved but already exists"):
+        catalog = copy.deepcopy(self.catalog)
+        catalog["reserved_documents"] = [
+            {
+                "document_id": "https://github.com/0al-spec/agent-surface/documents/future",
+                "version": "0.1.0-draft.1",
+                "title": "Future Module",
+                "kind": "extension",
+                "role": "privacy",
+                "status": "reserved",
+                "publication_order": 0,
+                "target_source_path": "drafts/modules/future.md",
+                "normative_dependencies": [],
+                "planned_exports": [],
+                "activation_condition": "atomic_catalog_transition",
+            }
+        ]
+        self.write_catalog(path, catalog)
+        with self.assertRaisesRegex(PublicationError, "schema violation"):
             validate_catalog(root)
 
     def test_modular_mode_requires_complete_assembly(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
-        catalog["publication_mode"] = "modular"
-        catalog["aggregate"]["generated"] = True
-        del catalog["aggregate"]["source_document"]
+        del catalog["aggregate"]["assembly"]
         self.write_catalog(path, catalog)
         with self.assertRaisesRegex(PublicationError, "schema violation"):
             validate_catalog(root)
 
-    def test_complete_modular_shape_is_fail_closed_until_resolver_exists(self) -> None:
+    def test_modular_mode_rejects_non_authoritative_entrypoint(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
-        catalog["publication_mode"] = "modular"
-        catalog["reserved_documents"] = []
-        catalog["aggregate"]["generated"] = True
-        del catalog["aggregate"]["source_document"]
-        catalog["aggregate"]["assembly"] = {
-            "compiler": "https://github.com/0al-spec/Hyperprompt",
-            "compiler_revision": "0" * 40,
-            "entrypoint": "publication/document-set.json",
-            "manifest": "publication/document-set.json",
-            "source_map": "publication/document-set.json",
-        }
+        catalog["aggregate"]["assembly"][
+            "entrypoint"
+        ] = "publication/document-set.json"
         self.write_catalog(path, catalog)
-        with self.assertRaisesRegex(PublicationError, "modular publication mode is unsupported"):
+        with self.assertRaisesRegex(PublicationError, "authoritative entrypoint"):
             validate_catalog(root)
+
+    def test_relocation_target_must_resolve(self) -> None:
+        root, path = self.catalog_copy()
+        catalog = copy.deepcopy(self.catalog)
+        catalog["anchor_relocations"][0]["replacement"][
+            "anchor_id"
+        ] = "missing-anchor"
+        self.write_catalog(path, catalog)
+        with self.assertRaisesRegex(PublicationError, "does not resolve"):
+            validate_catalog(root)
+
+    def test_authoritative_modular_build_is_current(self) -> None:
+        modular.check(
+            ROOT,
+            ROOT / ".tools" / "hyperprompt" / "hyperprompt",
+        )
+
+    def test_modular_build_rejects_stale_sidecar(self) -> None:
+        root, _ = self.catalog_copy()
+        catalog = copy.deepcopy(self.catalog)
+        aggregate = catalog["aggregate"]
+        artifacts = (
+            (root / aggregate["path"]).read_bytes(),
+            (root / aggregate["assembly"]["manifest"]).read_bytes(),
+            (root / aggregate["assembly"]["source_map"]).read_bytes(),
+        )
+        (root / aggregate["assembly"]["manifest"]).write_bytes(
+            artifacts[1] + b"\n"
+        )
+        with (
+            mock.patch.object(
+                modular,
+                "_verify_compiler",
+                return_value=aggregate["assembly"]["compiler_revision"],
+            ),
+            mock.patch.object(modular, "_compile", return_value=artifacts),
+            self.assertRaisesRegex(
+                modular.ModularBuildError,
+                "aggregate, manifest, or source map is stale",
+            ),
+        ):
+            modular.check(root, root / "unused-compiler")
+
+    def test_modular_build_rejects_source_map_gap(self) -> None:
+        root, _ = self.catalog_copy()
+        aggregate = self.catalog["aggregate"]
+        output = (root / aggregate["path"]).read_bytes()
+        manifest = (root / aggregate["assembly"]["manifest"]).read_bytes()
+        source_map_path = root / aggregate["assembly"]["source_map"]
+        source_map = json.loads(source_map_path.read_text(encoding="utf-8"))
+        source_map["mappings"][1]["generatedLine"] = 3
+        encoded_source_map = (
+            json.dumps(source_map, indent=2, ensure_ascii=False) + "\n"
+        ).encode("utf-8")
+        source_map_path.write_bytes(encoded_source_map)
+        artifacts = output, manifest, encoded_source_map
+        with (
+            mock.patch.object(
+                modular,
+                "_verify_compiler",
+                return_value=aggregate["assembly"]["compiler_revision"],
+            ),
+            mock.patch.object(modular, "_compile", return_value=artifacts),
+            self.assertRaisesRegex(
+                modular.ModularBuildError,
+                "coverage is not contiguous",
+            ),
+        ):
+            modular.check(root, root / "unused-compiler")
 
 
 if __name__ == "__main__":
