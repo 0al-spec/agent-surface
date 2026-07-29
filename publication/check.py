@@ -19,8 +19,16 @@ from typing import Any
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import SchemaError
 
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from publication.aggregate_links import (
+    LINK_POLICY,
+    fenced_source_lines,
+    rebase_markdown_line,
+)
+
 CATALOG_PATH = Path("publication/document-set.json")
 SCHEMA_PATH = Path("publication/document-set.schema.json")
 
@@ -423,6 +431,18 @@ def _validate_historical_catalog_state(
                 path: content.splitlines()
                 for path, content in document_blobs.items()
             }
+            link_policy = catalog.get("assembly_policy", {}).get(
+                "aggregate_links"
+            )
+            if link_policy not in {None, LINK_POLICY}:
+                raise PublicationError(
+                    f"historical aggregate link policy is unsupported at "
+                    f"{revision}: {link_policy!r}"
+                )
+            fenced_lines = {
+                path: fenced_source_lines(content)
+                for path, content in document_blobs.items()
+            }
             source_coverage: dict[str, list[tuple[int, int]]] = defaultdict(list)
             next_generated_line = 1
             for mapping in mappings:
@@ -504,6 +524,25 @@ def _validate_historical_catalog_state(
                             else line
                             for line in expected_lines
                         ]
+                    if (
+                        expected_lines is not None
+                        and link_policy == LINK_POLICY
+                        and isinstance(source_start, int)
+                    ):
+                        transformed: list[bytes] = []
+                        for offset, line in enumerate(expected_lines):
+                            line_number = source_start + offset
+                            if line_number in fenced_lines.get(source_path, set()):
+                                transformed.append(line)
+                                continue
+                            transformed.append(
+                                rebase_markdown_line(
+                                    line.decode("utf-8"),
+                                    source_path=source_path,
+                                    output_path=aggregate_path,
+                                ).encode("utf-8")
+                            )
+                        expected_lines = transformed
                     if (
                         lines is None
                         or not isinstance(source_start, int)

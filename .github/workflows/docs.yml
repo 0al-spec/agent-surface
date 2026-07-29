@@ -182,13 +182,12 @@ jobs:
           # ISO serves a CAPTCHA/403 to automated clients for this valid page.
           # RFC Editor occasionally sends automated clients through a redirect
           # loop; validate the same immutable RFC number through IETF Datatracker.
-          # The generated aggregate preserves module-relative navigation links;
-          # validate those links in their authoritative module sources instead.
+          # The generated aggregate rebases source-relative navigation links
+          # into its own reading-view location and is checked with all Markdown.
           args: >-
             --no-progress
             --accept 200,204,206,301,302,303,307,308,429
             --accept-timeouts
-            --exclude-path 'drafts/agent-surface.md'
             --exclude '^https://www\.iso\.org/standard/64758\.html$'
             --remap '^https://www\.rfc-editor\.org/rfc/rfc([0-9]+)$ https://datatracker.ietf.org/doc/html/rfc$1'
             --timeout 10
