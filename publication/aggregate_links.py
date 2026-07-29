@@ -220,6 +220,30 @@ def _github_slug(value: str) -> str:
     return _GITHUB_PUNCTUATION.sub("", normalized).replace(" ", "-")
 
 
+def _html_anchor_ids(token: Token) -> list[str]:
+    if token.type not in {"html_block", "html_inline"}:
+        return []
+    return [
+        match.group("id")
+        for match in _EXPLICIT_ANCHOR.finditer(token.content)
+    ]
+
+
+def markdown_explicit_anchor_ids(content: bytes) -> list[str]:
+    """Return anchors rendered from raw HTML, excluding every code context."""
+
+    try:
+        source = content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise AggregateLinkError("Markdown content is not UTF-8") from error
+    tokens = MarkdownIt("commonmark", {"html": True}).parse(source)
+    return [
+        anchor
+        for token in _walk_tokens(tokens)
+        for anchor in _html_anchor_ids(token)
+    ]
+
+
 def markdown_heading_anchor_ids(content: bytes) -> list[str]:
     """Return generated GitHub-compatible heading anchors in source order."""
 
@@ -251,23 +275,33 @@ def markdown_canonical_heading_anchor_ids(content: bytes) -> list[str]:
         source = content.decode("utf-8")
     except UnicodeDecodeError as error:
         raise AggregateLinkError("Markdown content is not UTF-8") from error
-    lines = source.splitlines()
     generated = iter(markdown_heading_anchor_ids(content))
     canonical: list[str] = []
     tokens = MarkdownIt("commonmark", {"html": True}).parse(source)
-    for token in tokens:
+    for index, token in enumerate(tokens):
         if token.type != "heading_open":
             continue
         anchor = next(generated)
-        start_line = token.map[0] if token.map is not None else None
-        if start_line is not None:
-            preceding = start_line - 1
-            while preceding >= 0 and not lines[preceding].strip():
-                preceding -= 1
-            if preceding >= 0:
-                explicit = _EXPLICIT_ANCHOR.search(lines[preceding])
-                if explicit is not None:
-                    anchor = explicit.group("id")
+        previous = next(
+            (
+                candidate
+                for candidate in reversed(tokens[:index])
+                if candidate.map is not None
+            ),
+            None,
+        )
+        if (
+            previous is not None
+            and token.map is not None
+            and previous.map[1] == token.map[0]
+        ):
+            explicit = [
+                anchor_id
+                for candidate in _walk_tokens([previous])
+                for anchor_id in _html_anchor_ids(candidate)
+            ]
+            if explicit:
+                anchor = explicit[-1]
         canonical.append(anchor)
     return canonical
 
@@ -279,10 +313,7 @@ def markdown_anchor_ids(content: bytes) -> set[str]:
         source = content.decode("utf-8")
     except UnicodeDecodeError as error:
         raise AggregateLinkError("Markdown content is not UTF-8") from error
-    anchors = {
-        match.group("id")
-        for match in _EXPLICIT_ANCHOR.finditer(source)
-    }
+    anchors = set(markdown_explicit_anchor_ids(content))
     anchors.update(markdown_heading_anchor_ids(content))
     return anchors
 
@@ -305,8 +336,7 @@ def aggregate_fragment_targets(
             )
         local_targets: dict[str, str] = {}
         source = content.decode("utf-8")
-        for match in _EXPLICIT_ANCHOR.finditer(source):
-            anchor = match.group("id")
+        for anchor in markdown_explicit_anchor_ids(content):
             owner = explicit_owners.get(anchor)
             if owner is not None:
                 raise AggregateLinkError(

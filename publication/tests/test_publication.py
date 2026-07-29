@@ -30,6 +30,7 @@ from publication.aggregate_links import (
     expected_aggregate_destinations,
     markdown_anchor_ids,
     markdown_canonical_heading_anchor_ids,
+    markdown_explicit_anchor_ids,
     markdown_heading_anchor_ids,
     markdown_link_destinations,
     rebase_aggregate_links,
@@ -274,6 +275,36 @@ class AggregateReadingViewTests(unittest.TestCase):
             ),
             ["stable-purpose"],
         )
+
+    def test_code_examples_do_not_create_explicit_anchors(self) -> None:
+        content = (
+            b"```html\n"
+            b'<a id="fenced-fake"></a>\n'
+            b"```\n\n"
+            b'`<a id="inline-fake"></a>`\n\n'
+            b'<a id="rendered-anchor"></a>\n'
+            b"## Rendered Heading\n"
+        )
+        self.assertEqual(
+            markdown_explicit_anchor_ids(content),
+            ["rendered-anchor"],
+        )
+        self.assertEqual(
+            markdown_anchor_ids(content),
+            {"rendered-anchor", "rendered-heading"},
+        )
+        self.assertEqual(
+            markdown_canonical_heading_anchor_ids(content),
+            ["rendered-anchor"],
+        )
+
+    def test_code_example_cannot_satisfy_fragment_target(self) -> None:
+        content = (
+            b"```html\n"
+            b'<a id="fenced-fake"></a>\n'
+            b"```\n"
+        )
+        self.assertNotIn("fenced-fake", markdown_anchor_ids(content))
 
 
 class PublicationContractTests(unittest.TestCase):
@@ -1018,7 +1049,12 @@ class PublicationContractTests(unittest.TestCase):
         assembly["manifest"] = "publication/generated/manifest.json"
         assembly["source_map"] = "publication/generated/source-map.json"
         self.write_catalog(path, catalog)
-        artifacts = (b"aggregate\n", b"manifest\n", b"source-map\n")
+        canonical = self.catalog["aggregate"]
+        artifacts = (
+            (root / canonical["path"]).read_bytes(),
+            (root / canonical["assembly"]["manifest"]).read_bytes(),
+            (root / canonical["assembly"]["source_map"]).read_bytes(),
+        )
         with (
             mock.patch.object(modular, "_verify_compiler"),
             mock.patch.object(modular, "_compile", return_value=artifacts),
@@ -1220,49 +1256,19 @@ class PublicationContractTests(unittest.TestCase):
         ):
             modular.check(root, root / "unused-compiler")
 
-    def test_modular_build_rejects_missing_aggregate_link_target(self) -> None:
-        root, path = self.catalog_copy()
-        catalog = copy.deepcopy(self.catalog)
-        documents = sorted(
-            catalog["documents"],
-            key=lambda item: item["publication_order"],
-        )
-        output = (
-            b"[Missing](modules/missing.md)\n"
-            + b"\n" * (len(documents) - 1)
-        )
-        digest = hashlib.sha256(output).hexdigest()
-        catalog["aggregate"]["sha256"] = digest
-        self.write_catalog(path, catalog)
-        aggregate = catalog["aggregate"]
+    def test_modular_build_rejects_truncated_source_provenance(self) -> None:
+        root, _ = self.catalog_copy()
+        aggregate = self.catalog["aggregate"]
+        output = (root / aggregate["path"]).read_bytes()
         manifest = (root / aggregate["assembly"]["manifest"]).read_bytes()
-        source_map = {
-            "schemaVersion": 2,
-            "lineBase": 1,
-            "outputSha256": digest,
-            "mappings": [
-                {
-                    "generatedStartLine": index,
-                    "generatedEndLine": index,
-                    "kind": "markdown",
-                    "source": {
-                        "path": document["source_path"],
-                        "startLine": 1,
-                        "endLine": 1,
-                    },
-                }
-                for index, document in enumerate(documents, 1)
-            ],
-        }
+        source_map_path = root / aggregate["assembly"]["source_map"]
+        source_map = json.loads(source_map_path.read_text(encoding="utf-8"))
+        source_map["mappings"][0]["source"]["endLine"] = 1
         encoded_source_map = (
             json.dumps(source_map, indent=2, ensure_ascii=False) + "\n"
         ).encode("utf-8")
-        (root / aggregate["path"]).write_bytes(output)
-        (root / aggregate["assembly"]["source_map"]).write_bytes(
-            encoded_source_map
-        )
+        source_map_path.write_bytes(encoded_source_map)
         artifacts = output, manifest, encoded_source_map
-
         with (
             mock.patch.object(
                 modular,
@@ -1272,10 +1278,57 @@ class PublicationContractTests(unittest.TestCase):
             mock.patch.object(modular, "_compile", return_value=artifacts),
             self.assertRaisesRegex(
                 modular.ModularBuildError,
-                "link target does not exist",
+                "different lengths",
             ),
         ):
             modular.check(root, root / "unused-compiler")
+
+    def test_modular_build_rejects_reordered_source_provenance(self) -> None:
+        root, _ = self.catalog_copy()
+        aggregate = self.catalog["aggregate"]
+        output = (root / aggregate["path"]).read_bytes()
+        manifest = (root / aggregate["assembly"]["manifest"]).read_bytes()
+        source_map_path = root / aggregate["assembly"]["source_map"]
+        source_map = json.loads(source_map_path.read_text(encoding="utf-8"))
+        source_map["mappings"][0]["source"]["path"] = self.catalog[
+            "documents"
+        ][1]["source_path"]
+        encoded_source_map = (
+            json.dumps(source_map, indent=2, ensure_ascii=False) + "\n"
+        ).encode("utf-8")
+        source_map_path.write_bytes(encoded_source_map)
+        artifacts = output, manifest, encoded_source_map
+        with (
+            mock.patch.object(
+                modular,
+                "_verify_compiler",
+                return_value=aggregate["assembly"]["compiler_revision"],
+            ),
+            mock.patch.object(modular, "_compile", return_value=artifacts),
+            self.assertRaisesRegex(
+                modular.ModularBuildError,
+                "out of catalog order",
+            ),
+        ):
+            modular.check(root, root / "unused-compiler")
+
+    def test_modular_build_rejects_missing_aggregate_link_target(self) -> None:
+        root, _ = self.catalog_copy()
+        root = root.resolve(strict=True)
+        layout = modular._build_layout(
+            root,
+            self.catalog,
+            require_artifacts=True,
+        )
+        with self.assertRaisesRegex(
+            modular.ModularBuildError,
+            "link target does not exist",
+        ):
+            modular._validate_local_link_targets(
+                root,
+                layout,
+                b"[Missing](modules/missing.md)\n",
+            )
 
     def test_modular_build_rejects_missing_aggregate_fragment(self) -> None:
         root, _ = self.catalog_copy()
@@ -1293,6 +1346,29 @@ class PublicationContractTests(unittest.TestCase):
                 root,
                 layout,
                 b"[Missing](modules/core.md#missing-fragment)\n",
+            )
+
+    def test_code_example_cannot_supply_aggregate_fragment(self) -> None:
+        root, _ = self.catalog_copy()
+        root = root.resolve(strict=True)
+        target = root / "drafts" / "modules" / "fake-anchor.md"
+        target.write_text(
+            "```html\n<a id=\"fake-anchor\"></a>\n```\n",
+            encoding="utf-8",
+        )
+        layout = modular._build_layout(
+            root,
+            self.catalog,
+            require_artifacts=True,
+        )
+        with self.assertRaisesRegex(
+            modular.ModularBuildError,
+            "link fragment does not exist",
+        ):
+            modular._validate_local_link_targets(
+                root,
+                layout,
+                b"[Fake](modules/fake-anchor.md#fake-anchor)\n",
             )
 
 
