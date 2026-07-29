@@ -10,6 +10,7 @@ on:
       - 'Cargo.lock'
       - 'Cargo.toml'
       - 'Makefile'
+      - 'tools/asp-manifest-linter/**'
       - 'tools/asp-replay/**'
   schedule:
     - cron: '17 3 * * *'
@@ -33,8 +34,49 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  smoke:
-    name: Bounded cargo-fuzz smoke
+  scope:
+    name: Detect replay fuzz scope
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.detect.outputs.relevant }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect relevant pull request changes
+        id: detect
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${EVENT_NAME}" != "pull_request" ]]; then
+            echo "relevant=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          if git diff --quiet "${BASE_SHA}" "${HEAD_SHA}" -- \
+            .github/workflows/replay-fuzz.yml \
+            Cargo.lock \
+            Cargo.toml \
+            Makefile \
+            tools/asp-manifest-linter \
+            tools/asp-replay; then
+            echo "relevant=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "relevant=true" >> "${GITHUB_OUTPUT}"
+          fi
+
+  fuzz:
+    name: Execute bounded cargo-fuzz smoke
+    needs: scope
+    if: needs.scope.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -60,3 +102,41 @@ jobs:
         timeout-minutes: 10
         shell: bash
         run: make replay-fuzz-smoke
+
+  required:
+    name: Bounded cargo-fuzz smoke
+    needs:
+      - scope
+      - fuzz
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Enforce conditional fuzz result
+        shell: bash
+        env:
+          SCOPE_RESULT: ${{ needs.scope.result }}
+          RELEVANT: ${{ needs.scope.outputs.relevant }}
+          FUZZ_RESULT: ${{ needs.fuzz.result }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${SCOPE_RESULT}" != "success" ]]; then
+            echo "Replay fuzz scope detection failed: ${SCOPE_RESULT}" >&2
+            exit 1
+          fi
+
+          if [[ "${RELEVANT}" == "true" ]]; then
+            if [[ "${FUZZ_RESULT}" != "success" ]]; then
+              echo "Required replay fuzz failed: ${FUZZ_RESULT}" >&2
+              exit 1
+            fi
+            echo "Relevant changes passed the bounded replay fuzz smoke."
+            exit 0
+          fi
+
+          if [[ "${FUZZ_RESULT}" != "skipped" ]]; then
+            echo "Unexpected fuzz result for irrelevant changes: ${FUZZ_RESULT}" >&2
+            exit 1
+          fi
+          echo "Replay fuzz skipped because the pull request is out of scope."
