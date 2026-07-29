@@ -21,11 +21,11 @@
     "registry_id": {
       "const": "https://github.com/0al-spec/agent-surface/conformance/bundles/v1"
     },
-    "registry_version": { "const": "1.0.0" },
+    "registry_version": { "const": "1.0.1" },
     "suite_id": {
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
-    "suite_version": { "const": "1.10.0" },
+    "suite_version": { "const": "1.10.1" },
     "protocol_version": { "const": "agent-surface/0.1" },
     "claim_effect": { "const": "descriptive_only" },
     "bundles": {

@@ -1,4 +1,4 @@
-name: RFC assembly cross-platform
+name: Authoritative RFC assembly
 
 on:
   pull_request:
@@ -66,75 +66,27 @@ jobs:
             --platform "${PLATFORM}" \
             --destination "${COMPILER_PATH}"
 
-      - name: Build clean-checkout platform report
+      - name: Verify authoritative modular aggregate
         env:
           COMPILER_PATH: ${{ runner.temp }}/hyperprompt
-          PLATFORM: ${{ matrix.platform }}
-          REPORT_PATH: ${{ runner.temp }}/rfc-assembly-${{ matrix.platform }}.json
         shell: bash
         run: |
           set -euo pipefail
-          python -B publication/assembly/check.py build \
-            --compiler "${COMPILER_PATH}" \
-            --platform "${PLATFORM}" \
-            --source-revision "${GITHUB_SHA}" \
-            --report "${REPORT_PATH}"
-          test -s "${REPORT_PATH}"
-
-      - name: Upload platform report
-        uses: actions/upload-artifact@v7
-        with:
-          name: rfc-assembly-report-${{ matrix.platform }}
-          path: ${{ runner.temp }}/rfc-assembly-${{ matrix.platform }}.json
-          if-no-files-found: error
-          retention-days: 30
+          python -B publication/modular.py check \
+            --compiler "${COMPILER_PATH}"
 
   compare:
     name: RFC assembly cross-platform comparison
     needs: platform
+    if: ${{ always() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 2
 
     steps:
-      - name: Checkout exact source revision
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install validator dependencies
-        run: python -m pip install --requirement review/requirements.txt
-
-      - name: Download platform reports
-        uses: actions/download-artifact@v8
-        with:
-          pattern: rfc-assembly-report-*
-          path: ${{ runner.temp }}/rfc-assembly-reports
-          merge-multiple: true
-
-      - name: Compare exact platform evidence
+      - name: Require matching authoritative platform builds
         env:
-          REPORTS_PATH: ${{ runner.temp }}/rfc-assembly-reports
-          OUTPUT_PATH: ${{ runner.temp }}/rfc-assembly-cross-platform.json
+          PLATFORM_RESULT: ${{ needs.platform.result }}
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find "${REPORTS_PATH}" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = "2"
-          python -B publication/assembly/check.py compare-reports \
-            --source-revision "${GITHUB_SHA}" \
-            --report "${REPORTS_PATH}/rfc-assembly-linux-amd64.json" \
-            --report "${REPORTS_PATH}/rfc-assembly-macos-arm64.json" \
-            --output "${OUTPUT_PATH}"
-          test -s "${OUTPUT_PATH}"
-
-      - name: Upload cross-platform report
-        uses: actions/upload-artifact@v7
-        with:
-          name: rfc-assembly-cross-platform
-          path: ${{ runner.temp }}/rfc-assembly-cross-platform.json
-          if-no-files-found: error
-          retention-days: 30
+          test "${PLATFORM_RESULT}" = "success"

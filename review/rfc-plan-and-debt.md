@@ -1,8 +1,8 @@
 # Agent Surface RFC Plan and Debt
 
 - Status: active planning snapshot
-- Snapshot date: 2026-07-27
-- Snapshot base: `4a8c0346faa8e56dc8f776d4a36af842a07fea94`
+- Snapshot date: 2026-07-29
+- Snapshot base: task `#79D` atomic activation state
 - Canonical machine-readable source: [`review-data.json`](review-data.json)
 
 ## Purpose and authority
@@ -15,8 +15,9 @@ artifact.
 The following authority rules apply:
 
 1. The active sources selected by `publication/document-set.json` are the
-   canonical normative protocol text. In the current transitional mode that is
-   only `drafts/agent-surface.md`.
+   canonical normative protocol text. In the current modular mode those are the
+   seven sources under `drafts/modules/`; `drafts/agent-surface.md` is a
+   generated aggregate reading view.
 2. `publication/document-set.json` is normative only for publication
    selection, exact source digests, dependencies, ownership, and transition
    state; it cannot override protocol semantics. A conflict makes the
@@ -45,9 +46,9 @@ The active coverage debt is therefore **8 cards**: 2 P2 and 6 P3.
 
 | Maturity | Cards |
 | --- | ---: |
-| `proposal` | 10 |
+| `proposal` | 9 |
 | `specified` | 52 |
-| `machine_validated` | 16 |
+| `machine_validated` | 17 |
 | `implementation_tested` | 1 |
 | `interop_tested` | 0 |
 | `stable` | 0 |
@@ -62,7 +63,7 @@ additional uncovered architecture card remains in this lane.
 
 | Card | Priority | Coverage | Maturity | Delivered outcome |
 | --- | --- | --- | --- | --- |
-| #66 Modular RFC Publication Architecture | P2 | `present` | `machine_validated` | Transitional ownership, immutable exact versions and source digests, required-role DAG, receipt ownership without a semantic cycle, registry and explicit-anchor ownership, transitive exact-pin republishing, Hyperprompt provenance boundaries, and fail-closed relocation/activation rules are defined; modular readiness remains #78. |
+| #66 Modular RFC Publication Architecture | P2 | `present` | `machine_validated` | Immutable exact versions and source digests, required-role DAG, registry and explicit-anchor ownership, transitive exact-pin republishing, Hyperprompt provenance boundaries, and fail-closed relocation/activation rules are defined and active. |
 
 ### Normative boundaries
 
@@ -77,18 +78,18 @@ additional uncovered architecture card remains in this lane.
 - Splitting the RFC into files does not create independent specifications until
   ownership, references, registries, versioning, and compatibility are defined.
 
-### Publication implementation debt
+### Publication implementation state
 
-The architecture contract deliberately leaves the monolith as the sole active
-canonical source. The remaining work is tracked canonically:
+The atomic activation is complete:
 
 | Card | Coverage | Maturity | Required delivery |
 | --- | --- | --- | --- |
-| #78 Reproducible RFC Assembly Pipeline | `present` | `proposal` | Build a non-authoritative ASP-over-MCP candidate, exact-revision Hyperprompt assembly, manifest/source-map resolver, complete output digest and local-alias checks, clean staging, and reproducibility gate. |
-| #79 Atomic Modular RFC Activation | `present` | `proposal` | Prepare the complete Core/Authorization/Safe Effects/Evidence/Privacy/Binding/Conformance candidate closure, add validated old-to-new anchor relocation records, republish exact-pin dependents, move every source to its final target, remove reservations and monolith authority, and activate only after all gates pass in one source state. |
+| #78 Reproducible RFC Assembly Pipeline | `present` | `proposal` | Historical rehearsal fixed Hyperprompt v0.2.0, full source maps, clean staging, and Linux/macOS reproducibility evidence. |
+| #79 Atomic Modular RFC Activation | `present` | `machine_validated` | Seven canonical modules, exact dependencies and references, ownership, nine relocation records, generated aggregate and provenance sidecars are active and fail-closed. |
 
-Candidate modules remain under `publication/candidates/` and have no normative
-authority. Reserved canonical target paths remain absent until #79.
+Historical candidates remain under `publication/candidates/` and
+`publication/migration/` without normative authority. The active catalog has
+no reservations.
 
 ## Binding and mapping specification debt
 
@@ -115,8 +116,8 @@ ASP Grant, approval, effect claim, or receipt.
 | --- | --- | --- | --- | --- |
 | #74 Independent Reference Vertical Slice | P1 | `present` | `implementation_tested` | Exact Application-Audited Effects reports and two executable local/remote lanes now pass through a card-specific resolver. Independent interoperability remains deliberately unclaimed. |
 | #75 ASP Typed SDK and Core Code Generation | P2 | `partial` | `proposal` | Build one validated canonical authoring model with deterministic manifest, schema, validator, and diagnostic generation. Keep external adapters outside the core SDK. |
-| #78 Reproducible RFC Assembly Pipeline | P2 | `present` | `proposal` | Implement the validator that can safely enable modular publication mode and prove a byte-identical ASP-over-MCP pilot candidate. |
-| #79 Atomic Modular RFC Activation | P2 | `present` | `proposal` | Materialize and activate the complete document closure only after #78 supplies authoritative publication evidence. |
+| #78 Reproducible RFC Assembly Pipeline | P2 | `present` | `proposal` | Preserve the historical rehearsal and exact toolchain lock as migration provenance. |
+| #79 Atomic Modular RFC Activation | P2 | `present` | `machine_validated` | Maintain the active seven-document closure and reproducible aggregate gate. |
 | #77 External Mapping Adapter Generators | P3 | `missing` | `proposal` | Generate adapters only for completed mapping profiles; pin upstream versions, report semantic loss, perform no network I/O, and never synthesize authority. |
 
 ### Broader maturity debt

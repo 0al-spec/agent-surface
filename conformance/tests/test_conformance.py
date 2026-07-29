@@ -198,7 +198,7 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.10.0")
+        self.assertEqual(self.catalog.suite["suite_version"], "1.10.1")
         self.assertEqual(len(self.catalog.features), 15)
         self.assertEqual(len(self.catalog.requirements), 55)
         self.assertEqual(len(self.catalog.vectors), 183)
@@ -3214,6 +3214,14 @@ class ConformanceSuiteTests(unittest.TestCase):
         stale["suite"]["catalog_sha256"] = DIGEST_A
         with self.assertRaisesRegex(ConformanceError, "stale"):
             verify_report(stale, root=ROOT, catalog=self.catalog)
+        wrong_document_set = copy.deepcopy(report)
+        wrong_document_set["suite"]["document_set_sha256"] = DIGEST_A
+        with self.assertRaisesRegex(ConformanceError, "stale"):
+            verify_report(
+                wrong_document_set,
+                root=ROOT,
+                catalog=self.catalog,
+            )
         forged = copy.deepcopy(report)
         forged["summary"]["suite_verdict"] = "fail"
         forged["summary"]["failed"] = 1

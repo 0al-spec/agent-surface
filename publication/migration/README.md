@@ -1,6 +1,7 @@
-# Transitional Module Ownership Map
+# Archived Modular Activation Rehearsal
 
-This directory contains the non-authoritative planning contract for task #79A.
+This directory contains the non-authoritative planning contract for task #79A
+and the completed 79B–79C rehearsal artifacts.
 It assigns every heading subtree, current public anchor, identifier namespace,
 and registry in the canonical monolith to exactly one reserved modular
 document.
@@ -9,9 +10,9 @@ The nearest explicit heading ancestor owns a heading. The document title and
 every level-two section require an explicit assignment; level-three or deeper
 assignments are deliberate cross-module overrides.
 
-The map does not activate modular publication, create authoritative module
-sources, or move protocol text. `drafts/agent-surface.md` remains the sole
-normative source while `publication_mode` is `transitional_monolith`.
+The active publication has moved to `modular`. These files remain historical
+migration evidence and are not selected as sources by
+`publication/document-set.json`.
 
 Run:
 
@@ -84,7 +85,8 @@ module tuple and declares two transition-only compatibility aliases:
 - the old aggregate path plus fragment;
 - the old aggregate fragment alone.
 
-Refresh and validate:
+The following commands apply only when reproducing the historical rehearsal
+against its transitional input state:
 
 ```sh
 make publication-standalone-generate
@@ -92,6 +94,7 @@ make publication-standalone-check
 make publication-ownership-check
 ```
 
-79C does not activate the relocation records, rewrite the normative catalog,
-or make the candidate documents authoritative. Those changes remain part of
-the atomic activation slice.
+79D activated the corresponding canonical sources under `drafts/modules/`,
+copied the relocation records into the normative catalog, and replaced these
+migration checks in the default publication gate with the authoritative modular
+build check.

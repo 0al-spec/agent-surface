@@ -50,6 +50,9 @@
         "suite_id",
         "suite_version",
         "protocol_version",
+        "document_set_id",
+        "document_set_version",
+        "document_set_sha256",
         "catalog_sha256",
         "specification_sha256"
       ],
@@ -58,10 +61,20 @@
           "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
         },
         "suite_version": {
-          "const": "1.10.0"
+          "const": "1.10.1"
         },
         "protocol_version": {
           "const": "agent-surface/0.1"
+        },
+        "document_set_id": {
+          "const": "https://github.com/0al-spec/agent-surface/publication/document-set/v1"
+        },
+        "document_set_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$"
+        },
+        "document_set_sha256": {
+          "$ref": "#/$defs/digest"
         },
         "catalog_sha256": {
           "$ref": "#/$defs/digest"

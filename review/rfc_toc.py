@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import unicodedata
 from collections import Counter
@@ -14,6 +15,7 @@ from markdown_it import MarkdownIt
 
 ROOT = Path(__file__).resolve().parents[1]
 RFC_PATH = ROOT / "drafts" / "agent-surface.md"
+CATALOG_PATH = ROOT / "publication" / "document-set.json"
 START_MARKER = "<!-- BEGIN GENERATED RFC TOC -->"
 END_MARKER = "<!-- END GENERATED RFC TOC -->"
 SUMMARY = "Table of Contents"
@@ -102,7 +104,22 @@ def dashboard_markdown(markdown_source: str) -> str:
     )
     match = pattern.search(markdown_source)
     if match is None:
-        raise ValueError("RFC generated TOC block is malformed or stale")
+        catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+        if catalog.get("publication_mode") != "modular":
+            raise ValueError("RFC generated TOC block is malformed or stale")
+        links = "\n".join(
+            f"- [{title}](#{anchor})"
+            for title, anchor in dashboard_sections(markdown_source)
+        )
+        heading = re.search(r"^# .+$", markdown_source, re.MULTILINE)
+        if heading is None:
+            raise ValueError("modular aggregate has no document heading")
+        insertion = heading.end()
+        return (
+            markdown_source[:insertion]
+            + f"\n\n## {SUMMARY}\n\n{links}"
+            + markdown_source[insertion:]
+        )
     source_without_toc = pattern.sub("", markdown_source)
     links = "\n".join(
         f"- [{title}](#{anchor})"
@@ -121,6 +138,17 @@ def main() -> int:
     )
     args = parser.parse_args()
     source = RFC_PATH.read_text(encoding="utf-8")
+    catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+    if catalog.get("publication_mode") == "modular":
+        try:
+            dashboard_markdown(source)
+        except ValueError as error:
+            parser.error(str(error))
+        print(
+            "Modular aggregate table of contents is derived at render time: "
+            f"{RFC_PATH.relative_to(ROOT)}"
+        )
+        return 0
     try:
         expected = replace_generated_block(source)
     except ValueError as error:

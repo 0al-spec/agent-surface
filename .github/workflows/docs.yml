@@ -45,7 +45,10 @@ jobs:
           set -euo pipefail
 
           test -s drafts/agent-surface.md
-          grep -q '^# Agent Surface Protocol Specification' drafts/agent-surface.md
+          test -s drafts/modules/core.md
+          test -s drafts/modules/conformance.md
+          grep -q '^# ASP Core' drafts/modules/core.md
+          grep -q '^# ASP Conformance' drafts/modules/conformance.md
 
       - name: Install review dependencies
         shell: bash
@@ -179,10 +182,13 @@ jobs:
           # ISO serves a CAPTCHA/403 to automated clients for this valid page.
           # RFC Editor occasionally sends automated clients through a redirect
           # loop; validate the same immutable RFC number through IETF Datatracker.
+          # The generated aggregate preserves module-relative navigation links;
+          # validate those links in their authoritative module sources instead.
           args: >-
             --no-progress
             --accept 200,204,206,301,302,303,307,308,429
             --accept-timeouts
+            --exclude-path 'drafts/agent-surface.md'
             --exclude '^https://www\.iso\.org/standard/64758\.html$'
             --remap '^https://www\.rfc-editor\.org/rfc/rfc([0-9]+)$ https://datatracker.ietf.org/doc/html/rfc$1'
             --timeout 10

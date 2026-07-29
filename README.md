@@ -127,26 +127,23 @@ machine-readable backlog.
 ## Specification Publication Contract
 
 The closed [`publication/document-set.json`](publication/document-set.json)
-catalog records which specification sources are currently normative, their
-exact versions and dependency graph, registry ownership, stable-anchor policy,
-and the atomic transition contract for future modular publication:
+catalog records the seven normative module sources, their exact versions and
+dependency graph, registry ownership, stable-anchor relocations, and the
+generated aggregate contract:
 
 ```sh
 make publication-assembly-toolchain
 make publication-check
 ```
 
-The current mode is `transitional_monolith`:
-[`drafts/agent-surface.md`](drafts/agent-surface.md) remains the sole canonical
-source. Core, Authorization, Safe Effects, Evidence, Privacy, Conformance, and
-the ASP-over-MCP binding are reserved targets with no authority until a complete
-Hyperprompt-built modular document set, aggregate, manifest, source map, local
-aliases or validated relocation records, and validation results are activated
-together.
-The current validator intentionally rejects modular mode. #78A established the
-assembly contract, #78B added the executable ASP-over-MCP candidate, and #78C
-adds clean-checkout Linux/macOS evidence. #79 performs the later atomic
-activation.
+The current mode is `modular`. Core, Authorization, Safe Effects, Evidence,
+Privacy, Conformance, and ASP-over-MCP are canonical under `drafts/modules/`.
+[`drafts/agent-surface.md`](drafts/agent-surface.md) is a generated aggregate
+reading view, not an independent normative source. Hyperprompt v0.2.0 rebuilds
+it together with a committed manifest and complete source map; Linux and macOS
+CI both compare clean builds with those exact artifacts. #79 completed the
+atomic transition, removed reservations and monolith authority, and activated
+the nine validated legacy-anchor relocations.
 
 ## Executable Conformance Suite
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/0al-spec/agent-surface/publication/schemas/document-set/v1",
-  "title": "ASP Specification Document Set Catalog v1",
+  "$id": "https://github.com/0al-spec/agent-surface/publication/schemas/document-set/v2",
+  "title": "ASP Specification Document Set Catalog v2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,6 +13,7 @@
     "publication_mode",
     "authority",
     "anchor_policy",
+    "anchor_relocations",
     "assembly_policy",
     "activation",
     "aggregate",
@@ -25,7 +26,7 @@
       "const": "./document-set.schema.json"
     },
     "schema_version": {
-      "const": 1
+      "const": 2
     },
     "document_set_id": {
       "const": "https://github.com/0al-spec/agent-surface/publication/document-set/v1"
@@ -99,13 +100,19 @@
           "const": "document_set_global"
         },
         "move_policy": {
-          "const": "reject_cross_document_move_until_relocation_profile"
+          "enum": [
+            "reject_cross_document_move_until_relocation_profile",
+            "validated_cross_document_relocation"
+          ]
         },
         "local_alias_scope": {
           "const": "same_document_version_or_aggregate_fragment"
         },
         "cross_document_relocation": {
-          "const": "unsupported_in_schema_v1"
+          "enum": [
+            "unsupported_in_schema_v1",
+            "exact_old_to_new_tuple_v1"
+          ]
         },
         "legacy_aggregate_aliases": {
           "const": [
@@ -116,6 +123,13 @@
         "legacy_status": {
           "const": "transition_only"
         }
+      }
+    },
+    "anchor_relocations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/anchorRelocation"
       }
     },
     "assembly_policy": {
@@ -287,6 +301,82 @@
         },
         "version": {
           "$ref": "#/$defs/exactVersion"
+        }
+      }
+    },
+    "anchorRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "document_id",
+        "version",
+        "anchor_id"
+      ],
+      "properties": {
+        "document_id": {
+          "$ref": "#/$defs/documentId"
+        },
+        "version": {
+          "$ref": "#/$defs/exactVersion"
+        },
+        "anchor_id": {
+          "$ref": "#/$defs/anchorId"
+        }
+      }
+    },
+    "compatibilityAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "value",
+        "status"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "legacy_aggregate_path_fragment",
+            "legacy_aggregate_fragment"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 512
+        },
+        "status": {
+          "const": "transition_only"
+        }
+      }
+    },
+    "anchorRelocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "heading",
+        "previous",
+        "replacement",
+        "compatibility_aliases"
+      ],
+      "properties": {
+        "heading": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "previous": {
+          "$ref": "#/$defs/anchorRef"
+        },
+        "replacement": {
+          "$ref": "#/$defs/anchorRef"
+        },
+        "compatibility_aliases": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/compatibilityAlias"
+          }
         }
       }
     },

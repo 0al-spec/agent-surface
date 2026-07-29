@@ -1,9 +1,8 @@
 # ASP Specification Publication Contract
 
 `document-set.json` is the normative machine-readable catalog for the ASP
-specification document set. Its closed schema and semantic validator distinguish
-active canonical sources from documents that are only reserved for a future
-modular publication.
+specification document set. Its closed schema and semantic validator select the
+seven active canonical module sources and reject incomplete publication states.
 
 Active source, aggregate, and registry entries bind their exact bytes with
 SHA-256. Public anchors and local compatibility aliases are explicit,
@@ -21,31 +20,35 @@ a stale source-only intermediate commit that a rebase merge could publish. The
 check rejects shallow or non-ancestral history; CI fetches full history and
 compares the exact pull-request head with its exact base.
 
-The current publication mode is deliberately transitional:
+The current publication mode is `modular`:
 
-- `drafts/agent-surface.md` remains the only active canonical source;
-- Core, Authorization, Safe Effects, Evidence, Privacy, Conformance, and the
-  ASP-over-MCP binding have reserved document identities and an exact planned
-  dependency graph;
-- reserved paths have no normative authority and MUST NOT exist until an atomic
-  catalog transition activates their complete source set;
-- Hyperprompt manifest and source-map artifacts are build provenance, not
-  owners of ASP semantics, identifiers, registries, or compatibility.
-- the current validator rejects `modular` mode until #78 supplies the complete
-  Hyperprompt provenance, source-map, anchor, digest, and readiness resolver.
+- Core, Authorization, Safe Effects, Evidence, Privacy, ASP-over-MCP, and
+  Conformance are authoritative sources under `drafts/modules/`;
+- `reserved_documents` is empty and the historical monolith is no longer an
+  active document;
+- `drafts/agent-surface.md` is a generated aggregate reading view with no
+  independent normative authority;
+- the exact Hyperprompt v0.2.0 release, aggregate digest, manifest, complete
+  source map, active source digests, dependency graph, exports, registry owners,
+  and anchor relocations are checked together;
+- conformance reports bind the exact active document-set id, version, and
+  catalog digest in addition to the generated specification digest.
 
-The `publication/assembly/` gate is the non-authoritative #78 pipeline. It pins
+The `publication/assembly/` tree preserves the non-authoritative #78 rehearsal
+pipeline. It pins
 Hyperprompt release artifacts, validates closed candidate descriptors and
 their declared inputs, and builds the ASP-over-MCP pilot twice in fail-closed
 disposable staging. The generated aggregate must be byte-identical to the
 canonical monolith. A separate Linux/macOS workflow compares revision-bound
-machine-readable build reports; neither the candidate nor its reports become
-authoritative.
+machine-readable build reports; neither the candidate nor its reports becomes
+authoritative. The active build is implemented by `publication/modular.py` and
+`publication/modular/root.hc`.
 
 Validate the contract with:
 
 ```sh
 make publication-assembly-toolchain
+make publication-modular-build
 make publication-check
 ```
 
@@ -58,9 +61,9 @@ make publication-check \
   PUBLICATION_CANDIDATE_REF=<candidate-commit-or-ref>
 ```
 
-Non-authoritative extraction fixtures can be prepared under
-`publication/candidates/`. #79 changes `publication_mode` to `modular` only
-when all canonical module sources, an exact-revision Hyperprompt assembly, its
-manifest and source map, the generated aggregate, legacy-reference resolution,
-and every validation gate are ready together. Moving only some prose or creating a
-reserved target file without that transition fails closed.
+Non-authoritative extraction fixtures remain under `publication/candidates/`
+and the 79A–79C rehearsal artifacts remain under `publication/migration/`.
+Neither tree is selected by the active catalog. Future publication changes edit
+the canonical module sources, regenerate the aggregate with
+`make publication-modular-build`, and validate the same state with
+`make publication-check`.

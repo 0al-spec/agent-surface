@@ -1096,14 +1096,14 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 79)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 615)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 620)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
             Counter(
                 {
                     "specified": 52,
-                    "machine_validated": 16,
-                    "proposal": 10,
+                    "machine_validated": 17,
+                    "proposal": 9,
                     "implementation_tested": 1,
                 }
             ),
@@ -1589,7 +1589,7 @@ class ReviewDataValidationTests(unittest.TestCase):
                 "canonical-object-hash-profile",
                 "curated-surface-boundary",
                 "endpoints",
-                "agent-grant-2",
+                "agent-grant",
                 "action-request",
                 "action-response",
                 "idempotency",
@@ -1640,7 +1640,7 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(reviews_by_id[78]["depends_on"], [66, 69])
         self.assertEqual(reviews_by_id[78]["readiness"], "ready")
         self.assertEqual(reviews_by_id[79]["status"], "present")
-        self.assertEqual(reviews_by_id[79]["maturity"], "proposal")
+        self.assertEqual(reviews_by_id[79]["maturity"], "machine_validated")
         self.assertEqual(reviews_by_id[79]["depends_on"], [66, 78])
         self.assertEqual(reviews_by_id[79]["readiness"], "blocked")
         for review in reviews:
