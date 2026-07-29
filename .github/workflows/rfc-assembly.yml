@@ -74,3 +74,19 @@ jobs:
           set -euo pipefail
           python -B publication/modular.py check \
             --compiler "${COMPILER_PATH}"
+
+  compare:
+    name: RFC assembly cross-platform comparison
+    needs: platform
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Require matching authoritative platform builds
+        env:
+          PLATFORM_RESULT: ${{ needs.platform.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${PLATFORM_RESULT}" = "success"
