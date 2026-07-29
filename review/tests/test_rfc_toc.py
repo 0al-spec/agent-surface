@@ -43,9 +43,15 @@ class RfcTableOfContentsTests(unittest.TestCase):
         self.assertNotIn(END_MARKER, source)
 
     def test_dashboard_renderer_preserves_existing_review_anchor_ids(self) -> None:
-        _, heading_ids = render_rfc()
+        rendered, heading_ids = render_rfc()
         self.assertEqual(heading_ids["Abstract"], "abstract")
         self.assertEqual(heading_ids["Surface Hash"], "surface-hash")
+        self.assertIn('id="agent-surface-manifest-2"', rendered)
+        self.assertIn('href="#agent-surface-manifest-2"', rendered)
+        self.assertNotIn('href="#agent-surface-manifest-1"', rendered)
+        self.assertIn('id="agent-grant-2"', rendered)
+        self.assertIn('href="#agent-grant-2"', rendered)
+        self.assertNotIn('href="#agent-grant-1"', rendered)
 
 
 if __name__ == "__main__":

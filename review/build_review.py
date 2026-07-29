@@ -10,9 +10,18 @@ import sys
 import unicodedata
 from collections import Counter, defaultdict
 from pathlib import Path
+from urllib.parse import unquote, urlsplit, urlunsplit
 
 from markdown_it import MarkdownIt
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from publication.aggregate_links import (
+    markdown_canonical_heading_anchor_ids,
+    markdown_heading_anchor_ids,
+)
 from rfc_toc import dashboard_markdown
 from review_data import (
     MATURITY_ORDER,
@@ -22,7 +31,6 @@ from review_data import (
 )
 
 
-ROOT = Path(__file__).resolve().parents[1]
 REVIEW_DIR = Path(__file__).resolve().parent
 RFC_PATH = ROOT / "drafts" / "agent-surface.md"
 DATA_PATH = REVIEW_DIR / "review-data.json"
@@ -43,12 +51,32 @@ def render_rfc() -> tuple[str, dict[str, str]]:
     markdown = MarkdownIt("commonmark", {"html": False, "linkify": True})
     source = dashboard_markdown(RFC_PATH.read_text(encoding="utf-8"))
     tokens = markdown.parse(source)
+    generated_anchors = markdown_heading_anchor_ids(source.encode("utf-8"))
+    canonical_anchors = markdown_canonical_heading_anchor_ids(
+        source.encode("utf-8")
+    )
+    heading_tokens = [
+        (index, token)
+        for index, token in enumerate(tokens)
+        if token.type == "heading_open"
+    ]
+    if not (
+        len(heading_tokens)
+        == len(generated_anchors)
+        == len(canonical_anchors)
+    ):
+        raise ValueError("dashboard and aggregate heading parsers disagree")
+
     occurrences: Counter[str] = Counter()
     headings: defaultdict[str, list[tuple[int, str]]] = defaultdict(list)
+    aggregate_to_dashboard: dict[str, str] = {}
 
-    for index, token in enumerate(tokens):
-        if token.type != "heading_open":
-            continue
+    for (index, token), generated_anchor, canonical_anchor in zip(
+        heading_tokens,
+        generated_anchors,
+        canonical_anchors,
+        strict=True,
+    ):
         title = tokens[index + 1].content.strip()
         level = int(token.tag[1:])
         occurrences[title] += 1
@@ -58,6 +86,33 @@ def render_rfc() -> tuple[str, dict[str, str]]:
         token.attrSet("id", anchor_id)
         token.attrSet("data-asp-heading", title)
         headings[title].append((level, anchor_id))
+        aggregate_to_dashboard[generated_anchor] = anchor_id
+        aggregate_to_dashboard[canonical_anchor] = anchor_id
+
+    for token in tokens:
+        for child in token.children or ():
+            if child.type != "link_open":
+                continue
+            destination = child.attrGet("href")
+            if destination is None:
+                continue
+            parsed = urlsplit(destination)
+            if (
+                parsed.scheme
+                or parsed.netloc
+                or parsed.path
+                or not parsed.fragment
+            ):
+                continue
+            dashboard_anchor = aggregate_to_dashboard.get(
+                unquote(parsed.fragment)
+            )
+            if dashboard_anchor is None:
+                continue
+            child.attrSet(
+                "href",
+                urlunsplit(("", "", "", parsed.query, dashboard_anchor)),
+            )
 
     heading_ids = {
         title: sorted(candidates, key=lambda candidate: candidate[0])[0][1]
