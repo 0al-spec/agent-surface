@@ -31,6 +31,7 @@ from publication.assembly.check import (  # noqa: E402
 from publication.aggregate_links import (  # noqa: E402
     AggregateLinkError,
     LINK_POLICY,
+    expected_mapped_source_lines,
     markdown_anchor_ids,
     markdown_link_destinations,
     rebase_aggregate_links,
@@ -331,7 +332,6 @@ def _validate_compact_source_map(
     if not isinstance(mappings, list) or not mappings:
         raise ModularBuildError("source map has no output coverage")
 
-    output_lines = output.splitlines()
     source_order = [path.as_posix() for path in layout.sources]
     if set(source_contents) != set(source_order):
         raise ModularBuildError(
@@ -341,6 +341,17 @@ def _validate_compact_source_map(
         path: len(source_contents[path].splitlines())
         for path in source_order
     }
+    try:
+        output_lines = output.decode("utf-8").splitlines()
+        expected_source_lines = expected_mapped_source_lines(
+            source_contents,
+            source_order=source_order,
+            output_path=layout.output.as_posix(),
+        )
+    except (UnicodeDecodeError, AggregateLinkError) as error:
+        raise ModularBuildError(
+            f"cannot derive exact source-map line contents: {error}"
+        ) from error
     next_source_line = {path: 1 for path in source_order}
     source_index = 0
     next_generated_line = 1
@@ -409,6 +420,16 @@ def _validate_compact_source_map(
             raise ModularBuildError(
                 "source-map generated and source spans have different lengths"
             )
+        for offset in range(generated_span):
+            generated_line = output_lines[generated_start - 1 + offset]
+            expected_line = expected_source_lines[source_path][
+                source_start - 1 + offset
+            ]
+            if generated_line != expected_line:
+                raise ModularBuildError(
+                    "source-map line content does not match its declared "
+                    f"source at {source_path}:{source_start + offset}"
+                )
         next_source_line[source_path] = source_end + 1
         if source_end == source_line_counts[source_path]:
             source_index += 1

@@ -282,6 +282,7 @@ class AggregateReadingViewTests(unittest.TestCase):
             b'<a id="fenced-fake"></a>\n'
             b"```\n\n"
             b'`<a id="inline-fake"></a>`\n\n'
+            b'<!-- <a id="comment-fake"></a> -->\n\n'
             b'<a id="rendered-anchor"></a>\n'
             b"## Rendered Heading\n"
         )
@@ -1308,6 +1309,68 @@ class PublicationContractTests(unittest.TestCase):
             self.assertRaisesRegex(
                 modular.ModularBuildError,
                 "out of catalog order",
+            ),
+        ):
+            modular.check(root, root / "unused-compiler")
+
+    def test_modular_build_rejects_shifted_source_line_contents(self) -> None:
+        root, _ = self.catalog_copy()
+        aggregate = self.catalog["aggregate"]
+        output = (root / aggregate["path"]).read_bytes()
+        manifest = (root / aggregate["assembly"]["manifest"]).read_bytes()
+        source_map_path = root / aggregate["assembly"]["source_map"]
+        source_map = json.loads(source_map_path.read_text(encoding="utf-8"))
+        separator = source_map["mappings"][2]
+        module = source_map["mappings"][3]
+        self.assertEqual(separator["kind"], "generated_separator")
+        self.assertEqual(module["kind"], "markdown")
+        generated_start = separator["generatedStartLine"]
+        generated_end = module["generatedEndLine"]
+        source_path = module["source"]["path"]
+        source_end = module["source"]["endLine"]
+        source_map["mappings"][2:4] = [
+            {
+                "generatedStartLine": generated_start,
+                "generatedEndLine": generated_start + 2,
+                "kind": "markdown",
+                "source": {
+                    "path": source_path,
+                    "startLine": 1,
+                    "endLine": 3,
+                },
+            },
+            {
+                "generatedStartLine": generated_start + 3,
+                "generatedEndLine": generated_start + 3,
+                "kind": "generated_separator",
+                "source": None,
+            },
+            {
+                "generatedStartLine": generated_start + 4,
+                "generatedEndLine": generated_end,
+                "kind": "markdown",
+                "source": {
+                    "path": source_path,
+                    "startLine": 4,
+                    "endLine": source_end,
+                },
+            },
+        ]
+        encoded_source_map = (
+            json.dumps(source_map, indent=2, ensure_ascii=False) + "\n"
+        ).encode("utf-8")
+        source_map_path.write_bytes(encoded_source_map)
+        artifacts = output, manifest, encoded_source_map
+        with (
+            mock.patch.object(
+                modular,
+                "_verify_compiler",
+                return_value=aggregate["assembly"]["compiler_revision"],
+            ),
+            mock.patch.object(modular, "_compile", return_value=artifacts),
+            self.assertRaisesRegex(
+                modular.ModularBuildError,
+                "line content does not match",
             ),
         ):
             modular.check(root, root / "unused-compiler")
