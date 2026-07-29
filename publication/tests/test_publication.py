@@ -791,6 +791,161 @@ class PublicationContractTests(unittest.TestCase):
             artifacts[2],
         )
 
+    def test_modular_build_rejects_paths_outside_repository(self) -> None:
+        variants = (
+            "../escaped-manifest.json",
+            "/tmp/escaped-manifest.json",
+            "publication\\escaped-manifest.json",
+            "publication/./escaped-manifest.json",
+        )
+        for value in variants:
+            with self.subTest(value=value):
+                root, path = self.catalog_copy()
+                catalog = copy.deepcopy(self.catalog)
+                catalog["aggregate"]["assembly"]["manifest"] = value
+                self.write_catalog(path, catalog)
+                with (
+                    mock.patch.object(modular, "_verify_compiler") as verify,
+                    mock.patch.object(modular, "_compile") as compile_artifacts,
+                    self.assertRaisesRegex(
+                        modular.ModularBuildError,
+                        "normalized repository-relative POSIX path",
+                    ),
+                ):
+                    modular.build(root, root / "unused-compiler")
+                verify.assert_not_called()
+                compile_artifacts.assert_not_called()
+
+    def test_modular_build_rejects_escaping_source_before_access(self) -> None:
+        root, path = self.catalog_copy()
+        outside = root.parent / f"{root.name}-outside-source.md"
+        outside.write_text("not a repository source\n", encoding="utf-8")
+        self.addCleanup(outside.unlink)
+        catalog = copy.deepcopy(self.catalog)
+        catalog["documents"][0]["source_path"] = f"../{outside.name}"
+        self.write_catalog(path, catalog)
+
+        with (
+            mock.patch.object(modular, "_verify_compiler") as verify,
+            mock.patch.object(modular, "_compile") as compile_artifacts,
+            self.assertRaisesRegex(
+                modular.ModularBuildError,
+                "normalized repository-relative POSIX path",
+            ),
+        ):
+            modular.build(root, root / "unused-compiler")
+        verify.assert_not_called()
+        compile_artifacts.assert_not_called()
+
+    def test_modular_build_rejects_symlink_escape(self) -> None:
+        root, path = self.catalog_copy()
+        outside = root.parent / f"{root.name}-outside"
+        outside.mkdir()
+        self.addCleanup(shutil.rmtree, outside)
+        link = root / "publication" / "escaped"
+        link.symlink_to(outside, target_is_directory=True)
+        catalog = copy.deepcopy(self.catalog)
+        catalog["aggregate"]["assembly"][
+            "manifest"
+        ] = "publication/escaped/manifest.json"
+        self.write_catalog(path, catalog)
+
+        with (
+            mock.patch.object(modular, "_verify_compiler") as verify,
+            mock.patch.object(modular, "_compile") as compile_artifacts,
+            self.assertRaisesRegex(
+                modular.ModularBuildError,
+                "escapes the repository",
+            ),
+        ):
+            modular.build(root, root / "unused-compiler")
+        verify.assert_not_called()
+        compile_artifacts.assert_not_called()
+        self.assertFalse((outside / "manifest.json").exists())
+
+    def test_modular_build_rejects_artifact_input_collision(self) -> None:
+        root, path = self.catalog_copy()
+        catalog = copy.deepcopy(self.catalog)
+        source_path = catalog["documents"][0]["source_path"]
+        catalog["aggregate"]["assembly"]["manifest"] = source_path
+        self.write_catalog(path, catalog)
+        original = (root / source_path).read_bytes()
+
+        with (
+            mock.patch.object(modular, "_verify_compiler") as verify,
+            mock.patch.object(modular, "_compile") as compile_artifacts,
+            self.assertRaisesRegex(
+                modular.ModularBuildError,
+                "artifact output collides with an input",
+            ),
+        ):
+            modular.build(root, root / "unused-compiler")
+        verify.assert_not_called()
+        compile_artifacts.assert_not_called()
+        self.assertEqual((root / source_path).read_bytes(), original)
+
+    def test_modular_build_rejects_compiler_output_collision(self) -> None:
+        root, path = self.catalog_copy()
+        compiler = root / "publication" / "compiler"
+        compiler.write_bytes(b"compiler")
+        catalog = copy.deepcopy(self.catalog)
+        catalog["aggregate"]["assembly"][
+            "manifest"
+        ] = compiler.relative_to(root).as_posix()
+        self.write_catalog(path, catalog)
+
+        with (
+            mock.patch.object(modular, "_verify_compiler") as verify,
+            mock.patch.object(modular, "_compile") as compile_artifacts,
+            self.assertRaisesRegex(
+                modular.ModularBuildError,
+                "artifact output collides with an input",
+            ),
+        ):
+            modular.build(root, compiler)
+        verify.assert_not_called()
+        compile_artifacts.assert_not_called()
+        self.assertEqual(compiler.read_bytes(), b"compiler")
+
+    def test_modular_build_rejects_duplicate_artifact_targets(self) -> None:
+        root, path = self.catalog_copy()
+        catalog = copy.deepcopy(self.catalog)
+        assembly = catalog["aggregate"]["assembly"]
+        assembly["source_map"] = assembly["manifest"]
+        self.write_catalog(path, catalog)
+
+        with (
+            mock.patch.object(modular, "_verify_compiler") as verify,
+            mock.patch.object(modular, "_compile") as compile_artifacts,
+            self.assertRaisesRegex(
+                modular.ModularBuildError,
+                "artifact output paths must be distinct",
+            ),
+        ):
+            modular.build(root, root / "unused-compiler")
+        verify.assert_not_called()
+        compile_artifacts.assert_not_called()
+
+    def test_modular_build_rejects_nested_artifact_targets(self) -> None:
+        root, path = self.catalog_copy()
+        catalog = copy.deepcopy(self.catalog)
+        assembly = catalog["aggregate"]["assembly"]
+        assembly["manifest"] = "publication/generated"
+        assembly["source_map"] = "publication/generated/source-map.json"
+        self.write_catalog(path, catalog)
+
+        with (
+            mock.patch.object(modular, "_verify_compiler") as verify,
+            mock.patch.object(modular, "_compile") as compile_artifacts,
+            self.assertRaisesRegex(
+                modular.ModularBuildError,
+                "artifact output paths must not contain one another",
+            ),
+        ):
+            modular.build(root, root / "unused-compiler")
+        verify.assert_not_called()
+        compile_artifacts.assert_not_called()
+
     def test_modular_build_rejects_source_map_gap(self) -> None:
         root, _ = self.catalog_copy()
         aggregate = self.catalog["aggregate"]
