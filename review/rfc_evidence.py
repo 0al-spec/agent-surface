@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import unicodedata
 from collections import Counter
 from functools import lru_cache
@@ -15,6 +16,12 @@ from markdown_it import MarkdownIt
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = ROOT / "publication" / "document-set.json"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from publication.aggregate_links import (  # noqa: E402
+    markdown_canonical_heading_anchor_ids,
+)
 
 
 class RfcEvidenceTarget(TypedDict):
@@ -51,24 +58,24 @@ def canonical_rfc_evidence_targets() -> dict[str, RfcEvidenceTarget]:
     markdown = MarkdownIt("commonmark", {"html": False})
 
     for document in documents:
-        local_occurrences: Counter[str] = Counter()
         source = ROOT / document["source_path"]
-        tokens = markdown.parse(source.read_text(encoding="utf-8"))
+        source_bytes = source.read_bytes()
+        tokens = markdown.parse(source_bytes.decode("utf-8"))
+        local_anchors = iter(
+            markdown_canonical_heading_anchor_ids(source_bytes)
+        )
         heading_shift = 0 if document["publication_order"] == 0 else 1
         for index, token in enumerate(tokens):
             if token.type != "heading_open":
                 continue
             title = tokens[index + 1].content.strip()
             global_occurrences[title] += 1
-            local_occurrences[title] += 1
             aggregate_anchor = slugify(title)
             if global_occurrences[title] > 1:
                 aggregate_anchor = (
                     f"{aggregate_anchor}-{global_occurrences[title]}"
                 )
-            local_anchor = slugify(title)
-            if local_occurrences[title] > 1:
-                local_anchor = f"{local_anchor}-{local_occurrences[title]}"
+            local_anchor = next(local_anchors)
             effective_level = min(6, int(token.tag[1:]) + heading_shift)
             candidates.setdefault(title, []).append(
                 (

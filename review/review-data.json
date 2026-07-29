@@ -998,7 +998,7 @@
           "ref": "agent-surface-manifest-2",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
           "document_version": "0.1.0-draft.1",
-          "anchor_id": "agent-surface-manifest-2"
+          "anchor_id": "agent-surface-manifest-1"
         },
         {
           "kind": "rfc_anchor",
@@ -2039,7 +2039,7 @@
           "ref": "cloudevents-1-0-2-event-binding",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
           "document_version": "0.1.0-draft.1",
-          "anchor_id": "cloudevents-1-0-2-event-binding"
+          "anchor_id": "cloudevents-102-event-binding"
         },
         {
           "kind": "rfc_anchor",

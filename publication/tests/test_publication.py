@@ -26,8 +26,11 @@ from publication.check import (
 from publication import modular
 from publication.aggregate_links import (
     AggregateLinkError,
+    aggregate_fragment_targets,
     expected_aggregate_destinations,
     markdown_anchor_ids,
+    markdown_canonical_heading_anchor_ids,
+    markdown_heading_anchor_ids,
     markdown_link_destinations,
     rebase_aggregate_links,
     rebase_markdown_line,
@@ -175,6 +178,101 @@ class AggregateReadingViewTests(unittest.TestCase):
                 "stable-purpose",
                 "purpose--and-task-bound-agent-grant-profile",
             },
+        )
+
+    def test_source_local_fragments_rebase_to_exact_aggregate_heading(self) -> None:
+        first = b"## Shared Heading\n[Self](#shared-heading)\n"
+        second = b"## Shared Heading\n[Self](#shared-heading)\n"
+        sources = {
+            "drafts/modules/first.md": first,
+            "drafts/modules/second.md": second,
+        }
+        source_map = {
+            "mappings": [
+                {
+                    "generatedLine": output_line,
+                    "kind": "markdown",
+                    "source": {
+                        "path": source_path,
+                        "startLine": source_line,
+                        "endLine": source_line,
+                    },
+                }
+                for output_line, (source_path, source_line) in enumerate(
+                    [
+                        ("drafts/modules/first.md", 1),
+                        ("drafts/modules/first.md", 2),
+                        ("drafts/modules/second.md", 1),
+                        ("drafts/modules/second.md", 2),
+                    ],
+                    1,
+                )
+            ]
+        }
+        self.assertEqual(
+            aggregate_fragment_targets(
+                sources,
+                source_order=list(sources),
+            ),
+            {
+                "drafts/modules/first.md": {
+                    "shared-heading": "shared-heading",
+                },
+                "drafts/modules/second.md": {
+                    "shared-heading": "shared-heading-1",
+                },
+            },
+        )
+        self.assertEqual(
+            rebase_aggregate_links(
+                first + second,
+                source_map,
+                sources,
+                output_path="drafts/agent-surface.md",
+            ),
+            (
+                b"## Shared Heading\n[Self](#shared-heading)\n"
+                b"## Shared Heading\n[Self](#shared-heading-1)\n"
+            ),
+        )
+
+    def test_unknown_source_local_fragment_fails_closed(self) -> None:
+        with self.assertRaisesRegex(
+            AggregateLinkError,
+            "no canonical source anchor",
+        ):
+            rebase_markdown_line(
+                "[Missing](#missing)",
+                source_path="drafts/modules/core.md",
+                output_path="drafts/agent-surface.md",
+                fragment_targets={"known": "known"},
+            )
+
+    def test_heading_anchor_ids_use_zero_based_duplicate_suffixes(self) -> None:
+        self.assertEqual(
+            markdown_heading_anchor_ids(
+                (
+                    b"## Agent Surface Manifest\n"
+                    b"## Agent Surface Manifest\n"
+                    b"## CloudEvents 1.0.2 Event Binding\n"
+                )
+            ),
+            [
+                "agent-surface-manifest",
+                "agent-surface-manifest-1",
+                "cloudevents-102-event-binding",
+            ],
+        )
+
+    def test_explicit_anchor_immediately_before_heading_is_canonical(self) -> None:
+        self.assertEqual(
+            markdown_canonical_heading_anchor_ids(
+                (
+                    b'<a id="stable-purpose"></a>\n'
+                    b"## Purpose- and Task-Bound Agent Grant Profile\n"
+                )
+            ),
+            ["stable-purpose"],
         )
 
 

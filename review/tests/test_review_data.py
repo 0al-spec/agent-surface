@@ -176,6 +176,14 @@ class ReviewDataValidationTests(unittest.TestCase):
             targets["agent-grant"]["document_id"],
             "https://github.com/0al-spec/agent-surface/documents/core",
         )
+        self.assertEqual(
+            targets["agent-surface-manifest-2"]["anchor_id"],
+            "agent-surface-manifest-1",
+        )
+        self.assertEqual(
+            targets["cloudevents-1-0-2-event-binding"]["anchor_id"],
+            "cloudevents-102-event-binding",
+        )
 
     def test_canonical_bundle_validation_is_deduplicated_per_process(self) -> None:
         _validate_canonical_conformance_catalog.cache_clear()

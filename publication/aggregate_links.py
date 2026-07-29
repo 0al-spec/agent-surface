@@ -69,6 +69,7 @@ def _relative_destination(
     *,
     source_path: str,
     output_path: str,
+    fragment_targets: Mapping[str, str] | None = None,
 ) -> str:
     wrapped = destination.startswith("<") and destination.endswith(">")
     raw = destination[1:-1] if wrapped else destination
@@ -78,13 +79,22 @@ def _relative_destination(
         raise AggregateLinkError(
             f"invalid Markdown link in {source_path}: {raw!r}"
         ) from error
-    if (
-        parsed.scheme
-        or parsed.netloc
-        or not parsed.path
-        or parsed.path.startswith("/")
-    ):
+    if parsed.scheme or parsed.netloc or parsed.path.startswith("/"):
         return destination
+    if not parsed.path:
+        if not parsed.fragment or fragment_targets is None:
+            return destination
+        local_fragment = unquote(parsed.fragment)
+        aggregate_fragment = fragment_targets.get(local_fragment)
+        if aggregate_fragment is None:
+            raise AggregateLinkError(
+                f"fragment-only Markdown link has no canonical source anchor "
+                f"in {source_path}: {raw!r}"
+            )
+        result = urlunsplit(
+            ("", "", "", parsed.query, aggregate_fragment)
+        )
+        return f"<{result}>" if wrapped else result
 
     source_parent = PurePosixPath(source_path).parent.as_posix()
     target = posixpath.normpath(posixpath.join(source_parent, parsed.path))
@@ -147,6 +157,10 @@ def expected_aggregate_destinations(
     """Return the exact ordered destinations expected after link rebasing."""
 
     result: list[str] = []
+    fragment_targets = aggregate_fragment_targets(
+        source_contents,
+        source_order=source_order,
+    )
     for source_path in source_order:
         content = source_contents.get(source_path)
         if content is None:
@@ -159,6 +173,7 @@ def expected_aggregate_destinations(
                     destination,
                     source_path=source_path,
                     output_path=output_path,
+                    fragment_targets=fragment_targets[source_path],
                 )
             )
     return result
@@ -205,17 +220,14 @@ def _github_slug(value: str) -> str:
     return _GITHUB_PUNCTUATION.sub("", normalized).replace(" ", "-")
 
 
-def markdown_anchor_ids(content: bytes) -> set[str]:
-    """Return explicit and GitHub-compatible generated heading anchors."""
+def markdown_heading_anchor_ids(content: bytes) -> list[str]:
+    """Return generated GitHub-compatible heading anchors in source order."""
 
     try:
         source = content.decode("utf-8")
     except UnicodeDecodeError as error:
         raise AggregateLinkError("Markdown content is not UTF-8") from error
-    anchors = {
-        match.group("id")
-        for match in _EXPLICIT_ANCHOR.finditer(source)
-    }
+    anchors: list[str] = []
     used: set[str] = set()
     tokens = MarkdownIt("commonmark", {"html": True}).parse(source)
     for index, token in enumerate(tokens):
@@ -228,8 +240,108 @@ def markdown_anchor_ids(content: bytes) -> set[str]:
             suffix += 1
             candidate = f"{base}-{suffix}"
         used.add(candidate)
-        anchors.add(candidate)
+        anchors.append(candidate)
     return anchors
+
+
+def markdown_canonical_heading_anchor_ids(content: bytes) -> list[str]:
+    """Return stable explicit anchors or generated anchors for each heading."""
+
+    try:
+        source = content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise AggregateLinkError("Markdown content is not UTF-8") from error
+    lines = source.splitlines()
+    generated = iter(markdown_heading_anchor_ids(content))
+    canonical: list[str] = []
+    tokens = MarkdownIt("commonmark", {"html": True}).parse(source)
+    for token in tokens:
+        if token.type != "heading_open":
+            continue
+        anchor = next(generated)
+        start_line = token.map[0] if token.map is not None else None
+        if start_line is not None:
+            preceding = start_line - 1
+            while preceding >= 0 and not lines[preceding].strip():
+                preceding -= 1
+            if preceding >= 0:
+                explicit = _EXPLICIT_ANCHOR.search(lines[preceding])
+                if explicit is not None:
+                    anchor = explicit.group("id")
+        canonical.append(anchor)
+    return canonical
+
+
+def markdown_anchor_ids(content: bytes) -> set[str]:
+    """Return explicit and GitHub-compatible generated heading anchors."""
+
+    try:
+        source = content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise AggregateLinkError("Markdown content is not UTF-8") from error
+    anchors = {
+        match.group("id")
+        for match in _EXPLICIT_ANCHOR.finditer(source)
+    }
+    anchors.update(markdown_heading_anchor_ids(content))
+    return anchors
+
+
+def aggregate_fragment_targets(
+    source_contents: Mapping[str, bytes],
+    *,
+    source_order: Sequence[str],
+) -> dict[str, dict[str, str]]:
+    """Map each source-local anchor to its exact aggregate anchor."""
+
+    targets: dict[str, dict[str, str]] = {}
+    aggregate_used: set[str] = set()
+    explicit_owners: dict[str, str] = {}
+    for source_path in source_order:
+        content = source_contents.get(source_path)
+        if content is None:
+            raise AggregateLinkError(
+                f"aggregate link source is unavailable: {source_path!r}"
+            )
+        local_targets: dict[str, str] = {}
+        source = content.decode("utf-8")
+        for match in _EXPLICIT_ANCHOR.finditer(source):
+            anchor = match.group("id")
+            owner = explicit_owners.get(anchor)
+            if owner is not None:
+                raise AggregateLinkError(
+                    f"duplicate explicit aggregate anchor {anchor!r}: "
+                    f"{owner!r} and {source_path!r}"
+                )
+            explicit_owners[anchor] = source_path
+            local_targets[anchor] = anchor
+
+        local_heading_anchors = markdown_heading_anchor_ids(content)
+        tokens = MarkdownIt("commonmark", {"html": True}).parse(source)
+        heading_titles = [
+            _inline_text(tokens[index + 1])
+            for index, token in enumerate(tokens)
+            if token.type == "heading_open" and index + 1 < len(tokens)
+        ]
+        if len(local_heading_anchors) != len(heading_titles):
+            raise AggregateLinkError(
+                f"heading anchor derivation drifted for {source_path!r}"
+            )
+        for local_anchor, title in zip(
+            local_heading_anchors,
+            heading_titles,
+            strict=True,
+        ):
+            base = _github_slug(title)
+            aggregate_anchor = base
+            suffix = 0
+            while aggregate_anchor in aggregate_used:
+                suffix += 1
+                aggregate_anchor = f"{base}-{suffix}"
+            aggregate_used.add(aggregate_anchor)
+            local_targets[local_anchor] = aggregate_anchor
+        targets[source_path] = local_targets
+    return targets
 
 
 def rebase_markdown_line(
@@ -237,6 +349,7 @@ def rebase_markdown_line(
     *,
     source_path: str,
     output_path: str,
+    fragment_targets: Mapping[str, str] | None = None,
 ) -> str:
     """Rebase non-code inline and reference links from source to output."""
 
@@ -249,6 +362,7 @@ def rebase_markdown_line(
             match.group("destination"),
             source_path=source_path,
             output_path=output_path,
+            fragment_targets=fragment_targets,
         )
 
     rewritten = _INLINE_LINK.sub(replace, line)
@@ -260,6 +374,7 @@ def rebase_markdown_line(
                 reference.group("destination"),
                 source_path=source_path,
                 output_path=output_path,
+                fragment_targets=fragment_targets,
             )
             + rewritten[reference.end() :]
         )
@@ -308,6 +423,10 @@ def rebase_aggregate_links(
         path: fenced_source_lines(source)
         for path, source in source_contents.items()
     }
+    fragment_targets = aggregate_fragment_targets(
+        source_contents,
+        source_order=list(source_contents),
+    )
     mappings = source_map.get("mappings")
     if not isinstance(mappings, list) or len(mappings) != len(lines):
         raise AggregateLinkError(
@@ -338,6 +457,7 @@ def rebase_aggregate_links(
                 body,
                 source_path=source_path,
                 output_path=output_path,
+                fragment_targets=fragment_targets[source_path],
             )
             + ending
         )
