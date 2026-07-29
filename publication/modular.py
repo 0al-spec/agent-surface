@@ -27,6 +27,12 @@ from publication.assembly.check import (  # noqa: E402
     validate_lock,
     verify_compiler,
 )
+from publication.aggregate_links import (  # noqa: E402
+    AggregateLinkError,
+    LINK_POLICY,
+    rebase_aggregate_links,
+    relative_link_paths,
+)
 
 
 CATALOG_PATH = Path("publication/document-set.json")
@@ -228,7 +234,7 @@ def _build_layout(
     )
 
 
-def _compact_source_map(content: bytes) -> bytes:
+def _compact_source_map(content: bytes, *, output_sha256: str) -> bytes:
     """Merge adjacent one-line mappings into lossless contiguous ranges."""
 
     raw = json.loads(content)
@@ -287,7 +293,7 @@ def _compact_source_map(content: bytes) -> bytes:
     compact = {
         "schemaVersion": 2,
         "lineBase": raw["lineBase"],
-        "outputSha256": raw["outputSha256"],
+        "outputSha256": output_sha256,
         "mappings": ranges,
     }
     return (
@@ -368,10 +374,38 @@ def _compile(
                 "Hyperprompt build failed: "
                 + (result.stderr.strip() or result.stdout.strip())
             )
+        raw_output = (staging / layout.output).read_bytes()
+        raw_source_map_content = (staging / layout.source_map).read_bytes()
+        raw_source_map = json.loads(raw_source_map_content)
+        policy = catalog.get("assembly_policy", {}).get(
+            "aggregate_links"
+        )
+        if policy != LINK_POLICY:
+            raise ModularBuildError(
+                f"unsupported aggregate link policy: {policy!r}"
+            )
+        source_contents = {
+            path.as_posix(): (staging / path).read_bytes()
+            for path in layout.sources
+        }
+        try:
+            output = rebase_aggregate_links(
+                raw_output,
+                raw_source_map,
+                source_contents,
+                output_path=layout.output.as_posix(),
+            )
+        except (AggregateLinkError, UnicodeDecodeError) as error:
+            raise ModularBuildError(
+                f"aggregate link transform failed: {error}"
+            ) from error
         return (
-            (staging / layout.output).read_bytes(),
+            output,
             (staging / layout.manifest).read_bytes(),
-            _compact_source_map((staging / layout.source_map).read_bytes()),
+            _compact_source_map(
+                raw_source_map_content,
+                output_sha256=_sha256(output),
+            ),
         )
 
 
@@ -379,6 +413,32 @@ def _verify_compiler(root: Path, compiler: Path) -> str:
     lock = validate_lock(root)
     verify_compiler(compiler, root=root)
     return lock["release"]["commit"]
+
+
+def _validate_local_link_targets(
+    root: Path,
+    layout: _BuildLayout,
+    output: bytes,
+) -> None:
+    output_parent = (root / layout.output).parent
+    try:
+        link_paths = relative_link_paths(output)
+    except (AggregateLinkError, UnicodeDecodeError) as error:
+        raise ModularBuildError(
+            f"aggregate link validation failed: {error}"
+        ) from error
+    for link_path in link_paths:
+        target = (output_parent / link_path).resolve(strict=False)
+        try:
+            target.relative_to(root)
+        except ValueError as error:
+            raise ModularBuildError(
+                f"aggregate Markdown link escapes the repository: {link_path!r}"
+            ) from error
+        if not target.is_file():
+            raise ModularBuildError(
+                f"aggregate Markdown link target does not exist: {link_path!r}"
+            )
 
 
 def build(root: Path, compiler: Path) -> None:
@@ -399,6 +459,7 @@ def build(root: Path, compiler: Path) -> None:
         catalog=catalog,
         layout=layout,
     )
+    _validate_local_link_targets(root, layout, generated[0])
     for path, content in zip(layout.artifacts, generated, strict=True):
         destination = root / path
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -463,6 +524,7 @@ def check(root: Path, compiler: Path) -> None:
         raise ModularBuildError(
             "source map does not cover exactly the selected module sources"
         )
+    _validate_local_link_targets(root, layout, first[0])
 
 
 def _parser() -> argparse.ArgumentParser:

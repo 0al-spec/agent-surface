@@ -6127,7 +6127,7 @@
           "anchorId": "atomic-modular-activation"
         }
       ],
-      "rationale": "Atomic activation завершена: семь module sources одновременно материализованы в canonical paths и выбраны catalog version 0.2.0-draft.1; reservations и monolith authority удалены. Exact dependency/reference graph, export and registry ownership, девять old-to-new anchor relocation records и compatibility aliases валидируются fail-closed. Hyperprompt v0.2.0 дважды собирает byte-identical aggregate с полным source map, а conformance reports теперь связывают exact document-set identity, version и digest.",
+      "rationale": "Atomic activation завершена: семь module sources одновременно материализованы в canonical paths; reservations и monolith authority удалены. Catalog 0.2.0-draft.2 добавляет provenance-aware source_relative_rebase_v1: canonical module links остаются source-relative, а generated aggregate получает корректные aggregate-relative targets до фиксации final digest. Exact dependency/reference graph, export and registry ownership, девять old-to-new anchor relocation records, compatibility aliases и aggregate link targets валидируются fail-closed. Hyperprompt v0.2.0 дважды собирает byte-identical aggregate с полным source map, а conformance reports связывают exact document-set identity, version и digest.",
       "priority": "P2",
       "profile": "conformance-tooling",
       "depends_on": [

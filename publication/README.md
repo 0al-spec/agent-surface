@@ -28,6 +28,9 @@ The current publication mode is `modular`:
   active document;
 - `drafts/agent-surface.md` is a generated aggregate reading view with no
   independent normative authority;
+- source-relative module links are provenance-rebased for the aggregate before
+  its final digest is recorded, while external links, local fragments, inline
+  code, and fenced examples remain unchanged;
 - the exact Hyperprompt v0.2.0 release, aggregate digest, manifest, complete
   source map, active source digests, dependency graph, exports, registry owners,
   and anchor relocations are checked together;

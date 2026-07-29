@@ -24,9 +24,106 @@ from publication.check import (
     validate_history,
 )
 from publication import modular
+from publication.aggregate_links import (
+    AggregateLinkError,
+    rebase_aggregate_links,
+    rebase_markdown_line,
+    relative_link_paths,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+class AggregateReadingViewTests(unittest.TestCase):
+    def test_source_relative_links_are_rebased_to_aggregate(self) -> None:
+        self.assertEqual(
+            rebase_markdown_line(
+                "- [Core](core.md#asp-core)",
+                source_path="drafts/modules/core.md",
+                output_path="drafts/agent-surface.md",
+            ),
+            "- [Core](modules/core.md#asp-core)",
+        )
+        self.assertEqual(
+            rebase_markdown_line(
+                "[MCP](bindings/asp-over-mcp.md#profile)",
+                source_path="drafts/modules/core.md",
+                output_path="drafts/agent-surface.md",
+            ),
+            "[MCP](modules/bindings/asp-over-mcp.md#profile)",
+        )
+
+    def test_external_fragment_and_inline_code_links_are_unchanged(self) -> None:
+        line = (
+            "[Web](https://example.com/x) [Local](#section) "
+            "`[Example](core.md#example)`"
+        )
+        self.assertEqual(
+            rebase_markdown_line(
+                line,
+                source_path="drafts/modules/core.md",
+                output_path="drafts/agent-surface.md",
+            ),
+            line,
+        )
+
+    def test_fenced_examples_are_not_rewritten(self) -> None:
+        source = b"```markdown\n[Example](core.md#example)\n```\n"
+        source_map = {
+            "mappings": [
+                {
+                    "generatedLine": line,
+                    "kind": "markdown",
+                    "source": {
+                        "path": "drafts/modules/core.md",
+                        "startLine": line,
+                        "endLine": line,
+                    },
+                }
+                for line in range(1, 4)
+            ]
+        }
+        self.assertEqual(
+            rebase_aggregate_links(
+                source,
+                source_map,
+                {"drafts/modules/core.md": source},
+                output_path="drafts/agent-surface.md",
+            ),
+            source,
+        )
+
+    def test_escaping_relative_link_is_rejected(self) -> None:
+        with self.assertRaises(AggregateLinkError):
+            rebase_markdown_line(
+                "[Escape](../../../outside.md)",
+                source_path="drafts/modules/core.md",
+                output_path="drafts/agent-surface.md",
+            )
+
+    def test_relative_link_collector_ignores_code_and_fragments(self) -> None:
+        content = (
+            b"[Module](modules/core.md#asp-core) [Local](#section)\n"
+            b"`[Code](missing.md)`\n"
+            b"```markdown\n[Fenced](missing.md)\n```\n"
+        )
+        self.assertEqual(relative_link_paths(content), ["modules/core.md"])
+
+    def test_footnote_definition_is_not_treated_as_reference_link(self) -> None:
+        footnote = "[^1]: This explains the requirement."
+        self.assertEqual(
+            rebase_markdown_line(
+                footnote,
+                source_path="drafts/modules/core.md",
+                output_path="drafts/agent-surface.md",
+            ),
+            footnote,
+        )
+        self.assertEqual(
+            relative_link_paths((footnote + "\n").encode("utf-8")),
+            [],
+        )
 
 
 class PublicationContractTests(unittest.TestCase):
@@ -969,6 +1066,63 @@ class PublicationContractTests(unittest.TestCase):
             self.assertRaisesRegex(
                 modular.ModularBuildError,
                 "coverage is not contiguous",
+            ),
+        ):
+            modular.check(root, root / "unused-compiler")
+
+    def test_modular_build_rejects_missing_aggregate_link_target(self) -> None:
+        root, path = self.catalog_copy()
+        catalog = copy.deepcopy(self.catalog)
+        documents = sorted(
+            catalog["documents"],
+            key=lambda item: item["publication_order"],
+        )
+        output = (
+            b"[Missing](modules/missing.md)\n"
+            + b"\n" * (len(documents) - 1)
+        )
+        digest = hashlib.sha256(output).hexdigest()
+        catalog["aggregate"]["sha256"] = digest
+        self.write_catalog(path, catalog)
+        aggregate = catalog["aggregate"]
+        manifest = (root / aggregate["assembly"]["manifest"]).read_bytes()
+        source_map = {
+            "schemaVersion": 2,
+            "lineBase": 1,
+            "outputSha256": digest,
+            "mappings": [
+                {
+                    "generatedStartLine": index,
+                    "generatedEndLine": index,
+                    "kind": "markdown",
+                    "source": {
+                        "path": document["source_path"],
+                        "startLine": 1,
+                        "endLine": 1,
+                    },
+                }
+                for index, document in enumerate(documents, 1)
+            ],
+        }
+        encoded_source_map = (
+            json.dumps(source_map, indent=2, ensure_ascii=False) + "\n"
+        ).encode("utf-8")
+        (root / aggregate["path"]).write_bytes(output)
+        (root / aggregate["assembly"]["source_map"]).write_bytes(
+            encoded_source_map
+        )
+        artifacts = output, manifest, encoded_source_map
+
+        with (
+            mock.patch.object(
+                modular,
+                "_verify_compiler",
+                return_value=aggregate["assembly"]["compiler_revision"],
+            ),
+            mock.patch.object(modular, "_compile", return_value=artifacts),
+            self.assertRaisesRegex(
+                modular.ModularBuildError,
+                "link target does not exist",
             ),
         ):
             modular.check(root, root / "unused-compiler")
