@@ -31,6 +31,9 @@ The current publication mode is `modular`:
 - the exact Hyperprompt v0.2.0 release, aggregate digest, manifest, complete
   source map, active source digests, dependency graph, exports, registry owners,
   and anchor relocations are checked together;
+- the active builder validates normalized repository-relative source and
+  artifact paths, symlink containment, uniqueness, and input/output separation
+  before reading module sources or invoking the compiler;
 - conformance reports bind the exact active document-set id, version, and
   catalog digest in addition to the generated specification digest.
 
