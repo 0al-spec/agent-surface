@@ -177,14 +177,18 @@ jobs:
         uses: lycheeverse/lychee-action@v2
         with:
           # ISO serves a CAPTCHA/403 to automated clients for this valid page.
+          # RFC Editor occasionally sends automated clients through a redirect
+          # loop; validate the same immutable RFC number through IETF Datatracker.
           args: >-
             --no-progress
             --accept 200,204,206,301,302,303,307,308,429
+            --accept-timeouts
             --exclude '^https://www\.iso\.org/standard/64758\.html$'
-            --timeout 20
-            --max-retries 5
+            --remap '^https://www\.rfc-editor\.org/rfc/rfc([0-9]+)$ https://datatracker.ietf.org/doc/html/rfc$1'
+            --timeout 10
+            --max-retries 1
             --retry-wait-time 2
-            --max-concurrency 4
+            --max-concurrency 16
             './**/*.md'
           fail: true
         env:

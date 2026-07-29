@@ -2,12 +2,6 @@ name: Replay fuzz smoke
 
 on:
   pull_request:
-    paths:
-      - '.github/workflows/replay-fuzz.yml'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
-      - 'Makefile'
-      - 'tools/asp-replay/**'
   push:
     branches:
       - main
