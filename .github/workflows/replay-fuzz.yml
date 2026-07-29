@@ -10,6 +10,7 @@ on:
       - 'Cargo.lock'
       - 'Cargo.toml'
       - 'Makefile'
+      - 'tools/asp-manifest-linter/**'
       - 'tools/asp-replay/**'
   schedule:
     - cron: '17 3 * * *'
@@ -65,6 +66,7 @@ jobs:
             Cargo.lock \
             Cargo.toml \
             Makefile \
+            tools/asp-manifest-linter \
             tools/asp-replay; then
             echo "relevant=false" >> "${GITHUB_OUTPUT}"
           else
