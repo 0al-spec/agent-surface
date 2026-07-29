@@ -6,7 +6,7 @@
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/authorization`
-- Exact version: `0.1.0-draft.1`
+- Exact version: `0.1.0-draft.2`
 - Canonical path: `drafts/modules/authorization.md`
 
 ## Exact Normative Dependencies
@@ -2811,6 +2811,7 @@ Runtimes SHOULD verify:
   current active state match the Grant and session, and local policy does not
   treat task prose or an external task identifier as authority
 
+<a id="purpose-and-task-bound-agent-grant-profile"></a>
 ## Purpose- and Task-Bound Agent Grant Profile
 
 This optional profile binds an Agent Grant to an issuer-owned purpose record

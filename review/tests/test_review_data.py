@@ -31,6 +31,7 @@ from review_data import (  # noqa: E402
     normalize_reviews,
     validate_review_payload,
 )
+from rfc_evidence import canonical_rfc_evidence_targets  # noqa: E402
 
 
 class ReviewDataValidationTests(unittest.TestCase):
@@ -42,7 +43,28 @@ class ReviewDataValidationTests(unittest.TestCase):
         return json.loads((FIXTURE_DIR / name).read_text(encoding="utf-8"))
 
     def valid_payload(self) -> dict[str, object]:
-        return self.fixture("valid-minimal-v2.json")
+        return self.fixture("valid-minimal-v3.json")
+
+    def rfc_evidence(
+        self,
+        ref: str,
+        *,
+        description: str | None = None,
+    ) -> dict[str, str]:
+        target = canonical_rfc_evidence_targets().get(
+            ref,
+            {
+                "document_id": (
+                    "https://github.com/0al-spec/agent-surface/documents/core"
+                ),
+                "document_version": "0.1.0-draft.1",
+                "anchor_id": ref,
+            },
+        )
+        evidence = {"kind": "rfc_anchor", "ref": ref, **target}
+        if description is not None:
+            evidence["description"] = description
+        return evidence
 
     def machine_validated_payload(self) -> dict[str, object]:
         return copy.deepcopy(load_review_payload())
@@ -120,7 +142,9 @@ class ReviewDataValidationTests(unittest.TestCase):
             "test": ("reference/vertical-slice/check.py",),
         }
         review["evidence"] = [
-            {"kind": kind, "ref": ref}
+            self.rfc_evidence(ref)
+            if kind == "rfc_anchor"
+            else {"kind": kind, "ref": ref}
             for kind, refs in evidence_by_kind.items()
             for ref in refs
         ]
@@ -132,6 +156,34 @@ class ReviewDataValidationTests(unittest.TestCase):
 
     def test_canonical_review_data_is_valid(self) -> None:
         validate_review_payload(load_review_payload(), self.heading_ids)
+
+    def test_rfc_evidence_targets_bind_exact_modular_documents(self) -> None:
+        targets = canonical_rfc_evidence_targets()
+        self.assertEqual(
+            targets["purpose-and-task-bound-agent-grant-profile"],
+            {
+                "document_id": (
+                    "https://github.com/0al-spec/agent-surface/"
+                    "documents/authorization"
+                ),
+                "document_version": "0.1.0-draft.2",
+                "anchor_id": (
+                    "purpose-and-task-bound-agent-grant-profile"
+                ),
+            },
+        )
+        self.assertEqual(
+            targets["agent-grant"]["document_id"],
+            "https://github.com/0al-spec/agent-surface/documents/core",
+        )
+        self.assertEqual(
+            targets["agent-surface-manifest-2"]["anchor_id"],
+            "agent-surface-manifest-1",
+        )
+        self.assertEqual(
+            targets["cloudevents-1-0-2-event-binding"]["anchor_id"],
+            "cloudevents-102-event-binding",
+        )
 
     def test_canonical_bundle_validation_is_deduplicated_per_process(self) -> None:
         _validate_canonical_conformance_catalog.cache_clear()
@@ -421,15 +473,21 @@ class ReviewDataValidationTests(unittest.TestCase):
     def test_unknown_rfc_evidence_is_rejected(self) -> None:
         payload = self.valid_payload()
         payload["reviews"][0]["evidence"] = [
-            {"kind": "rfc_anchor", "ref": "unknown-anchor"}
+            self.rfc_evidence("unknown-anchor")
         ]
         self.assert_invalid(payload, "evidence references unknown RFC anchor")
+
+    def test_rfc_evidence_requires_exact_document_version_tuple(self) -> None:
+        payload = self.valid_payload()
+        evidence = payload["reviews"][0]["evidence"][0]
+        evidence["document_version"] = "0.1.0-draft.0"
+        self.assert_invalid(payload, "must bind the exact canonical target")
 
     def test_duplicate_evidence_identity_is_rejected(self) -> None:
         payload = self.valid_payload()
         payload["reviews"][0]["evidence"] = [
-            {"kind": "rfc_anchor", "ref": "abstract", "description": "one"},
-            {"kind": "rfc_anchor", "ref": "abstract", "description": "two"},
+            self.rfc_evidence("abstract", description="one"),
+            self.rfc_evidence("abstract", description="two"),
         ]
         self.assert_invalid(payload, "duplicate evidence references")
 
@@ -487,7 +545,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             }
         )
         review["evidence"].append(
-            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+            self.rfc_evidence("conceptual-architecture")
         )
         self.assert_invalid(payload, "exact authoritative evidence binding")
 
@@ -542,7 +600,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             }
         )
         review["evidence"].append(
-            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+            self.rfc_evidence("conceptual-architecture")
         )
         self.assert_invalid(payload, "exact authoritative evidence binding")
 
@@ -603,7 +661,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             }
         )
         review["evidence"].append(
-            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+            self.rfc_evidence("conceptual-architecture")
         )
         self.assert_invalid(payload, "exact authoritative evidence binding")
 
@@ -661,7 +719,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             }
         )
         review["evidence"].append(
-            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+            self.rfc_evidence("conceptual-architecture")
         )
         self.assert_invalid(payload, "exact authoritative evidence binding")
 
@@ -774,7 +832,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             }
         )
         review["evidence"].append(
-            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+            self.rfc_evidence("conceptual-architecture")
         )
         self.assert_invalid(payload, "exact authoritative evidence binding")
 
@@ -804,7 +862,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             }
         )
         review["evidence"].append(
-            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+            self.rfc_evidence("conceptual-architecture")
         )
         self.assert_invalid(payload, "exact authoritative evidence binding")
 
@@ -860,7 +918,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             }
         )
         review["evidence"].append(
-            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+            self.rfc_evidence("conceptual-architecture")
         )
         self.assert_invalid(payload, "exact authoritative evidence binding")
 
@@ -976,7 +1034,7 @@ class ReviewDataValidationTests(unittest.TestCase):
             }
         )
         review["evidence"].append(
-            {"kind": "rfc_anchor", "ref": "conceptual-architecture"}
+            self.rfc_evidence("conceptual-architecture")
         )
         self.assert_invalid(payload, "exact authoritative evidence binding")
 
@@ -1654,7 +1712,7 @@ class ReviewDataValidationTests(unittest.TestCase):
 
     def test_dashboard_payload_contains_registries_and_derived_state(self) -> None:
         dashboard_data = load_dashboard_data(self.heading_ids)
-        self.assertEqual(dashboard_data["schema_version"], 2)
+        self.assertEqual(dashboard_data["schema_version"], 3)
         self.assertEqual(len(dashboard_data["profiles"]), 10)
         self.assertEqual(len(dashboard_data["releases"]), 1)
         self.assertEqual(len(dashboard_data["maturity_order"]), 6)

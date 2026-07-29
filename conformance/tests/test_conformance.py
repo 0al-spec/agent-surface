@@ -198,7 +198,7 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.10.1")
+        self.assertEqual(self.catalog.suite["suite_version"], "1.10.2")
         self.assertEqual(len(self.catalog.features), 15)
         self.assertEqual(len(self.catalog.requirements), 55)
         self.assertEqual(len(self.catalog.vectors), 183)

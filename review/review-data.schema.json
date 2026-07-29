@@ -13,7 +13,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": 2
+      "const": 3
     },
     "planning_metadata_mode": {
       "enum": [
@@ -184,6 +184,15 @@
         },
         "ref": {
           "$ref": "#/$defs/nonEmptyString"
+        },
+        "document_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "document_version": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "anchor_id": {
+          "$ref": "#/$defs/anchorSlug"
         },
         "description": {
           "$ref": "#/$defs/nonEmptyString"

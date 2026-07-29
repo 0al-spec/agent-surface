@@ -19,6 +19,8 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 
+from rfc_evidence import canonical_rfc_evidence_targets
+
 
 REVIEW_DIR = Path(__file__).resolve().parent
 REPO_ROOT = REVIEW_DIR.parent
@@ -695,6 +697,26 @@ def validate_review_payload(
                 if ref not in review_anchor_ids:
                     raise ValueError(
                         f"Review #{review_id} RFC evidence {ref!r} must also be declared in anchors"
+                    )
+                target = canonical_rfc_evidence_targets().get(ref)
+                if target is None:
+                    raise ValueError(
+                        f"Review #{review_id} RFC evidence {ref!r} has no "
+                        "canonical modular target"
+                    )
+                actual_target = {
+                    key: item.get(key)
+                    for key in (
+                        "document_id",
+                        "document_version",
+                        "anchor_id",
+                    )
+                }
+                if actual_target != target:
+                    raise ValueError(
+                        f"Review #{review_id} RFC evidence {ref!r} must bind "
+                        f"the exact canonical target {target!r}, got "
+                        f"{actual_target!r}"
                     )
             elif kind == "schema":
                 _validate_schema_evidence(review_id, ref)

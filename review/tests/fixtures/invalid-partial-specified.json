@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "planning_metadata_mode": "required",
   "profiles": [
     {
@@ -37,7 +37,10 @@
       "evidence": [
         {
           "kind": "rfc_anchor",
-          "ref": "abstract"
+          "ref": "abstract",
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+          "document_version": "0.1.0-draft.1",
+          "anchor_id": "abstract"
         }
       ]
     }
