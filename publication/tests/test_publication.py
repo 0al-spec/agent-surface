@@ -645,7 +645,7 @@ class PublicationContractTests(unittest.TestCase):
         manifest = (root / aggregate["assembly"]["manifest"]).read_bytes()
         source_map_path = root / aggregate["assembly"]["source_map"]
         source_map = json.loads(source_map_path.read_text(encoding="utf-8"))
-        source_map["mappings"][1]["generatedLine"] = 3
+        source_map["mappings"][1]["generatedStartLine"] += 1
         encoded_source_map = (
             json.dumps(source_map, indent=2, ensure_ascii=False) + "\n"
         ).encode("utf-8")

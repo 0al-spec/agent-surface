@@ -1258,7 +1258,7 @@ def _validate_mode(
             )
         if (
             not isinstance(source_map, Mapping)
-            or source_map.get("schemaVersion") != 1
+            or source_map.get("schemaVersion") != 2
             or source_map.get("lineBase") != 1
             or source_map.get("outputSha256") != aggregate["sha256"]
         ):

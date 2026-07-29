@@ -44,6 +44,73 @@ def _sha256(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
+def _compact_source_map(content: bytes) -> bytes:
+    """Merge adjacent one-line mappings into lossless contiguous ranges."""
+
+    raw = json.loads(content)
+    ranges: list[dict[str, Any]] = []
+    for mapping in raw["mappings"]:
+        source = mapping.get("source")
+        if mapping.get("kind") == "generated_separator" and source is None:
+            generated_line = mapping["generatedLine"]
+            if (
+                ranges
+                and ranges[-1]["kind"] == "generated_separator"
+                and ranges[-1]["generatedEndLine"] + 1 == generated_line
+            ):
+                ranges[-1]["generatedEndLine"] = generated_line
+            else:
+                ranges.append(
+                    {
+                        "generatedStartLine": generated_line,
+                        "generatedEndLine": generated_line,
+                        "kind": "generated_separator",
+                        "source": None,
+                    }
+                )
+            continue
+        if (
+            mapping.get("kind") != "markdown"
+            or not isinstance(source, dict)
+            or source.get("startLine") != source.get("endLine")
+        ):
+            raise ModularBuildError(
+                "Hyperprompt emitted unsupported source-map mapping"
+            )
+        generated_line = mapping["generatedLine"]
+        if (
+            ranges
+            and ranges[-1]["kind"] == mapping["kind"]
+            and ranges[-1]["generatedEndLine"] + 1 == generated_line
+            and ranges[-1]["source"]["path"] == source["path"]
+            and ranges[-1]["source"]["endLine"] + 1 == source["startLine"]
+        ):
+            ranges[-1]["generatedEndLine"] = generated_line
+            ranges[-1]["source"]["endLine"] = source["endLine"]
+            continue
+        ranges.append(
+            {
+                "generatedStartLine": generated_line,
+                "generatedEndLine": generated_line,
+                "kind": mapping["kind"],
+                "source": {
+                    "path": source["path"],
+                    "startLine": source["startLine"],
+                    "endLine": source["endLine"],
+                },
+            }
+        )
+    compact = {
+        "schemaVersion": 2,
+        "lineBase": raw["lineBase"],
+        "outputSha256": raw["outputSha256"],
+        "mappings": ranges,
+    }
+    return (
+        json.dumps(compact, indent=2, ensure_ascii=False) + "\n"
+    ).encode("utf-8")
+
+
 def _compile(
     root: Path, compiler: Path
 ) -> tuple[bytes, bytes, bytes]:
@@ -117,7 +184,7 @@ def _compile(
         return (
             (staging / output).read_bytes(),
             (staging / manifest).read_bytes(),
-            (staging / source_map).read_bytes(),
+            _compact_source_map((staging / source_map).read_bytes()),
         )
 
 
@@ -171,9 +238,19 @@ def check(root: Path, compiler: Path) -> None:
     mappings = source_map.get("mappings")
     if not isinstance(mappings, list) or not mappings:
         raise ModularBuildError("source map has no output coverage")
-    generated_lines = [item.get("generatedLine") for item in mappings]
-    if generated_lines != list(range(1, len(generated_lines) + 1)):
-        raise ModularBuildError("source-map output coverage is not contiguous")
+    next_line = 1
+    for mapping in mappings:
+        start = mapping.get("generatedStartLine")
+        end = mapping.get("generatedEndLine")
+        if start != next_line or not isinstance(end, int) or end < start:
+            raise ModularBuildError(
+                "source-map output coverage is not contiguous"
+            )
+        next_line = end + 1
+    if next_line - 1 != len(first[0].splitlines()):
+        raise ModularBuildError(
+            "source-map output coverage does not match aggregate lines"
+        )
     selected_sources = {
         item["source_path"] for item in catalog["documents"]
     }
