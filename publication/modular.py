@@ -24,8 +24,6 @@ from publication.assembly.check import validate_lock, verify_compiler
 
 CATALOG_PATH = Path("publication/document-set.json")
 ENTRYPOINT = Path("publication/modular/root.hc")
-MANIFEST_PATH = Path("publication/modular/agent-surface.manifest.json")
-SOURCE_MAP_PATH = Path("publication/modular/agent-surface.source-map.json")
 SOURCE_DATE_EPOCH = 1_700_000_000
 
 
@@ -201,9 +199,16 @@ def build(root: Path, compiler: Path) -> None:
     _verify_compiler(root, compiler)
     output, manifest, source_map = _compile(root, compiler)
     catalog = _json(root / CATALOG_PATH)
-    (root / catalog["aggregate"]["path"]).write_bytes(output)
-    (root / MANIFEST_PATH).write_bytes(manifest)
-    (root / SOURCE_MAP_PATH).write_bytes(source_map)
+    aggregate = catalog["aggregate"]
+    artifacts = (
+        (Path(aggregate["path"]), output),
+        (Path(aggregate["assembly"]["manifest"]), manifest),
+        (Path(aggregate["assembly"]["source_map"]), source_map),
+    )
+    for path, content in artifacts:
+        destination = root / path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(content)
 
 
 def check(root: Path, compiler: Path) -> None:

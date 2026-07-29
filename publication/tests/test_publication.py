@@ -374,6 +374,132 @@ class PublicationContractTests(unittest.TestCase):
         ):
             validate_history(root, baseline)
 
+    def test_git_history_rejects_invalid_intermediate_modular_manifest(
+        self,
+    ) -> None:
+        root, _ = self.catalog_copy()
+        for arguments in (
+            ("init", "--quiet"),
+            ("config", "user.name", "Publication Test"),
+            ("config", "user.email", "publication-test@example.invalid"),
+            ("add", "."),
+            ("commit", "--quiet", "-m", "Published baseline"),
+        ):
+            subprocess.run(
+                ["git", *arguments],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        baseline = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        manifest_path = (
+            root / self.catalog["aggregate"]["assembly"]["manifest"]
+        )
+        original = manifest_path.read_bytes()
+        manifest = json.loads(original)
+        manifest["version"] = "stale"
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "add", manifest_path.relative_to(root).as_posix()],
+            cwd=root,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "commit", "--quiet", "-m", "Corrupt provenance"],
+            cwd=root,
+            check=True,
+        )
+        manifest_path.write_bytes(original)
+        subprocess.run(
+            ["git", "add", manifest_path.relative_to(root).as_posix()],
+            cwd=root,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "commit", "--quiet", "-m", "Restore provenance"],
+            cwd=root,
+            check=True,
+        )
+
+        with self.assertRaisesRegex(
+            PublicationError,
+            "historical modular manifest is stale or invalid",
+        ):
+            validate_history(root, baseline)
+
+    def test_git_history_rejects_invalid_intermediate_modular_source_map(
+        self,
+    ) -> None:
+        root, _ = self.catalog_copy()
+        for arguments in (
+            ("init", "--quiet"),
+            ("config", "user.name", "Publication Test"),
+            ("config", "user.email", "publication-test@example.invalid"),
+            ("add", "."),
+            ("commit", "--quiet", "-m", "Published baseline"),
+        ):
+            subprocess.run(
+                ["git", *arguments],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        baseline = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        source_map_path = (
+            root / self.catalog["aggregate"]["assembly"]["source_map"]
+        )
+        original = source_map_path.read_bytes()
+        source_map = json.loads(original)
+        source_map["mappings"][0]["generatedEndLine"] -= 1
+        source_map_path.write_text(
+            json.dumps(source_map, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "add", source_map_path.relative_to(root).as_posix()],
+            cwd=root,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "commit", "--quiet", "-m", "Corrupt source map"],
+            cwd=root,
+            check=True,
+        )
+        source_map_path.write_bytes(original)
+        subprocess.run(
+            ["git", "add", source_map_path.relative_to(root).as_posix()],
+            cwd=root,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "commit", "--quiet", "-m", "Restore source map"],
+            cwd=root,
+            check=True,
+        )
+
+        with self.assertRaisesRegex(
+            PublicationError,
+            "historical modular source map",
+        ):
+            validate_history(root, baseline)
+
     def test_explicit_anchor_inventory_is_bound_to_source(self) -> None:
         root, path = self.catalog_copy()
         catalog = copy.deepcopy(self.catalog)
@@ -637,6 +763,33 @@ class PublicationContractTests(unittest.TestCase):
             ),
         ):
             modular.check(root, root / "unused-compiler")
+
+    def test_modular_build_writes_catalog_declared_sidecar_paths(self) -> None:
+        root, path = self.catalog_copy()
+        catalog = copy.deepcopy(self.catalog)
+        assembly = catalog["aggregate"]["assembly"]
+        assembly["manifest"] = "publication/generated/manifest.json"
+        assembly["source_map"] = "publication/generated/source-map.json"
+        self.write_catalog(path, catalog)
+        artifacts = (b"aggregate\n", b"manifest\n", b"source-map\n")
+        with (
+            mock.patch.object(modular, "_verify_compiler"),
+            mock.patch.object(modular, "_compile", return_value=artifacts),
+        ):
+            modular.build(root, root / "unused-compiler")
+
+        self.assertEqual(
+            (root / catalog["aggregate"]["path"]).read_bytes(),
+            artifacts[0],
+        )
+        self.assertEqual(
+            (root / assembly["manifest"]).read_bytes(),
+            artifacts[1],
+        )
+        self.assertEqual(
+            (root / assembly["source_map"]).read_bytes(),
+            artifacts[2],
+        )
 
     def test_modular_build_rejects_source_map_gap(self) -> None:
         root, _ = self.catalog_copy()
