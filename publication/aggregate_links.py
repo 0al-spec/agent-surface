@@ -15,7 +15,11 @@ from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
 
-LINK_POLICY = "source_relative_rebase_v1"
+SOURCE_RELATIVE_LINK_POLICY = "source_relative_rebase_v1"
+LINK_POLICY = "aggregate_local_fragments_v1"
+SUPPORTED_LINK_POLICIES = frozenset(
+    {SOURCE_RELATIVE_LINK_POLICY, LINK_POLICY}
+)
 _INLINE_LINK = re.compile(
     r"(?P<prefix>!?\[[^\]\n]*\]\(\s*)"
     r"(?P<destination><[^>\n]+>|[^)\s\n]+)"
@@ -91,6 +95,7 @@ def _relative_destination(
     source_path: str,
     output_path: str,
     fragment_targets: Mapping[str, str] | None = None,
+    document_fragment_targets: Mapping[str, Mapping[str, str]] | None = None,
 ) -> str:
     wrapped = destination.startswith("<") and destination.endswith(">")
     raw = destination[1:-1] if wrapped else destination
@@ -124,6 +129,20 @@ def _relative_destination(
             f"relative Markdown link escapes the repository in {source_path}: "
             f"{raw!r}"
         )
+    if parsed.fragment and document_fragment_targets is not None:
+        target_fragments = document_fragment_targets.get(target)
+        if target_fragments is not None:
+            local_fragment = unquote(parsed.fragment)
+            aggregate_fragment = target_fragments.get(local_fragment)
+            if aggregate_fragment is None:
+                raise AggregateLinkError(
+                    "included-document Markdown link has no canonical source "
+                    f"anchor in {target!r}: {raw!r}"
+                )
+            result = urlunsplit(
+                ("", "", "", parsed.query, aggregate_fragment)
+            )
+            return f"<{result}>" if wrapped else result
     rebased = posixpath.relpath(
         target,
         PurePosixPath(output_path).parent.as_posix(),
@@ -195,6 +214,7 @@ def expected_aggregate_destinations(
                     source_path=source_path,
                     output_path=output_path,
                     fragment_targets=fragment_targets[source_path],
+                    document_fragment_targets=fragment_targets,
                 )
             )
     return result
@@ -401,6 +421,7 @@ def rebase_markdown_line(
     source_path: str,
     output_path: str,
     fragment_targets: Mapping[str, str] | None = None,
+    document_fragment_targets: Mapping[str, Mapping[str, str]] | None = None,
 ) -> str:
     """Rebase non-code inline and reference links from source to output."""
 
@@ -414,6 +435,7 @@ def rebase_markdown_line(
             source_path=source_path,
             output_path=output_path,
             fragment_targets=fragment_targets,
+            document_fragment_targets=document_fragment_targets,
         )
 
     rewritten = _INLINE_LINK.sub(replace, line)
@@ -426,6 +448,7 @@ def rebase_markdown_line(
                 source_path=source_path,
                 output_path=output_path,
                 fragment_targets=fragment_targets,
+                document_fragment_targets=document_fragment_targets,
             )
             + rewritten[reference.end() :]
         )
@@ -516,6 +539,7 @@ def expected_mapped_source_lines(
                     source_path=source_path,
                     output_path=output_path,
                     fragment_targets=fragment_targets[source_path],
+                    document_fragment_targets=fragment_targets,
                 )
             transformed.append(line)
         expected[source_path] = transformed
@@ -571,6 +595,7 @@ def rebase_aggregate_links(
                 source_path=source_path,
                 output_path=output_path,
                 fragment_targets=fragment_targets[source_path],
+                document_fragment_targets=fragment_targets,
             )
             + ending
         )

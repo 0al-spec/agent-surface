@@ -62,6 +62,71 @@ class AggregateReadingViewTests(unittest.TestCase):
             "[MCP](modules/bindings/asp-over-mcp.md#profile)",
         )
 
+    def test_included_document_fragments_become_local_aggregate_links(
+        self,
+    ) -> None:
+        targets = {
+            "drafts/modules/core.md": {
+                "authors-contact-information": "authors-contact-information",
+            },
+            "drafts/modules/privacy.md": {
+                "shared-heading": "shared-heading-1",
+            },
+        }
+        self.assertEqual(
+            rebase_markdown_line(
+                (
+                    "[Core](core.md#authors-contact-information) "
+                    "[Privacy](privacy.md#shared-heading)"
+                ),
+                source_path="drafts/modules/core.md",
+                output_path="drafts/agent-surface.md",
+                fragment_targets=targets["drafts/modules/core.md"],
+                document_fragment_targets=targets,
+            ),
+            (
+                "[Core](#authors-contact-information) "
+                "[Privacy](#shared-heading-1)"
+            ),
+        )
+
+    def test_included_document_without_fragment_remains_a_file_link(
+        self,
+    ) -> None:
+        targets = {
+            "drafts/modules/core.md": {
+                "asp-core": "asp-core",
+            },
+        }
+        self.assertEqual(
+            rebase_markdown_line(
+                "[Core](core.md)",
+                source_path="drafts/modules/core.md",
+                output_path="drafts/agent-surface.md",
+                fragment_targets=targets["drafts/modules/core.md"],
+                document_fragment_targets=targets,
+            ),
+            "[Core](modules/core.md)",
+        )
+
+    def test_unknown_included_document_fragment_fails_closed(self) -> None:
+        targets = {
+            "drafts/modules/core.md": {
+                "asp-core": "asp-core",
+            },
+        }
+        with self.assertRaisesRegex(
+            AggregateLinkError,
+            "included-document Markdown link has no canonical source anchor",
+        ):
+            rebase_markdown_line(
+                "[Missing](core.md#missing)",
+                source_path="drafts/modules/core.md",
+                output_path="drafts/agent-surface.md",
+                fragment_targets=targets["drafts/modules/core.md"],
+                document_fragment_targets=targets,
+            )
+
     def test_external_fragment_and_inline_code_links_are_unchanged(self) -> None:
         line = (
             "[Web](https://example.com/x) [Local](#section) "

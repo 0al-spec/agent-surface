@@ -25,6 +25,8 @@ if str(ROOT) not in sys.path:
 
 from publication.aggregate_links import (
     LINK_POLICY,
+    SUPPORTED_LINK_POLICIES,
+    aggregate_fragment_targets,
     fenced_source_lines,
     rebase_markdown_line,
 )
@@ -434,11 +436,22 @@ def _validate_historical_catalog_state(
             link_policy = catalog.get("assembly_policy", {}).get(
                 "aggregate_links"
             )
-            if link_policy not in {None, LINK_POLICY}:
+            if (
+                link_policy is not None
+                and link_policy not in SUPPORTED_LINK_POLICIES
+            ):
                 raise PublicationError(
                     f"historical aggregate link policy is unsupported at "
                     f"{revision}: {link_policy!r}"
                 )
+            historical_fragment_targets = (
+                aggregate_fragment_targets(
+                    document_blobs,
+                    source_order=list(document_blobs),
+                )
+                if link_policy in SUPPORTED_LINK_POLICIES
+                else {}
+            )
             fenced_lines = {
                 path: fenced_source_lines(content)
                 for path, content in document_blobs.items()
@@ -526,7 +539,7 @@ def _validate_historical_catalog_state(
                         ]
                     if (
                         expected_lines is not None
-                        and link_policy == LINK_POLICY
+                        and link_policy in SUPPORTED_LINK_POLICIES
                         and isinstance(source_start, int)
                     ):
                         transformed: list[bytes] = []
@@ -540,6 +553,16 @@ def _validate_historical_catalog_state(
                                     line.decode("utf-8"),
                                     source_path=source_path,
                                     output_path=aggregate_path,
+                                    fragment_targets=(
+                                        historical_fragment_targets.get(
+                                            source_path
+                                        )
+                                    ),
+                                    document_fragment_targets=(
+                                        historical_fragment_targets
+                                        if link_policy == LINK_POLICY
+                                        else None
+                                    ),
                                 ).encode("utf-8")
                             )
                         expected_lines = transformed
