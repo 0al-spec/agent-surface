@@ -6,13 +6,13 @@
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/safe-effects`
-- Exact version: `0.1.0-draft.1`
+- Exact version: `0.1.0-draft.2`
 - Canonical path: `drafts/modules/safe-effects.md`
 
 ## Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.1` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
 
 
 ## Action Execution Model

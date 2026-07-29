@@ -26,9 +26,13 @@ from publication.check import (
 from publication import modular
 from publication.aggregate_links import (
     AggregateLinkError,
+    expected_aggregate_destinations,
+    markdown_anchor_ids,
+    markdown_link_destinations,
     rebase_aggregate_links,
     rebase_markdown_line,
     relative_link_paths,
+    validate_aggregate_destinations,
 )
 
 
@@ -123,6 +127,54 @@ class AggregateReadingViewTests(unittest.TestCase):
         self.assertEqual(
             relative_link_paths((footnote + "\n").encode("utf-8")),
             [],
+        )
+
+    def test_commonmark_parser_covers_multiline_and_reference_links(self) -> None:
+        source = (
+            b"[Inline](\nnotes/inline.md\n)\n"
+            b"[Reference][notes]\n\n"
+            b"[notes]: notes/reference.md\n"
+        )
+        self.assertEqual(
+            markdown_link_destinations(source),
+            ["notes/inline.md", "notes/reference.md"],
+        )
+        self.assertEqual(
+            expected_aggregate_destinations(
+                {"drafts/modules/core.md": source},
+                source_order=["drafts/modules/core.md"],
+                output_path="drafts/agent-surface.md",
+            ),
+            [
+                "modules/notes/inline.md",
+                "modules/notes/reference.md",
+            ],
+        )
+
+    def test_untransformed_multiline_link_fails_closed(self) -> None:
+        source = b"[Inline](\nnotes/inline.md\n)\n"
+        with self.assertRaisesRegex(
+            AggregateLinkError,
+            "do not exactly match",
+        ):
+            validate_aggregate_destinations(
+                source,
+                {"drafts/modules/core.md": source},
+                source_order=["drafts/modules/core.md"],
+                output_path="drafts/agent-surface.md",
+            )
+
+    def test_github_heading_slug_preserves_adjacent_hyphen(self) -> None:
+        content = (
+            b'<a id="stable-purpose"></a>\n'
+            b"## Purpose- and Task-Bound Agent Grant Profile\n"
+        )
+        self.assertEqual(
+            markdown_anchor_ids(content),
+            {
+                "stable-purpose",
+                "purpose--and-task-bound-agent-grant-profile",
+            },
         )
 
 
@@ -1126,6 +1178,24 @@ class PublicationContractTests(unittest.TestCase):
             ),
         ):
             modular.check(root, root / "unused-compiler")
+
+    def test_modular_build_rejects_missing_aggregate_fragment(self) -> None:
+        root, _ = self.catalog_copy()
+        root = root.resolve(strict=True)
+        layout = modular._build_layout(
+            root,
+            self.catalog,
+            require_artifacts=True,
+        )
+        with self.assertRaisesRegex(
+            modular.ModularBuildError,
+            "link fragment does not exist",
+        ):
+            modular._validate_local_link_targets(
+                root,
+                layout,
+                b"[Missing](modules/core.md#missing-fragment)\n",
+            )
 
 
 if __name__ == "__main__":

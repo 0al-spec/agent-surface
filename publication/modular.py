@@ -15,6 +15,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
+from urllib.parse import unquote, urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,8 +31,10 @@ from publication.assembly.check import (  # noqa: E402
 from publication.aggregate_links import (  # noqa: E402
     AggregateLinkError,
     LINK_POLICY,
+    markdown_anchor_ids,
+    markdown_link_destinations,
     rebase_aggregate_links,
-    relative_link_paths,
+    validate_aggregate_destinations,
 )
 
 
@@ -395,6 +398,14 @@ def _compile(
                 source_contents,
                 output_path=layout.output.as_posix(),
             )
+            validate_aggregate_destinations(
+                output,
+                source_contents,
+                source_order=[
+                    path.as_posix() for path in layout.sources
+                ],
+                output_path=layout.output.as_posix(),
+            )
         except (AggregateLinkError, UnicodeDecodeError) as error:
             raise ModularBuildError(
                 f"aggregate link transform failed: {error}"
@@ -422,13 +433,27 @@ def _validate_local_link_targets(
 ) -> None:
     output_parent = (root / layout.output).parent
     try:
-        link_paths = relative_link_paths(output)
+        destinations = markdown_link_destinations(output)
     except (AggregateLinkError, UnicodeDecodeError) as error:
         raise ModularBuildError(
             f"aggregate link validation failed: {error}"
         ) from error
-    for link_path in link_paths:
-        target = (output_parent / link_path).resolve(strict=False)
+    anchor_cache: dict[Path, set[str]] = {}
+    for destination in destinations:
+        try:
+            parsed = urlsplit(destination)
+        except ValueError as error:
+            raise ModularBuildError(
+                f"invalid aggregate Markdown link: {destination!r}"
+            ) from error
+        if parsed.scheme or parsed.netloc or parsed.path.startswith("/"):
+            continue
+        link_path = unquote(parsed.path)
+        target = (
+            (output_parent / link_path).resolve(strict=False)
+            if link_path
+            else root / layout.output
+        )
         try:
             target.relative_to(root)
         except ValueError as error:
@@ -439,6 +464,22 @@ def _validate_local_link_targets(
             raise ModularBuildError(
                 f"aggregate Markdown link target does not exist: {link_path!r}"
             )
+        if parsed.fragment:
+            anchors = anchor_cache.get(target)
+            if anchors is None:
+                try:
+                    anchors = markdown_anchor_ids(target.read_bytes())
+                except AggregateLinkError as error:
+                    raise ModularBuildError(
+                        f"cannot validate aggregate Markdown fragment: {error}"
+                    ) from error
+                anchor_cache[target] = anchors
+            fragment = unquote(parsed.fragment)
+            if fragment not in anchors:
+                raise ModularBuildError(
+                    "aggregate Markdown link fragment does not exist: "
+                    f"{destination!r}"
+                )
 
 
 def build(root: Path, compiler: Path) -> None:

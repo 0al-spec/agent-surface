@@ -6,14 +6,14 @@
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/evidence`
-- Exact version: `0.1.0-draft.1`
+- Exact version: `0.1.0-draft.2`
 - Canonical path: `drafts/modules/evidence.md`
 
 ## Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.1` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.1` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.2` (canonical `drafts/modules/safe-effects.md`)
 
 
 ## Canonical Integrity and Provenance

@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import posixpath
 import re
+import unicodedata
 from collections.abc import Mapping, Sequence
 from pathlib import PurePosixPath
 from typing import Any
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import unquote, urlsplit, urlunsplit
+
+from markdown_it import MarkdownIt
+from markdown_it.token import Token
 
 
 LINK_POLICY = "source_relative_rebase_v1"
@@ -21,6 +25,13 @@ _REFERENCE_LINK = re.compile(
 )
 _FENCE = re.compile(r"^[ \t]{0,3}(?P<marker>`{3,}|~{3,})")
 _BACKTICKS = re.compile(r"`+")
+_EXPLICIT_ANCHOR = re.compile(
+    r"<a\s+id=[\"'](?P<id>[a-z0-9]+(?:-[a-z0-9]+)*)[\"']",
+    re.IGNORECASE,
+)
+_GITHUB_PUNCTUATION = re.compile(
+    r"[\u2000-\u206f\u2e00-\u2e7f\\'!\"#$%&()*+,./:;<=>?@\[\]^`{|}~]"
+)
 
 
 class AggregateLinkError(ValueError):
@@ -88,6 +99,137 @@ def _relative_destination(
     )
     result = urlunsplit(("", "", rebased, parsed.query, parsed.fragment))
     return f"<{result}>" if wrapped else result
+
+
+def _walk_tokens(tokens: Sequence[Token]) -> list[Token]:
+    result: list[Token] = []
+    for token in tokens:
+        result.append(token)
+        if token.children:
+            result.extend(_walk_tokens(token.children))
+    return result
+
+
+def markdown_link_destinations(content: bytes) -> list[str]:
+    """Return every rendered CommonMark link and image destination in order."""
+
+    try:
+        source = content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise AggregateLinkError("Markdown content is not UTF-8") from error
+    tokens = MarkdownIt("commonmark", {"html": True}).parse(source)
+    destinations: list[str] = []
+    for token in _walk_tokens(tokens):
+        attribute = (
+            "href"
+            if token.type == "link_open"
+            else "src"
+            if token.type == "image"
+            else None
+        )
+        if attribute is None:
+            continue
+        destination = token.attrGet(attribute)
+        if destination is None:
+            raise AggregateLinkError(
+                f"CommonMark {token.type} token lacks {attribute}"
+            )
+        destinations.append(destination)
+    return destinations
+
+
+def expected_aggregate_destinations(
+    source_contents: Mapping[str, bytes],
+    *,
+    source_order: Sequence[str],
+    output_path: str,
+) -> list[str]:
+    """Return the exact ordered destinations expected after link rebasing."""
+
+    result: list[str] = []
+    for source_path in source_order:
+        content = source_contents.get(source_path)
+        if content is None:
+            raise AggregateLinkError(
+                f"aggregate link source is unavailable: {source_path!r}"
+            )
+        for destination in markdown_link_destinations(content):
+            result.append(
+                _relative_destination(
+                    destination,
+                    source_path=source_path,
+                    output_path=output_path,
+                )
+            )
+    return result
+
+
+def validate_aggregate_destinations(
+    content: bytes,
+    source_contents: Mapping[str, bytes],
+    *,
+    source_order: Sequence[str],
+    output_path: str,
+) -> None:
+    """Prove that every rendered destination preserves source semantics."""
+
+    expected = expected_aggregate_destinations(
+        source_contents,
+        source_order=source_order,
+        output_path=output_path,
+    )
+    actual = markdown_link_destinations(content)
+    if actual != expected:
+        raise AggregateLinkError(
+            "post-transform CommonMark destinations do not exactly match "
+            "source-relative expectations"
+        )
+
+
+def _inline_text(token: Token) -> str:
+    if not token.children:
+        return token.content
+    parts: list[str] = []
+    for child in token.children:
+        if child.type in {"text", "code_inline"}:
+            parts.append(child.content)
+        elif child.type in {"softbreak", "hardbreak"}:
+            parts.append(" ")
+        elif child.type == "image":
+            parts.append(child.content)
+    return "".join(parts)
+
+
+def _github_slug(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).strip().lower()
+    return _GITHUB_PUNCTUATION.sub("", normalized).replace(" ", "-")
+
+
+def markdown_anchor_ids(content: bytes) -> set[str]:
+    """Return explicit and GitHub-compatible generated heading anchors."""
+
+    try:
+        source = content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise AggregateLinkError("Markdown content is not UTF-8") from error
+    anchors = {
+        match.group("id")
+        for match in _EXPLICIT_ANCHOR.finditer(source)
+    }
+    used: set[str] = set()
+    tokens = MarkdownIt("commonmark", {"html": True}).parse(source)
+    for index, token in enumerate(tokens):
+        if token.type != "heading_open" or index + 1 >= len(tokens):
+            continue
+        base = _github_slug(_inline_text(tokens[index + 1]))
+        candidate = base
+        suffix = 0
+        while candidate in used:
+            suffix += 1
+            candidate = f"{base}-{suffix}"
+        used.add(candidate)
+        anchors.add(candidate)
+    return anchors
 
 
 def rebase_markdown_line(
@@ -203,52 +345,22 @@ def rebase_aggregate_links(
 
 
 def relative_link_paths(content: bytes) -> list[str]:
-    """Collect relative file targets from non-code Markdown links."""
+    """Collect relative file targets from rendered CommonMark links."""
 
     result: list[str] = []
-    active_marker: str | None = None
-    active_width = 0
-    for raw_line in content.decode("utf-8").splitlines():
-        fence = _FENCE.match(raw_line)
-        marker = fence.group("marker") if fence is not None else None
-        if active_marker is not None:
-            if (
-                marker is not None
-                and marker[0] == active_marker
-                and len(marker) >= active_width
-                and not raw_line[fence.end() :].strip()
-            ):
-                active_marker = None
-                active_width = 0
+    for destination in markdown_link_destinations(content):
+        try:
+            parsed = urlsplit(destination)
+        except ValueError as error:
+            raise AggregateLinkError(
+                f"invalid aggregate Markdown link: {destination!r}"
+            ) from error
+        if (
+            parsed.scheme
+            or parsed.netloc
+            or not parsed.path
+            or parsed.path.startswith("/")
+        ):
             continue
-        if marker is not None:
-            active_marker = marker[0]
-            active_width = len(marker)
-            continue
-
-        code_spans = _code_spans(raw_line)
-        matches = list(_INLINE_LINK.finditer(raw_line))
-        reference = _REFERENCE_LINK.match(raw_line)
-        if reference is not None:
-            matches.append(reference)
-        for match in matches:
-            if _inside(match.start(), code_spans):
-                continue
-            destination = match.group("destination")
-            if destination.startswith("<") and destination.endswith(">"):
-                destination = destination[1:-1]
-            try:
-                parsed = urlsplit(destination)
-            except ValueError as error:
-                raise AggregateLinkError(
-                    f"invalid aggregate Markdown link: {destination!r}"
-                ) from error
-            if (
-                parsed.scheme
-                or parsed.netloc
-                or not parsed.path
-                or parsed.path.startswith("/")
-            ):
-                continue
-            result.append(parsed.path)
+        result.append(unquote(parsed.path))
     return result

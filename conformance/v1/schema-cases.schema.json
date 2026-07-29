@@ -22,7 +22,7 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.10.1"
+      "const": "1.10.2"
     },
     "cases": {
       "type": "array",

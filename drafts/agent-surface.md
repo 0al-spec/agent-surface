@@ -6126,7 +6126,7 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/authorization`
-- Exact version: `0.1.0-draft.1`
+- Exact version: `0.1.0-draft.2`
 - Canonical path: `drafts/modules/authorization.md`
 
 ### Exact Normative Dependencies
@@ -8931,6 +8931,7 @@ Runtimes SHOULD verify:
   current active state match the Grant and session, and local policy does not
   treat task prose or an external task identifier as authority
 
+<a id="purpose-and-task-bound-agent-grant-profile"></a>
 ### Purpose- and Task-Bound Agent Grant Profile
 
 This optional profile binds an Agent Grant to an issuer-owned purpose record
@@ -10161,13 +10162,13 @@ authority for a runtime with a different tuple.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/safe-effects`
-- Exact version: `0.1.0-draft.1`
+- Exact version: `0.1.0-draft.2`
 - Canonical path: `drafts/modules/safe-effects.md`
 
 ### Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.1` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
 
 
 ### Action Execution Model
@@ -12382,14 +12383,14 @@ operation id, receipt, or input hash MUST NOT widen the proposal-only Grant.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/evidence`
-- Exact version: `0.1.0-draft.1`
+- Exact version: `0.1.0-draft.2`
 - Canonical path: `drafts/modules/evidence.md`
 
 ### Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.1` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.1` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.2` (canonical `drafts/modules/safe-effects.md`)
 
 
 ### Canonical Integrity and Provenance
@@ -13729,14 +13730,14 @@ and displaying it inertly; it never means re-executing the recorded system.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/privacy`
-- Exact version: `0.1.0-draft.1`
+- Exact version: `0.1.0-draft.2`
 - Canonical path: `drafts/modules/privacy.md`
 
 ### Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.1` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.1` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.2` (canonical `drafts/modules/evidence.md`)
 
 
 ### Data Exposure Contract
@@ -14569,15 +14570,15 @@ NOT enter receipts, logs, prompts, traces, or agent-visible context.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp`
-- Exact version: `0.1.0-draft.1`
+- Exact version: `0.1.0-draft.2`
 - Canonical path: `drafts/modules/bindings/asp-over-mcp.md`
 
 ### Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.1` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.1` (canonical `drafts/modules/safe-effects.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.1` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.2` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.2` (canonical `drafts/modules/evidence.md`)
 
 
 ### ASP-over-MCP Binding Profile
@@ -15553,17 +15554,17 @@ consent, approval, action, effect, receipt, or recovery decision.
 > Set Catalog. `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/conformance`
-- Exact version: `0.1.0-draft.1`
+- Exact version: `0.1.0-draft.2`
 - Canonical path: `drafts/modules/conformance.md`
 
 ### Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.1` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.1` (canonical `drafts/modules/safe-effects.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.1` (canonical `drafts/modules/evidence.md`)
-- `https://github.com/0al-spec/agent-surface/documents/privacy` at `0.1.0-draft.1` (canonical `drafts/modules/privacy.md`)
-- `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp` at `0.1.0-draft.1` (canonical `drafts/modules/bindings/asp-over-mcp.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.2` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.2` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/privacy` at `0.1.0-draft.2` (canonical `drafts/modules/privacy.md`)
+- `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp` at `0.1.0-draft.2` (canonical `drafts/modules/bindings/asp-over-mcp.md`)
 
 
 ### Conformance
