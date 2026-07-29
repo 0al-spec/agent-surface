@@ -16,7 +16,7 @@ _INLINE_LINK = re.compile(
     r"(?P<destination><[^>\n]+>|[^)\s\n]+)"
 )
 _REFERENCE_LINK = re.compile(
-    r"^(?P<prefix>[ \t]{0,3}\[[^\]\n]+\]:[ \t]*)"
+    r"^(?P<prefix>[ \t]{0,3}\[(?!\^)[^\]\n]+\]:[ \t]*)"
     r"(?P<destination><[^>\n]+>|[^ \t\n]+)"
 )
 _FENCE = re.compile(r"^[ \t]{0,3}(?P<marker>`{3,}|~{3,})")

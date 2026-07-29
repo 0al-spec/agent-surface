@@ -110,6 +110,21 @@ class AggregateReadingViewTests(unittest.TestCase):
         )
         self.assertEqual(relative_link_paths(content), ["modules/core.md"])
 
+    def test_footnote_definition_is_not_treated_as_reference_link(self) -> None:
+        footnote = "[^1]: This explains the requirement."
+        self.assertEqual(
+            rebase_markdown_line(
+                footnote,
+                source_path="drafts/modules/core.md",
+                output_path="drafts/agent-surface.md",
+            ),
+            footnote,
+        )
+        self.assertEqual(
+            relative_link_paths((footnote + "\n").encode("utf-8")),
+            [],
+        )
+
 
 class PublicationContractTests(unittest.TestCase):
     @classmethod
