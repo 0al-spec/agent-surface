@@ -1154,21 +1154,21 @@ class ReviewDataValidationTests(unittest.TestCase):
         payload = load_review_payload()
         reviews = payload["reviews"]
         self.assertEqual(len(reviews), 79)
-        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 620)
+        self.assertEqual(sum(len(review["evidence"]) for review in reviews), 625)
         self.assertEqual(
             Counter(review["maturity"] for review in reviews),
             Counter(
                 {
-                    "specified": 52,
+                    "specified": 53,
                     "machine_validated": 17,
-                    "proposal": 9,
+                    "proposal": 8,
                     "implementation_tested": 1,
                 }
             ),
         )
         self.assertEqual(
             Counter(review["status"] for review in reviews),
-            Counter({"present": 71, "partial": 1, "missing": 7}),
+            Counter({"present": 72, "partial": 1, "missing": 6}),
         )
         self.assertEqual(sum(len(review["depends_on"]) for review in reviews), 231)
         self.assertTrue(all(review["target_release"] is None for review in reviews))
@@ -1669,6 +1669,12 @@ class ReviewDataValidationTests(unittest.TestCase):
         self.assertEqual(
             reviews_by_id[70]["depends_on"],
             [6, 13, 14, 15, 16, 19, 36, 46, 63, 69],
+        )
+        self.assertEqual(reviews_by_id[70]["status"], "present")
+        self.assertEqual(reviews_by_id[70]["maturity"], "specified")
+        self.assertEqual(
+            reviews_by_id[70]["anchors"][0]["anchorId"],
+            "asp-over-webmcp-binding-profile",
         )
         self.assertEqual(reviews_by_id[70]["readiness"], "ready")
         self.assertEqual(reviews_by_id[71]["readiness"], "ready")

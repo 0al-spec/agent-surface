@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "lineBase": 1,
-  "outputSha256": "989ad6895f35ecf62954be4f589303eafb4579304686f838da24ad18b59282b1",
+  "outputSha256": "89cb092000826190d2c5dda16c396d10689b751bd92f7b19ef4f81bb712ec570",
   "mappings": [
     {
       "generatedStartLine": 1,
@@ -79,23 +79,23 @@
     },
     {
       "generatedStartLine": 14565,
-      "generatedEndLine": 15547,
+      "generatedEndLine": 15905,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/bindings/asp-over-mcp.md",
         "startLine": 1,
-        "endLine": 983
+        "endLine": 1341
       }
     },
     {
-      "generatedStartLine": 15548,
-      "generatedEndLine": 15548,
+      "generatedStartLine": 15906,
+      "generatedEndLine": 15906,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 15549,
-      "generatedEndLine": 17032,
+      "generatedStartLine": 15907,
+      "generatedEndLine": 17390,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/conformance.md",

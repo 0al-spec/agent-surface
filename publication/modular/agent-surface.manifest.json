@@ -40,13 +40,13 @@
     },
     {
       "path" : "drafts/modules/bindings/asp-over-mcp.md",
-      "sha256" : "e5d7a6d0c7c3bef8b4d3192db25d54a277287851ea5988ea782b8e689a856045",
-      "size" : 56119,
+      "sha256" : "e5575289b0aaa6c7fe1749a4ba219f01ca79f31a25a56fff3c9bdd6d66329ef5",
+      "size" : 75313,
       "type" : "markdown"
     },
     {
       "path" : "drafts/modules/conformance.md",
-      "sha256" : "0939cb1d046b47ee1fe168ef2c8a2ecbab50c2d1c7eb547184ebb7cd379009c7",
+      "sha256" : "bd7c7032abb947312eea0ea788c193a4d5d840ad122e9c4a55b5ac9bce32b2d4",
       "size" : 93673,
       "type" : "markdown"
     },

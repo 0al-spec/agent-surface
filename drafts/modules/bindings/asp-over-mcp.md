@@ -6,8 +6,13 @@
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp`
-- Exact version: `0.1.0-draft.2`
+- Exact version: `0.1.0-draft.3`
 - Canonical path: `drafts/modules/bindings/asp-over-mcp.md`
+
+This module also owns the experimental ASP-over-WebMCP profile below. Its
+existing document id, title, and path are retained as stable publication
+identifiers; they do not mean that WebMCP is transported through MCP or that
+the two binding profiles share authority.
 
 ## Exact Normative Dependencies
 
@@ -981,3 +986,356 @@ capabilities are outside this binding. If a deployment uses them under another
 profile, it does so on a separate session; their content remains subject to ASP
 data-exposure and runtime policy, and none can create or satisfy a Grant,
 consent, approval, action, effect, receipt, or recovery decision.
+
+<a id="asp-over-webmcp-binding-profile"></a>
+## ASP-over-WebMCP Binding Profile
+
+The ASP-over-WebMCP Binding Profile identifier is
+`https://github.com/0al-spec/agent-surface/profiles/asp-over-webmcp/v1`.
+It binds ASP to the WebMCP Draft Community Group Report source revision
+[`1aece7c5258dbd17d4e50a7753132790c8d7925b`](https://github.com/webmachinelearning/webmcp/commit/1aece7c5258dbd17d4e50a7753132790c8d7925b).
+That exact revision, rather than the moving editor's draft or its publication
+date, is the normative WebMCP dependency for this profile.
+
+This profile is experimental. WebMCP is not a W3C Standard or Standards Track
+document, its browser-agent observation format is implementation-defined, and
+its `ToolExecuteCallback` carries only model-supplied input. A later WebMCP
+revision is not compatible by implication. Selecting another revision requires
+a new ASP profile identifier or a revision of this document that names the
+exact replacement and its compatibility rules.
+
+This profile projects a current authorized subset of ASP actions into
+document-scoped WebMCP tools. It does not make a browser, browser agent,
+`Document`, `ModelContext`, registered tool, Permissions Policy decision,
+origin, observation, or tool annotation an ASP principal or source of
+authority. The Application still performs the ordinary independent ASP checks
+for every invocation.
+
+### Browser Topology and Authority Boundary
+
+The profile has the following logical topology:
+
+```text
+Agent -> Agent Adapter -> browser-integrated Runtime Mediator
+                                  |
+                                  | WebMCP observation and invocation
+                                  v
+                         active application Document
+                                  |
+                                  | generation-bound projection adapter
+                                  v
+                       application Action Executor
+```
+
+The browser-integrated Runtime Mediator owns agent identification, Grant and
+credential custody, user and application binding, policy, approval,
+idempotency, operational limits, and outcome reconciliation. The application
+`Document` owns only a projection adapter and the application-controlled path
+to the Action Executor. Credentials, Grant artifacts, approval artifacts,
+receipt signing keys, and hidden manifest members MUST NOT be placed in tool
+names, titles, descriptions, input schemas, model-visible results, DOM
+attributes, or model-supplied input.
+
+The pinned WebMCP callback signature does not carry a caller identity, runtime
+identity, Grant, or application-verifiable invocation proof. Consequently, a
+conforming execution deployment MUST establish a separate Runtime Bridge before
+registration. The bridge binds exactly one current tuple:
+
+```text
+(user subject,
+ agent identity,
+ runtime identity,
+ application,
+ surface version,
+ surface hash,
+ Grant id,
+ Grant hash,
+ Data Exposure context,
+ browser isolation context,
+ Document generation)
+```
+
+The bridge may be implemented by a browser-controlled channel and an
+application server-side session, but it MUST keep authority outside model
+input and MUST let the Action Executor verify the ordinary ASP request and
+Grant independently. A page-local bearer credential exposed to script or a
+hidden tool input parameter is not a conforming bridge.
+
+The pinned WebMCP API also does not distinguish browser-agent dispatch from
+same-document script calling or retaining the registered callback. The Runtime
+Bridge therefore MUST provide a browser-only, single-use invocation proof for
+every execution. The browser-integrated Runtime Mediator mints that proof only
+while dispatching the exact selected WebMCP tool. It binds at least the complete
+bridge tuple, `grant_hash`, registration and Document generations, tool name,
+action id and mode, normalized input hash, application audience, a unique
+invocation nonce, issuance time, and bounded expiry.
+
+The invocation proof travels to the application-side bridge through an
+authenticated browser-controlled channel that is inaccessible to the
+`Document`, page script, DOM, callback arguments, model, and model-visible
+result. A user-agent network-layer proof or an equivalent privileged companion
+API may provide this channel. A value that page script can read, request, mint,
+replay, or attach is not a conforming invocation proof. The application-side
+bridge verifies audience, signature or channel authenticity, every binding,
+freshness, and single use before it constructs or forwards an ASP Action
+Request. It consumes the nonce atomically with pre-admission request creation.
+The Action Executor still performs every ordinary ASP Grant and action check;
+the invocation proof establishes only that this callback dispatch came through
+the bound browser Runtime Mediator.
+
+Direct JavaScript invocation, a retained callback, synthetic event, DevTools
+execution, or callback replay has no valid browser-only proof and MUST fail
+before ASP admission. If the implementation cannot prove both the exact bridge
+tuple and one fresh invocation proof, the callback MUST fail before ASP
+admission. WebMCP registration alone is therefore insufficient for `read`,
+`dry_run`, `propose`, `commit`, `reserve`, `compensate`, `revert`, or any other
+action. A deployment without both mechanisms MAY use the projection only as
+non-authoritative discovery UI; even proposal execution is forbidden because
+it can create application state or approval pressure. Such a deployment MUST
+NOT claim this execution profile or report an ASP action outcome.
+
+### Projection Eligibility and Minimization
+
+The projection adapter starts from one exact verified base manifest or
+authorized projected manifest already selected through ordinary ASP discovery.
+It MUST NOT treat the current DOM, an accessibility tree, a form, WebMCP tool
+metadata, or another site's observation as a replacement manifest.
+
+An ASP action is eligible for registration only when all of the following are
+true at the same state snapshot:
+
+- the `Document` is fully active, in a secure context, in an origin-keyed agent
+  cluster, and allowed to use the WebMCP `tools` feature;
+- the exact application origin and browser isolation context match the Runtime
+  Bridge;
+- the current user, Agent, Runtime, application, surface version and hash,
+  exact Grant id and hash, Data Exposure context, and action remain valid and
+  non-revoked;
+- the action is visible in the authorized projection and allowed by the
+  Grant's exact action, scope, mode, constraint, budget, and location bounds;
+- the action's input schema can be resolved to one closed, finite,
+  model-visible schema without authority-bearing or hidden fields; and
+- current application policy permits the action to be advertised to this
+  browser agent.
+
+Failure of any condition makes the action ineligible. An implementation MUST
+NOT register a hidden, redacted, unauthorized, unsupported, stale, or
+conditionally unavailable action and rely on a later error as its discovery
+policy. Resources and events are not projected by this profile.
+
+Each eligible ASP action maps to exactly one WebMCP tool. The tool name is:
+
+```text
+asp.<lowercase-hex(SHA-256(UTF-8(action.id)))>
+```
+
+The full 256-bit digest is used. The adapter rejects a duplicate action id,
+duplicate tool name, digest collision, name outside the pinned WebMCP syntax,
+or any attempt to map two action records to one tool. The tool name is routing
+state only and never authority. The action id and all binding state remain in
+the registration record captured outside model input.
+
+The WebMCP `inputSchema` is the exact model-visible projection of the ASP action
+input schema. It MUST reject unknown members and MUST preserve every ASP
+constraint that the pinned WebMCP JSON Schema dialect can express. If a
+security-relevant constraint cannot be represented, the action is not eligible
+for registration. The Action Executor still validates the reconstructed ASP
+input against the authoritative action schema; browser-side schema validation
+is not admission.
+
+Tool title and description are bounded presentation text derived from
+application-authored manifest metadata. They MUST NOT contain untrusted remote
+content, user secrets, invisible instructions, authority material, or text
+fetched from another origin. The Runtime Mediator and Agent Adapter treat them
+as untrusted selection hints, not policy.
+
+`readOnlyHint` is true only when the authoritative ASP action is a `read`
+operation and declares no mutation, public, external, financial, destructive,
+or privileged side effect. Otherwise it is false. `untrustedContentHint` is
+true whenever the action result can contain user-controlled, remote,
+cross-origin, or otherwise untrusted content; uncertainty resolves to true.
+Both values remain WebMCP hints and MUST NOT weaken approval, isolation,
+sanitization, data-exposure, or application-side enforcement.
+
+Version 1 does not use `ModelContextRegisterToolOptions.exposedTo`. The option
+MUST be omitted. A Permissions Policy grant or same-origin descendant exposure
+is platform eligibility only; cross-document or cross-origin delegation
+requires a future profile with an explicit ASP authority and privacy model.
+
+### Registration Generation and Page Lifecycle
+
+Before registering a tool, the adapter creates an immutable registration record
+containing at least:
+
+```json
+{
+  "profile": "https://github.com/0al-spec/agent-surface/profiles/asp-over-webmcp/v1",
+  "webmcp_revision": "1aece7c5258dbd17d4e50a7753132790c8d7925b",
+  "registration_generation": "7d9dbaea-0128-4d9c-9bd0-3246855bfe16",
+  "document_generation": "browser-internal-opaque-value",
+  "origin": "https://app.example",
+  "surface_version": "2026-07-30",
+  "surface_hash": "sha256:...",
+  "grant_id": "grant-123",
+  "grant_hash": "sha256:...",
+  "action_id": "mail.message.send",
+  "action_mode": "commit",
+  "input_schema_hash": "sha256:..."
+}
+```
+
+The concrete record is bridge-internal and MUST NOT be returned to the model.
+`document_generation` binds the browser's unique `Document` identity or an
+equivalent unforgeable lifecycle value; a URL alone is insufficient. The
+adapter creates a distinct `AbortController` for every registered tool and
+passes its signal to `registerTool`.
+
+Every callback first compares its immutable record with the current Runtime
+Bridge, application state, active `Document`, origin, isolation context,
+surface, exact Grant id and hash, user, action, schema, and registration
+generation. The comparison occurs again immediately before application
+dispatch. Related Grant lifecycle identifiers, a matching `grant_id`, or a
+newer replacement Grant do not satisfy an old `grant_hash`. A mismatch aborts
+before semantic admission with `stale_webmcp_projection`.
+
+The adapter aborts the affected registration before exposing replacement state
+when any bound value changes, including:
+
+- navigation to a new `Document`, page close, process replacement, or loss of
+  full activity;
+- back-forward-cache entry, page freeze, browser isolation-mode transition, or
+  origin change;
+- login, logout, account switch, user-session replacement, or application
+  tenancy change;
+- manifest, surface version or hash, authorized projection, action schema,
+  action availability, or Data Exposure context change;
+- Grant hash change, expiry, revocation, replacement, narrowing, budget
+  exhaustion, or runtime/agent identity change; or
+- Runtime Bridge loss, application disconnect, or inability to establish
+  freshness.
+
+An SPA route or state update that preserves the same `Document` still creates a
+new registration generation whenever eligibility or any projected bytes can
+change. The adapter invalidates old callbacks first, computes the complete new
+eligible set from one state snapshot, and then registers the new generation.
+WebMCP does not provide atomic batch registration, so temporary underexposure is
+permitted; temporary overexposure is not. If registration fails part-way, the
+adapter aborts every registration created for that generation and exposes none
+of it as a conforming set.
+
+An `AbortSignal` firing, `toolchange` notification, observation refresh, or
+tool disappearance is lifecycle signaling only. It does not revoke a Grant,
+cancel an admitted ASP action, prove that no effect occurred, or settle an
+ambiguous outcome. Conversely, revocation or bridge invalidation requires
+registration abort but does not depend on the browser agent observing that
+abort before enforcement becomes effective.
+
+### Invocation, Modes, and Results
+
+The WebMCP tool callback accepts only the advertised action input. It MUST
+reject unknown members and values outside the projected schema before
+constructing an ASP request. The callback resolves its captured action id and
+static mode; model input cannot choose or override `read`, `dry_run`,
+`propose`, `reserve`, `commit`, `compensate`, or `revert`.
+
+After the first generation check, the application-side bridge receives and
+verifies one fresh browser-only invocation proof, normalizes the callback input,
+and verifies the proof's input hash. It then performs the second generation and
+exact `grant_hash` checks and atomically consumes the invocation nonce. Only
+then may the Runtime Bridge construct the ordinary ASP Action Request using
+fresh runtime-held ASP proof, the captured exact tuple, and the normalized
+model-supplied input. A proof/input mismatch, missing proof, duplicate nonce,
+expired proof, wrong audience, or direct callback invocation fails before ASP
+admission.
+
+All ordinary normalization, schema validation, preconditions, approval,
+consent-preview binding, policy, budget, idempotency, rate-limit, capacity, and
+effect rules continue to apply. WebMCP does not replace
+`dry_run -> approval -> commit`, and a browser confirmation is not an Approval
+Receipt unless it independently satisfies the ASP approval profile.
+
+The callback returns a model-visible projection of the validated ASP Action
+Response. Because the pinned WebMCP revision has no output schema or receipt
+resource contract, the bridge validates the authoritative response before
+projection, applies the active Data Exposure context, bounds text and
+structured data, and withholds complete receipts unless ordinary policy
+explicitly permits disclosure. A WebMCP callback resolution, rejection,
+exception, browser UI message, or observation is not an App Receipt, Runtime
+Receipt, Approval Receipt, effect outcome, or proof of admission.
+
+An exact ASP idempotency key belongs to the Runtime Bridge, not to tool input.
+Repeated WebMCP invocations, observation refresh, page restoration, callback
+retry, navigation, or a new registration generation do not authorize a new key
+or duplicate effect. After a timeout, page loss, callback rejection, or other
+ambiguous post-dispatch failure, the Runtime Mediator preserves the original
+request identity and reconciles or performs only an ordinary exact idempotent
+replay.
+
+Before ASP admission, the profile uses these closed local binding errors:
+
+- `webmcp_binding_unavailable` when the exact WebMCP revision, required browser
+  isolation, Permissions Policy, secure context, or Runtime Bridge is absent;
+- `webmcp_invocation_unverified` when the browser-only invocation proof is
+  absent, stale, replayed, model- or script-controlled, bound to different
+  input or state, or otherwise invalid;
+- `stale_webmcp_projection` when any registration-generation value is no longer
+  current;
+- `webmcp_input_invalid` when callback input does not match the exact projected
+  schema; and
+- `webmcp_projection_invalid` when mapping, schema projection, registration, or
+  result projection cannot be completed safely.
+
+These errors are locally generated, contain no raw exception or remote text,
+are non-retryable unless a fresh authorized projection is successfully
+established, and assert only `admission_outcome: not_admitted` when the bridge
+can prove that no ASP admission, idempotency record, budget charge,
+reservation, receipt, workload, or effect occurred. After dispatch or any
+ambiguity, the bridge uses ordinary ASP Action Response and reconciliation
+semantics and MUST NOT relabel the outcome as a pre-admission WebMCP error.
+
+### Privacy, Threats, and Conformance
+
+The browser agent can combine context across pages and origins even when each
+page obeys the same-origin policy. The Runtime Mediator therefore applies
+purpose, disclosure, minimization, retention, remote-processing, and
+training-use policy before projecting tool input or output. Private-browsing
+and ordinary-browsing bridge state, observations, grants, caches, receipts, and
+agent memory MUST remain isolated. A deployment that cannot preserve that
+boundary disables this profile in private browsing.
+
+Tool descriptions, callback input, callback output, DOM state, remote
+application data, browser observations, and exception text are untrusted
+content. Implementations MUST defend against tool poisoning, metadata prompt
+injection, output injection, intent misrepresentation, over-parameterization,
+cross-origin context leakage, stale-page execution, confused deputy behavior,
+and direct callback triggering. Neither model reasoning nor a WebMCP hint is a
+reference monitor.
+
+A conforming ASP-over-WebMCP v1 implementation demonstrates at least:
+
+- exact upstream revision and profile selection with fail-closed behavior for
+  every other revision;
+- deterministic one-to-one tool mapping and a minimized closed input schema;
+- exclusion of hidden, unauthorized, stale, cross-origin, and unsupported
+  actions;
+- a Runtime Bridge whose exact tuple and credentials are not model-controlled;
+- exact `grant_id` and `grant_hash` binding in the bridge and registration;
+- browser-only per-invocation proof that rejects direct or retained callback
+  execution and is consumed exactly once;
+- generation checks before proof acceptance and immediately before dispatch;
+- invalidation for navigation, SPA state change, account switch, surface or
+  schema change, Grant revocation, and bridge loss;
+- static execution-mode mapping, ordinary ASP approval and application-side
+  enforcement, and exact idempotent recovery;
+- bounded Data Exposure projection and isolation of private browsing; and
+- negative tests proving that direct or retained callback calls, missing,
+  replayed, input-mismatched, or script-controlled invocation proofs, stale
+  Grant hashes and callbacks, forged authority fields, unauthorized actions,
+  unsupported schema constraints, duplicate mappings, partial registration,
+  and ambiguous outcomes fail closed.
+
+Machine-readable projection schemas and positive/negative browser vectors are
+not defined by this prose profile. An implementation claiming a future
+machine-validated maturity level must additionally name an ASP conformance
+artifact version that tests those requirements; prose conformance alone
+supports `specified` maturity only.
