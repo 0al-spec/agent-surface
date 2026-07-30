@@ -155,7 +155,7 @@
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -296,7 +296,7 @@
           "kind": "rfc_anchor",
           "ref": "proof-bound-action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "proof-bound-action-executor-profile"
         }
       ]
@@ -362,7 +362,7 @@
           "kind": "rfc_anchor",
           "ref": "agent-adapter-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "agent-adapter-profile"
         }
       ]
@@ -1223,14 +1223,14 @@
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "application-mvp-mapping",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "application-mvp-mapping"
         }
       ]
@@ -1369,21 +1369,21 @@
           "kind": "rfc_anchor",
           "ref": "reference-api-importer",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-api-importer"
         },
         {
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "application-mvp-mapping",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "application-mvp-mapping"
         },
         {
@@ -1555,21 +1555,21 @@
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-issuer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "grant-issuer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "action-executor-profile"
         }
       ]
@@ -2253,28 +2253,28 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-adapter-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "agent-adapter-profile"
         },
         {
@@ -2495,35 +2495,35 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-adapter-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "agent-adapter-profile"
         },
         {
@@ -2742,7 +2742,7 @@
           "kind": "rfc_anchor",
           "ref": "receipt-producer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "receipt-producer-profile"
         }
       ]
@@ -3177,7 +3177,7 @@
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -3283,21 +3283,21 @@
           "kind": "rfc_anchor",
           "ref": "grant-issuer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "grant-issuer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -3512,7 +3512,7 @@
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -3631,7 +3631,7 @@
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -3750,7 +3750,7 @@
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -3847,7 +3847,7 @@
           "kind": "rfc_anchor",
           "ref": "runtime-attestation-role-requirements",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-attestation-role-requirements"
         }
       ]
@@ -3950,14 +3950,14 @@
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "example-end-to-end-flow",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "example-end-to-end-flow"
         }
       ]
@@ -4112,28 +4112,28 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "example-end-to-end-flow",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "example-end-to-end-flow"
         },
         {
@@ -4316,28 +4316,28 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         },
         {
@@ -4850,21 +4850,21 @@
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         },
         {
@@ -5120,56 +5120,56 @@
           "kind": "rfc_anchor",
           "ref": "conformance",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "conformance"
         },
         {
           "kind": "rfc_anchor",
           "ref": "conformance-claim-and-composition-rules",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "conformance-claim-and-composition-rules"
         },
         {
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-issuer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "grant-issuer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "receipt-producer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "receipt-producer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-adapter-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "agent-adapter-profile"
         }
       ]
@@ -5203,7 +5203,7 @@
           "kind": "rfc_anchor",
           "ref": "reference-manifest-linter",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-manifest-linter"
         },
         {
@@ -5259,7 +5259,7 @@
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-mock-participants"
         },
         {
@@ -5425,14 +5425,14 @@
           "kind": "rfc_anchor",
           "ref": "reference-replay-tool",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-replay-tool"
         },
         {
           "kind": "rfc_anchor",
           "ref": "application-mvp-mapping",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "application-mvp-mapping"
         },
         {
@@ -5538,14 +5538,14 @@
           "kind": "rfc_anchor",
           "ref": "conformance",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "conformance"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
@@ -5677,21 +5677,21 @@
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-mock-participants"
         },
         {
@@ -5780,28 +5780,28 @@
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-mock-participants"
         },
         {
@@ -5989,7 +5989,7 @@
           "anchorId": "runtime-mediator-profile"
         }
       ],
-      "rationale": "RFC определяет optional issuer-owned Purpose- and Task-Bound Agent Grant Profile: exact purpose/task identity, request/session binding, bounded expiry, Policy Decision inputs и application-side enforcement на каждом action. Conformance Suite 1.10.2 и reference mocks проверяют closed wire object, exact issuer namespace, revisions и relationship, attenuation order, fail-closed lifecycle admission, session fencing, terminal revocation и исторический replay boundary. Digest связывает canonical bytes, но не доказывает semantic purpose; labels, goals и external task ids остаются informational.",
+      "rationale": "RFC определяет optional issuer-owned Purpose- and Task-Bound Agent Grant Profile: exact purpose/task identity, request/session binding, bounded expiry, Policy Decision inputs и application-side enforcement на каждом action. Conformance Suite 1.10.3 и reference mocks проверяют closed wire object, exact issuer namespace, revisions и relationship, attenuation order, fail-closed lifecycle admission, session fencing, terminal revocation и исторический replay boundary. Digest связывает canonical bytes, но не доказывает semantic purpose; labels, goals и external task ids остаются informational.",
       "priority": "P2",
       "profile": "oauth-grants",
       "depends_on": [
@@ -6064,42 +6064,42 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-issuer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "grant-issuer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         },
         {
@@ -6187,28 +6187,28 @@
           "kind": "rfc_anchor",
           "ref": "conformance",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "conformance"
         },
         {
           "kind": "rfc_anchor",
           "ref": "conformance-claim-and-composition-rules",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "conformance-claim-and-composition-rules"
         },
         {
           "kind": "rfc_anchor",
           "ref": "adoption-oriented-conformance-bundles",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "adoption-oriented-conformance-bundles"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
@@ -6380,7 +6380,7 @@
           "kind": "rfc_anchor",
           "ref": "conformance",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "conformance"
         },
         {
@@ -6604,7 +6604,7 @@
           "kind": "rfc_anchor",
           "ref": "asp-over-mcp-binding-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "asp-over-mcp-binding-profile"
         },
         {
@@ -6702,49 +6702,49 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-issuer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "grant-issuer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-adapter-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "agent-adapter-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "runtime-mediator-profile"
         },
         {
@@ -6799,8 +6799,12 @@
       "description": "определить experimental browser binding, который проецирует manifest-pinned ASP actions в document-scoped WebMCP tools и корректно обрабатывает page lifecycle.",
       "category": "Protocol bindings / web",
       "side": "right",
-      "status": "missing",
+      "status": "present",
       "anchors": [
+        {
+          "heading": "ASP-over-WebMCP Binding Profile",
+          "anchorId": "asp-over-webmcp-binding-profile"
+        },
         {
           "heading": "Discovery",
           "anchorId": "discovery"
@@ -6818,7 +6822,7 @@
           "anchorId": "consent-preview-contract"
         }
       ],
-      "rationale": "WebMCP на 2026-07-21 остаётся Draft Community Group Report, поэтому binding должен быть source-revision-pinned experimental profile. Он обязан определить origin/document/user context, execution-mode mapping, registration invalidation, stale-page handling и projection minimization. Browser или registered tool не становятся authority; application-side verification остаётся обязательной, а скрытый либо неавторизованный ASP member не должен регистрироваться.",
+      "rationale": "RFC теперь определяет experimental ASP-over-WebMCP v1 profile, привязанный к immutable WebMCP source revision 1aece7c5258dbd17d4e50a7753132790c8d7925b. Профиль проецирует только текущие authorized actions в document-scoped tools, детерминированно связывает tool name с action id, минимизирует closed input schema и запрещает cross-origin exposedTo. WebMCP callback не несёт проверяемой identity, Grant или browser-dispatch signal, поэтому execution требует generation-bound Runtime Bridge, exact grant_hash и browser-only single-use invocation proof, недоступный page script и model input; direct/retained callback invocation fails before admission. Без этих механизмов registration остаётся только non-authoritative discovery UI. AbortSignal и fail-closed generation checks инвалидируют stale tools при navigation, BFCache/freeze, SPA changes, account switch, surface/schema change, Grant replacement/revocation и bridge loss. WebMCP hints, Permissions Policy, browser confirmation и callback result не становятся authority, approval или receipt. Machine-readable browser vectors остаются отдельным executable follow-up.",
       "priority": "P2",
       "profile": "conformance-tooling",
       "depends_on": [
@@ -6834,8 +6838,44 @@
         69
       ],
       "target_release": null,
-      "maturity": "proposal",
-      "evidence": []
+      "maturity": "specified",
+      "evidence": [
+        {
+          "kind": "rfc_anchor",
+          "ref": "asp-over-webmcp-binding-profile",
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
+          "document_version": "0.1.0-draft.3",
+          "anchor_id": "asp-over-webmcp-binding-profile"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "discovery",
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+          "document_version": "0.1.0-draft.1",
+          "anchor_id": "discovery"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "curated-surface-boundary",
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+          "document_version": "0.1.0-draft.1",
+          "anchor_id": "curated-surface-boundary"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "model-context-protocol",
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
+          "document_version": "0.1.0-draft.1",
+          "anchor_id": "model-context-protocol"
+        },
+        {
+          "kind": "rfc_anchor",
+          "ref": "consent-preview-contract",
+          "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
+          "document_version": "0.1.0-draft.2",
+          "anchor_id": "consent-preview-contract"
+        }
+      ]
     },
     {
       "id": 71,
@@ -6995,28 +7035,28 @@
           "kind": "rfc_anchor",
           "ref": "application-mvp-mapping",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "application-mvp-mapping"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "conformance-claim-and-composition-rules",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "conformance-claim-and-composition-rules"
         },
         {
@@ -7190,14 +7230,14 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "application-mvp-mapping",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.2",
+          "document_version": "0.1.0-draft.3",
           "anchor_id": "application-mvp-mapping"
         }
       ]

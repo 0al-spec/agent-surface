@@ -2,7 +2,7 @@
   "$schema": "./document-set.schema.json",
   "schema_version": 2,
   "document_set_id": "https://github.com/0al-spec/agent-surface/publication/document-set/v1",
-  "document_set_version": "0.2.0-draft.4",
+  "document_set_version": "0.2.0-draft.5",
   "protocol_version": "agent-surface/0.1",
   "publication_mode": "modular",
   "authority": {
@@ -49,7 +49,7 @@
   },
   "aggregate": {
     "path": "drafts/agent-surface.md",
-    "sha256": "989ad6895f35ecf62954be4f589303eafb4579304686f838da24ad18b59282b1",
+    "sha256": "89cb092000826190d2c5dda16c396d10689b751bd92f7b19ef4f81bb712ec570",
     "generated": true,
     "role": "exact_document_set_representation",
     "assembly": {
@@ -376,14 +376,14 @@
     },
     {
       "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
-      "version": "0.1.0-draft.2",
+      "version": "0.1.0-draft.3",
       "title": "ASP-over-MCP Binding",
       "kind": "binding",
       "role": "binding",
       "status": "canonical",
       "publication_order": 5,
       "source_path": "drafts/modules/bindings/asp-over-mcp.md",
-      "source_sha256": "e5d7a6d0c7c3bef8b4d3192db25d54a277287851ea5988ea782b8e689a856045",
+      "source_sha256": "e5575289b0aaa6c7fe1749a4ba219f01ca79f31a25a56fff3c9bdd6d66329ef5",
       "normative_dependencies": [
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
@@ -445,6 +445,11 @@
           "anchor_id": "asp-over-mcp-binding",
           "heading": "ASP-over-MCP Binding",
           "aliases": []
+        },
+        {
+          "anchor_id": "asp-over-webmcp-binding-profile",
+          "heading": "ASP-over-WebMCP Binding Profile",
+          "aliases": []
         }
       ],
       "exports": [
@@ -456,14 +461,14 @@
     },
     {
       "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-      "version": "0.1.0-draft.2",
+      "version": "0.1.0-draft.3",
       "title": "ASP Conformance",
       "kind": "conformance",
       "role": "conformance",
       "status": "canonical",
       "publication_order": 6,
       "source_path": "drafts/modules/conformance.md",
-      "source_sha256": "0939cb1d046b47ee1fe168ef2c8a2ecbab50c2d1c7eb547184ebb7cd379009c7",
+      "source_sha256": "bd7c7032abb947312eea0ea788c193a4d5d840ad122e9c4a55b5ac9bce32b2d4",
       "normative_dependencies": [
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
@@ -487,7 +492,7 @@
         },
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
-          "version": "0.1.0-draft.2"
+          "version": "0.1.0-draft.3"
         }
       ],
       "normative_references": [
@@ -540,7 +545,7 @@
           "source_anchor_id": "asp-conformance",
           "target_document": {
             "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
-            "version": "0.1.0-draft.2"
+            "version": "0.1.0-draft.3"
           },
           "target_kind": "artifact",
           "target_id": "drafts/modules/bindings/asp-over-mcp.md"
@@ -573,26 +578,26 @@
   "registries": [
     {
       "registry_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-      "version": "1.10.2",
+      "version": "1.10.3",
       "source_path": "conformance/v1/suite.json",
-      "source_sha256": "ce39b271a3a4eaa8a1eb7a3eab505c46037eeda84b253817c7aa77c0b2ba2286",
+      "source_sha256": "21b746266b6c2ae755b3971f6eda02d43fab134a59614e284352eb2601ca3da1",
       "id_member": "suite_id",
       "version_member": "suite_version",
       "owner": {
         "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-        "version": "0.1.0-draft.2"
+        "version": "0.1.0-draft.3"
       }
     },
     {
       "registry_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/v1",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "source_path": "conformance/v1/bundles.json",
-      "source_sha256": "59864ab81f2f0d1e00ec1dffb0f2b6486fda4c1587eb53a81421feca53d0934a",
+      "source_sha256": "6e294fa9be1dd9459ca98b65b3f695a8c6e808b88289b65abdf2fe4ff6fa4db5",
       "id_member": "registry_id",
       "version_member": "registry_version",
       "owner": {
         "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-        "version": "0.1.0-draft.2"
+        "version": "0.1.0-draft.3"
       }
     }
   ],

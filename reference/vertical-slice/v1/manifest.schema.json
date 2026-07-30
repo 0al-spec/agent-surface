@@ -48,7 +48,7 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.10.2"
+      "const": "1.10.3"
     },
     "bundle_id": {
       "const": "https://github.com/0al-spec/agent-surface/conformance/bundles/application-audited-effects/v1"

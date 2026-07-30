@@ -99,7 +99,7 @@ documents rather than expand ASP Core indefinitely.
 | Card | Priority | Coverage | Dependencies | Required boundary |
 | --- | --- | --- | --- | --- |
 | #69 ASP-over-MCP Binding | P1 | `present` | #1, #4, #5, #13, #14, #15, #19, #30, #36, #40, #60, #63 | MCP revision `2025-11-25`, manifest-pinned discovery, Grant location issuance, dedicated session lifecycle, schema-bound calls, credential custody, cancellation/recovery, app-side verification, receipts, and executable negative vectors are machine-validated. |
-| #70 ASP-over-WebMCP Binding | P2 | `missing` | #6, #13, #14, #15, #16, #19, #36, #46, #63, #69 | Keep the binding experimental and source-revision-pinned; define origin and document lifecycle, projection, execution-mode mapping, and app-side enforcement. |
+| #70 ASP-over-WebMCP Binding | P2 | `present` / `specified` | #6, #13, #14, #15, #16, #19, #36, #46, #63, #69 | Experimental profile is pinned to immutable WebMCP revision `1aece7c…`; it defines minimized document-scoped projection, a Runtime Bridge bound to exact `grant_hash`, browser-only single-use invocation proof, lifecycle invalidation, static modes, and app-side enforcement. Executable browser vectors remain follow-up work. |
 | #67 WoT Thing Description Mapping | P3 | `missing` | #13, #14, #16, #17, #60 | Map ASP affordances to TD 1.1 without inferring authority or automatically converting Resource and Property semantics. |
 | #68 Arazzo Workflow Mapping | P3 | `missing` | #17, #19, #22, #23, #24, #60 | Require explicit ASP metadata for import; do not infer modes, Grants, approvals, effects, or receipts from a generic workflow. |
 | #71 Apple App Intents Mapping | P3 | `missing` | #16, #19, #20, #22, #46 | Treat platform authentication and confirmation as local mechanisms, not portable ASP authority or evidence. |
@@ -150,8 +150,9 @@ of cards.
 #69 ASP-over-MCP Binding --------------------------/
 ```
 
-#69 is machine-validated, so #70 is now structurally ready on top of the
-completed #63 and #69 contracts.
+#69 is machine-validated and #70 is now specified on top of the completed #63
+and #69 contracts. The remaining WebMCP debt is an executable browser-adapter
+schema and positive/negative lifecycle vector set.
 
 ### Lane B: identity evidence and A2A
 
@@ -201,8 +202,9 @@ normative prose plus a closed document-set schema, catalog, semantic validator,
 negative tests, and CI gate. The next publication step is **#78 Reproducible
 RFC Assembly Pipeline**, followed by **#79 Atomic Modular RFC Activation**.
 **#70
-ASP-over-WebMCP Binding** is the ready content alternative, but remains P2 while
-WebMCP is experimental. Lower-priority mappings should advance only when their
+ASP-over-WebMCP Binding** is specified but remains P2 while WebMCP is
+experimental. Its executable browser-vector follow-up should advance before
+claiming machine-validated maturity. Lower-priority mappings should advance only when their
 upstream specification is sufficiently stable and there is concrete adopter
 demand.
 
