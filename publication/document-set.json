@@ -2,7 +2,7 @@
   "$schema": "./document-set.schema.json",
   "schema_version": 2,
   "document_set_id": "https://github.com/0al-spec/agent-surface/publication/document-set/v1",
-  "document_set_version": "0.2.0-draft.3",
+  "document_set_version": "0.2.0-draft.4",
   "protocol_version": "agent-surface/0.1",
   "publication_mode": "modular",
   "authority": {
@@ -33,7 +33,7 @@
     "source_map_role": "build_provenance_only",
     "output_digest_location": "source_map",
     "content_transforms": "before_provenance_bound_assembly",
-    "aggregate_links": "source_relative_rebase_v1"
+    "aggregate_links": "aggregate_local_fragments_v1"
   },
   "activation": {
     "transition": "atomic_catalog_transition",
@@ -49,7 +49,7 @@
   },
   "aggregate": {
     "path": "drafts/agent-surface.md",
-    "sha256": "211eb30b967e062afd61cfe25ee95ce163864dca0d6a305763cb9b1162f800e5",
+    "sha256": "989ad6895f35ecf62954be4f589303eafb4579304686f838da24ad18b59282b1",
     "generated": true,
     "role": "exact_document_set_representation",
     "assembly": {
