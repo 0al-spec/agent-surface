@@ -6,6 +6,7 @@ import posixpath
 import re
 import unicodedata
 from collections.abc import Mapping, Sequence
+from html.parser import HTMLParser
 from pathlib import PurePosixPath
 from typing import Any
 from urllib.parse import unquote, urlsplit, urlunsplit
@@ -25,10 +26,7 @@ _REFERENCE_LINK = re.compile(
 )
 _FENCE = re.compile(r"^[ \t]{0,3}(?P<marker>`{3,}|~{3,})")
 _BACKTICKS = re.compile(r"`+")
-_EXPLICIT_ANCHOR = re.compile(
-    r"<a\s+id=[\"'](?P<id>[a-z0-9]+(?:-[a-z0-9]+)*)[\"']",
-    re.IGNORECASE,
-)
+_ANCHOR_ID = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 _GITHUB_PUNCTUATION = re.compile(
     r"[\u2000-\u206f\u2e00-\u2e7f\\'!\"#$%&()*+,./:;<=>?@\[\]^`{|}~]"
 )
@@ -36,6 +34,29 @@ _GITHUB_PUNCTUATION = re.compile(
 
 class AggregateLinkError(ValueError):
     """A Markdown link cannot be safely projected into the aggregate."""
+
+
+class _RenderedAnchorParser(HTMLParser):
+    """Collect real anchor start tags while HTML comments remain inert."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.anchor_ids: list[str] = []
+
+    def handle_starttag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+    ) -> None:
+        if tag.lower() != "a":
+            return
+        ids = [value for name, value in attrs if name.lower() == "id"]
+        if (
+            len(ids) == 1
+            and ids[0] is not None
+            and _ANCHOR_ID.fullmatch(ids[0]) is not None
+        ):
+            self.anchor_ids.append(ids[0])
 
 
 def _code_spans(line: str) -> list[tuple[int, int]]:
@@ -220,6 +241,30 @@ def _github_slug(value: str) -> str:
     return _GITHUB_PUNCTUATION.sub("", normalized).replace(" ", "-")
 
 
+def _html_anchor_ids(token: Token) -> list[str]:
+    if token.type not in {"html_block", "html_inline"}:
+        return []
+    parser = _RenderedAnchorParser()
+    parser.feed(token.content)
+    parser.close()
+    return parser.anchor_ids
+
+
+def markdown_explicit_anchor_ids(content: bytes) -> list[str]:
+    """Return anchors rendered from raw HTML, excluding every code context."""
+
+    try:
+        source = content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise AggregateLinkError("Markdown content is not UTF-8") from error
+    tokens = MarkdownIt("commonmark", {"html": True}).parse(source)
+    return [
+        anchor
+        for token in _walk_tokens(tokens)
+        for anchor in _html_anchor_ids(token)
+    ]
+
+
 def markdown_heading_anchor_ids(content: bytes) -> list[str]:
     """Return generated GitHub-compatible heading anchors in source order."""
 
@@ -251,23 +296,33 @@ def markdown_canonical_heading_anchor_ids(content: bytes) -> list[str]:
         source = content.decode("utf-8")
     except UnicodeDecodeError as error:
         raise AggregateLinkError("Markdown content is not UTF-8") from error
-    lines = source.splitlines()
     generated = iter(markdown_heading_anchor_ids(content))
     canonical: list[str] = []
     tokens = MarkdownIt("commonmark", {"html": True}).parse(source)
-    for token in tokens:
+    for index, token in enumerate(tokens):
         if token.type != "heading_open":
             continue
         anchor = next(generated)
-        start_line = token.map[0] if token.map is not None else None
-        if start_line is not None:
-            preceding = start_line - 1
-            while preceding >= 0 and not lines[preceding].strip():
-                preceding -= 1
-            if preceding >= 0:
-                explicit = _EXPLICIT_ANCHOR.search(lines[preceding])
-                if explicit is not None:
-                    anchor = explicit.group("id")
+        previous = next(
+            (
+                candidate
+                for candidate in reversed(tokens[:index])
+                if candidate.map is not None
+            ),
+            None,
+        )
+        if (
+            previous is not None
+            and token.map is not None
+            and previous.map[1] == token.map[0]
+        ):
+            explicit = [
+                anchor_id
+                for candidate in _walk_tokens([previous])
+                for anchor_id in _html_anchor_ids(candidate)
+            ]
+            if explicit:
+                anchor = explicit[-1]
         canonical.append(anchor)
     return canonical
 
@@ -279,10 +334,7 @@ def markdown_anchor_ids(content: bytes) -> set[str]:
         source = content.decode("utf-8")
     except UnicodeDecodeError as error:
         raise AggregateLinkError("Markdown content is not UTF-8") from error
-    anchors = {
-        match.group("id")
-        for match in _EXPLICIT_ANCHOR.finditer(source)
-    }
+    anchors = set(markdown_explicit_anchor_ids(content))
     anchors.update(markdown_heading_anchor_ids(content))
     return anchors
 
@@ -305,8 +357,7 @@ def aggregate_fragment_targets(
             )
         local_targets: dict[str, str] = {}
         source = content.decode("utf-8")
-        for match in _EXPLICIT_ANCHOR.finditer(source):
-            anchor = match.group("id")
+        for anchor in markdown_explicit_anchor_ids(content):
             owner = explicit_owners.get(anchor)
             if owner is not None:
                 raise AggregateLinkError(
@@ -407,6 +458,68 @@ def fenced_source_lines(content: bytes) -> set[int]:
             active_marker = None
             active_width = 0
     return fenced
+
+
+def expected_mapped_source_lines(
+    source_contents: Mapping[str, bytes],
+    *,
+    source_order: Sequence[str],
+    output_path: str,
+) -> dict[str, list[str]]:
+    """Return each source line after the aggregate's deterministic rewrites."""
+
+    fragment_targets = aggregate_fragment_targets(
+        source_contents,
+        source_order=source_order,
+    )
+    expected: dict[str, list[str]] = {}
+    for source_index, source_path in enumerate(source_order):
+        content = source_contents.get(source_path)
+        if content is None:
+            raise AggregateLinkError(
+                f"aggregate link source is unavailable: {source_path!r}"
+            )
+        try:
+            source = content.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise AggregateLinkError(
+                f"Markdown source is not UTF-8: {source_path!r}"
+            ) from error
+        lines = source.splitlines()
+        fenced = fenced_source_lines(content)
+        demoted_headings: set[int] = set()
+        if source_index:
+            tokens = MarkdownIt("commonmark", {"html": True}).parse(source)
+            for token in tokens:
+                if token.type != "heading_open":
+                    continue
+                if (
+                    token.map is None
+                    or token.map[1] - token.map[0] != 1
+                    or not token.markup
+                    or set(token.markup) != {"#"}
+                    or token.tag == "h6"
+                ):
+                    raise AggregateLinkError(
+                        "aggregate heading demotion supports only one-line "
+                        f"ATX headings below level six in {source_path!r}"
+                    )
+                demoted_headings.add(token.map[0] + 1)
+
+        transformed: list[str] = []
+        for line_number, line in enumerate(lines, 1):
+            if line_number in demoted_headings:
+                line = "#" + line
+            if line_number not in fenced:
+                line = rebase_markdown_line(
+                    line,
+                    source_path=source_path,
+                    output_path=output_path,
+                    fragment_targets=fragment_targets[source_path],
+                )
+            transformed.append(line)
+        expected[source_path] = transformed
+    return expected
 
 
 def rebase_aggregate_links(

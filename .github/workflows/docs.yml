@@ -183,7 +183,9 @@ jobs:
           # RFC Editor occasionally sends automated clients through a redirect
           # loop; validate the same immutable RFC number through IETF Datatracker.
           # The generated aggregate rebases source-relative navigation links
-          # into its own reading-view location and is checked with all Markdown.
+          # into its own reading-view location. Historical extraction fixtures
+          # are validated deterministically by publication tests instead of
+          # multiplying every external request in this network-dependent job.
           args: >-
             --no-progress
             --accept 200,204,206,301,302,303,307,308,429
@@ -194,7 +196,17 @@ jobs:
             --max-retries 1
             --retry-wait-time 2
             --max-concurrency 16
-            './**/*.md'
+            './*.md'
+            './.github/*.md'
+            './conformance/**/*.md'
+            './drafts/**/*.md'
+            './mocks/**/*.md'
+            './publication/README.md'
+            './publication/assembly/README.md'
+            './publication/migration/README.md'
+            './reference/**/*.md'
+            './review/**/*.md'
+            './tools/**/*.md'
           fail: true
         env:
           GITHUB_TOKEN: ${{ github.token }}

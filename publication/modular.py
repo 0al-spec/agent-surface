@@ -31,6 +31,7 @@ from publication.assembly.check import (  # noqa: E402
 from publication.aggregate_links import (  # noqa: E402
     AggregateLinkError,
     LINK_POLICY,
+    expected_mapped_source_lines,
     markdown_anchor_ids,
     markdown_link_destinations,
     rebase_aggregate_links,
@@ -304,6 +305,151 @@ def _compact_source_map(content: bytes, *, output_sha256: str) -> bytes:
     ).encode("utf-8")
 
 
+def _validate_compact_source_map(
+    layout: _BuildLayout,
+    output: bytes,
+    content: bytes,
+    source_contents: Mapping[str, bytes],
+) -> None:
+    """Prove complete one-to-one line provenance for every selected source."""
+
+    try:
+        source_map = json.loads(content)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ModularBuildError(f"source map is not valid JSON: {error}") from error
+    if (
+        not isinstance(source_map, Mapping)
+        or set(source_map)
+        != {"schemaVersion", "lineBase", "outputSha256", "mappings"}
+        or source_map.get("schemaVersion") != 2
+        or source_map.get("lineBase") != 1
+        or source_map.get("outputSha256") != _sha256(output)
+    ):
+        raise ModularBuildError(
+            "source map metadata does not exactly bind the generated aggregate"
+        )
+    mappings = source_map.get("mappings")
+    if not isinstance(mappings, list) or not mappings:
+        raise ModularBuildError("source map has no output coverage")
+
+    source_order = [path.as_posix() for path in layout.sources]
+    if set(source_contents) != set(source_order):
+        raise ModularBuildError(
+            "source-map validator did not receive exactly the selected sources"
+        )
+    source_line_counts = {
+        path: len(source_contents[path].splitlines())
+        for path in source_order
+    }
+    try:
+        output_lines = output.decode("utf-8").splitlines()
+        expected_source_lines = expected_mapped_source_lines(
+            source_contents,
+            source_order=source_order,
+            output_path=layout.output.as_posix(),
+        )
+    except (UnicodeDecodeError, AggregateLinkError) as error:
+        raise ModularBuildError(
+            f"cannot derive exact source-map line contents: {error}"
+        ) from error
+    next_source_line = {path: 1 for path in source_order}
+    source_index = 0
+    next_generated_line = 1
+
+    for mapping in mappings:
+        if not isinstance(mapping, Mapping) or set(mapping) != {
+            "generatedStartLine",
+            "generatedEndLine",
+            "kind",
+            "source",
+        }:
+            raise ModularBuildError("source-map mapping shape is invalid")
+        generated_start = mapping.get("generatedStartLine")
+        generated_end = mapping.get("generatedEndLine")
+        if (
+            type(generated_start) is not int
+            or type(generated_end) is not int
+            or generated_start != next_generated_line
+            or generated_end < generated_start
+            or generated_end > len(output_lines)
+        ):
+            raise ModularBuildError(
+                "source-map output coverage is not contiguous"
+            )
+        next_generated_line = generated_end + 1
+
+        kind = mapping.get("kind")
+        source = mapping.get("source")
+        if kind == "generated_separator":
+            if source is not None or any(
+                output_lines[line - 1].strip()
+                for line in range(generated_start, generated_end + 1)
+            ):
+                raise ModularBuildError(
+                    "generated separator must cover only empty output lines"
+                )
+            continue
+        if (
+            kind != "markdown"
+            or not isinstance(source, Mapping)
+            or set(source) != {"path", "startLine", "endLine"}
+        ):
+            raise ModularBuildError(
+                "source-map markdown provenance is invalid"
+            )
+
+        source_path = source.get("path")
+        source_start = source.get("startLine")
+        source_end = source.get("endLine")
+        if (
+            source_index >= len(source_order)
+            or source_path != source_order[source_index]
+            or type(source_start) is not int
+            or type(source_end) is not int
+            or source_start != next_source_line[source_path]
+            or source_end < source_start
+            or source_end > source_line_counts[source_path]
+        ):
+            raise ModularBuildError(
+                "source-map source coverage is incomplete, overlapping, "
+                "or out of catalog order"
+            )
+        generated_span = generated_end - generated_start + 1
+        source_span = source_end - source_start + 1
+        if generated_span != source_span:
+            raise ModularBuildError(
+                "source-map generated and source spans have different lengths"
+            )
+        for offset in range(generated_span):
+            generated_line = output_lines[generated_start - 1 + offset]
+            expected_line = expected_source_lines[source_path][
+                source_start - 1 + offset
+            ]
+            if generated_line != expected_line:
+                raise ModularBuildError(
+                    "source-map line content does not match its declared "
+                    f"source at {source_path}:{source_start + offset}"
+                )
+        next_source_line[source_path] = source_end + 1
+        if source_end == source_line_counts[source_path]:
+            source_index += 1
+
+    if next_generated_line - 1 != len(output_lines):
+        raise ModularBuildError(
+            "source-map output coverage does not match aggregate lines"
+        )
+    incomplete = [
+        path
+        for path in source_order
+        if next_source_line[path] != source_line_counts[path] + 1
+    ]
+    if source_index != len(source_order) or incomplete:
+        raise ModularBuildError(
+            "source map does not completely cover every selected source: "
+            + ", ".join(incomplete or source_order[source_index:])
+        )
+
+
 def _compile(
     root: Path,
     compiler: Path,
@@ -500,6 +646,16 @@ def build(root: Path, compiler: Path) -> None:
         catalog=catalog,
         layout=layout,
     )
+    source_contents = {
+        path.as_posix(): (root / path).read_bytes()
+        for path in layout.sources
+    }
+    _validate_compact_source_map(
+        layout,
+        generated[0],
+        generated[2],
+        source_contents,
+    )
     _validate_local_link_targets(root, layout, generated[0])
     for path, content in zip(layout.artifacts, generated, strict=True):
         destination = root / path
@@ -535,36 +691,16 @@ def check(root: Path, compiler: Path) -> None:
         raise ModularBuildError("catalog compiler revision does not match lock")
     if _sha256(first[0]) != aggregate["sha256"]:
         raise ModularBuildError("catalog aggregate digest is stale")
-    source_map = json.loads(first[2])
-    if source_map.get("outputSha256") != aggregate["sha256"]:
-        raise ModularBuildError("source-map output digest is stale")
-    mappings = source_map.get("mappings")
-    if not isinstance(mappings, list) or not mappings:
-        raise ModularBuildError("source map has no output coverage")
-    next_line = 1
-    for mapping in mappings:
-        start = mapping.get("generatedStartLine")
-        end = mapping.get("generatedEndLine")
-        if start != next_line or not isinstance(end, int) or end < start:
-            raise ModularBuildError(
-                "source-map output coverage is not contiguous"
-            )
-        next_line = end + 1
-    if next_line - 1 != len(first[0].splitlines()):
-        raise ModularBuildError(
-            "source-map output coverage does not match aggregate lines"
-        )
-    selected_sources = {path.as_posix() for path in layout.sources}
-    mapped_sources = {
-        item["source"]["path"]
-        for item in mappings
-        if item.get("kind") == "markdown"
-        and isinstance(item.get("source"), dict)
+    source_contents = {
+        path.as_posix(): (root / path).read_bytes()
+        for path in layout.sources
     }
-    if mapped_sources != selected_sources:
-        raise ModularBuildError(
-            "source map does not cover exactly the selected module sources"
-        )
+    _validate_compact_source_map(
+        layout,
+        first[0],
+        first[2],
+        source_contents,
+    )
     _validate_local_link_targets(root, layout, first[0])
 
 

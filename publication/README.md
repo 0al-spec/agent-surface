@@ -35,7 +35,9 @@ The current publication mode is `modular`:
   publishing ambiguous navigation;
 - the exact Hyperprompt v0.2.0 release, aggregate digest, manifest, complete
   source map, active source digests, dependency graph, exports, registry owners,
-  and anchor relocations are checked together;
+  and anchor relocations are checked together; source-map validation requires
+  every input line exactly once, in catalog order, with equal generated/source
+  spans and only empty generated separators;
 - the active builder validates normalized repository-relative source and
   artifact paths, symlink containment, uniqueness, and input/output separation
   before reading module sources or invoking the compiler;
@@ -71,7 +73,9 @@ make publication-check \
 
 Non-authoritative extraction fixtures remain under `publication/candidates/`
 and the 79A–79C rehearsal artifacts remain under `publication/migration/`.
-Neither tree is selected by the active catalog. Future publication changes edit
-the canonical module sources, regenerate the aggregate with
+Neither tree is selected by the active catalog. Network link checks exclude
+their duplicated RFC snapshots; deterministic publication tests continue to
+validate fixture structure and internal references. Future publication changes
+edit the canonical module sources, regenerate the aggregate with
 `make publication-modular-build`, and validate the same state with
 `make publication-check`.
