@@ -51,7 +51,8 @@ are not adoption-time measurements or benchmarks.
 
 These are characteristics of the selected local export function, not claims
 that ContextBuilder advertised ASP guarantees and violated them. Its sentinel
-is a useful ownership safeguard and is preserved in the comparison. The probe
+is a coarse ownership marker and is preserved in the comparison; its existence
+does not authenticate ownership, and a filesystem writer can create it. The probe
 does not evaluate concurrent writers, process crashes, HTTP authentication,
 user approval, model behavior or ASP receipts.
 
