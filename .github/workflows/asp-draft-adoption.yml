@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SPECSPACE_REVISION: ef7564db255e712ad50e2429551dc449b595ddc2
+  SPECSPACE_REVISION: 181926375d27b18b95d8e596e569540477e427b2
 
 jobs:
   synthetic:

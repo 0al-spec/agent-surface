@@ -22,7 +22,7 @@ absent. In the experimental deployment all routes except the bounded ASP API
 and the existing operator-only raw-idea API are disabled.
 
 Application implementation: [SpecSpace PR #430](https://github.com/0al-spec/SpecSpace/pull/430),
-commit `ef7564db255e712ad50e2429551dc449b595ddc2`. The ASP baseline remains
+commit `181926375d27b18b95d8e596e569540477e427b2`. The ASP baseline remains
 [PR #76](https://github.com/0al-spec/agent-surface/pull/76); this executable
 follow-up is a separate review slice.
 
@@ -38,7 +38,7 @@ existing token, production data or private conversation is needed.
 ```sh
 python -B reference/adoption/contextbuilder/https_scenario.py \
   --checkout /absolute/path/to/specspace-checkout \
-  --expected-commit ef7564db255e712ad50e2429551dc449b595ddc2 \
+  --expected-commit 181926375d27b18b95d8e596e569540477e427b2 \
   --specspace-python /absolute/path/to/specspace/.venv/bin/python \
   --mock-user
 ```
@@ -106,8 +106,12 @@ approval expiry remains app-enforced; the approval view does not expose its dead
 Unit tests verify both refusal decisions and that refusal sends no operator Grant
 or approval call. The real-process HTTPS run checks the allowed path.
 
-Recorded local verification: 14 unit tests pass (11 mock-policy/driver-gate tests
-and 3 runtime primitive tests). The full HTTPS run passes with both `--mock-user`
+Recorded local verification: 18 unit tests pass (11 mock-policy/driver-gate tests,
+3 runtime primitive tests and 4 request/response-binding tests). A successful persisted
+proposal must repeat the request's nonempty idempotency key; missing or mismatched
+keys are rejected without imposing that requirement on read responses. Malformed
+request keys are rejected before dispatch, and the tests check the outgoing header.
+The full HTTPS run passes with both `--mock-user`
 and the compatibility alias against the pinned SpecSpace revision above.
 
 The summary says `approval: mock_user` and includes separate `user_decisions`

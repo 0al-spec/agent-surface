@@ -213,6 +213,9 @@ def forward(config, path, body, *, lose_response=False):
         validate(schemas[action_id], p["input"])
         if p["execution"]["mode"] != ("read" if action_id == READ else "propose"):
             raise ValueError("Mode changed")
+        if action_id == PROPOSE and (not isinstance(p.get("idempotency_key"), str)
+                                      or not p["idempotency_key"]):
+            raise ValueError("Invalid request idempotency key")
     headers = {}
     if "trace_id" in p:
         headers["traceparent"] = "00-" + p["trace_id"] + "-" + p["span_id"] + "-00"
@@ -230,6 +233,10 @@ def forward(config, path, body, *, lose_response=False):
         for key in ("session_id", "session_generation", "grant_id", "grant_hash", "surface_hash", "action_id", "execution", "input_hash"):
             if r[key] != p[key]:
                 raise ValueError("App response binding mismatch")
+        if p["action_id"] == PROPOSE and (not isinstance(p.get("idempotency_key"), str)
+                                           or not p["idempotency_key"]
+                                           or r.get("idempotency_key") != p["idempotency_key"]):
+            raise ValueError("App response idempotency binding mismatch")
         if response_headers.get("traceparent") != "00-" + r["trace_id"] + "-" + r["span_id"] + "-00":
             raise ValueError("Trace binding mismatch")
     return {"status": code, "body": result}
