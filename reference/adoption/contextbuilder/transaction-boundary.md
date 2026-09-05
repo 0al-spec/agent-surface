@@ -2,6 +2,10 @@
 
 Status: proposed experiment design, not implemented or normative ASP text.
 
+Deferred after [operation selection](operation-selection.md). Keep this as the
+design for a possible later export test; do not execute the spike as the next
+step. The selected first slice is a private raw-idea draft.
+
 ## Keep the product operation fixed
 
 The operation remains replacement of the existing sentinel-owned export

@@ -4,6 +4,10 @@ Date: 2026-09-05. Status: existing-operation baseline executed; ASP integration
 and human approval experiment remain unimplemented. No conformance or maturity
 claim follows from this probe.
 
+Current decision: start with [a private raw-idea draft](operation-selection.md).
+The export transaction spike is deferred. This export baseline is retained as
+evidence for the change of operation, not as the next implementation task.
+
 ## Reproduction
 
 Use a clean detached ContextBuilder worktree at
@@ -56,16 +60,16 @@ does not authenticate ownership, and a filesystem writer can create it. The prob
 does not evaluate concurrent writers, process crashes, HTTP authentication,
 user approval, model behavior or ASP receipts.
 
-## Integration decision and next boundary
+## Export integration boundary (deferred)
 
 The existing export cannot simply be wrapped and advertised as the planned
 preview/approval/idempotent commit. Source inspection and fault injection show
 that replacement semantics require an application-owned transaction/recovery
 boundary first. Ordinary equal-byte re-export is not exact ASP replay.
 
-Preserve the existing directory replacement behavior for a fair baseline.
-Before implementing authority objects, design a staged export with a durable
-operation journal, application-owned source/destination revision checks,
+If export is revisited, preserve its directory replacement behavior for a fair
+baseline. Before implementing authority objects for export, design staging with
+a durable operation journal, application-owned source/destination revision checks,
 coordination with every writer, and explicit recovery from failure during
 publication. Reuse the current rendering functions. Do not call the existing
 destructive export against the live destination during preview.
@@ -75,7 +79,7 @@ and must be measured separately; it must not silently replace the baseline.
 The original 16-hour active-work ceiling remains in force. This preflight does
 not establish that the transaction prerequisite or full integration fits it.
 
-## Obligation map for the next implementation
+## Export obligation map (not the selected draft profile)
 
 The foundation bundle selects six role claims and 21 requirement entries in
 [the canonical bundle registry](../../../conformance/v1/bundles.json).
@@ -106,7 +110,8 @@ limits, is a prerequisite to the authority-bearing implementation.
 - Not measured: ASP integration size/time, all seven planned ASP negative cases,
   user comprehension, second-developer reproduction, schema-change cost.
 
-The [transaction/recovery design](transaction-boundary.md) records the next
-implementation slice and its stop conditions. The
+The [transaction/recovery design](transaction-boundary.md) records the deferred
+export slice and its stop conditions. The [operation selection](operation-selection.md)
+defines the next, narrower proposal-only experiment. The
 full adoption experiment has not passed or failed; the thin-wrapper approach
 has failed this preflight.
