@@ -1,8 +1,8 @@
 # Agent Surface RFC Plan and Debt
 
 - Status: active planning snapshot
-- Snapshot date: 2026-07-29
-- Snapshot base: task `#79D` atomic activation state
+- Snapshot date: 2026-09-05
+- Snapshot base: `521eac8` after #70 / PR #74
 - Canonical machine-readable source: [`review-data.json`](review-data.json)
 
 ## Purpose and authority
@@ -31,23 +31,29 @@ The following authority rules apply:
 
 ## Current snapshot
 
+The next delivery is the bounded existing-application experiment selected in
+[the adoption retrospective](adoption-retrospective-2026-09.md). Pause new
+binding and publication feature work for that experiment. The proposed #80
+WebMCP executable follow-up is deferred and has not been added to the canonical
+backlog. Existing card coverage, maturity and dependencies remain unchanged.
+
 ### Coverage
 
 | Coverage | Cards | Meaning |
 | --- | ---: | --- |
-| `present` | 71 | The proposal is represented in normative prose. |
+| `present` | 72 | The proposal is represented in normative prose. |
 | `partial` | 1 | A precursor exists, but the interoperable contract is incomplete. |
-| `missing` | 7 | The proposed contract or mapping is not specified. |
+| `missing` | 6 | The proposed contract or mapping is not specified. |
 | **Total** | **79** | |
 
-The active coverage debt is therefore **8 cards**: 2 P2 and 6 P3.
+The active coverage debt is therefore **7 cards**: 1 P2 and 6 P3.
 
 ### Delivery maturity
 
 | Maturity | Cards |
 | --- | ---: |
-| `proposal` | 9 |
-| `specified` | 52 |
+| `proposal` | 8 |
+| `specified` | 53 |
 | `machine_validated` | 17 |
 | `implementation_tested` | 1 |
 | `interop_tested` | 0 |
@@ -122,9 +128,9 @@ ASP Grant, approval, effect claim, or receipt.
 
 ### Broader maturity debt
 
-The current 52 `specified` cards still need card-appropriate executable schemas,
+The current 53 `specified` cards still need card-appropriate executable schemas,
 registries, validators, and positive and negative vectors before they can move
-to `machine_validated`. The 16 `machine_validated` cards need evidence from
+to `machine_validated`. The 17 `machine_validated` cards need evidence from
 real implementations before they can move to `implementation_tested`.
 
 The project still needs:
@@ -199,11 +205,13 @@ schema and positive/negative lifecycle vector set.
 The intake's P1 delivery lane is complete through **#74 Independent Reference
 Vertical Slice**. **#66 Modular RFC Publication Architecture** now has
 normative prose plus a closed document-set schema, catalog, semantic validator,
-negative tests, and CI gate. The next publication step is **#78 Reproducible
-RFC Assembly Pipeline**, followed by **#79 Atomic Modular RFC Activation**.
+negative tests, and CI gate. **#78 Reproducible RFC Assembly Pipeline** and
+**#79 Atomic Modular RFC Activation** have already delivered their publication
+work; the next selected work is the adoption experiment linked above.
 **#70
 ASP-over-WebMCP Binding** is specified but remains P2 while WebMCP is
-experimental. Its executable browser-vector follow-up should advance before
+experimental. Its executable browser-vector follow-up is deferred pending the
+adoption experiment and a viable browser bridge; it remains necessary before
 claiming machine-validated maturity. Lower-priority mappings should advance only when their
 upstream specification is sufficiently stable and there is concrete adopter
 demand.
