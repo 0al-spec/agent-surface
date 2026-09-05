@@ -142,9 +142,10 @@ is a fixed driver, not an open-ended autonomous scheduler. App-side runaway
 pause fences new actions and preserves the RFC's exact completed replay
 exception; policy does not permit automatic resume.
 
-The next decision is whether this measured integration burden is acceptable
-for one private draft operation. Do not add another RFC feature or expand the
-experiment merely to turn its partial coverage into a full-profile claim.
+The [outcome retrospective](../../../review/adoption-outcome-2026-09.md) records
+the decision: reproduce this slice independently and assess its packaging before
+adding another operation. Do not expand the RFC to turn partial coverage into a
+full-profile claim.
 
 The current app-side diff adds roughly 800 lines of isolated protocol/storage
 code, plus tests and documentation, while the native business function gains

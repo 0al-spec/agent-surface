@@ -2,7 +2,7 @@
 
 - Status: active planning snapshot
 - Snapshot date: 2026-09-05
-- Snapshot base: `521eac8` after #70 / PR #74
+- Snapshot base: `4925528e` after adoption PRs #75–#77
 - Canonical machine-readable source: [`review-data.json`](review-data.json)
 
 ## Purpose and authority
@@ -31,12 +31,13 @@ The following authority rules apply:
 
 ## Current snapshot
 
-The next delivery is the bounded existing-application experiment selected in
-[the adoption retrospective](adoption-retrospective-2026-09.md), now narrowed to
-[one private SpecSpace draft](../reference/adoption/contextbuilder/operation-selection.md).
-Export transaction work is deferred; proposal-only results will not count as
-validation of the original safe-effects scenario. Pause new
-binding and publication feature work for that experiment. The proposed #80
+The bounded private SpecSpace draft integration is merged, with deterministic
+mock-user consent and real HTTPS/runtime/storage execution. The
+[outcome retrospective](adoption-outcome-2026-09.md) selects independent
+reproduction and an integration-cost review before a second operation.
+Human UX and adoption cost acceptability remain unproven. Export transaction
+work is deferred; draft-only results do not validate the original safe-effects
+scenario. Continue the pause on new binding and publication features. The proposed #80
 WebMCP executable follow-up is deferred and has not been added to the canonical
 backlog. Existing card coverage, maturity and dependencies remain unchanged.
 
@@ -210,7 +211,8 @@ Vertical Slice**. **#66 Modular RFC Publication Architecture** now has
 normative prose plus a closed document-set schema, catalog, semantic validator,
 negative tests, and CI gate. **#78 Reproducible RFC Assembly Pipeline** and
 **#79 Atomic Modular RFC Activation** have already delivered their publication
-work; the next selected work is the adoption experiment linked above.
+work; the next selected work is independent reproduction of the merged draft
+experiment, followed by a packaging decision, as linked above.
 **#70
 ASP-over-WebMCP Binding** is specified but remains P2 while WebMCP is
 experimental. Its executable browser-vector follow-up is deferred pending the
@@ -251,11 +253,12 @@ Update this snapshot whenever a merged change does any of the following:
 
 For every update:
 
-1. edit `review-data.json` first;
-2. regenerate and validate the dashboard;
+1. edit `review-data.json` first if card metadata changes;
+2. regenerate and validate the dashboard if its inputs changed;
 3. recalculate the tables in this document from the canonical data;
 4. update the snapshot date and base commit reference;
-5. commit the planning document with the backlog change that made it stale.
+5. commit the planning document with the change that made it stale. A sequencing-only
+   update must not invent card evidence or raise maturity to force a backlog diff.
 
 ## Explicit non-goals
 

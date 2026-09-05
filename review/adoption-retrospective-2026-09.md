@@ -2,10 +2,15 @@
 
 - Date: 2026-09-05
 - Audited baseline: `521eac88e75c728e6907981392917279133f0ae5`
-- Status: repository audit and application preflights completed; ASP integration not implemented
+- Status: initial audit and experiment plan; the bounded draft integration is now merged
 - Authority: planning decision; does not change normative requirements or card maturity
 
 ## Decision
+
+Post-experiment decision: [the outcome retrospective](adoption-outcome-2026-09.md)
+records the merged draft experiment, its cost and limits, and the next selected
+step: independent reproduction before a second operation. The original plan
+below is retained; neither its export criteria nor its time budget are declared met.
 
 Pause expansion of bindings and publication infrastructure for one bounded
 adoption experiment. Defer the proposed #80 WebMCP executable follow-up (not
@@ -158,7 +163,8 @@ No card maturity is raised automatically by this experiment.
   for the corresponding mapping. Reconsider WebMCP follow-up after evidence of
   a viable privileged browser bridge.
 
-Next deliverables follow the current operation selection: the proposal-only
-deployment/profile map, one runnable draft adapter, measured results and a
-continue/simplify/stop decision. The export baseline and operation selection
-are complete; the ASP integration and human experiment remain unimplemented.
+The proposal-only deployment/profile map and runnable draft adapter are merged.
+The [outcome retrospective](adoption-outcome-2026-09.md) supplies the bounded
+engineering result and continue/simplify/stop decision. Human UX, independent
+reproduction, the maintenance-change exercise and the original export scenario
+remain unmeasured. Mock-user consent is not a successful human experiment.
