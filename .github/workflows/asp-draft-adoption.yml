@@ -41,12 +41,12 @@ jobs:
           python-version: '3.12'
       - name: Install the pinned application's runtime requirements
         run: python -m pip install -r .specspace-adoption-checkout/requirements.txt
-      - name: Test independent runtime primitives
+      - name: Test independent runtime and mock-user refusal gates
         run: python -B -m unittest discover -s reference/adoption/contextbuilder -p 'test_*.py'
-      - name: Run synthetic HTTPS scenario (not human-consent evidence)
+      - name: Run mock-user HTTPS scenario (not human-consent evidence)
         run: >-
           python -B reference/adoption/contextbuilder/https_scenario.py
           --checkout .specspace-adoption-checkout
           --expected-commit "$SPECSPACE_REVISION"
           --specspace-python "$(command -v python)"
-          --synthetic-approval
+          --mock-user

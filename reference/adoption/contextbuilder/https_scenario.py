@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reproduce the isolated SpecSpace HTTPS draft scenario with real processes.
 
---synthetic-approval is for automated verification, never a human-use claim.
+--mock-user is for automated verification, never a human-use claim.
 The default prompts separately for Grant consent and exact draft approval.
 """
 from __future__ import annotations
@@ -19,6 +19,7 @@ import tempfile
 import time
 
 from runtime import READ, PROPOSE, canonical, loads, object_hash, request
+from mock_user import DRAFT_ID, DRAFT_TEXT, MockUser
 
 
 def write(path, value):
@@ -59,8 +60,10 @@ def runtime(work):
 
 
 class Scenario:
-    def __init__(self, root, checkout, python, synthetic):
-        self.root, self.checkout, self.python, self.synthetic = root, checkout, python, synthetic
+    def __init__(self, root, checkout, python, mock_user):
+        self.root, self.checkout, self.python = root, checkout, python
+        self.user = MockUser() if mock_user else None
+        self.user_decisions = []
         generate(root)
         (root / "state").mkdir(mode=0o700)
         (root / "dialogs").mkdir(mode=0o700)
@@ -114,7 +117,7 @@ class Scenario:
     def consent(self):
         code, consent, _ = self.http("/asp/operator/consent", operator=True)
         assert code == 200
-        if not self.synthetic:
+        if self.user is None:
             print("Local synthetic workspace; Compatibility Bearer; 600-second maximum; no code identity attestation.")
             print(canonical(consent).decode(), flush=True)
             if input("Issue the displayed read/propose Grant? Type GRANT: ") != "GRANT":
@@ -125,12 +128,19 @@ class Scenario:
         body = {"surface_hash": consent["surface_hash"], "identity_evidence_hash": consent["identity"]["identity_evidence_hash"],
                 "workspace_id": "asp-draft-demo", "runtime_id": "local-runtime", "agent_id": "local-agent",
                 "expires_in": ttl, "accept": True}
+        if self.user is not None:
+            self.require_decision(self.user.grant(consent, body, self.manifest["surface_hash"]))
         code, issued, _ = self.http("/asp/operator/grant", operator=True, body=body)
         assert code == 200, issued
         config = {"origin": self.origin, "ca_file": str(self.root / "tls.crt"),
                   "issuer_public_key": str(self.root / "issuer.pub"), "identity_artifact": str(self.root / "identity.json"),
                   "agent_key": str(self.root / "agent.key"), "grant": issued["grant"], "credential": issued["credential"]}
         return config
+
+    def require_decision(self, decision):
+        self.user_decisions.append(decision)
+        if decision["accept"] is not True:
+            raise RuntimeError("Mock user declined " + decision["stage"] + ": " + decision["reason"])
 
     def session(self, config, session_id):
         grant = config["grant"]
@@ -166,7 +176,9 @@ class Scenario:
     def approve(self, config, proposal):
         prepared = runtime({"config": config, "path": "/asp/approval-request", "body": proposal})
         assert prepared["status"] == 200
-        if not self.synthetic:
+        if self.user is not None:
+            self.require_decision(self.user.approve(prepared["body"], proposal))
+        else:
             print("Persist this exact private draft? This does not submit or execute it:")
             print(canonical(prepared["body"]).decode(), flush=True)
             if input("Type APPROVE: ") != "APPROVE":
@@ -190,8 +202,8 @@ class Scenario:
         read = self.send(config, read_request)
         assert read["status"] == 200 and read["body"]["payload"]["output"]["drafts"] == []
         proposed_input = runtime({"operation": "agent_proposal", "config": config,
-            "read_output": read["body"]["payload"]["output"], "request_id": "adoption-draft",
-            "text": "Add a private idea draft panel. Saving a draft must not submit or execute it."})
+            "read_output": read["body"]["payload"]["output"], "request_id": DRAFT_ID,
+            "text": DRAFT_TEXT})
         proposal = self.action(config, PROPOSE, proposed_input)
         assert self.send(config, proposal)["body"]["payload"]["code"] == "approval_required"
         self.approve(config, proposal)
@@ -201,11 +213,11 @@ class Scenario:
         first = self.send(config, proposal)
         assert first["status"] == 200 and first["body"]["payload"]["output"] == {
             "workspace_id": "asp-draft-demo", "request_id": "adoption-draft", "idea_text": proposed_input["idea_text"], "status": "draft"}
-        self.native_save("adoption-draft", "Human native edit after ASP persistence")
+        self.native_save("adoption-draft", "Scripted native edit after ASP persistence")
         assert self.send(config, proposal) == first
         code, native, _ = self.http("/api/v1/real-idea-entry-requests?workspace=asp-draft-demo", operator=True)
         assert code == 200 and len(native["requests"]) == 1
-        assert native["requests"][0]["idea_text"] == "Human native edit after ASP persistence"
+        assert native["requests"][0]["idea_text"] == "Scripted native edit after ASP persistence"
         negative = copy.deepcopy(proposal)
         negative["payload"]["input"]["idea_text"] = "Changed by caller"
         assert self.raw_action(config, negative)[1]["payload"]["code"] == "integrity_mismatch"
@@ -221,11 +233,12 @@ class Scenario:
         assert self.send(config, proposal) == first
         code, _, _ = self.http("/asp/operator/revoke", operator=True, body={"grant_id": config["grant"]["grant_id"]})
         assert code == 200 and self.raw_action(config, proposal)[1]["payload"]["code"] == "grant_revoked"
-        if self.synthetic:
+        if self.user is not None:
             expiring = self.issue(self.consent(), ttl=1)
             time.sleep(1.05)
             assert self.http("/asp/grant", token=expiring["credential"])[1]["payload"]["code"] == "grant_expired"
-        return {"approval": "synthetic" if self.synthetic else "human_cli",
+        return {"approval": "mock_user" if self.user is not None else "human_cli",
+                "user_decisions": self.user_decisions,
                 "transport": "direct_https_loopback", "credential_profile": "compatibility_bearer",
                 "storage": "sqlite_shared_native_transaction", "saved_status": "draft",
                 "checks": ["independent_runtime_process", "agent_key_possession", "scoped_read", "app_approval",
@@ -238,7 +251,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkout", type=Path, required=True)
     parser.add_argument("--specspace-python", type=Path, required=True)
-    parser.add_argument("--synthetic-approval", action="store_true")
+    parser.add_argument("--mock-user", "--synthetic-approval", dest="mock_user", action="store_true",
+                        help="Use a deterministic consent policy; --synthetic-approval is a compatibility alias")
     parser.add_argument("--expected-commit", help="Require this exact clean trusted SpecSpace commit")
     args = parser.parse_args()
     revision = subprocess.run(["git", "rev-parse", "HEAD"], cwd=args.checkout, capture_output=True, text=True, check=True).stdout.strip()
@@ -251,7 +265,7 @@ def main():
     old_mask = os.umask(0o077)
     try:
         with tempfile.TemporaryDirectory(prefix="asp-https-draft-") as directory:
-            demo = Scenario(Path(directory), args.checkout.resolve(), args.specspace_python.absolute(), args.synthetic_approval)
+            demo = Scenario(Path(directory), args.checkout.resolve(), args.specspace_python.absolute(), args.mock_user)
             try:
                 report = demo.run()
                 print(canonical(report).decode())

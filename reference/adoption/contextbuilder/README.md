@@ -3,7 +3,8 @@
 Date: 2026-09-05. Status: existing-operation baseline executed. The subsequent
 [isolated HTTPS draft scenario](https-draft.md) implements the selected draft
 operation; the export probe below remains a baseline, not ASP integration.
-Synthetic approval has been tested separately from the pending human pass.
+The follow-up now uses a bounded mock-user policy for automated consent/approval;
+human UX remains separate evidence.
 No conformance or maturity claim follows from either probe.
 
 Current decision: start with [a private raw-idea draft](operation-selection.md).

@@ -40,7 +40,7 @@ python -B reference/adoption/contextbuilder/https_scenario.py \
   --checkout /absolute/path/to/specspace-checkout \
   --expected-commit ef7564db255e712ad50e2429551dc449b595ddc2 \
   --specspace-python /absolute/path/to/specspace/.venv/bin/python \
-  --synthetic-approval
+  --mock-user
 ```
 
 On a Homebrew macOS host, prefix the command with
@@ -84,17 +84,49 @@ token or effect commitment. The native save continues to be an operator upsert;
 the ASP path is deliberately create-only. The stored draft remains private and
 never becomes a submitted intake request or authority to execute another action.
 
-## Human pass is separate
+## Mock user and human pass
 
-Omit `--synthetic-approval` for the manual pass. The driver first shows the
+`--mock-user` runs a small deterministic policy, not an LLM or an always-accept
+boolean. `--synthetic-approval` remains a compatibility alias for the same policy.
+The mock makes two separate decisions:
+
+- Grant consent: only the fixture workspace, runtime and agent, exactly read and
+  propose, Compatibility Bearer, and a requested lifetime of at most 300 seconds.
+  The request must match the displayed identity/surface binding and discovery.
+- Draft approval: exactly the fixture's draft ID and text, in the fixture workspace,
+  with `propose` mode. The entire displayed request must match the runtime proposal;
+  input and approval hashes must match. Added authority or substituted text is denied,
+  even if a caller recomputes the hashes consistently.
+
+The mock receives only consent/approval views, never operator credentials, Grant
+bearers or private keys. The driver translates accepted decisions into the existing
+app-local operator calls. App/runtime identity, schema, expiry and authorization
+checks still run independently; the mock is not their replacement. In particular,
+approval expiry remains app-enforced; the approval view does not expose its deadline.
+Unit tests verify both refusal decisions and that refusal sends no operator Grant
+or approval call. The real-process HTTPS run checks the allowed path.
+
+Recorded local verification: 14 unit tests pass (11 mock-policy/driver-gate tests
+and 3 runtime primitive tests). The full HTTPS run passes with both `--mock-user`
+and the compatibility alias against the pinned SpecSpace revision above.
+
+The summary says `approval: mock_user` and includes separate `user_decisions`
+with actor, stage, accept and reason only. No text or secrets enter that decision
+log. The native edit used in retry tests is also scripted, not a human interaction.
+The second Grant decision in the report belongs to the one-second expiry test.
+
+Omit `--mock-user` (and its alias) for the manual pass. The driver first shows the
 Grant's scope, lifetime, verified identity and limitations and asks for `GRANT`.
 It later shows the exact proposal JSON, hash and invocation binding and asks
 for `APPROVE`. Declining either stops the run; the app is terminated and all
-synthetic state is removed. Automated `True` values are labelled `synthetic`,
-not evidence of user comprehension or consent.
+synthetic state is removed. The app's approval window is 120 seconds; a delayed
+manual response fails closed rather than silently extending it.
 
-Recorded local result so far: the synthetic HTTPS run passes. An actual human
-pass and an independent second-developer reproduction remain separate evidence.
+The user selected mock-user automation as the current functional test boundary.
+It is not evidence of actual human comprehension or consent. The earlier manual
+attempt ended with `approval_expired` before saving the ASP draft; it is not a
+successful human pass. Human UX and independent second-developer reproduction
+remain separate follow-ups, not prerequisites for running the mock-user test.
 No active-hour/adoption benchmark is inferred from test runtime.
 
 ## Stopping boundary
