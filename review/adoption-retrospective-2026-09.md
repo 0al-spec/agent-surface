@@ -2,7 +2,7 @@
 
 - Date: 2026-09-05
 - Audited baseline: `521eac88e75c728e6907981392917279133f0ae5`
-- Status: repository audit completed; adoption experiment selected, not executed
+- Status: repository audit and application preflights completed; ASP integration not implemented
 - Authority: planning decision; does not change normative requirements or card maturity
 
 ## Decision
@@ -69,6 +69,19 @@ consumers of each guarantee.
 
 ## Selected adoption experiment
 
+Selection update: [the executed export preflight](../reference/adoption/contextbuilder/README.md)
+disproved the single-file assumption below. After comparing smaller operations,
+[the current decision](../reference/adoption/contextbuilder/operation-selection.md)
+selects saving one private raw-idea draft, using proposal-only semantics, and
+defers export transaction work. The original scenario below is retained for
+traceability; its effects/recovery acceptance criteria remain unmeasured and
+must not be reported as passed by the narrower draft experiment.
+
+### Original export scenario (historical, deferred)
+
+The following scenario and stage selection are retained as the original plan,
+not instructions for the next implementation. Use the selection update above.
+
 Use the existing local ContextBuilder application as the first candidate. Its
 README describes graph selection and export, and `viewer/server.py` delegates
 to existing `viewer/export.py` and `viewer/hyperprompt_compile.py` operations.
@@ -106,6 +119,10 @@ engineering results and mark the usability result unmeasured.
 
 ## Budget, measurements and acceptance
 
+The budget remains shared across the experiment. The table's export/write and
+recovery criteria describe the original full-effects goal; draft-only results
+must be reported separately and cannot satisfy those criteria.
+
 Timebox: two engineer-days of active work (16 hours), recording waiting time
 separately. This is a decision threshold, not a delivery estimate. At the limit,
 publish the incomplete result and blockers; do not grow the RFC to finish it.
@@ -141,7 +158,7 @@ No card maturity is raised automatically by this experiment.
   for the corresponding mapping. Reconsider WebMCP follow-up after evidence of
   a viable privileged browser bridge.
 
-Next deliverables: a pinned ContextBuilder experiment plan and obligation map,
-a runnable integration and baseline, a measured results sheet, and a short
-continue/simplify/stop decision. This audit completes the retrospective planning
-step; it does not report those future deliverables as completed.
+Next deliverables follow the current operation selection: the proposal-only
+deployment/profile map, one runnable draft adapter, measured results and a
+continue/simplify/stop decision. The export baseline and operation selection
+are complete; the ASP integration and human experiment remain unimplemented.

@@ -32,7 +32,10 @@ The following authority rules apply:
 ## Current snapshot
 
 The next delivery is the bounded existing-application experiment selected in
-[the adoption retrospective](adoption-retrospective-2026-09.md). Pause new
+[the adoption retrospective](adoption-retrospective-2026-09.md), now narrowed to
+[one private SpecSpace draft](../reference/adoption/contextbuilder/operation-selection.md).
+Export transaction work is deferred; proposal-only results will not count as
+validation of the original safe-effects scenario. Pause new
 binding and publication feature work for that experiment. The proposed #80
 WebMCP executable follow-up is deferred and has not been added to the canonical
 backlog. Existing card coverage, maturity and dependencies remain unchanged.
