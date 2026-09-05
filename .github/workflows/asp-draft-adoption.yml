@@ -1,0 +1,52 @@
+name: ASP draft adoption experiment
+
+on:
+  pull_request:
+    paths:
+      - 'reference/adoption/contextbuilder/**'
+      - '.github/workflows/asp-draft-adoption.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'reference/adoption/contextbuilder/**'
+      - '.github/workflows/asp-draft-adoption.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: asp-draft-adoption-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SPECSPACE_REVISION: ef7564db255e712ad50e2429551dc449b595ddc2
+
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: 0al-spec/SpecSpace
+          ref: ${{ env.SPECSPACE_REVISION }}
+          path: .specspace-adoption-checkout
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install the pinned application's runtime requirements
+        run: python -m pip install -r .specspace-adoption-checkout/requirements.txt
+      - name: Test independent runtime primitives
+        run: python -B -m unittest discover -s reference/adoption/contextbuilder -p 'test_*.py'
+      - name: Run synthetic HTTPS scenario (not human-consent evidence)
+        run: >-
+          python -B reference/adoption/contextbuilder/https_scenario.py
+          --checkout .specspace-adoption-checkout
+          --expected-commit "$SPECSPACE_REVISION"
+          --specspace-python "$(command -v python)"
+          --synthetic-approval

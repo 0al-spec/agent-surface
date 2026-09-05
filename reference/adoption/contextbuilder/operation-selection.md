@@ -5,6 +5,10 @@ Date: 2026-09-05. Decision: keep SpecSpace as the target application; select
 export transaction spike. This document selects work; it does not report an
 ASP implementation, human approval test or conformance result.
 
+Implementation follow-up: [the isolated HTTPS draft scenario](https-draft.md)
+now records the selected concrete boundaries and synthetic execution results.
+The baseline observations below remain unchanged.
+
 "Private" describes the application's intended non-public draft storage, not
 verified confidentiality or authentication. The probe bypasses HTTP and does
 not establish an authenticated user/agent boundary.

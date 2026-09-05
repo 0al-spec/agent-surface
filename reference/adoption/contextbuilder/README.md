@@ -1,8 +1,10 @@
 # ContextBuilder adoption experiment: preflight
 
-Date: 2026-09-05. Status: existing-operation baseline executed; ASP integration
-and human approval experiment remain unimplemented. No conformance or maturity
-claim follows from this probe.
+Date: 2026-09-05. Status: existing-operation baseline executed. The subsequent
+[isolated HTTPS draft scenario](https-draft.md) implements the selected draft
+operation; the export probe below remains a baseline, not ASP integration.
+Synthetic approval has been tested separately from the pending human pass.
+No conformance or maturity claim follows from either probe.
 
 Current decision: start with [a private raw-idea draft](operation-selection.md).
 The export transaction spike is deferred. This export baseline is retained as
@@ -95,10 +97,10 @@ That matrix is an entry point, not a complete list of normative MUST clauses.
 | Receipt and ambiguous outcome | [App Receipt](../../../drafts/modules/evidence.md#app-receipt) | Existing provenance describes content, not ASP execution evidence. Journal outcome and receipt linkage and reconcile after response loss. |
 | Runtime and agent boundary | [Runtime Mediator](../../../drafts/modules/conformance.md#runtime-mediator-profile) | Keep credentials outside agent input, enforce admission limits and approval; select a transport and identity profile before claiming a complete implementation. |
 
-No transport or identity profile has yet been selected. A source function call
-in this baseline must not be presented as a conforming ASP transport. Completing
-the obligation closure, including applicable approval features and runtime
-limits, is a prerequisite to the authority-bearing implementation.
+This export baseline selected no transport or identity profile. The subsequent
+draft scenario fixes its own choices in [the executable contract](https-draft.md).
+A source function call in the export baseline must not be presented as a
+conforming ASP transport or as evidence of the draft's HTTP authority boundary.
 
 ## Work log and remaining measurements
 
