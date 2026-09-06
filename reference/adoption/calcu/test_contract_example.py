@@ -1,6 +1,7 @@
 """Checks construction coherence, not manifest conformance or live authority."""
 import unittest
 from copy import deepcopy
+from datetime import datetime
 
 from jsonschema import Draft202012Validator, ValidationError
 
@@ -129,6 +130,16 @@ class ContractExampleTests(unittest.TestCase):
             object_hash(ASP + "hash/action-input/v1", {"nested": [{"left": -0.0}]})
         self.assertIsInstance(object_hash(ASP + "hash/action-input/v1", {"left": 0.0}), str)
         self.assertEqual(self.example["sample_input"]["left"] * self.example["sample_input"]["right"], self.example["sample_output"]["result"])
+
+    def test_constructed_values_reject_python_tuples(self):
+        for value in [(1, 2), {"nested": [(-0.0,)]}]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                object_hash(ASP + "hash/action-input/v1", value)
+
+    def test_example_lifetime_is_sixty_seconds(self):
+        start = datetime.fromisoformat(self.example["example_clock"])
+        expiry = datetime.fromisoformat(self.grant["constraints"]["expires_at"])
+        self.assertEqual((expiry - start).total_seconds(), 60)
 
 
 if __name__ == "__main__":

@@ -29,7 +29,16 @@ The following authority rules apply:
 5. If this document conflicts with the publication contract, active RFC
    sources, or review data, this snapshot MUST be updated.
 
-## Current snapshot
+## Current delivery selection (2026-09-06)
+
+The active Calcu implementation lane is tracked in the
+[ADP-01…09 delivery backlog](adoption-delivery-backlog.md). Start with a focused
+identity-domain correction, bounded safety-state experiment, data-handling
+evidence and offline-example maintenance. Full migration and SDK extraction
+remain gated on explicit cost and provider-policy decisions. This does not add
+RFC cards or raise their maturity.
+
+## Historical snapshot (2026-09-05)
 
 The next delivery is the bounded existing-application experiment selected in
 [the adoption retrospective](adoption-retrospective-2026-09.md), now narrowed to

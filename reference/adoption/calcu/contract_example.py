@@ -29,6 +29,8 @@ def object_hash(domain: str, value: dict) -> str:
     # These are constructed values, not untrusted raw JSON (which needs its
     # own duplicate-member and lexical-number rejection before construction).
     def reject_negative_zero(item):
+        if not isinstance(item, (dict, list, str, int, float, bool, type(None))):
+            raise ValueError("Only JSON values are supported")
         if isinstance(item, float) and item == 0 and math.copysign(1, item) < 0:
             raise ValueError("ASP rejects negative zero")
         if isinstance(item, dict):
