@@ -27,9 +27,9 @@ profile would require a separate approved normative task.
 | ID | Task / repository | Status | Dependency / exit evidence |
 | --- | --- | --- | --- |
 | ADP-01 | Correct identity evidence hash domain / Calcu | in_review | [Calcu PR #4](https://github.com/SoundBlaster/Calcu/pull/4), stacked on #3. RFC-domain independent vector, old-domain invocation rejected before engine, fresh executor/session isolation; restart and reissue guidance. |
-| ADP-02 | Bounded durable safety-state spike / ASP examples | in_progress | Independent prototype: separate Grant/session state, atomic admission/revocation race, stale/future generation rejection, restart/new-session lineage counter, unavailable-store rejection. Obligation matrix and cost/limitations review required. |
+| ADP-02 | Bounded durable safety-state spike / ASP examples | in_review | [ASP PR #81](https://github.com/0al-spec/agent-surface/pull/81): separate Grant/session state, atomic admission/revocation race, stale/future generation rejection, connection-reopen/new-session lineage counter, unavailable-store rejection. Obligation matrix provided; owner cost/limitations decision remains open. |
 | ADP-03 | Data handling and provider applicability decision / Calcu + deployment owner | in_progress | Code-path inventory first; owner-approved task/output classifications, retention, provider/CLI/log evidence and enforcement plan before live migration. Unknown capabilities remain unknown. |
-| ADP-04 | Offline example maintenance / ASP examples | in_progress | Correct additive estimate, reject non-JSON tuple inputs, derive and test the stated 60-second lifetime. No live authority. |
+| ADP-04 | Offline example maintenance / ASP examples | in_review | ASP PR #81: correct additive estimate, reject non-JSON tuple inputs, derive and test the stated 60-second lifetime. No live authority. |
 | ADP-05 | Complete Manifest/Grant migration / Calcu | blocked | ADP-01, resolved ADP-03 and explicit ADP-02 continue decision. Closed manifest/discovery/schema and identity/Grant projections; fresh consent on changed snapshot; negative vectors. Covers applicable BC-01…04/08 gaps, not all RFC profiles. |
 | ADP-06 | Principal, consent and Grant management / Calcu | blocked | ADP-05 and ADP-03 policy. Authenticated principal, exact preview/issued projection comparison, stale preview rejection and authoritative revocation confirmation. Browser never receives authority. |
 | ADP-07 | Session control and durable runtime guards / Calcu | blocked | ADP-02 decision and ADP-05; share exact authorization contract with ADP-06. Implement complete applicable lifecycle/epoch/lineage obligations, crash recovery and fencing, not just the spike subset. Resolve BC-05/06/07 lifecycle, raw JSON/structural comparison and error mapping gaps. |
@@ -59,4 +59,6 @@ profile would require a separate approved normative task.
 - ADP-02/04: 11 SQLite prototype tests and 13 offline example tests passed;
   independent review findings corrected and rechecked. Full process-crash
   recovery remains ADP-07, not evidence claimed by the prototype.
-- PR links and actual local validation are recorded when work enters review.
+- ADP-03 evidence worksheet is included in ASP PR #81; policy approval is not.
+- Calcu PR #4 CI was green at 2026-09-06 10:26 UTC. ASP full CI is pending;
+  no task has been marked done or merged by this delivery.
