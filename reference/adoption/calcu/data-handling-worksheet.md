@@ -168,3 +168,30 @@ restriction" as `retention: unlimited`, a provider deletion guarantee or an ASP
 wire value. Required handling constraints still need an enforceable contract.
 If that contract cannot be met, report the exact failing obligation instead of
 silently changing the Grant, replacing the provider or adding a new RFC profile.
+
+## Concrete retention candidate and measured limit
+
+The next bounded experiment selected the candidate action-output retention
+`{"mode":"transient","delete_on_grant_end":true}`. It is not yet advertised
+by the Calcu manifest/Grant. Application-owned display state is separate from
+runtime/agent plaintext: grant revocation must not be confused with deleting
+the user's calculator result. Task input has its own application policy.
+
+The companion [Calcu PR #5](https://github.com/SoundBlaster/Calcu/pull/5)
+records the copy owners in `server/RETENTION.md` and seven new
+fake-process tests. Four check adapter temporary-directory cleanup after
+success/failure/timeout/cancel; three exposed actual diagnostic leakage through
+CLI-controlled IDs/methods/error text/status. The fix restricts diagnostics to
+fixed stages/status and classified error codes. These are observed local
+controls, not proof of a real CLI or provider's retention behavior.
+
+ADP-03 remains in progress for one specific feasibility question: can the pinned
+CLI agent's local context/rollout/cache/diagnostic behavior and the adapter's
+outstanding-reference lifecycle satisfy the chosen base contract? The fake
+process cannot answer this. Do not replace that question with an enterprise
+subscription requirement, provider-wide deletion guarantee or synthetic-only
+product scope. No live CLI request or credential-store inspection was made.
+
+Executor Grant/identity-record cleanup and UI unmount cancellation were noted
+as separate lifecycle debt. They are not evidence that calculator outputs are
+durably stored, and must not be solved by deleting authority records blindly.
