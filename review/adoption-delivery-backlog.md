@@ -9,8 +9,9 @@ for coverage and maturity; none are changed by this plan. The SDK's
 [BC-01…08 inventory](https://github.com/0al-spec/agent-surface-js/blob/66644562e6f529f29c4d02a780fc69726314ecf0/docs/boundary-contract.md)
 records extraction gaps, not a competing task lifecycle.
 
-Baseline: ASP `1783f50508b5498c8a24f60a758c4ce11868b294`; Calcu SDK-consumer
-PR #3 remains a separate prerequisite. The implementation evidence and cost
+Historical starting baseline: ASP `1783f50508b5498c8a24f60a758c4ce11868b294`.
+Calcu SDK-consumer PR #3 was a separate prerequisite, now satisfied by its
+merge; current merge evidence appears below. The implementation evidence and cost
 assumptions are in the [contract walkthrough](../reference/adoption/calcu/contract-walkthrough.md).
 
 ## First delivery and decision gate
@@ -28,7 +29,7 @@ profile would require a separate approved normative task.
 | --- | --- | --- | --- |
 | ADP-01 | Correct identity evidence hash domain / Calcu | done | [Calcu PR #4](https://github.com/SoundBlaster/Calcu/pull/4) merged after #3 with green CI. RFC-domain independent vector, old-domain invocation rejected before engine, fresh executor/session isolation; restart and reissue guidance. |
 | ADP-02 | Bounded durable safety-state spike / ASP examples | blocked | [ASP PR #81](https://github.com/0al-spec/agent-surface/pull/81) merged with green CI: prototype and obligation matrix delivered, including persisted Grant/lineage binding. Owner cost/limitations decision remains open; full migration is not authorized by merge. |
-| ADP-03 | Data handling and provider applicability decision / Calcu + deployment owner | in_progress | Code-path inventory first; owner-approved task/output classifications, retention, provider/CLI/log evidence and enforcement plan before live migration. Unknown capabilities remain unknown. |
+| ADP-03 | Data handling and provider applicability decision / Calcu + deployment owner | in_progress | Owner selected personal ChatGPT login, declined synthetic-only scope and requested no extra provider-retention constraint. Remaining work is mandatory source classification, runtime/agent retention, Grant projection and applicable-path evidence, not another generic privacy preference. Unknown capabilities remain unknown. |
 | ADP-04 | Offline example maintenance / ASP examples | done | ASP PR #81 merged: correct additive estimate, reject non-JSON tuple inputs, derive and test the stated 60-second lifetime. No live authority. |
 | ADP-05 | Complete Manifest/Grant migration / Calcu | blocked | ADP-01, resolved ADP-03 and explicit ADP-02 continue decision. Closed manifest/discovery/schema and identity/Grant projections; fresh consent on changed snapshot; negative vectors. Covers applicable BC-01…04/08 gaps, not all RFC profiles. |
 | ADP-06 | Principal, consent and Grant management / Calcu | blocked | ADP-05 and ADP-03 policy. Authenticated principal, exact preview/issued projection comparison, stale preview rejection and authoritative revocation confirmation. Browser never receives authority. |
@@ -64,5 +65,6 @@ profile would require a separate approved normative task.
   Calcu #3 `71d994f` then rebased #4 `d483185825e637a7352dcbb2e3edabaac43807af`.
   CI green and unresolved review threads zero before each merge.
 - ADP-03 now includes an authentication-route decision table based on official
-  product documentation. Actual account/provider settings remain unverified;
-  no live workload or credential inspection was performed.
+  product documentation and the owner-reported personal ChatGPT route/task scope.
+  Actual provider settings remain unverified; no live workload or credential
+  inspection was performed. This decision is not a conformance claim.
