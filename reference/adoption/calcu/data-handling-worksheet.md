@@ -43,6 +43,13 @@ evidence, not contractual promises by the CLI, provider or operating system.
 
 ## Applicable distinctions
 
+The Privacy module's authority-boundary clarification distinguishes current
+caller input, application-held resources and derived output. Supplying a value
+to an agent grants no resource access. Classification uses known provenance and
+context, not a guess that arbitrary digits might encode a secret. Known
+sensitivity and base handling remain applicable; Calcu needs no new semantic
+classifier or opaque-reference interface to express that distinction.
+
 [Data Exposure Contract](../../../drafts/modules/privacy.md) requires explicit
 application source exposure and derived Grant projection. Action-output
 retention does not define retention of the user's task or agent-supplied input.
@@ -170,6 +177,10 @@ If that contract cannot be met, report the exact failing obligation instead of
 silently changing the Grant, replacing the provider or adding a new RFC profile.
 
 ## Concrete retention candidate and measured limit
+
+The subsequent [source exposure design](exposure-design.md) maps the single
+`calculation.propose` action (four operators), runtime-visible output and offline
+Grant projection. It does not settle live classification or the remaining gates.
 
 The next bounded experiment selected the candidate action-output retention
 `{"mode":"transient","delete_on_grant_end":true}`. It is not yet advertised

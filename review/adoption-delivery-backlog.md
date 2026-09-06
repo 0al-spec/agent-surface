@@ -52,6 +52,19 @@ profile would require a separate approved normative task.
 
 ## Evidence ledger
 
+- Calcu applicability finding: Privacy now distinguishes caller-supplied,
+  application-held and derived data without new wire fields. Voluntary data
+  disclosure does not grant resource authority; unknown hypothetical meaning
+  does not mandate credential classification. Known sensitivity and handling
+  obligations remain. This clarification does not close ADP-03 or authorize
+  migration, and requires no extra Calcu privacy layer.
+
+- ASP PR #83 merged as `c875ed0`; Calcu PR #5 merged as `a059d77`.
+- ADP-03 [source exposure design](../reference/adoption/calcu/exposure-design.md)
+  records one action/four operators, offline projection mechanics and negative
+  acceptance cases. Live classification (including runtime-visible metadata)
+  and all other handling gates remain open; this is not executable conformance.
+
 - ADP-03: [data-handling worksheet](../reference/adoption/calcu/data-handling-worksheet.md).
 - ADP-02: [safety-state experiment](../reference/adoption/calcu/safety_spike/README.md).
 - ADP-01: Calcu `dd8d7d1`; `npm run check` (170 Vitest, 6 preflight,
