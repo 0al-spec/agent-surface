@@ -68,3 +68,14 @@ profile would require a separate approved normative task.
   product documentation and the owner-reported personal ChatGPT route/task scope.
   Actual provider settings remain unverified; no live workload or credential
   inspection was performed. This decision is not a conformance claim.
+- ASP PR #82 merged as `c99e35d`; owner preferences are recorded in `main`.
+- ADP-03 selected a concrete candidate: `transient` with
+  `delete_on_grant_end: true` for runtime/agent action-output copies, distinct
+  from application UI display. Calcu fake-process cleanup/diagnostic tests
+  provide partial evidence; actual CLI retention and outstanding references
+  remain a feasibility gate, not a new privacy preference. See the worksheet's
+  concrete-retention section and companion
+  [Calcu PR #5](https://github.com/SoundBlaster/Calcu/pull/5), commit `3bb1d5c`.
+- ADP-07/08 follow-up inventory: executor Grant/identity Map minimization and
+  UI unmount cancellation need scoped design/tests; neither is silently fixed
+  or covered by the current fake-process retention experiment.
