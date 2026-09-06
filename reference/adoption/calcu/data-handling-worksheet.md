@@ -1,8 +1,30 @@
 # ADP-03: Calcu data-handling evidence and decision worksheet
 
-Status: evidence pass, **policy unresolved** (2026-09-06).
+Status: owner preferences recorded; **ASP handling contract not yet verified**
+(2026-09-06).
 Inspected Calcu SDK-consumer revision `5e5a23f04bad649a23eedaad4f83126b2ec3ff7e`.
-This is not consent, a provider attestation or authorization to migrate live.
+The boundary findings below were rechecked against merged Calcu
+`d483185825e637a7352dcbb2e3edabaac43807af`.
+This is a deployment decision record, not an ASP consent receipt, provider
+attestation or authorization to migrate live.
+
+## Owner decision
+
+The owner confirmed personal ChatGPT subscription login (not API-key access or
+a managed workspace) and declined a synthetic-only restriction. The experiment
+may accept arbitrary lawful tasks subject to provider rules. No additional
+provider-retention requirement was requested. The subscription tier is not a
+capability attestation and need not be recorded as an account identifier here.
+
+This resolves those preference questions; do not ask the owner to approve a
+synthetic-only scope again. It does not classify arbitrary tasks or numeric
+results as public, authorize third-party data disclosure, establish provider
+retention/training settings, or waive mandatory ASP requirements. Calcu still
+exposes only four arithmetic operations; task content does not expand authority.
+
+No new task classifier, history/export feature, provider switch or live workload
+is introduced by this decision. Existing disclosure of provider submission and
+server-only credential isolation remain part of the intended boundary.
 
 ## Observed paths
 
@@ -32,13 +54,15 @@ Consequently, no application persistence observed is **not** evidence of
 provider-wide `transient` handling. Neither process exit nor `ephemeral` proves
 deletion. No provider account/settings were inspected in this pass.
 
-## Required decision record before ADP-05
+## Remaining handling design before ADP-05
 
-The deployment owner must fill and approve the following, supported by actual
-capability evidence rather than defaults invented by the SDK:
+The following require a proposed implementation contract and capability evidence,
+not another general privacy-preference questionnaire or defaults invented by
+the SDK:
 
 1. Task, operand, output and trace classification; application redaction rules.
-2. Selected processing path and actual provider/CLI/account configuration.
+2. Confirm the selected path matches the owner-reported personal ChatGPT login;
+   inventory extra provider/proxy hops only when they participate in that path.
 3. Separate task-input and application-output retention periods, deletion owner
    and evidence; include diagnostic, proxy, history, backup and crash channels.
 4. Whether whole-path remote-processing restrictions apply and can be enforced;
@@ -47,6 +71,100 @@ capability evidence rather than defaults invented by the SDK:
    deployment implied by the single-user demo.
 6. UI display lifecycle and whether export/history is permitted (not added here).
 
-Until resolved, ADP-03 remains in progress and live contract migration blocked.
+ADP-03 owns this design and feasibility decision, not implementation of the
+later tasks. Its closure permits ADP-05 planning only after the independent
+ADP-02 gate; deployed enforcement and passing integration tests belong to
+ADP-05/08 before conforming live use. No dependency on completing those tasks
+is added as a prerequisite for closing ADP-03.
 The existing demo is not reclassified as conforming and is not changed by this
 worksheet. See the [delivery backlog](../../../review/adoption-delivery-backlog.md).
+
+## Applicable obligations and bounded follow-up
+
+These are obligations from the existing [Privacy module](../../../drafts/modules/privacy.md),
+not new RFC requirements. The base contract covers application-originated
+output, including echoed operands and structured errors. It does not itself
+define application retention of the user task or agent-supplied input.
+
+| Area | Applicability to this decision | Required implementation / evidence |
+| --- | --- | --- |
+| Source classification and redaction | Mandatory base contract, even for a non-persisted proposal | Explicit action `data_exposure`; conservative source classes for result/echoed operands/errors. `redaction.mode: none` is allowed if that unredacted envelope is declared. No natural-language classifier is required. |
+| Runtime/agent retention | Mandatory base contract; independent of extra provider preferences | Choose and enforce `transient` or bounded positive lifetime with required `delete_on_grant_end`. Inventory runtime-controlled copies in context, caches, diagnostics and logs; an ephemeral flag is not enough evidence. |
+| Grant exposure projection | Mandatory base contract | Issuer derives full source closure; runtime recomputes from the pinned manifest and rejects missing, extra or changed projection before use. Hash the complete projection. |
+| UI and task-input ownership | Must be distinguished from action-output retention | Define which component owns displayed copies and their lifecycle. Task-text acceptance is not proof of permission to disclose another person's data; no new export/history behavior is approved here. |
+| Remote Processing Privacy | Optional; not selected for this follow-up because no extra whole-path restriction is requested | No locality/ceiling guarantee is advertised. This omission does not waive base runtime-agent enforcement or prove downstream deletion. Revisit if a later selected bundle/profile requires it. |
+| Agent Training Use Policy | Optional; no new secondary-use permission or prohibition specified here | Leave unspecified; do not infer no training or permission for training from the subscription, task scope or retention declaration. |
+
+### Acceptance checks to carry into implementation
+
+1. A selected action always contributes its declared exposure to the Grant;
+   result and structured-error paths stay inside the same maximum envelope.
+2. Missing/changed source projections fail with `integrity_mismatch` before
+   dispatch; wider payload delivery fails with `data_exposure_violation` without
+   echoing offending values into logs/errors.
+3. The chosen runtime/agent retention contract has tests for its actual owned
+   copies and deletion triggers. An unsupported path refuses the Grant before
+   disclosure. Scope these tests to owned components; do not claim provider
+   erasure or model unlearning from local deletion.
+4. Prompt input and app-generated result are tracked separately; arithmetic
+   shape does not silently relabel payloads as public. No task semantic verifier
+   or extra arithmetic capability is introduced.
+5. Existing browser/model credential-isolation tests continue passing. The UI
+   disclosure continues to describe remote submission without a no-retention or
+   no-training promise.
+
+The next technical step is to map the selected Codex adapter's runtime/agent
+boundary and owned plaintext copies to one concrete base retention contract.
+Unknown third-party retention alone is not grounds to demand an unselected
+whole-path profile; unknown ability to meet the selected base contract is a
+real blocker. Keep those two findings separate. Full live migration also still
+depends on the independent ADP-02 cost decision.
+
+### Current implementation gap, not a new user preference
+
+At the rechecked Calcu revision, `server/executor.ts` has an abbreviated
+`SurfaceSnapshot` and Grant model with no `data_exposure`, retention declaration
+or derived exposure projection. `server/localBackend.ts` checks result
+correlation, not a manifest-derived exposure contract. Temporary-directory
+cleanup and `Cache-Control: no-store` are useful controls, not that contract.
+
+The existing `AgentTaskPanel.tsx` disclosure and server credential isolation
+should be preserved, not replaced with promises about provider deletion.
+Free-form task input already has no synthetic-only filter; there is no reason
+to add one. The agent report's absence of observed app persistence is only
+code-mapping evidence, not a passing retention conformance result.
+
+Carry the contract/projection implementation into ADP-05 (BC-02/04) after its
+gates, with base-path enforcement evidence and integrated tests in ADP-08.
+ADP-03 remains in progress until that concrete handling design and its
+enforcement feasibility are recorded. The preference part is resolved; neither
+this record nor the owner's tolerance removes the implementation gap.
+
+## Authentication-dependent policy evidence (2026-09-06)
+
+The official [Codex authentication documentation](https://developers.openai.com/codex/auth/)
+distinguishes ChatGPT subscription login from API-key access: the applicable
+workspace controls or API organization data settings depend on that choice.
+It also allows custom providers/proxies. These are product capabilities, not
+evidence of this deployment's effective settings. Current documentation is not
+proof that every control is supported by the demo's pinned CLI version.
+
+| Selected route | Evidence needed from the owner | Do not infer |
+| --- | --- | --- |
+| Personal ChatGPT login | Account category, applicable data controls and documented handling of task/tool output | Enterprise retention, API retention or no training from the word Codex |
+| Managed ChatGPT workspace | Workspace category and administrator-confirmed applicable retention/processing controls | That an available enterprise control is enabled for this workspace |
+| API key | Effective organization/project data-sharing and retention controls, actual endpoint/provider path | Zero retention from API authentication or ephemeral thread creation |
+| Custom provider or proxy | Each additional processor/logging hop and its applicable policy | That OpenAI account settings govern an independent proxy or provider |
+
+No authentication file, account identifier, API key, token or workspace secret
+is needed in this public record. The owner can report just the route and policy
+categories; sensitive deployment evidence should stay outside the repository.
+
+### Decision boundary
+
+The login route and lack of a synthetic-only restriction are now owner-reported
+decisions, not unanswered questions. Do not reinterpret "no additional provider
+restriction" as `retention: unlimited`, a provider deletion guarantee or an ASP
+wire value. Required handling constraints still need an enforceable contract.
+If that contract cannot be met, report the exact failing obligation instead of
+silently changing the Grant, replacing the provider or adding a new RFC profile.
