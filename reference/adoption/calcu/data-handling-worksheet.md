@@ -171,6 +171,10 @@ silently changing the Grant, replacing the provider or adding a new RFC profile.
 
 ## Concrete retention candidate and measured limit
 
+The subsequent [source exposure design](exposure-design.md) maps the single
+`calculation.propose` action (four operators), runtime-visible output and offline
+Grant projection. It does not settle live classification or the remaining gates.
+
 The next bounded experiment selected the candidate action-output retention
 `{"mode":"transient","delete_on_grant_end":true}`. It is not yet advertised
 by the Calcu manifest/Grant. Application-owned display state is separate from
