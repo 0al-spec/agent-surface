@@ -56,6 +56,11 @@ jobs:
           set -euo pipefail
           python -m pip install --requirement review/requirements.txt
 
+      - name: Check offline Calcu contract example
+        timeout-minutes: 1
+        shell: bash
+        run: python -B -m unittest discover -s reference/adoption/calcu -p 'test_*.py' -v
+
       - name: Install locked Hyperprompt toolchain
         timeout-minutes: 3
         shell: bash

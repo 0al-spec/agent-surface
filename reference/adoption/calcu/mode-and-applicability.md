@@ -97,6 +97,11 @@ resolved against the RFC, not treated as an exemption supplied by this document.
 
 ## Next bounded delivery
 
+The [offline contract walkthrough](contract-walkthrough.md) materializes the
+selected objects and records endpoint, consent, data-flow and safety-cost
+decisions. Its synthetic identity and unresolved retention leave live use
+explicitly blocked; it does not complete the following implementation work.
+
 Prepare one complete manifest/Grant/session example and a small data-flow
 worksheet before extracting additional SDK types. Resolve three explicit
 choices: trusted endpoint provisioning, enforceable exposure/retention, and the
