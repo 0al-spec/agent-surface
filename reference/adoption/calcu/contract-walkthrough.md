@@ -186,7 +186,7 @@ The following are **planning estimates**, not measured adoption times or
 delivery promises. They assume one experienced developer familiar with Calcu,
 existing crypto/TLS libraries, one local host and no production identity work.
 Ranges include focused tests but exclude CI wait/review and provider-policy
-coordination; shared work means they should not be summed mechanically.
+coordination. The additive range below does not assume unmeasured overlap.
 
 | Work package | Rough effort | Required exit evidence |
 | --- | --- | --- |
@@ -196,8 +196,9 @@ coordination; shared work means they should not be summed mechanically.
 | Runtime durable epochs/lineage guards and recovery | 4–8 days | Crash/restart does not reset counts; unavailable storage fails closed; renewed/new-session work cannot bypass parent fence; exact resolution/resume tests. |
 | Data handling and integrated boundary tests | 2–4 days after policy resolution | No forbidden payload persistence/disclosure; provider path gate; request/response loss and cancellation reconciled; no credentials in model/browser. |
 
-Expect roughly **two to four developer-weeks** for the integrated local path,
-with low confidence until a small safety-state spike is reviewed. SDK packaging
+The packages total **13–25 developer-days**, before coordination/review waits,
+with low confidence until a small safety-state spike is reviewed. Shared work
+may reduce this range, but no overlap reduction has been measured. SDK packaging
 can reduce repeated plumbing but does not remove these state/policy obligations.
 Production identity, Proof-Bound, receipts and independent interoperability
 remain outside this estimate.

@@ -61,6 +61,11 @@ jobs:
         shell: bash
         run: python -B -m unittest discover -s reference/adoption/calcu -p 'test_*.py' -v
 
+      - name: Check bounded Calcu safety-state spike
+        timeout-minutes: 1
+        shell: bash
+        run: python -B -m unittest discover -s reference/adoption/calcu/safety_spike -p 'test_*.py' -v
+
       - name: Install locked Hyperprompt toolchain
         timeout-minutes: 3
         shell: bash
