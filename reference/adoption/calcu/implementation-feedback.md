@@ -220,6 +220,12 @@ to satisfy a test. Exit criterion: one documented interpretation with unchanged
 authority bounds, or a separately reviewed normative change with concrete
 counterexamples. Calcu alone does not justify a `compute` mode.
 
+**Follow-up decision:** [Mode fit and one-action applicability](mode-and-applicability.md)
+retains the non-persisted calculation-artifact interpretation of `propose` and
+records the selected path's mandatory and conditional obligations. It does not
+claim that the current Calcu meets them; in particular, session control and
+durable runaway guards are not waived by the one-task development lifecycle.
+
 ## Minimal-path experiment to run next
 
 The [adoption bundles](../../../drafts/modules/conformance.md#adoption-oriented-conformance-bundles)
