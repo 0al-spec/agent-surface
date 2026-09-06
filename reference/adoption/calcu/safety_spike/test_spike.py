@@ -87,6 +87,47 @@ class SafetySpikeTests(unittest.TestCase):
         self.assertEqual(self.store.admit(session_id="s", expected_generation=3, grant_id="g", grant_hash="h").outcome,
                          "denied_generation_invalid")
 
+    def test_fenced_grant_cannot_switch_to_another_lineage(self):
+        self.assertTrue(self.store.seed(grant_id="g2", grant_hash="h2", lineage_id="L2",
+                                        session_id="s2"))
+        outcomes = [self.store.admit(session_id="s", expected_generation=1,
+                    grant_id="g", grant_hash="h").outcome for _ in range(3)]
+        self.assertEqual(outcomes, ["admitted", "admitted", "guard_triggered"])
+        self.store.close()
+        self.store = SafetyStore(self.path)
+        self.assertEqual(self.store.new_session(session_id="bypass", lineage_id="L2",
+                         grant_id="g", grant_hash="h"), "denied_lineage_mismatch")
+        self.assertIsNone(self.store.db.execute(
+            "SELECT session_id FROM sessions WHERE session_id='bypass'"
+        ).fetchone())
+        self.assertEqual(self.store.admit(session_id="bypass", expected_generation=1,
+                         grant_id="g", grant_hash="h").outcome, "denied_authority")
+        self.assertEqual(self.store.admit(session_id="s2", expected_generation=1,
+                         grant_id="g2", grant_hash="h2").outcome, "admitted")
+
+    def test_seed_cannot_rebind_existing_grant(self):
+        self.assertFalse(self.store.seed(grant_id="g", grant_hash="h", lineage_id="other",
+                                         session_id="other"))
+        self.assertEqual(self.store.db.execute(
+            "SELECT lineage_id FROM grants WHERE grant_id='g'"
+        ).fetchone(), ("L",))
+        self.assertIsNone(self.store.db.execute(
+            "SELECT lineage_id FROM lineage_guards WHERE lineage_id='other'"
+        ).fetchone())
+
+    def test_admission_and_resume_recheck_stored_lineage_binding(self):
+        self.assertTrue(self.store.seed(grant_id="g2", grant_hash="h2", lineage_id="L2",
+                                        session_id="s2"))
+        # Simulate inconsistent stored session data, not an authorized API.
+        self.store.db.execute("UPDATE sessions SET lineage_id='L2' WHERE session_id='s'")
+        self.assertEqual(self.store.admit(session_id="s", expected_generation=1,
+                         grant_id="g", grant_hash="h").outcome, "denied_lineage_mismatch")
+        self.assertTrue(self.store.interrupt("s"))
+        self.assertEqual(self.store.resume("s", 1), "denied_lineage_mismatch")
+        self.assertEqual(self.store.db.execute(
+            "SELECT count FROM lineage_guards WHERE lineage_id='L2'"
+        ).fetchone(), (0,))
+
     def test_resume_cannot_reactivate_revoked_grant(self):
         self.assertTrue(self.store.interrupt("s"))
         self.assertTrue(self.store.revoke("g"))

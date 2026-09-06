@@ -11,7 +11,8 @@ SCHEMA = """
 PRAGMA journal_mode=WAL;
 CREATE TABLE IF NOT EXISTS grants (
   grant_id TEXT PRIMARY KEY, grant_hash TEXT NOT NULL, valid INTEGER NOT NULL,
-  revision INTEGER NOT NULL, revoked INTEGER NOT NULL DEFAULT 0
+  revision INTEGER NOT NULL, revoked INTEGER NOT NULL DEFAULT 0,
+  lineage_id TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS sessions (
   session_id TEXT PRIMARY KEY, lineage_id TEXT NOT NULL, grant_id TEXT NOT NULL,
@@ -72,8 +73,8 @@ class SafetyStore:
              session_id: str, hard_limit: int = 2) -> bool:
         def op(db):
             db.execute("BEGIN IMMEDIATE")
-            db.execute("INSERT INTO grants VALUES (?, ?, 1, 1, 0)",
-                       (grant_id, grant_hash))
+            db.execute("INSERT INTO grants VALUES (?, ?, 1, 1, 0, ?)",
+                       (grant_id, grant_hash, lineage_id))
             db.execute("INSERT INTO lineage_guards(lineage_id, hard_limit) VALUES (?, ?)",
                        (lineage_id, hard_limit))
             db.execute("INSERT INTO sessions VALUES (?, ?, ?, ?, 1, 'active')",
@@ -102,12 +103,14 @@ class SafetyStore:
             if row is None:
                 db.rollback(); return "session_missing"
             current, state, grant_id, grant_hash, lineage_id = row
-            grant = db.execute("SELECT valid, revoked, grant_hash FROM grants WHERE grant_id=?",
+            grant = db.execute("SELECT valid, revoked, grant_hash, lineage_id FROM grants WHERE grant_id=?",
                                (grant_id,)).fetchone()
             guard = db.execute("SELECT fenced FROM lineage_guards WHERE lineage_id=?",
                                (lineage_id,)).fetchone()
             if grant is None or guard is None:
                 db.rollback(); return "storage_unavailable"
+            if grant[3] != lineage_id:
+                db.rollback(); return "denied_lineage_mismatch"
             if not grant[0] or grant[1] or grant[2] != grant_hash:
                 db.rollback(); return "denied_grant_revoked"
             if guard[0]:
@@ -136,11 +139,13 @@ class SafetyStore:
             db.execute("BEGIN IMMEDIATE")
             session = db.execute("SELECT lineage_id, grant_id, grant_hash, generation, state "
                                  "FROM sessions WHERE session_id=?", (session_id,)).fetchone()
-            grant = db.execute("SELECT grant_hash, valid, revoked FROM grants WHERE grant_id=?",
+            grant = db.execute("SELECT grant_hash, valid, revoked, lineage_id FROM grants WHERE grant_id=?",
                                (grant_id,)).fetchone()
             if session is None or grant is None:
                 db.rollback(); return Admission("denied_authority", session_id, expected_generation)
             lineage, sgid, shash, generation, state = session
+            if grant[3] != lineage:
+                db.rollback(); return Admission("denied_lineage_mismatch", session_id, generation)
             if (sgid, shash) != (grant_id, grant_hash) or grant[0] != grant_hash:
                 db.rollback(); return Admission("denied_authority", session_id, generation)
             if not grant[1] or grant[2]:
@@ -175,10 +180,12 @@ class SafetyStore:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT fenced FROM lineage_guards WHERE lineage_id=?",
                              (lineage_id,)).fetchone()
-            grant = db.execute("SELECT valid, revoked, grant_hash FROM grants WHERE grant_id=?",
+            grant = db.execute("SELECT valid, revoked, grant_hash, lineage_id FROM grants WHERE grant_id=?",
                                (grant_id,)).fetchone()
             if not row or not grant:
                 db.rollback(); return "storage_unavailable"
+            if grant[3] != lineage_id:
+                db.rollback(); return "denied_lineage_mismatch"
             if row[0]:
                 db.rollback(); return "denied_fenced"
             if not grant[0] or grant[1] or grant[2] != grant_hash:

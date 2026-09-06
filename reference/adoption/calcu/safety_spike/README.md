@@ -14,11 +14,19 @@ claim, while a later check is denied.
 All values are fixed synthetic test-harness inputs. This is not authentication,
 issuance, verification, a receipt, a provider integration, or an SDK.
 
+Each synthetic Grant is permanently associated with one lineage at `seed()`.
+`new_session()`, admission and resume recheck that stored association inside
+their transaction; a caller cannot combine one Grant with another root's
+counter. The prototype does not migrate older scratch databases lacking this
+field: operations needing the missing binding fail closed. Use a fresh
+temporary database for this experiment, not a migration of real authority.
+
 ## Obligation matrix
 
 | SPIKE obligation | Evidence |
 | --- | --- |
 | Grant validity separate from session state | `test_revoke_is_authoritative...` |
+| Grant cannot switch roots to bypass a fence | `test_fenced_grant_cannot_switch_to_another_lineage`, `test_seed_cannot_rebind_existing_grant`, `test_admission_and_resume_recheck_stored_lineage_binding` |
 | Exact stale/future generation rejection | `test_stale_and_future_generation_rejected` |
 | Resume cannot reactivate revoked/fenced authority | `test_resume_cannot_reactivate_revoked_grant`, `test_resume_cannot_bypass_lineage_fence` |
 | Atomic check + admission reservation | concurrent three-connection test; exactly two admissions |
@@ -46,7 +54,7 @@ The first agent implementation and main-agent corrections were produced in one
 short session on 2026-09-06 (initial delegated implementation approximately
 five minutes, excluding subsequent review and integration). This is automation
 wall-clock evidence, **not** measured developer effort for a live migration.
-Eleven local tests pass; they do not exercise process crashes or a real engine.
+Fourteen local tests pass; they do not exercise process crashes or a real engine.
 
 The useful result is a small transaction boundary and concrete rejection tests.
 Most estimated integration work remains: authenticated session control, complete
