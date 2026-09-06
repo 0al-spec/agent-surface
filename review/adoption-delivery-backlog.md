@@ -52,6 +52,14 @@ profile would require a separate approved normative task.
 
 ## Evidence ledger
 
+- ASP PR #84 merged as `11f68c1` with green CI and no review threads. Its
+  authority-boundary clarification is now normative; it does not close ADP-03.
+- ADP-03 [handling policy proposal](../reference/adoption/calcu/handling-policy.md)
+  records sensitive calculation/context classes, private status, a complete
+  exposure fragment and event-bound app lifecycle. Policy review, known-source
+  enforcement design, actual-path/CLI retention, principal and other feasibility
+  gates remain open. No live migration, Calcu changes or provider claims.
+
 - Calcu applicability finding: Privacy now distinguishes caller-supplied,
   application-held and derived data without new wire fields. Voluntary data
   disclosure does not grant resource authority; unknown hypothetical meaning

@@ -63,6 +63,11 @@ deletion. No provider account/settings were inspected in this pass.
 
 ## Remaining handling design before ADP-05
 
+The [proposed handling policy](handling-policy.md) supplies a concrete class
+maximum, redaction/retention fragment, copy lifecycle and disclosure draft for
+review. These are design proposals, not deployed controls or closure evidence.
+Its exit table tracks the remaining feasibility and policy-review work below.
+
 The following require a proposed implementation contract and capability evidence,
 not another general privacy-preference questionnaire or defaults invented by
 the SDK:
