@@ -43,6 +43,13 @@ evidence, not contractual promises by the CLI, provider or operating system.
 
 ## Applicable distinctions
 
+The Privacy module's authority-boundary clarification distinguishes current
+caller input, application-held resources and derived output. Supplying a value
+to an agent grants no resource access. Classification uses known provenance and
+context, not a guess that arbitrary digits might encode a secret. Known
+sensitivity and base handling remain applicable; Calcu needs no new semantic
+classifier or opaque-reference interface to express that distinction.
+
 [Data Exposure Contract](../../../drafts/modules/privacy.md) requires explicit
 application source exposure and derived Grant projection. Action-output
 retention does not define retention of the user's task or agent-supplied input.

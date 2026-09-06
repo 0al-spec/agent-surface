@@ -2,8 +2,9 @@
 
 Status: non-normative design fragment; not an advertised capability, deployment
 approval or completed ADP-03 gate. Implementation baseline: Calcu `a059d77`.
-Normative basis: [Data Exposure Contract](../../../drafts/modules/privacy.md#data-exposure-contract)
-at ASP `c875ed0`. No RFC or live Calcu contract is changed here.
+Normative basis: [Data Exposure Contract](../../../drafts/modules/privacy.md#data-exposure-contract),
+Privacy `0.1.0-draft.3`, clarified by this change. No live Calcu contract is
+changed here.
 
 ## One source, four operators
 
@@ -41,17 +42,20 @@ all these error channels already share an implemented exposure contract.
 The existing offline `calculation.sample` class is explicitly a fixed synthetic
 example. Its `private` classification is not evidence for arbitrary live
 numbers. Live operands/results can represent sensitive financial or personal
-information, and numbers can also encode credentials. Numeric schema validation
-cannot establish their semantic classification.
+information. Numeric schema validation cannot establish their semantic
+classification, but hypothetical undisclosed meanings do not automatically
+make an arbitrary input class `credential` either.
 
 Before issuance, the publisher must choose a defensible maximum for each live
-class, including runtime-visible correlation metadata. If a class can contain
-credential material, the normative most-protective rule applies; declaring
-`credential` does not authorize release under `credential_release: deny`.
-Do not silently choose `private`/`sensitive`, introduce a natural-language
-classifier, or advertise unrestricted safe disclosure to evade that conflict.
-Record the enforceable boundary or an explicit infeasibility finding. The owner
-has not approved a synthetic-only product restriction.
+class, including runtime-visible correlation metadata, using known provenance,
+source semantics and trusted classification. Current-request operands processed
+without protected application data may be described as non-public caller
+calculation data; no PIN detector is required. Known sensitive or credential
+material cannot be downgraded by calling it user input. Application-held data
+used to enrich a result still requires independent authority and preserves its
+known classification. Record the concrete handling policy and enforceability;
+this clarification does not itself complete the live contract. The owner has
+not approved a synthetic-only product restriction.
 
 `redaction.mode: none` is a possible design only when the declared classes cover
 the full unredacted envelope. A future `policy` choice needs a named,
@@ -125,6 +129,20 @@ issuer/runtime derivation and application enforcement; ADP-08 tests the real
 HTTPS path, including rejected calls and data-minimized failures.
 
 ## Remaining gates
+
+Boundary review cases for the clarified rule (not executable conformance):
+
+| Case | Expected interpretation |
+| --- | --- |
+| Caller supplies `1234` and `2`, calculator uses no protected resource | Normal admitted calculation under its declared handling contract; no inferred PIN classification |
+| Same request has no valid Grant | Reject admission; possession of operands is not authority |
+| Agent asks for saved calculations or supplies another user's record reference | Require separately granted resource access; current-input provenance cannot authorize it |
+| Calculation uses a protected account balance | Authorize the read and preserve its known sensitivity in derived output |
+| Caller labels a known credential or trusted sensitive value as an ordinary number | Do not discard known classification or bypass credential-release restrictions |
+| Caller supplies an ASP Grant Credential as input | No echo/release exception; the credential remains non-releasable |
+
+The distinction does not assert permission to disclose someone else's data,
+provider-wide deletion, or unrestricted onward processing.
 
 This slice fixes source identity and projection mechanics, not live policy.
 Live source classification/redaction (including response metadata), retention

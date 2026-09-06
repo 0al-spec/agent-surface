@@ -46,7 +46,7 @@
     },
     {
       "path" : "drafts/modules/conformance.md",
-      "sha256" : "bd7c7032abb947312eea0ea788c193a4d5d840ad122e9c4a55b5ac9bce32b2d4",
+      "sha256" : "23aedcfe234a688e9ce94e16908aedaae2a17e05344d39dc99b2ad2d3a4575d5",
       "size" : 93673,
       "type" : "markdown"
     },
@@ -64,8 +64,8 @@
     },
     {
       "path" : "drafts/modules/privacy.md",
-      "sha256" : "cbdd129443e9fe29557dc17321db41e1a7e485049b5c6826ed37b9edb63773c9",
-      "size" : 46664,
+      "sha256" : "9d012e61f23d41f6512a8443456dca7b55464b1d91761383930af3e8dedcb335",
+      "size" : 49423,
       "type" : "markdown"
     },
     {

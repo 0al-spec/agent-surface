@@ -6,7 +6,7 @@
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/privacy`
-- Exact version: `0.1.0-draft.2`
+- Exact version: `0.1.0-draft.3`
 - Canonical path: `drafts/modules/privacy.md`
 
 ## Exact Normative Dependencies
@@ -35,7 +35,16 @@ Class identifiers name semantic kinds of data, such as
 `repository.content` or `user.identifier`; classifications describe their
 minimum handling sensitivity. A publisher MUST assign the most protective
 applicable classification when a class can contain data of different
-sensitivities. Labels and descriptions are application-authored display hints,
+sensitivities. Applicability is determined from the source's declared semantics,
+provenance, and context known to the application, including any trusted
+classification attached to the data. The mere possibility that arbitrary
+caller-supplied bytes encode a secret does not, by itself, classify the entire
+source as `credential`. A publisher MUST NOT ignore known sensitivity, remove
+trusted classification, or relabel application-held data as caller-supplied to
+lower its protection. This rule does not require inference of an undisclosed
+semantic meaning from arbitrary text or numbers.
+
+Labels and descriptions are application-authored display hints,
 not authority or evidence that a class is harmless. A runtime MUST preserve the
 class identifier and classification when it renders an application label.
 The `data_classes` array and every exposure `classes` array MUST be ordered by
@@ -122,6 +131,39 @@ declared post-redaction envelope before delivery. This draft does not define a
 field-level classifier and does not require a runtime to infer semantic data
 classes from arbitrary payload bytes. A schema MAY carry implementation-specific
 classification annotations, but those annotations do not replace the contract.
+
+**Data provenance and the application authority boundary.** For classification
+and access decisions, implementations distinguish caller-supplied data received
+in the current request, application-held data obtained from application
+resources, and derived output computed from either or both. These are semantic
+distinctions, not new wire fields or classification values. A caller's claim
+about provenance is not authoritative evidence.
+
+Voluntarily supplying data to an agent does not issue an ASP Grant or authorize
+access to any application resource. An invocation using that input still
+requires the applicable Grant, scopes, constraints, and application-side
+admission checks. Possession of a value or an opaque resource reference MUST
+NOT substitute for authority to read the referenced record, history, memory,
+file, or database. Access to application-held data used while deriving a result
+MUST be authorized independently of possession of the caller's input.
+
+Echoes and derived results remain covered by the action's `data_exposure`
+contract. Their handling MUST preserve known applicable sensitivity; arithmetic,
+formatting, encoding, or caller-supplied operands do not declassify protected
+application data. Where an operation uses only the current caller-supplied
+operands and no protected application-held data, returning those operands or
+their arithmetic result is not, solely because a number could be used as a
+secret elsewhere, a `credential.release` operation. Known credential material
+remains subject to the credential-release rules, and a non-releasable ASP Grant
+Credential remains non-releasable regardless of who supplied it.
+
+For example, a calculator can declare non-public caller calculation data and
+its derived results without claiming to recognize whether an otherwise
+unannotated number denotes a salary or PIN. This does not authorize reading its
+saved calculations or other application resources, establish a `public`
+classification, or waive redaction, retention, or applicable onward-processing
+constraints. A response enriched from a protected account balance is not the
+same case: the balance's known classification and access requirements apply.
 
 The authorization server MUST derive the issued grant's effective
 `data_exposure` array from the exact pinned manifest and approved Grant Object
