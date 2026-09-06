@@ -185,12 +185,25 @@ CLI-controlled IDs/methods/error text/status. The fix restricts diagnostics to
 fixed stages/status and classified error codes. These are observed local
 controls, not proof of a real CLI or provider's retention behavior.
 
-ADP-03 remains in progress for one specific feasibility question: can the pinned
+One remaining retention feasibility question is whether the pinned
 CLI agent's local context/rollout/cache/diagnostic behavior and the adapter's
-outstanding-reference lifecycle satisfy the chosen base contract? The fake
+outstanding-reference lifecycle can satisfy the chosen base contract. The fake
 process cannot answer this. Do not replace that question with an enterprise
 subscription requirement, provider-wide deletion guarantee or synthetic-only
 product scope. No live CLI request or credential-store inspection was made.
+
+Passing that check alone does not close ADP-03 or unblock ADP-05. All items in
+[Remaining handling design before ADP-05](#remaining-handling-design-before-adp-05)
+remain open: source classification/redaction, selected-path evidence and
+applicable restrictions, separate task-input/output retention and deletion
+ownership, principal/tenant ownership and disclosure, and UI display/export/
+history lifecycle. The mandatory manifest-derived Grant exposure projection
+design and its feasibility also remain unresolved, as recorded in the
+[delivery backlog](../../../review/adoption-delivery-backlog.md). The candidate
+and fake-process tests do not resolve these design gates. ADP-03 closure requires
+the complete handling design and feasibility evidence; deployed implementation
+and integration remain ADP-05/08, and the independent ADP-02 decision still gates
+ADP-05.
 
 Executor Grant/identity-record cleanup and UI unmount cancellation were noted
 as separate lifecycle debt. They are not evidence that calculator outputs are
