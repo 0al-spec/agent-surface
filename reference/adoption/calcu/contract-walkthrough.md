@@ -76,6 +76,12 @@ authenticated principal/issuer channel and session start/state carrier as
 well as the already-required HTTP session-control operation. A local record
 or this endpoint inventory alone does not implement those exchanges.
 
+Required containers are still present: manifest `auth: {}` and `audit: {}`,
+plus request/Grant `audit: {}`. Empty objects select no optional OAuth or
+receipt/signing requirements; they do not waive authentication or local audit.
+The closed identity discovery entry includes `migration_profiles: []` to
+explicitly select no legacy migration, rather than omit the required member.
+
 ## 2. Exact construction and consent sources
 
 The [generator](contract_example.py) follows this dependency order:
@@ -213,10 +219,11 @@ with fresh issuance, not an in-place rewrite of active state.
 
 ## Validation boundary
 
-Eight [offline tests](test_contract_example.py) check deterministic construction,
+Eleven [offline tests](test_contract_example.py) check deterministic construction,
 schema examples (including `sqrt`/extra-field rejection), correct hash domains,
 complete matching identity/exposure copies, absence of issuer-only request
-fields, endpoint distinctions and session tuple coherence. These are fixture
+fields, required manifest/request containers, the closed discovery entry,
+endpoint distinctions and session tuple coherence. These are fixture
 construction assertions, **not** tests that Calcu rejects all these mutations.
 JSON Schema does not validate a mathematical result, TLS or a live identity;
 raw JSON and finite-number checks remain necessary before runtime validation.

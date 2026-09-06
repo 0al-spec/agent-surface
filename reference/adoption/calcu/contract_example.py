@@ -94,6 +94,8 @@ def build_example() -> dict:
         "surface_url": ORIGIN + "/.well-known/agent-surface.json",
         "surface_version": "offline-example-2026-09-06",
         "surface_mode": "proposal_only",
+        "auth": {},  # App-issued endpoint binding; no OAuth mechanism advertised.
+        "audit": {},  # No optional receipt producer/signing requirement selected.
         "compatibility": {
             "min_runtime": "application-runtime/0.1",
             "schema_dialect": input_schema["$schema"],
@@ -105,6 +107,7 @@ def build_example() -> dict:
                 "key_binding_profiles": [identity["key_binding"]["profile"]],
                 "freshness_profiles": [identity["lifecycle"]["freshness_profile"]],
                 "status_profiles": [identity["lifecycle"]["status_profile"]],
+                "migration_profiles": [],
                 "max_artifact_bytes": 262144,
             }],
         },
@@ -154,6 +157,7 @@ def build_example() -> dict:
             "credential_release": {"mode": "deny"},
         },
         "credential_profile": "compatibility_bearer",
+        "audit": {},  # Required container, without optional receipt requirements.
     }
     projection = [{"source": {"kind": "action", "id": ACTION}, **deepcopy(exposure)}]
     grant = {

@@ -21,6 +21,33 @@ class ContractExampleTests(unittest.TestCase):
         self.assertEqual(self.request["delegate"]["identity_evidence"]["subject"], "synthetic-calcu-adapter")
         self.assertEqual(build_example()["grant_example"]["credential_binding"]["identity_evidence"]["subject"], "synthetic-calcu-adapter")
 
+    def test_required_manifest_containers(self):
+        required = {
+            "protocol", "app_id", "issuer", "surface_mode", "surface_version",
+            "surface_hash", "surface_url", "auth", "agent_api", "scopes",
+            "data_classes", "resources", "actions", "events", "audit", "revocation",
+        }
+        self.assertTrue(required <= self.manifest.keys())
+        self.assertEqual(self.manifest["auth"], {})
+        self.assertEqual(self.manifest["audit"], {})
+
+    def test_closed_identity_discovery_entry_includes_empty_migrations(self):
+        entry = self.manifest["compatibility"]["agent_identity_evidence_profiles"][0]
+        self.assertEqual(set(entry), {
+            "profile", "format_profile", "artifact_digest_profile",
+            "verification_profiles", "key_binding_profiles", "freshness_profiles",
+            "status_profiles", "migration_profiles", "max_artifact_bytes",
+        })
+        self.assertEqual(entry["migration_profiles"], [])
+
+    def test_required_request_audit_survives_grant_construction_and_hashing(self):
+        self.assertEqual(self.request["audit"], {})
+        self.assertEqual(self.grant["audit"], {})
+        without_audit = {k: v for k, v in self.request.items() if k != "audit"}
+        self.assertNotEqual(self.example["grant_request_hash"], object_hash(ASP + "hash/grant-request/v1", without_audit))
+        grant_view = {k: v for k, v in self.grant.items() if k not in {"audit", "grant_hash"}}
+        self.assertNotEqual(self.grant["grant_hash"], object_hash(ASP + "hash/grant/v1", grant_view))
+
     def test_hashes_and_self_field_exclusions(self):
         # Fixed RFC vectors avoid checking only the helper against itself.
         self.assertEqual(
