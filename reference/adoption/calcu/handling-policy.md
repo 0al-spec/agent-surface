@@ -1,5 +1,11 @@
 # ADP-03: proposed Calcu handling policy
 
+> Superseded direction (2026-09-08): the owner withdrew the transient-retention
+> candidate and stopped the live probe lane. See the
+> [BYOA responsibility decision](byoa-responsibility-decision.md) for the current
+> application/agent boundary and unresolved RFC compatibility. The proposal
+> below is historical design evidence, not the selected deployment policy.
+
 Status: concrete design for review, **not deployed or capability-verified**.
 Baselines: ASP `11f68c1` (Privacy `0.1.0-draft.3`), Calcu `a059d77`.
 This does not close ADP-03, approve live migration or replace the independent

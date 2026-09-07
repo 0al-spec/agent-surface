@@ -1,5 +1,10 @@
 # ADP-03: bounded real-CLI retention probe preparation
 
+> Stopped by owner direction, 2026-09-08. No collector, authentication or live
+> run is planned. This runbook and its approval procedure are historical, not
+> the next action. See the [current BYOA decision](../byoa-responsibility-decision.md).
+> Existing offline tests remain useful evidence; they do not reopen this lane.
+
 **Prepared, not run.** This directory contains the execution plan and an offline
 report interpreter. It contains no live launcher, credential reader, filesystem
 crawler or automated login. The live collector and disposable environment must

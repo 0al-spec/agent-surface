@@ -1,5 +1,9 @@
 # ADP-03: pinned CLI local-persistence source audit
 
+> Follow-up decision, 2026-09-08: [user-selected agent responsibility](../byoa-responsibility-decision.md)
+> stops live retention work. The findings below remain static evidence; the
+> experiment suggested here is no longer the selected next step.
+
 **Static evidence only; no live run.** ASP PR #86 merged as `73c78fc`.
 This audit reads the official `openai/codex` tag `rust-v0.145.0`, peeled
 commit `25af12f7e61572b0bc18ddb1008be543b91519b0`. No binary was built or

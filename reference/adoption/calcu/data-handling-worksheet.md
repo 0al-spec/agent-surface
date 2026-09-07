@@ -1,5 +1,12 @@
 # ADP-03: Calcu data-handling evidence and decision worksheet
 
+> Current direction (2026-09-08): see the
+> [BYOA responsibility decision](byoa-responsibility-decision.md). Its owner
+> decision supersedes this worksheet's transient candidate and proposed live
+> retention work, not the RFC requirements recorded below. Agent-internal
+> retention investigation is stopped; normative compatibility and remaining
+> application-side design gates keep ADP-03 open.
+
 Status: owner preferences recorded; **ASP handling contract not yet verified**
 (2026-09-06).
 Inspected Calcu SDK-consumer revision `5e5a23f04bad649a23eedaad4f83126b2ec3ff7e`.
