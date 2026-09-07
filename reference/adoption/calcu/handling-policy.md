@@ -112,6 +112,12 @@ The [prepared probe kit](retention_probe/README.md) now supplies the bounded
 runbook and offline report interpreter. It has not collected live evidence;
 authentication approval and the actual collector remain prerequisites.
 
+The subsequent [pinned CLI source audit](retention_probe/source-audit.md) finds
+a separate payload-bearing SQLite diagnostic path outside ephemeral thread
+persistence. This is a source-level feasibility objection, not live evidence;
+the transient capability remains unestablished. Any approved probe should first
+target that path, rather than build a general filesystem collector.
+
 ADP-03 stays `in_progress`. Deployment enforcement, API/UI changes and integrated
 negative tests remain ADP-05/08 after their gates; this proposal does not make
 those later tasks prerequisites for recording the design feasibility decision.

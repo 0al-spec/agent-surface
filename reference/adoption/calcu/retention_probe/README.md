@@ -12,6 +12,12 @@ Pinned targets: Calcu `a059d77`, Codex CLI `0.145.0`, `gpt-5.6-luna`, effort
 
 ## Question and evidence limit
 
+The [pinned source audit](source-audit.md) identifies a separate SQLite tool-response
+logging path despite ephemeral thread persistence being disabled. Read it before
+designing a collector: the next proposed experiment targets that path with one
+success run, not a general crawler or an automatic three-scenario campaign.
+It is static evidence only; the live approval gate below remains unchanged.
+
 Can we observe application-output plaintext persisted by the selected CLI
 during or after one ephemeral task, within a precisely inventoried disposable
 environment? A positive retained marker is evidence of that observed copy;
