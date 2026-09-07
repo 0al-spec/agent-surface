@@ -52,6 +52,12 @@ profile would require a separate approved normative task.
 
 ## Evidence ledger
 
+- ASP PR #85 merged as `b6f750f`. ADP-03
+  [retention probe preparation](../reference/adoption/calcu/retention_probe/README.md)
+  supplies an isolated-run plan and tested offline observation interpreter.
+  No live launcher/collector, authentication or runtime evidence is delivered;
+  no-residue results cannot establish conformance. Other ADP-03 gates remain open.
+
 - ASP PR #84 merged as `11f68c1` with green CI and no review threads. Its
   authority-boundary clarification is now normative; it does not close ADP-03.
 - ADP-03 [handling policy proposal](../reference/adoption/calcu/handling-policy.md)
