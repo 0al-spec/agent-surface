@@ -39,6 +39,10 @@ all these error channels already share an implemented exposure contract.
 
 ## Classification decision still required
 
+The [handling policy proposal](handling-policy.md) now gives concrete class IDs,
+maximum fields and lifecycle choices. It remains subject to design review and
+enforcement-feasibility evidence; the limits in this section still apply.
+
 The existing offline `calculation.sample` class is explicitly a fixed synthetic
 example. Its `private` classification is not evidence for arbitrary live
 numbers. Live operands/results can represent sensitive financial or personal
