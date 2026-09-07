@@ -29,7 +29,19 @@ The following authority rules apply:
 5. If this document conflicts with the publication contract, active RFC
    sources, or review data, this snapshot MUST be updated.
 
-## Current delivery selection (2026-09-06)
+## Current delivery selection (2026-09-08)
+
+The next RFC slice is the [explicit user-managed retention proposal](proposals/user-managed-retention.md),
+a non-authoritative revision candidate for #36, with #37/#38/#46/#50 interactions.
+It separates mandatory application access/disclosure control from an explicit
+publisher-selected absence of protocol retention guarantees. No existing
+contract may be downgraded by caller preference. The proposal fixes candidate
+wire shape, consent, compatibility and required negative vectors; actual RFC
+and executable support must be delivered together before adoption/conformance.
+Retention probes are stopped by the owner; they are not this slice's prerequisite.
+Card coverage/maturity remains unchanged until normative delivery.
+
+### Prior implementation selection (2026-09-06)
 
 The active Calcu implementation lane is tracked in the
 [ADP-01…09 delivery backlog](adoption-delivery-backlog.md). Start with a focused
