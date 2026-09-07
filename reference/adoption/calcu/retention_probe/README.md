@@ -7,8 +7,8 @@
 
 **Prepared, not run.** This directory contains the execution plan and an offline
 report interpreter. It contains no live launcher, credential reader, filesystem
-crawler or automated login. The live collector and disposable environment must
-be prepared under the approval gate below; running `probe.py` does not run Codex.
+crawler or automated login. The approval procedure below is historical;
+running `probe.py` does not run Codex or reopen the stopped lane.
 
 Pinned targets: Calcu `a059d77`, Codex CLI `0.145.0`, `gpt-5.6-luna`, effort
 `low`; one `calculation.propose` tool call through LocalBackend → loopback HTTPS
@@ -18,10 +18,10 @@ Pinned targets: Calcu `a059d77`, Codex CLI `0.145.0`, `gpt-5.6-luna`, effort
 ## Question and evidence limit
 
 The [pinned source audit](source-audit.md) identifies a separate SQLite tool-response
-logging path despite ephemeral thread persistence being disabled. Read it before
-designing a collector: the next proposed experiment targets that path with one
-success run, not a general crawler or an automatic three-scenario campaign.
-It is static evidence only; the live approval gate below remains unchanged.
+logging path despite ephemeral thread persistence being disabled. The proposed
+one-success-run experiment was not run and is no longer selected. This is static
+evidence only; no active approval request remains under the
+[current BYOA decision](../byoa-responsibility-decision.md).
 
 Can we observe application-output plaintext persisted by the selected CLI
 during or after one ephemeral task, within a precisely inventoried disposable
@@ -45,6 +45,10 @@ protocol reference, not evidence of all local persistence paths.
 
 ## Approval gate: no authentication action yet
 
+**Historical procedure only.** No authentication action, approval request or
+live run is pending. Resuming this lane would require a new explicit decision
+and a newly agreed run scope; neither one nor three runs are authorized here.
+
 Recommended: a disposable OS account/VM with no host home mount, no shared host
 keychain, no unrelated projects and no existing credentials. A separate
 `CODEX_HOME` alone is not OS isolation. The user signs into ChatGPT themselves
@@ -59,12 +63,15 @@ Do not change account data controls or log out the user's normal session.
 After the probe, the user ends the dedicated login and the disposable environment
 is destroyed; no backup or retained VM snapshot containing authentication.
 
-Approval must cover: the isolated environment and login route, at most three
+The former approval proposal covered: the isolated environment and login route, at most three
 synthetic tasks on the existing subscription, allowed non-auth observation
-paths, temporary observer storage and its deletion. Until then, only the
-offline commands below are authorized by this preparation.
+paths, temporary observer storage and its deletion. This historical scope
+authorizes nothing now; only the offline commands below remain applicable.
 
 ## Bounded procedure after approval
+
+**Historical, not actionable.** These steps preserve the superseded procedure,
+not a pending implementation or approval request.
 
 1. **Preflight (no model call):** verify exact binary version and record its
    artifact digest, Calcu commit, platform and sanitized configuration. Inventory
@@ -163,5 +170,6 @@ Prepared now: runbook, closed offline interpreter and synthetic regression tests
 Not prepared/executed: approved isolated authentication, live collector, real
 CLI runs or evidence report. A filesystem finding informs ADP-03 feasibility;
 no result here closes its classification, projection, ownership, route or other
-gates, nor the independent ADP-02 decision. Next approval is the isolated login
-and three-run scope above, not permission to inspect the existing auth store.
+gates, nor the independent ADP-02 decision. There is no next approval, isolated
+login or live run in this stopped lane. The one-success proposal and optional
+terminal variants are historical only, not authorization to make model calls.

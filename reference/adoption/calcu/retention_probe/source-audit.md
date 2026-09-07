@@ -18,9 +18,10 @@ can persist incoming JSON-RPC tool responses in SQLite, independent of the
 thread's rollout persistence. This is a concrete source-level feasibility
 objection, not a report that the user's machine retained any particular data.
 
-The next experiment should target this path first, rather than start by building
-a general filesystem crawler. The existing [approval gate](README.md#approval-gate-no-authentication-action-yet)
-still applies. Nothing here authorizes a live run or closes ADP-03/ADP-02.
+The superseded experiment proposal targeted this path first rather than a
+general filesystem crawler. Its [approval gate](README.md#approval-gate-no-authentication-action-yet)
+is historical only: no live approval is pending. Nothing here authorizes a live
+run or closes ADP-03/ADP-02.
 
 ## Evidence chain
 
@@ -89,6 +90,10 @@ It neither asserts provider retention nor demonstrates a cross-user disclosure.
 No source finding is fed into `probe.py` as if it were a live observation.
 
 ## Smallest next step
+
+**Historical proposal, no longer selected.** The following records the earlier
+follow-up, not an active request for approval or work. The current next step is
+the normative compatibility proposal in the linked BYOA decision.
 
 1. Review whether this static counterexample is already sufficient to reject
    reliance on ephemeral mode for the proposed transient contract. Keep that

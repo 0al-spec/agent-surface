@@ -99,6 +99,11 @@ an authenticated principal/tenant mapping is still a separate design gate.
 
 ## Exit evidence and next bounded work
 
+**Historical gate inventory, superseded.** The table below records the withdrawn
+proposal's gates, not current closure requirements. The current BYOA decision
+replaces agent-retention verification with the normative compatibility question;
+it does not remove the remaining application-side design gates.
+
 | ADP-03 area | Progress from this proposal | Still needed before closure |
 | --- | --- | --- |
 | Classification/redaction | Concrete class maximum and `none` candidate | Review live envelope coverage and credible known-provenance enforcement design |
@@ -108,21 +113,22 @@ an authenticated principal/tenant mapping is still a separate design gate.
 | Selected route / optional restrictions | Owner preferences remain recorded; no new provider profile | Actual-path evidence, applicable settings and base-contract capability evidence; no credential inspection implied |
 | Principal/disclosure | Single-user limit and notice draft | Exact principal binding and disclosure review, not an inferred multi-user authorization |
 
-Next bounded technical assessment: specify an isolated real-CLI retention probe
+Historical next step, superseded by the BYOA decision: specify an isolated real-CLI retention probe
 and its evidence criteria without running it or copying an auth store. Report
-which behavior is observable and which remains unknown. Obtain approval for
-the credential strategy before any live probe. Do not treat a clean filesystem
+which behavior is observable and which remains unknown. The former plan required
+credential-strategy approval; no such approval is requested now. Do not treat a clean filesystem
 snapshot as proof of complete context deletion or provider handling.
 
 The [prepared probe kit](retention_probe/README.md) now supplies the bounded
 runbook and offline report interpreter. It has not collected live evidence;
-authentication approval and the actual collector remain prerequisites.
+authentication and collection were never performed. Neither is now a pending
+prerequisite: the probe lane is stopped.
 
 The subsequent [pinned CLI source audit](retention_probe/source-audit.md) finds
 a separate payload-bearing SQLite diagnostic path outside ephemeral thread
 persistence. This is a source-level feasibility objection, not live evidence;
-the transient capability remains unestablished. Any approved probe should first
-target that path, rather than build a general filesystem collector.
+the transient capability remains unestablished. The proposed targeted probe was
+superseded; no collector or live approval is currently requested.
 
 ADP-03 stays `in_progress`. Deployment enforcement, API/UI changes and integrated
 negative tests remain ADP-05/08 after their gates; this proposal does not make
