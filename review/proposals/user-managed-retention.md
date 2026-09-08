@@ -1,6 +1,10 @@
 # Proposal: explicit user-managed retention
 
-Status: **non-authoritative design candidate**, 2026-09-08.
+Status: **historical non-authoritative design candidate**, 2026-09-08.
+The coordinated RFC update now specifies the mode in Privacy and Core and adds
+schema/projection checks. This document preserves the design and acceptance
+inventory; authoritative module text takes precedence. Live runtime lifecycle
+and consent evidence are not established by the schema/projection tests.
 Primary RFC card: #36 Data Exposure Contract; related #37/#38/#46/#50.
 No new card number, protocol version, conformance claim or wire support is
 created by this document. Current implementations must reject the candidate

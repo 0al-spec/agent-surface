@@ -6,12 +6,12 @@
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/authorization`
-- Exact version: `0.1.0-draft.2`
+- Exact version: `0.1.0-draft.3`
 - Canonical path: `drafts/modules/authorization.md`
 
 ## Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
 
 
 ## Pluggable Agent Identity Evidence Profile
@@ -3386,6 +3386,19 @@ ranking. A user interface MAY apply a local ranking but MUST label it as local
 policy and MUST NOT serialize it as protocol authority.
 
 ### Candidate Status and Reasons
+
+For retention-mode compatibility, the runtime MUST use its own current,
+revision-bound knowledge of the selected adapter/runtime's supported exposure
+grammar, never model prose or a caller assertion. This knowledge is bound by
+the existing adapter-inventory/policy revisions and freshness checks; it adds
+no Grant member or public discovery registry. Known unsupported grammar uses
+blocking `schema_unsupported`; missing or stale support knowledge uses blocking
+`input_unknown`, never optimistic compatibility. Supported `user_managed`
+grammar does not require proof of source-level deletion, but an unenforceable
+stricter effective deletion obligation uses `retention_unsupported`, and direct
+policy denial uses `policy_denied`. All other checks remain applicable. Malformed
+exposure objects retain their layer-specific schema/integrity errors; no fallback
+between retention modes is permitted.
 
 `status` is exactly `compatible`, `incompatible`, or `indeterminate`:
 

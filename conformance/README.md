@@ -8,7 +8,17 @@ object.
 
 ## Version 1 artifacts
 
-`conformance/v1/suite.json` is the authoritative Suite 1.10.4 role, feature,
+Suite 1.10.5 adds the explicit `user_managed` retention shape to the Impact
+Simulation schema and independent mock validator. Schema cases ASP-SC-IS-301/302
+and `tests/test_user_managed_retention.py` cover valid/invalid shapes, unchanged
+legacy modes, exact source projection, stale binding and preserved candidate
+policy checks. These are projection/compatibility vectors over trusted fixture
+facts, not a live capability-inventory resolver or proof of agent behavior.
+Event storage, derived-copy deadline enforcement and actual consent UI still
+require implementation-specific lifecycle tests before claiming those normative
+obligations. The 183 role vectors remain a high-risk subset, not full coverage.
+
+`conformance/v1/suite.json` is the authoritative Suite 1.10.5 role, feature,
 requirement, and vector matrix: six profiles, 55 requirements, and 183 closed
 declarative scenarios. `conformance/v1/fixtures.json` resolves them through 48
 exact semantic baselines and 128 closed mutation patches.

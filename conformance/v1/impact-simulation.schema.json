@@ -442,14 +442,14 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "mode",
-        "delete_on_grant_end"
+        "mode"
       ],
       "properties": {
         "mode": {
           "enum": [
             "transient",
-            "bounded"
+            "bounded",
+            "user_managed"
           ]
         },
         "max_seconds": {
@@ -462,6 +462,11 @@
         }
       },
       "allOf": [
+        {
+          "if": {"properties": {"mode": {"const": "user_managed"}}},
+          "then": {"not": {"required": ["delete_on_grant_end"]}},
+          "else": {"required": ["delete_on_grant_end"]}
+        },
         {
           "if": {
             "properties": {
