@@ -105,6 +105,25 @@ These requirements are proposed replacements/additions, not yet authoritative.
    admissions and deliveries. Mandatory durable safety-state, replay/dedup and
    independent audit-minimization rules remain unchanged. User-managed handling
    grants no new right to persist application credentials or verifier artifacts.
+   **Application-owned event queues.** For a `user_managed` event, omission of
+   `delete_on_grant_end` introduces no automatic grant-end plaintext-deletion
+   requirement for application-owned queued, in-flight or replayable projections.
+   Their deletion remains governed by application storage policy and any other
+   applicable mandatory deletion rule, not an inferred lifetime or a missing
+   boolean default. The source mode contributes no additional replay deadline;
+   Core's delivery-retention and governing-authority limits still bound replay.
+   On expiry/revocation of a non-control subscription's Grant, the application
+   MUST make its projections unavailable for delivery/replay; it MAY delete
+   them, and MUST delete them if another effective rule requires it. An
+   inaccessible retained record MUST NOT restore authority. Enqueue/delivery
+   authorization and redaction rechecks, immutable delivery identity, cursor
+   binding and authenticated gap behavior remain unchanged; gaps MUST NOT
+   silently advance cursors or disclose data to an unauthorized requester.
+   The no-recall statement applies only to copies already disclosed to the
+   runtime/agent, not an undelivered queue or a right to replay. Control
+   subscriptions retain their independent issuer/runtime authority: ending the
+   affected Grant MUST NOT suppress an otherwise authorized revocation/control
+   event. Existing transient/bounded queue-deletion rules remain unchanged.
 9. **Compatibility.** An implementation not supporting the new branch MUST
    fail closed before disclosure. Capability matching consumes runtime-owned,
    revision-bound knowledge of the selected adapter/runtime implementation's
@@ -138,6 +157,11 @@ These requirements are proposed replacements/additions, not yet authoritative.
 | Revoked Grant with previously disclosed user-managed output | Deny new access; do not claim recall of old copies |
 | Correct mode but unauthorized resource/action or credential release | Reject before protected read/engine execution/disclosure |
 | Existing transient and bounded fixtures | Preserve existing acceptance and rejection behavior |
+| User-managed event queued under backpressure, governing authority still valid | Deliver only after rechecks, within replay window and with unchanged delivery identity/cursor |
+| Non-control Grant ends before queued event delivery/replay | No delivery/replay; delete or retain inaccessible under app policy, honoring other mandatory deletion; no silent cursor advance |
+| Grant ends after delivery of user-managed event | No new grant-authorized replay; no promise to recall the already-disclosed runtime copy |
+| Affected Grant ends but control subscription remains authorized | Preserve control-event delivery under its independent authority |
+| Queued event fails current redaction/scope/surface checks | Never deliver; preserve Core gap/confidentiality semantics |
 
 These are required future vectors, not tests reported as passed by this proposal.
 
@@ -145,7 +169,9 @@ These are required future vectors, not tests reported as passed by this proposal
 
 1. **Normative contract:** update Privacy Data Exposure, projection enforcement,
    Remote/Training interactions and Privacy Considerations; align Core's
-   definition and Conformance Runtime Mediator wording. Review Authorization's
+   definition, Event Retention and Backpressure (including application-owned
+   projections and independent control subscriptions), and Conformance Runtime
+   Mediator wording. Review Authorization's
    consent/capability wording for unconditional deletion assumptions. Preserve
    all stricter existing contracts and fixed source-closure rules.
 2. **Executable surfaces:** update `conformance/v1/impact-simulation.schema.json`,
