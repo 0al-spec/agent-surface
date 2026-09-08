@@ -6,7 +6,7 @@
 > Catalog. `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/core`
-- Exact version: `0.1.0-draft.1`
+- Exact version: `0.1.0-draft.2`
 - Canonical path: `drafts/modules/core.md`
 
 ## Exact Normative Dependencies
@@ -461,7 +461,8 @@ A typed object or collection exposed by an Agent Surface. Examples:
 A manifest-pinned declaration of the maximum application-originated data that
 can become visible to a runtime or agent through a resource, action, or event.
 The contract names data classes and defines the redaction and retention
-obligations that apply after disclosure. It describes and constrains exposure;
+obligations that apply after disclosure, or explicitly selects user-managed
+retention with no protocol duration/deletion promise. It describes and constrains exposure;
 it does not grant authority to read a resource, invoke an action, receive an
 event, or release a credential.
 
@@ -4094,8 +4095,22 @@ security response. Such deletion creates an explicit gap; it never permits
 silent cursor advancement.
 
 The effective replay window is the shortest applicable delivery-retention,
-grant-lifetime, and data-exposure limit. `delete_on_grant_end` applies to queued
-and replayable projections when the grant ends. A runtime SHOULD keep compact
+grant-lifetime, and data-exposure limit. For `transient` and `bounded`,
+`delete_on_grant_end` applies to queued and replayable projections when the grant
+ends. For `user_managed`, the source adds no replay deadline and no automatic
+grant-end plaintext-deletion requirement for application-owned queued, in-flight,
+or replayable projections. Deletion remains subject to application storage policy
+and every other mandatory deletion rule; the missing flag is not an implicit
+boolean default. On expiry/revocation of a non-control subscription's Grant,
+the application MUST make those projections unavailable for delivery/replay.
+It MAY delete them and MUST delete them when another effective rule requires it.
+Retaining an inaccessible record MUST NOT restore authority or silently advance
+a cursor. Existing enqueue/delivery rechecks, immutable identities, gap behavior,
+and gap confidentiality remain mandatory. The no-recall statement for user-managed
+copies applies only after disclosure, not to undelivered queues or replay rights.
+Control subscriptions retain their independent issuer/runtime authority: ending
+the affected Grant MUST NOT suppress otherwise authorized control delivery.
+A runtime SHOULD keep compact
 deduplication metadata for at least the same effective window but MUST apply
 its own retention policy to payloads; acknowledgement does not authorize
 indefinite local storage.

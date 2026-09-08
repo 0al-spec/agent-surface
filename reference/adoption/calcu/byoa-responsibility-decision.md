@@ -1,6 +1,9 @@
 # ADP-03: user-selected agent responsibility boundary
 
-Status: owner direction recorded 2026-09-08; normative compatibility unresolved.
+Status: owner direction recorded 2026-09-08; historical compatibility audit.
+The subsequent RFC revision defines explicit `user_managed` retention. The
+baseline audit below records why that revision was needed; it is not a claim
+that current RFC still lacks the mode. Live Calcu integration remains gated.
 Audit baseline: ASP `73c78fc`, Privacy `0.1.0-draft.3`.
 This is an adoption decision, not a change to the published RFC or a legal
 allocation of liability.

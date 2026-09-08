@@ -198,14 +198,14 @@ class ConformanceSuiteTests(unittest.TestCase):
 
     def test_catalog_is_closed_and_covers_six_roles(self) -> None:
         self.assertEqual(set(self.catalog.profiles), set(PROFILE_ROLES))
-        self.assertEqual(self.catalog.suite["suite_version"], "1.10.4")
+        self.assertEqual(self.catalog.suite["suite_version"], "1.10.5")
         self.assertEqual(len(self.catalog.features), 15)
         self.assertEqual(len(self.catalog.requirements), 55)
         self.assertEqual(len(self.catalog.vectors), 183)
         self.assertEqual(len(self.catalog.bundles), 8)
         self.assertEqual(len(self.catalog.fixtures), 48)
         self.assertEqual(len(self.catalog.mutations), 128)
-        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 134)
+        self.assertEqual(len(self.catalog.schema_case_catalog["cases"]), 136)
         self.assertRegex(catalog_digest(ROOT), r"^sha-256:[A-Za-z0-9_-]{43}$")
 
     def test_adoption_bundles_are_non_linear_closed_vector_plans(self) -> None:

@@ -5,13 +5,15 @@ Status: active, 2026-09-08. Owner: ASP/Calcu maintainers.
 Current owner direction: [BYOA responsibility boundary and RFC compatibility audit](../reference/adoption/calcu/byoa-responsibility-decision.md).
 The user accepts responsibility for the chosen agent implementation. The live
 retention lane is stopped and the transient candidate withdrawn; this does not
-waive current RFC requirements or complete ADP-03. The next bounded work is a
-normative proposal for explicit user-managed post-disclosure handling, retaining
-application-side authority and stricter opt-in handling contracts.
+waive current RFC requirements or complete ADP-03. The revised RFC explicitly
+defines user-managed post-disclosure handling, retaining application-side
+authority and stricter handling contracts. Next is the gated Calcu contract design.
 
-The [RFC proposal](proposals/user-managed-retention.md) now records the candidate
-wire shape and coordinated implementation/validation scope. It is not active
-RFC support and does not complete ADP-03 or reopen retention investigation.
+The [RFC proposal](proposals/user-managed-retention.md) records the design and
+acceptance inventory. The coordinated RFC revision now defines `user_managed`
+and its schema/projection checks, not live Calcu support. ADP-03 still needs
+application-side contract/consent design and actual-path compatibility evidence;
+ADP-02 remains independent. Retention investigation stays stopped.
 
 This is the canonical task tracker for this bounded implementation lane, not
 another RFC requirement backlog. `ADP-*` identifiers are delivery tasks, not RFC
@@ -40,7 +42,7 @@ profile would require a separate approved normative task.
 | --- | --- | --- | --- |
 | ADP-01 | Correct identity evidence hash domain / Calcu | done | [Calcu PR #4](https://github.com/SoundBlaster/Calcu/pull/4) merged after #3 with green CI. RFC-domain independent vector, old-domain invocation rejected before engine, fresh executor/session isolation; restart and reissue guidance. |
 | ADP-02 | Bounded durable safety-state spike / ASP examples | blocked | [ASP PR #81](https://github.com/0al-spec/agent-surface/pull/81) merged with green CI: prototype and obligation matrix delivered, including persisted Grant/lineage binding. Owner cost/limitations decision remains open; full migration is not authorized by merge. |
-| ADP-03 | Data handling and provider applicability decision / Calcu + deployment owner | in_progress | User-selected agent implementation is the owner's responsibility; transient candidate withdrawn and live retention work stopped. Current RFC still requires enforceable retention: resolve the normative compatibility gap separately. Classification/redaction, Grant projection, principal/disclosure, app-owned lifecycle and route applicability design remain open; no conformance claim or migration authorization. |
+| ADP-03 | Data handling and provider applicability decision / Calcu + deployment owner | in_progress | User-selected agent implementation is the owner's responsibility; transient candidate withdrawn and live retention work stopped. Revised RFC defines explicit user_managed retention; actual Calcu support is not implemented. Classification/redaction, Grant projection, principal/disclosure, app-owned lifecycle and route applicability design remain open; no conformance claim or migration authorization. |
 | ADP-04 | Offline example maintenance / ASP examples | done | ASP PR #81 merged: correct additive estimate, reject non-JSON tuple inputs, derive and test the stated 60-second lifetime. No live authority. |
 | ADP-05 | Complete Manifest/Grant migration / Calcu | blocked | ADP-01, resolved ADP-03 and explicit ADP-02 continue decision. Closed manifest/discovery/schema and identity/Grant projections; fresh consent on changed snapshot; negative vectors. Covers applicable BC-01…04/08 gaps, not all RFC profiles. |
 | ADP-06 | Principal, consent and Grant management / Calcu | blocked | ADP-05 and ADP-03 policy. Authenticated principal, exact preview/issued projection comparison, stale preview rejection and authoritative revocation confirmation. Browser never receives authority. |

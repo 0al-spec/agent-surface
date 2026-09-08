@@ -31,15 +31,17 @@ The following authority rules apply:
 
 ## Current delivery selection (2026-09-08)
 
-The next RFC slice is the [explicit user-managed retention proposal](proposals/user-managed-retention.md),
-a non-authoritative revision candidate for #36, with #37/#38/#46/#50 interactions.
+The current RFC slice implements [explicit user-managed retention](proposals/user-managed-retention.md)
+for #36, with #37/#38/#46/#50 interactions; the linked document remains historical
+design context, not an authoritative source.
 It separates mandatory application access/disclosure control from an explicit
 publisher-selected absence of protocol retention guarantees. No existing
-contract may be downgraded by caller preference. The proposal fixes candidate
-wire shape, consent, compatibility and required negative vectors; actual RFC
-and executable support must be delivered together before adoption/conformance.
+contract may be downgraded by caller preference. The coordinated revision defines
+wire shape, consent, compatibility and event queue rules with executable
+schema/projection checks. It does not implement Calcu's live contract, consent UI
+or storage lifecycle, or establish full conformance.
 Retention probes are stopped by the owner; they are not this slice's prerequisite.
-Card coverage/maturity remains unchanged until normative delivery.
+Card #36 remains specified; no live-implementation maturity is claimed.
 
 ### Prior implementation selection (2026-09-06)
 

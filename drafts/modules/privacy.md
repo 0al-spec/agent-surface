@@ -6,14 +6,14 @@
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/privacy`
-- Exact version: `0.1.0-draft.3`
+- Exact version: `0.1.0-draft.4`
 - Canonical path: `drafts/modules/privacy.md`
 
 ## Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.2` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.3` (canonical `drafts/modules/evidence.md`)
 
 
 ## Data Exposure Contract
@@ -90,16 +90,54 @@ payload crosses the application boundary; it MUST include a stable non-empty
 redaction before delivery. A runtime or agent MUST NOT be made responsible for
 removing fields whose receipt would already violate the contract.
 
-`retention.mode` is `transient` or `bounded`. `transient` prohibits durable
+`retention.mode` is `transient`, `bounded`, or `user_managed`. `transient` prohibits durable
 persistence of the disclosed payload by the runtime or agent. `bounded` MUST
 include a positive integer `max_seconds`, measured from receipt, after which
 runtime-controlled plaintext copies MUST be deleted. `transient` MUST omit
-`max_seconds`. `delete_on_grant_end` is REQUIRED; when true, expiry or
+`max_seconds`. For `transient` and `bounded`, `delete_on_grant_end` is REQUIRED; when true, expiry or
 revocation shortens the retention period and requires prompt deletion of
 runtime-controlled plaintext copies. When false, the declared time bound still
 applies. Hashes and data-minimized audit metadata MAY outlive the plaintext
 only when another grant or policy requirement explicitly permits their
 retention.
+
+`user_managed` is the closed object `{"mode":"user_managed"}`. It MUST omit
+`max_seconds` and `delete_on_grant_end` and MUST NOT contain additional members.
+It makes no ASP duration or grant-end deletion commitment for runtime-controlled
+copies of the disclosed source, including prompts, model context, tool arguments,
+caches, diagnostics, and agent-visible logs. The user selects and trusts the
+agent implementation; this mode does not certify that implementation, establish
+provider/model-memory behavior, or govern application storage of agent-supplied
+input. It does not constitute training permission or weaken any separately
+selected processing-path, training, local, enterprise, or application policy.
+Application-owned event queues remain subject to Core event lifecycle rules.
+
+The publisher MUST explicitly select this mode per source. Missing, null, or
+unknown retention modes MUST fail closed, never default to `user_managed`.
+Neither caller intent nor agent preference can replace a pinned source contract.
+The issuer-derived Grant projection and runtime-derived Consent Preview MUST
+preserve the exact mode. Consent presentation MUST identify sources for which
+no protocol deletion promise is made and distinguish them from stricter sources
+in a mixed Grant. It MUST explain that revocation stops future authorized access,
+not recall of copies already disclosed under this mode. Existing consent rules
+apply; no additional consent token or receipt is introduced.
+
+Changing any source's retention mode requires a new surface version/hash and
+fresh consent and Grant issuance. An existing Grant or subdelegated child MUST
+NOT rewrite its source projection or silently adopt the replacement. A narrower
+local policy is an overlay, not a projection rewrite. A required stricter policy
+MUST be enforceable for the actual path or the runtime MUST refuse that path.
+User acceptance does not waive application or other principals' restrictions.
+
+Copies and outputs derived from known disclosed sources preserve the conjunction
+of their retention obligations, including summaries, encodings, cached values,
+previews, and error representations. Any contributing transient obligation
+prohibits durable persistence; all contributing receipt-based deadlines and
+grant-end deletion conditions continue to apply. Derivation MUST NOT restart
+a bounded source's clock. `user_managed` adds no deadline and removes none.
+There is no declassification exception here. These requirements concern known
+provenance, not inference about arbitrary user input. If copies cannot be
+separated or the obligations jointly satisfied, the combination MUST be refused.
 
 For a core control event, `transient` applies to the raw CloudEvent and its
 application-originated payload; it does not prohibit the receiver from durably
@@ -221,8 +259,11 @@ from the exact pinned manifest and granted authority. It MUST require exact
 structural equality, including source and class array ordering, and reject a
 missing, extra, unknown, stale, or inconsistent projection as
 `integrity_mismatch`. A
-runtime MAY apply additional redaction or a shorter retention period as local
-policy, but it MUST NOT widen the class set or retain plaintext longer. If it
+runtime MAY apply additional redaction or a stricter retention policy as a local
+overlay, but it MUST NOT widen the class set or exceed any declared lifetime.
+For `user_managed`, no source-level duration/deletion capability is required;
+support for the mode, exact projection, consent and every other effective
+constraint is still required. If it
 cannot enforce the effective contract for the selected runtime-agent path, it
 MUST refuse to use the grant for that path.
 
@@ -424,6 +465,11 @@ another downstream component, the controlling runtime MUST independently:
 - apply any stricter local classification or policy; and
 - verify that every recipient can enforce the redaction, retention, and
   processing-path restrictions.
+
+For a source explicitly declaring `user_managed`, there is no source-level
+duration or deletion obligation to demonstrate. This does not waive any stricter
+effective policy or any other recipient, path, classification, or training-use
+check. Unknown support for the mode is not evidence of compatibility.
 
 If any check is false or unknown, the runtime MUST block and discard the
 pending disclosure before downstream dispatch and fail it as
@@ -802,7 +848,7 @@ and MAY apply a stricter local classification. Unknown classes, missing
 contracts, and inconsistent grant projections fail closed; they MUST NOT be
 rendered as no exposure.
 
-Redaction and retention obligations apply to prompts, model context, tool
+Redaction and the retention obligations selected by each source's mode apply to prompts, model context, tool
 arguments, caches, diagnostic captures, and agent-visible logs under runtime
 control, not only to the primary response object. A runtime MUST NOT select an
 agent or remote processing path that cannot enforce the effective contract.

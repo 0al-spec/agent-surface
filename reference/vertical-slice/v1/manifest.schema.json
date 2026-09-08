@@ -36,7 +36,7 @@
       "const": "https://github.com/0al-spec/agent-surface/reference/vertical-slice/v1"
     },
     "slice_version": {
-      "const": "1.0.0"
+      "const": "1.0.1"
     },
     "review_id": {
       "const": 74
@@ -48,7 +48,7 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.10.4"
+      "const": "1.10.5"
     },
     "bundle_id": {
       "const": "https://github.com/0al-spec/agent-surface/conformance/bundles/application-audited-effects/v1"

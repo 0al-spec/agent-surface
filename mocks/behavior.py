@@ -2982,19 +2982,23 @@ def _validate_impact_action(action: Any) -> Mapping[str, Any]:
     ):
         raise BehaviorError("impact simulation redaction contract is invalid")
     retention = exposure.get("retention")
-    if not isinstance(retention, Mapping) or retention.get("mode") not in {
-        "transient",
-        "bounded",
-    }:
+    if (
+        not isinstance(retention, Mapping)
+        or not isinstance(retention.get("mode"), str)
+        or retention.get("mode") not in {"transient", "bounded", "user_managed"}
+    ):
         raise BehaviorError("impact simulation retention contract is invalid")
-    required_retention_fields = (
-        {"mode", "delete_on_grant_end"}
-        if retention.get("mode") == "transient"
-        else {"mode", "max_seconds", "delete_on_grant_end"}
-    )
+    required_retention_fields = {
+        "user_managed": {"mode"},
+        "transient": {"mode", "delete_on_grant_end"},
+        "bounded": {"mode", "max_seconds", "delete_on_grant_end"},
+    }[retention["mode"]]
     if (
         set(retention) != required_retention_fields
-        or not isinstance(retention.get("delete_on_grant_end"), bool)
+        or (
+            retention["mode"] != "user_managed"
+            and not isinstance(retention.get("delete_on_grant_end"), bool)
+        )
         or (
             retention.get("mode") == "bounded"
             and (

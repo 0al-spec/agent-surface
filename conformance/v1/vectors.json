@@ -2,7 +2,7 @@
   "$schema": "./vectors.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.10.4",
+  "suite_version": "1.10.5",
   "vectors": [
     {
       "vector_id": "ASP-V-SP-001",
