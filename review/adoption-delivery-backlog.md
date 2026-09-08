@@ -9,6 +9,10 @@ waive current RFC requirements or complete ADP-03. The next bounded work is a
 normative proposal for explicit user-managed post-disclosure handling, retaining
 application-side authority and stricter opt-in handling contracts.
 
+The [RFC proposal](proposals/user-managed-retention.md) now records the candidate
+wire shape and coordinated implementation/validation scope. It is not active
+RFC support and does not complete ADP-03 or reopen retention investigation.
+
 This is the canonical task tracker for this bounded implementation lane, not
 another RFC requirement backlog. `ADP-*` identifiers are delivery tasks, not RFC
 card or GitHub issue numbers. [RFC cards](review-data.json) remain authoritative
