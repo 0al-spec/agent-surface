@@ -87,14 +87,14 @@ def build_example() -> dict:
     exposure = {
         "classes": ["calculation.sample"],
         "redaction": {"mode": "none"},
-        "retention": {"mode": "transient", "delete_on_grant_end": True},
+        "retention": {"mode": "user_managed"},
     }
     manifest = {
         "protocol": "agent-surface/0.1",
         "app_id": "calcu.offline-example",
         "issuer": ORIGIN,
         "surface_url": ORIGIN + "/.well-known/agent-surface.json",
-        "surface_version": "offline-example-2026-09-06",
+        "surface_version": "offline-example-2026-09-08",
         "surface_mode": "proposal_only",
         "auth": {},  # App-issued endpoint binding; no OAuth mechanism advertised.
         "audit": {},  # No optional receipt producer/signing requirement selected.
@@ -194,9 +194,9 @@ def build_example() -> dict:
     return {
         "notice": "OFFLINE, SYNTHETIC, EXPIRED, NOT PUBLISHABLE. No identity verification, consent, issuance or session activation occurred.",
         "publishable": False,
-        "normative_baseline": "aa1db9926ef9c17bc440b3a2d76a81bdc95ddfbe",
+        "normative_baseline": "b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691",
         "example_clock": "2026-09-06T00:00:00Z",
-        "live_path_status": "blocked_pending_identity_consent_retention_and_safety_implementation",
+        "live_path_status": "blocked_pending_adoption_decisions_identity_consent_exposure_and_safety_implementation",
         "input_schema": input_schema,
         "output_schema": output_schema,
         "manifest_example": manifest,
@@ -211,6 +211,12 @@ def build_example() -> dict:
             "surface_hash": manifest["surface_hash"],
             "identity_evidence_hash": session_record["identity_evidence_hash"],
             "derived_exposure": deepcopy(projection),
+            "handling_notice": (
+                "This source uses user-managed retention. ASP imposes no source-level "
+                "storage deadline or automatic deletion when the Grant ends. "
+                "Revocation blocks future access; it does not recall already disclosed copies. "
+                "Stricter applicable policies still apply. No provider deletion or training claim is made."
+            ),
             "credential_audience": manifest["agent_api"]["credential_audience"],
             "proposed_lifetime_seconds": 60,
         },

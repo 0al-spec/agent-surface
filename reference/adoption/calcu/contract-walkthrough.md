@@ -1,5 +1,10 @@
 # Calcu contract walkthrough and implementation decision
 
+Example update (2026-09-08): `contract_example.py` now pins ASP `b2d7e36`, uses
+explicit `user_managed`, a fresh example surface version and an unconfirmed
+source-specific notice. See the [current design](user-managed-design.md).
+The baseline below describes the original walkthrough, not current live support.
+
 Date: 2026-09-06. Non-normative, offline design example.
 Baseline: ASP `aa1db9926ef9c17bc440b3a2d76a81bdc95ddfbe`; observed Calcu
 `5e5a23f04bad649a23eedaad4f83126b2ec3ff7e`.
@@ -130,8 +135,8 @@ must expose these values from verified primary sources, not agent prose:
 | Runtime, agent and complete evidence/profile details | `semantic_grant_request.delegate`; synthetic verification, key and lifecycle are unresolved here, so confirmation cannot proceed. A real Passport preview additionally shows verified name/uid/version/expiry/capabilities and evidence boundary. |
 | Exact action, scope, location and operation | The single request allow-lists and pinned action; `propose`, no persistence or companion stages, no effects or per-action approval selected. |
 | Credential and constraints | Compatibility Bearer, deny credential release, absolute expiry plus 60-second duration; no Grant budget caps, parent/child grants or receipt requirement selected. Independent safety limits still apply. |
-| Exposure and retention | Recomputed single action source, `calculation.sample` classified `private`, no redaction, transient/delete-on-Grant-end; see the limited sample scope below. |
-| Actual processing path | Runtime-local evidence, explicitly not an app-verified claim. Provider retention is unresolved for the current live path. |
+| Exposure and retention | Recomputed single action source, `calculation.sample` classified `private`, no redaction, explicit `user_managed`; no source storage deadline or automatic Grant-end deletion. See the limited sample scope below. |
+| Actual processing path | Runtime-local evidence, explicitly not an app-verified claim. Confirm mode support and separately applicable policies; no provider deletion claim or retention probe gate. |
 
 The worksheet is deliberately `not_presented_not_confirmed`. In a real
 co-located host, one screen can discharge both runtime preview and issuer
@@ -155,17 +160,18 @@ that decision.
 | --- | --- | --- |
 | User task: textarea → task host → Codex/provider | User input, not app-originated action output. Disclose the provider path and apply the host's input/privacy policy before submission; never attach ASP authority. | Provider handling and the policy for arbitrary user-entered secrets. |
 | Typed operands: adapter → LocalBackend → HTTPS executor | Runtime/app; keep operational payloads out of logs. Authenticate and admit the exact action before calling the engine. | Wire/lifecycle migration; a complete manifest does not update the current executor. |
-| Result or structured error: executor → mediator | App-originated exposure. For the sample, transient handling requires no durable runtime/agent payload storage, plus prompt deletion on Grant end. | Actual result/error maximum classification and retention enforcement. |
-| Tool result: mediator → Codex/provider | Same exposure obligation follows the selected runtime-agent path. Check its retention capability before storing/using the Grant or disclosing app output, not after the call. | CLI ephemeral/process exit does not prove downstream deletion. Current live path stays blocked in this candidate. |
+| Result or structured error: executor → mediator | App-originated exposure. The sample explicitly selects `user_managed`, with no source deletion promise; stricter applicable obligations remain. | Actual result/error maximum classification and pre-delivery enforcement. |
+| Tool result: mediator → Codex/provider | Preserve exact source contract and verify mode support before use. No source-level deletion proof is required for this mode alone. | Actual projection/support integration remains absent. No provider deletion/training claim; retention investigation is stopped. |
 | Result retained in task UI after completion | Establish whether this is app-owned presentation storage or runtime-controlled plaintext. App-owned storage has a separate policy; a runtime copy remains subject to the Grant contract. | Ownership cannot be changed merely by renaming a component; specify and test the boundary. |
 | Logs, crash dumps and audit | Minimize payloads. Independently authorize retention of only necessary hashes/metadata; no raw Grant credential, Passport, task or arithmetic payload in diagnostics. | Concrete audit retention/deletion policy and crash behavior. |
-| Durable safety state | Runtime guard records and application session fences, with the fields and lifetime required by the RFC, not a copied transcript. | Durable storage, reconciliation and cleanup tests. `transient` is not permission to forget safety state. |
+| Durable safety state | Runtime guard records and application session fences, with the fields and lifetime required by the RFC, not a copied transcript. | Durable storage, reconciliation and cleanup tests. Source retention does not remove safety-state requirements. |
 
 Do not advertise `bounded` retention to accommodate an unknown provider: that
 still requires a known enforceable bound. Keeping only synthetic local fixture
 data makes offline construction possible; it is not a fallback authorization
-path for the live demo. Resolving provider handling requires deployment
-evidence/user choice, not an invented protocol default.
+path for the live demo. The current explicit mode follows the owner decision,
+not an invented default; independently applicable route policies still require
+design review without reintroducing a provider-retention certification gate.
 
 ## 4. Session and safety: estimate before implementation
 

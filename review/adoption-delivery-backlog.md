@@ -7,12 +7,15 @@ The user accepts responsibility for the chosen agent implementation. The live
 retention lane is stopped and the transient candidate withdrawn; this does not
 waive current RFC requirements or complete ADP-03. The revised RFC explicitly
 defines user-managed post-disclosure handling, retaining application-side
-authority and stricter handling contracts. Next is the gated Calcu contract design.
+authority and stricter handling contracts. The gated
+[Calcu contract design](../reference/adoption/calcu/user-managed-design.md) now
+records the proposed source maximum, exact projection, consent binding and
+implementation seams; it is not live migration or design approval.
 
 The [RFC proposal](proposals/user-managed-retention.md) records the design and
 acceptance inventory. The coordinated RFC revision now defines `user_managed`
 and its schema/projection checks, not live Calcu support. ADP-03 still needs
-application-side contract/consent design and actual-path compatibility evidence;
+review of the concrete application-side contract/consent design and actual-path compatibility evidence;
 ADP-02 remains independent. Retention investigation stays stopped.
 
 This is the canonical task tracker for this bounded implementation lane, not

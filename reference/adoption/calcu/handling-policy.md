@@ -1,5 +1,8 @@
 # ADP-03: proposed Calcu handling policy
 
+Current replacement: [user-managed handling design](user-managed-design.md).
+The transient proposal and its gate inventory below remain historical only.
+
 > Superseded direction (2026-09-08): the owner withdrew the transient-retention
 > candidate and stopped the live probe lane. See the
 > [BYOA responsibility decision](byoa-responsibility-decision.md) for the current

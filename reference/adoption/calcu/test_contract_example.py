@@ -1,7 +1,9 @@
 """Checks construction coherence, not manifest conformance or live authority."""
 import unittest
+import json
 from copy import deepcopy
 from datetime import datetime
+from pathlib import Path
 
 from jsonschema import Draft202012Validator, ValidationError
 
@@ -121,6 +123,38 @@ class ContractExampleTests(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(ValidationError):
                 Draft202012Validator(schema).validate(bad)
         self.assertEqual(self.manifest["actions"][0]["input_schema_hash"], object_hash(ASP + "hash/action-input-schema/v1", schema))
+
+    def test_user_managed_shape_and_unconfirmed_notice(self):
+        retention = self.manifest["actions"][0]["data_exposure"]["retention"]
+        self.assertEqual(retention, {"mode": "user_managed"})
+        root = Path(__file__).resolve().parents[3]
+        schema = json.loads((root / "conformance/v1/impact-simulation.schema.json").read_text())
+        # Grammar reuse only, not an Impact Simulation capability claim.
+        validator = Draft202012Validator({"$ref": "#/$defs/retention", "$defs": schema["$defs"]})
+        validator.validate(retention)
+        for invalid in [{}, None, {"mode": None}, {"mode": "unknown"},
+                        {"mode": "user_managed", "delete_on_grant_end": False},
+                        {"mode": "user_managed", "max_seconds": 60}]:
+            with self.subTest(invalid=invalid), self.assertRaises(ValidationError):
+                validator.validate(invalid)
+        worksheet = self.example["consent_worksheet"]
+        self.assertEqual(worksheet["state"], "not_presented_not_confirmed")
+        self.assertIn("does not recall already disclosed copies", worksheet["handling_notice"])
+        self.assertIn("Stricter applicable policies still apply", worksheet["handling_notice"])
+
+    def test_mode_change_changes_hashes_not_old_consent(self):
+        # Construction evidence only: no deployed stale-consent rejection claim.
+        manifest_view = deepcopy(self.manifest)
+        manifest_view.pop("surface_hash")
+        grant_view = deepcopy(self.grant)
+        grant_view.pop("grant_hash")
+        strict = {"mode": "transient", "delete_on_grant_end": True}
+        manifest_view["actions"][0]["data_exposure"]["retention"] = strict
+        grant_view["data_exposure"][0]["retention"] = strict
+        self.assertNotEqual(self.manifest["surface_hash"], object_hash(ASP + "hash/manifest/v1", manifest_view))
+        self.assertNotEqual(self.grant["grant_hash"], object_hash(ASP + "hash/grant/v1", grant_view))
+        self.assertNotEqual(self.example["consent_worksheet"]["derived_exposure"], grant_view["data_exposure"])
+        self.assertEqual(self.example["consent_worksheet"]["derived_exposure"], self.grant["data_exposure"])
 
     def test_numbers_still_require_json_and_runtime_checks(self):
         # JSON Schema is not a raw JSON parser or the arithmetic engine.
