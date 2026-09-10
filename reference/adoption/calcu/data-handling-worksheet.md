@@ -1,5 +1,10 @@
 # ADP-03: Calcu data-handling evidence and decision worksheet
 
+Current contract candidate and remaining design decisions:
+[user-managed handling design](user-managed-design.md). RFC PR #89 resolved
+the missing-mode gap, not Calcu's implementation or the other ADP-03 gates.
+The baseline requirements and transient feasibility sections below are historical.
+
 > Current direction (2026-09-08): see the
 > [BYOA responsibility decision](byoa-responsibility-decision.md). Its owner
 > decision supersedes this worksheet's transient candidate and proposed live

@@ -1,5 +1,10 @@
 # ADP-03: Calcu source exposure and Grant projection design
 
+Current policy and implementation plan: [user-managed design](user-managed-design.md).
+The transient example below records the older design. `contract_example.py`
+now constructs explicit `user_managed` on the revised RFC baseline; its
+synthetic sample classification is still not the live class maximum.
+
 Status: non-normative design fragment; not an advertised capability, deployment
 approval or completed ADP-03 gate. Implementation baseline: Calcu `a059d77`.
 Normative basis: [Data Exposure Contract](../../../drafts/modules/privacy.md#data-exposure-contract),
