@@ -29,9 +29,25 @@ The following authority rules apply:
 5. If this document conflicts with the publication contract, active RFC
    sources, or review data, this snapshot MUST be updated.
 
-## Current delivery selection (2026-09-08)
+## Current delivery selection (2026-09-11)
 
-The current RFC slice implements [explicit user-managed retention](proposals/user-managed-retention.md)
+Owner direction is security-first, SDK-assisted adoption: preserve ASP guarantees
+while lowering repeated application integration effort through modular SDK
+behavior. The [ADP backlog](adoption-delivery-backlog.md#sdk-first-delivery-decision-2026-09-11)
+owns decisions, task status and SDK + Calcu vertical slices. SDK architecture and
+the first boundary acceptance contract are reviewed in
+[SDK PR #3](https://github.com/0al-spec/agent-surface-js/pull/3).
+
+Reusable behavior is developed during ADP-05…07 with per-slice ADP-08 tests;
+ADP-09 is later public API stabilization and second-consumer evidence, not the
+start of SDK work. Measure reusable engineering and app integration separately.
+This changes delivery sequencing, not RFC semantics, canonical card dependencies,
+coverage, maturity or implementation claims. It does not approve all migration
+work or create another source of task status here.
+
+### Prior normative delivery (2026-09-08)
+
+The RFC slice implemented [explicit user-managed retention](proposals/user-managed-retention.md)
 for #36, with #37/#38/#46/#50 interactions; the linked document remains historical
 design context, not an authoritative source.
 It separates mandatory application access/disclosure control from an explicit
@@ -45,12 +61,12 @@ Card #36 remains specified; no live-implementation maturity is claimed.
 
 ### Prior implementation selection (2026-09-06)
 
-The active Calcu implementation lane is tracked in the
-[ADP-01…09 delivery backlog](adoption-delivery-backlog.md). Start with a focused
-identity-domain correction, bounded safety-state experiment, data-handling
-evidence and offline-example maintenance. Full migration and SDK extraction
-remain gated on explicit cost and provider-policy decisions. This does not add
-RFC cards or raise their maturity.
+The earlier Calcu-first sequence started with identity-domain correction,
+bounded safety-state evidence, data-handling design and offline examples before
+late SDK extraction. Its blanket late-extraction order is superseded by the
+current SDK-first decision above. Historical evidence remains limited to what
+was tested; scope approval, application policy and applicable compatibility
+requirements remain gates. Retention probes are not reintroduced.
 
 ## Historical snapshot (2026-09-05)
 
@@ -151,6 +167,13 @@ ASP Grant, approval, effect claim, or receipt.
 | #78 Reproducible RFC Assembly Pipeline | P2 | `present` | `proposal` | Preserve the historical rehearsal and exact toolchain lock as migration provenance. |
 | #79 Atomic Modular RFC Activation | P2 | `present` | `machine_validated` | Maintain the active seven-document closure and reproducible aggregate gate. |
 | #77 External Mapping Adapter Generators | P3 | `missing` | `proposal` | Generate adapters only for completed mapping profiles; pin upstream versions, report semantic loss, perform no network I/O, and never synthesize authority. |
+
+For #75, the [ADP delivery lane](adoption-delivery-backlog.md) now develops modular
+SDK behavior with Calcu consumption and negative evidence per slice. The
+[SDK architecture](https://github.com/0al-spec/agent-surface-js/blob/aab2c9ea1e586c5039bfafe5bd0ad26786ebdf35/docs/architecture.md)
+and [boundary contract](https://github.com/0al-spec/agent-surface-js/blob/aab2c9ea1e586c5039bfafe5bd0ad26786ebdf35/docs/boundary-contract.md)
+hold design and acceptance detail (updated in SDK PR #3). These planning links
+do not change #75's `partial` coverage or `proposal` maturity.
 
 ### Broader maturity debt
 

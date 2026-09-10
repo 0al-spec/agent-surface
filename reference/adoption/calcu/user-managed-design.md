@@ -8,8 +8,11 @@ Normative baseline: ASP `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`
 This replaces the withdrawn transient design, not an existing issued Grant.
 Agent cache/rollout/provider retention investigation stays stopped. The
 [backlog](../../../review/adoption-delivery-backlog.md) remains authoritative:
-ADP-03 is design/feasibility work; ADP-05 migration still needs the independent
-ADP-02 owner cost decision. No new protocol fields or SDK APIs are proposed.
+ADP-03 is design/feasibility work; live ADP-05 integration needs approved design
+inputs and scoped ADP-02 investment approval. The owner has selected SDK-first
+security engineering, not all implementation work. This document defines no
+new protocol fields or public SDK API; reusable behavior is delivered with
+Calcu through the backlog's coordinated vertical slices.
 
 ## Application boundary and selected contract
 
@@ -84,17 +87,17 @@ fresh consent before issuance. Browser receives only a safe preview/projection,
 never a credential or identity artifact. This is Grant consent, not an action
 Approval Receipt. Multi-user/tenant operation remains out of scope.
 
-## Concrete implementation seams (not implemented here)
+## SDK + Calcu implementation seams (not implemented here)
 
 | Calcu seam | Required migration work / acceptance evidence |
 | --- | --- |
-| `server/executor.ts` | Replace incomplete surface/Grant model under ADP-05; publisher owns source declaration, issuer owns projection; exact hash/session/identity admission remains |
-| `server/localBackend.ts` | Verify effective projection before Grant use; no caller override; retain correlation checks and HTTPS-only executor path |
-| `server/demo.ts`, `server/taskHost.ts` | Bind authenticated principal and exact approved preview to issuance; reject invalid consent before executor invocation; revoke on settlement |
-| `AgentTaskPanel.tsx` | Display source-specific notice and immutable consent snapshot; fresh consent on changes; retain task/action provenance distinction |
+| SDK contracts/issuer/executor + `server/executor.ts` | Implement reusable validated construction and admission in SDK, consumed by Calcu under ADP-05. App publisher owns declaration, issuer policy/authority owns projection/issuance; exact hash/session/identity checks remain |
+| SDK mediator + `server/localBackend.ts` | Independently verify effective projection before Grant use; no caller override; retain typed app facade, correlation checks and HTTPS-only executor path |
+| SDK preview/binding behavior + `server/demo.ts`, `server/taskHost.ts` | Calcu owns authenticated principal, policy and credential custody. Bind exact approved preview to issuance; reject invalid consent before executor invocation; revoke on settlement |
+| UI integration + `AgentTaskPanel.tsx` | Display source-specific notice and immutable consent snapshot; fresh consent on changes; retain task/action provenance. Future hooks cannot issue authority or import privileged server modules |
 | Executor response boundary | Enforce closed success/error/correlation maximum before HTTPS disclosure, not after receipt; no credential/raw error echo |
 | App UI/task lifecycle | On cancel/error/unmount invalidate generation, abort work, release abandoned projections; editable task may remain for retry; no durable history feature |
-| App authority store | Keep safety state needed for revocation/recovery; define separate minimization policy, not agent-output deletion |
+| SDK state engine/transactional adapter + app authority store | Reuse verified transition/fencing mechanics while the host owns durable state and policy. Keep revocation/recovery state; minimization is separate from agent-output deletion; generic get/set is insufficient |
 
 The current demo lacks complete projection, principal/consent and support
 knowledge. A future adapter must declare current revision-bound grammar support;
@@ -118,15 +121,19 @@ consent projection. They do not prove a real issuer rejects stale consent or
 that a runtime independently validates projection. Existing RFC conformance
 tests cover other schema/projection cases; neither suite proves Calcu support.
 
-Before closing ADP-03, review the candidate class maximum and credible known-
+Before closing the ADP-03 design/feasibility gate, review the candidate class maximum and credible known-
 provenance controls, issuer/runtime integration feasibility, principal/preview
 binding, app-owned lifecycle and selected-route applicability. Other principals'
 and applicable application/enterprise policies still matter. No account-secret
 inspection, provider certification or retention probe is needed for this design.
 
-ADP-05/06/08 must later exercise actual rejection of omitted/duplicate/extra
+ADP-05/06/08 slices must exercise actual rejection of omitted/duplicate/extra
 sources, changed class order/retention, caller projection, stale consent/hash,
 unsupported mode, stricter policy and out-of-envelope output; rejection must
 precede disclosure (and admission rejection precede engine execution). Include
-revocation/session tests and zero credential leakage. ADP-02's explicit owner
-continue/simplify/change-example decision remains independent and unresolved.
+revocation/session tests and zero credential leakage. These implementation tests
+are accumulated during the slices, not required as completed ADP-08 evidence
+before starting them. Record reusable SDK engineering separately from app
+integration cost. ADP-02 still needs scoped budget/stop/exit approval despite the
+selected SDK-first strategy. ADP-09 later stabilizes proven interfaces and tests
+a second consumer; neither this design nor a fixture closes implementation gates.
