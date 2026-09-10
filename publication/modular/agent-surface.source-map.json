@@ -1,37 +1,37 @@
 {
   "schemaVersion": 2,
   "lineBase": 1,
-  "outputSha256": "89cb092000826190d2c5dda16c396d10689b751bd92f7b19ef4f81bb712ec570",
+  "outputSha256": "90fc90979011373767e6c84164e9db9459812b2e2121983ea22bd4722118677d",
   "mappings": [
     {
       "generatedStartLine": 1,
-      "generatedEndLine": 6120,
+      "generatedEndLine": 6135,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/core.md",
         "startLine": 1,
-        "endLine": 6120
+        "endLine": 6135
       }
     },
     {
-      "generatedStartLine": 6121,
-      "generatedEndLine": 10155,
+      "generatedStartLine": 6136,
+      "generatedEndLine": 10183,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/authorization.md",
         "startLine": 1,
-        "endLine": 4035
+        "endLine": 4048
       }
     },
     {
-      "generatedStartLine": 10156,
-      "generatedEndLine": 10156,
+      "generatedStartLine": 10184,
+      "generatedEndLine": 10184,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 10157,
-      "generatedEndLine": 12376,
+      "generatedStartLine": 10185,
+      "generatedEndLine": 12404,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/safe-effects.md",
@@ -40,14 +40,14 @@
       }
     },
     {
-      "generatedStartLine": 12377,
-      "generatedEndLine": 12377,
+      "generatedStartLine": 12405,
+      "generatedEndLine": 12405,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 12378,
-      "generatedEndLine": 13723,
+      "generatedStartLine": 12406,
+      "generatedEndLine": 13751,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/evidence.md",
@@ -56,30 +56,30 @@
       }
     },
     {
-      "generatedStartLine": 13724,
-      "generatedEndLine": 13724,
+      "generatedStartLine": 13752,
+      "generatedEndLine": 13752,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 13725,
-      "generatedEndLine": 14563,
+      "generatedStartLine": 13753,
+      "generatedEndLine": 14679,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/privacy.md",
         "startLine": 1,
-        "endLine": 839
+        "endLine": 927
       }
     },
     {
-      "generatedStartLine": 14564,
-      "generatedEndLine": 14564,
+      "generatedStartLine": 14680,
+      "generatedEndLine": 14680,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 14565,
-      "generatedEndLine": 15905,
+      "generatedStartLine": 14681,
+      "generatedEndLine": 16021,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/bindings/asp-over-mcp.md",
@@ -88,19 +88,19 @@
       }
     },
     {
-      "generatedStartLine": 15906,
-      "generatedEndLine": 15906,
+      "generatedStartLine": 16022,
+      "generatedEndLine": 16022,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 15907,
-      "generatedEndLine": 17390,
+      "generatedStartLine": 16023,
+      "generatedEndLine": 17509,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/conformance.md",
         "startLine": 1,
-        "endLine": 1484
+        "endLine": 1487
       }
     }
   ]

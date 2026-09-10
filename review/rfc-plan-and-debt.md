@@ -1,8 +1,9 @@
 # Agent Surface RFC Plan and Debt
 
-- Status: active planning snapshot
-- Snapshot date: 2026-09-05
-- Snapshot base: `4925528e` after adoption PRs #75–#77
+- Status: active delivery plan with explicitly historical evidence/card tables
+- Current plan revision: 2026-09-11; base `311f0028` after SDK-first planning PR #90
+- Historical evidence/card snapshot date: 2026-09-05
+- Historical snapshot base: `4925528e` after adoption PRs #75–#77
 - Canonical machine-readable source: [`review-data.json`](review-data.json)
 
 ## Purpose and authority
@@ -29,15 +30,56 @@ The following authority rules apply:
 5. If this document conflicts with the publication contract, active RFC
    sources, or review data, this snapshot MUST be updated.
 
-## Current snapshot
+## Current delivery selection (2026-09-11)
+
+Owner direction is security-first, SDK-assisted adoption: preserve ASP guarantees
+while lowering repeated application integration effort through modular SDK
+behavior. The [ADP backlog](adoption-delivery-backlog.md#sdk-first-delivery-decision-2026-09-11)
+owns decisions, task status and SDK + Calcu vertical slices. SDK architecture and
+the first boundary acceptance contract are reviewed in
+[SDK PR #3](https://github.com/0al-spec/agent-surface-js/pull/3).
+
+Reusable behavior is developed during ADP-05…07 with per-slice ADP-08 tests;
+ADP-09 is later public API stabilization and second-consumer evidence, not the
+start of SDK work. Measure reusable engineering and app integration separately.
+This changes delivery sequencing, not RFC semantics, canonical card dependencies,
+coverage, maturity or implementation claims. It does not approve all migration
+work or create another source of task status here.
+
+### Prior normative delivery (2026-09-08)
+
+The RFC slice implemented [explicit user-managed retention](proposals/user-managed-retention.md)
+for #36, with #37/#38/#46/#50 interactions; the linked document remains historical
+design context, not an authoritative source.
+It separates mandatory application access/disclosure control from an explicit
+publisher-selected absence of protocol retention guarantees. No existing
+contract may be downgraded by caller preference. The coordinated revision defines
+wire shape, consent, compatibility and event queue rules with executable
+schema/projection checks. It does not implement Calcu's live contract, consent UI
+or storage lifecycle, or establish full conformance.
+Retention probes are stopped by the owner; they are not this slice's prerequisite.
+Card #36 remains specified; no live-implementation maturity is claimed.
+
+### Prior implementation selection (2026-09-06)
+
+The earlier Calcu-first sequence started with identity-domain correction,
+bounded safety-state evidence, data-handling design and offline examples before
+late SDK extraction. Its blanket late-extraction order is superseded by the
+current SDK-first decision above. Historical evidence remains limited to what
+was tested; scope approval, application policy and applicable compatibility
+requirements remain gates. Retention probes are not reintroduced.
+
+## Historical snapshot (2026-09-05)
 
 The bounded private SpecSpace draft integration is merged, with deterministic
 mock-user consent and real HTTPS/runtime/storage execution. The
-[outcome retrospective](adoption-outcome-2026-09.md) selects independent
+[outcome retrospective](adoption-outcome-2026-09.md) then selected independent
 reproduction and an integration-cost review before a second operation.
 Human UX and adoption cost acceptability remain unproven. Export transaction
 work is deferred; draft-only results do not validate the original safe-effects
-scenario. Continue the pause on new binding and publication features. The proposed #80
+scenario. The historical recommendation was to continue the pause on new binding
+and publication features; the current SDK-first delivery section above supersedes
+this sequencing without declaring the experiment's unknown outcomes resolved. The proposed #80
 WebMCP executable follow-up is deferred and has not been added to the canonical
 backlog. Existing card coverage, maturity and dependencies remain unchanged.
 
@@ -130,6 +172,13 @@ ASP Grant, approval, effect claim, or receipt.
 | #79 Atomic Modular RFC Activation | P2 | `present` | `machine_validated` | Maintain the active seven-document closure and reproducible aggregate gate. |
 | #77 External Mapping Adapter Generators | P3 | `missing` | `proposal` | Generate adapters only for completed mapping profiles; pin upstream versions, report semantic loss, perform no network I/O, and never synthesize authority. |
 
+For #75, the [ADP delivery lane](adoption-delivery-backlog.md) now develops modular
+SDK behavior with Calcu consumption and negative evidence per slice. The
+[SDK architecture](https://github.com/0al-spec/agent-surface-js/blob/aab2c9ea1e586c5039bfafe5bd0ad26786ebdf35/docs/architecture.md)
+and [boundary contract](https://github.com/0al-spec/agent-surface-js/blob/aab2c9ea1e586c5039bfafe5bd0ad26786ebdf35/docs/boundary-contract.md)
+hold design and acceptance detail (updated in SDK PR #3). These planning links
+do not change #75's `partial` coverage or `proposal` maturity.
+
 ### Broader maturity debt
 
 The current 53 `specified` cards still need card-appropriate executable schemas,
@@ -211,13 +260,18 @@ Vertical Slice**. **#66 Modular RFC Publication Architecture** now has
 normative prose plus a closed document-set schema, catalog, semantic validator,
 negative tests, and CI gate. **#78 Reproducible RFC Assembly Pipeline** and
 **#79 Atomic Modular RFC Activation** have already delivered their publication
-work; the next selected work is independent reproduction of the merged draft
-experiment, followed by a packaging decision, as linked above.
+work; the September 5 recommendation was independent reproduction of the merged
+draft experiment, followed by a packaging decision. Current delivery instead
+follows the SDK-first ADP plan linked above; this historical evidence adds no
+reproduction prerequisite to SDK/Calcu work.
 **#70
 ASP-over-WebMCP Binding** is specified but remains P2 while WebMCP is
-experimental. Its executable browser-vector follow-up is deferred pending the
-adoption experiment and a viable browser bridge; it remains necessary before
-claiming machine-validated maturity. Lower-priority mappings should advance only when their
+experimental. Its original browser-vector deferral sought adoption evidence and
+a viable browser bridge. Current delivery prioritizes the SDK-first ADP lane;
+the merged mock-user experiment alone does not establish broad adoption or a
+viable privileged bridge, and this historical update authorizes no browser
+follow-up. Executable browser vectors remain necessary before claiming
+machine-validated maturity. Lower-priority mappings should advance only when their
 upstream specification is sufficiently stable and there is concrete adopter
 demand.
 

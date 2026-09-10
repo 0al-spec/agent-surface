@@ -7,10 +7,12 @@
 
 ## Decision
 
-Post-experiment decision: [the outcome retrospective](adoption-outcome-2026-09.md)
-records the merged draft experiment, its cost and limits, and the next selected
-step: independent reproduction before a second operation. The original plan
-below is retained; neither its export criteria nor its time budget are declared met.
+Historical post-experiment decision: [the outcome retrospective](adoption-outcome-2026-09.md)
+records the merged draft experiment, its cost and limits, and the then-selected
+independent reproduction step. The [current SDK-first delivery plan](adoption-delivery-backlog.md#sdk-first-delivery-decision-2026-09-11)
+supersedes that sequencing and the pause below; it does not establish the
+experiment's unmeasured outcomes. The original plan remains historical evidence:
+neither its export criteria nor its time budget are declared met.
 
 Pause expansion of bindings and publication infrastructure for one bounded
 adoption experiment. Defer the proposed #80 WebMCP executable follow-up (not

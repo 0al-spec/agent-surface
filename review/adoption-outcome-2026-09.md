@@ -4,15 +4,33 @@
 - ASP evidence snapshot: `4925528ee7e1ac35c91e6c3f5044f41dea43c2e9` (merged PRs #75–#77)
 - SpecSpace implementation pin: `181926375d27b18b95d8e596e569540477e427b2`, merged through [PR #430](https://github.com/0al-spec/SpecSpace/pull/430) as `d4e850a1`
 - Authority: planning/evidence assessment only; no RFC, card, release or maturity changes
+- Status: historical assessment; delivery sequencing superseded on 2026-09-11
 
-## Decision
+## Current status (2026-09-11)
+
+This report preserves the September 5 experiment evidence and the reasoning
+behind its original recommendation. The [SDK-first delivery decision](adoption-delivery-backlog.md#sdk-first-delivery-decision-2026-09-11),
+recorded in [PR #90](https://github.com/0al-spec/agent-surface/pull/90), supersedes
+the reproduction-before-SDK sequence below. Reusable security behavior and
+Calcu integration now proceed in bounded SDK-first slices; measure shared SDK
+engineering separately from per-application integration cost without weakening
+ASP guarantees. The ADP backlog alone owns current delivery gates and status.
+
+Independent reproduction remains unproven by this report and its checklist is
+retained for a future SpecSpace reproduction, not as a new prerequisite for
+SDK/Calcu work. Neither the new strategy nor this archival update establishes
+cheap adoption, human comprehension, independent interoperability or completion
+of any still-open ADP gate. The counts, pins and observations below remain
+historical; they have not been remeasured against today's implementations.
+
+## Historical decision (2026-09-05; sequencing superseded)
 
 **Continue validation of this one slice; review packaging cost before expanding it.**
 The private draft flow works in the tested configuration. Cheap adoption, human
 comprehension and independent interoperability are not established. Do not start
 a second operation, a general SDK or another binding to compensate for those gaps.
 
-The next selected step is a clean-checkout reproduction by a developer who did
+The then-selected next step was a clean-checkout reproduction by a developer who did
 not build this adapter. Fix demonstrated setup/documentation friction first.
 A shared helper is only a candidate after that exercise identifies repeated
 mechanical work; changing normative guarantees is not justified by this result.
@@ -104,7 +122,10 @@ human comprehension and whether a product owner values the extra guarantees.
 The advisory code-size threshold therefore triggers review, not an automatic
 rejection of ASP or an assertion that the two-day budget was exceeded.
 
-## Next gate: independent reproduction, not a second feature
+## Historical reproduction gate and retained checklist
+
+The original proposed gate follows. It is not the current SDK/Calcu delivery
+order; use the ADP backlog linked above for active prerequisites and approval.
 
 1. The project owner nominates a developer who did not implement this slice.
    Another run by the author or a same-context agent is not independent evidence.

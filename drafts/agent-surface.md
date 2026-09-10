@@ -6,7 +6,7 @@
 > Catalog. `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/core`
-- Exact version: `0.1.0-draft.1`
+- Exact version: `0.1.0-draft.2`
 - Canonical path: `drafts/modules/core.md`
 
 ## Exact Normative Dependencies
@@ -461,7 +461,8 @@ A typed object or collection exposed by an Agent Surface. Examples:
 A manifest-pinned declaration of the maximum application-originated data that
 can become visible to a runtime or agent through a resource, action, or event.
 The contract names data classes and defines the redaction and retention
-obligations that apply after disclosure. It describes and constrains exposure;
+obligations that apply after disclosure, or explicitly selects user-managed
+retention with no protocol duration/deletion promise. It describes and constrains exposure;
 it does not grant authority to read a resource, invoke an action, receive an
 event, or release a credential.
 
@@ -4094,8 +4095,22 @@ security response. Such deletion creates an explicit gap; it never permits
 silent cursor advancement.
 
 The effective replay window is the shortest applicable delivery-retention,
-grant-lifetime, and data-exposure limit. `delete_on_grant_end` applies to queued
-and replayable projections when the grant ends. A runtime SHOULD keep compact
+grant-lifetime, and data-exposure limit. For `transient` and `bounded`,
+`delete_on_grant_end` applies to queued and replayable projections when the grant
+ends. For `user_managed`, the source adds no replay deadline and no automatic
+grant-end plaintext-deletion requirement for application-owned queued, in-flight,
+or replayable projections. Deletion remains subject to application storage policy
+and every other mandatory deletion rule; the missing flag is not an implicit
+boolean default. On expiry/revocation of a non-control subscription's Grant,
+the application MUST make those projections unavailable for delivery/replay.
+It MAY delete them and MUST delete them when another effective rule requires it.
+Retaining an inaccessible record MUST NOT restore authority or silently advance
+a cursor. Existing enqueue/delivery rechecks, immutable identities, gap behavior,
+and gap confidentiality remain mandatory. The no-recall statement for user-managed
+copies applies only after disclosure, not to undelivered queues or replay rights.
+Control subscriptions retain their independent issuer/runtime authority: ending
+the affected Grant MUST NOT suppress otherwise authorized control delivery.
+A runtime SHOULD keep compact
 deduplication metadata for at least the same effective window but MUST apply
 its own retention policy to payloads; acknowledgement does not authorize
 indefinite local storage.
@@ -6126,12 +6141,12 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/authorization`
-- Exact version: `0.1.0-draft.2`
+- Exact version: `0.1.0-draft.3`
 - Canonical path: `drafts/modules/authorization.md`
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
 
 
 ### Pluggable Agent Identity Evidence Profile
@@ -9507,6 +9522,19 @@ policy and MUST NOT serialize it as protocol authority.
 
 #### Candidate Status and Reasons
 
+For retention-mode compatibility, the runtime MUST use its own current,
+revision-bound knowledge of the selected adapter/runtime's supported exposure
+grammar, never model prose or a caller assertion. This knowledge is bound by
+the existing adapter-inventory/policy revisions and freshness checks; it adds
+no Grant member or public discovery registry. Known unsupported grammar uses
+blocking `schema_unsupported`; missing or stale support knowledge uses blocking
+`input_unknown`, never optimistic compatibility. Supported `user_managed`
+grammar does not require proof of source-level deletion, but an unenforceable
+stricter effective deletion obligation uses `retention_unsupported`, and direct
+policy denial uses `policy_denied`. All other checks remain applicable. Malformed
+exposure objects retain their layer-specific schema/integrity errors; no fallback
+between retention modes is permitted.
+
 `status` is exactly `compatible`, `incompatible`, or `indeterminate`:
 
 - `compatible` means every required input is known and current, the identity evidence
@@ -10162,13 +10190,13 @@ authority for a runtime with a different tuple.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/safe-effects`
-- Exact version: `0.1.0-draft.2`
+- Exact version: `0.1.0-draft.3`
 - Canonical path: `drafts/modules/safe-effects.md`
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
 
 
 ### Action Execution Model
@@ -12383,14 +12411,14 @@ operation id, receipt, or input hash MUST NOT widen the proposal-only Grant.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/evidence`
-- Exact version: `0.1.0-draft.2`
+- Exact version: `0.1.0-draft.3`
 - Canonical path: `drafts/modules/evidence.md`
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.2` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.3` (canonical `drafts/modules/safe-effects.md`)
 
 
 ### Canonical Integrity and Provenance
@@ -13730,14 +13758,14 @@ and displaying it inertly; it never means re-executing the recorded system.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/privacy`
-- Exact version: `0.1.0-draft.2`
+- Exact version: `0.1.0-draft.4`
 - Canonical path: `drafts/modules/privacy.md`
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.2` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.3` (canonical `drafts/modules/evidence.md`)
 
 
 ### Data Exposure Contract
@@ -13759,7 +13787,16 @@ Class identifiers name semantic kinds of data, such as
 `repository.content` or `user.identifier`; classifications describe their
 minimum handling sensitivity. A publisher MUST assign the most protective
 applicable classification when a class can contain data of different
-sensitivities. Labels and descriptions are application-authored display hints,
+sensitivities. Applicability is determined from the source's declared semantics,
+provenance, and context known to the application, including any trusted
+classification attached to the data. The mere possibility that arbitrary
+caller-supplied bytes encode a secret does not, by itself, classify the entire
+source as `credential`. A publisher MUST NOT ignore known sensitivity, remove
+trusted classification, or relabel application-held data as caller-supplied to
+lower its protection. This rule does not require inference of an undisclosed
+semantic meaning from arbitrary text or numbers.
+
+Labels and descriptions are application-authored display hints,
 not authority or evidence that a class is harmless. A runtime MUST preserve the
 class identifier and classification when it renders an application label.
 The `data_classes` array and every exposure `classes` array MUST be ordered by
@@ -13805,16 +13842,54 @@ payload crosses the application boundary; it MUST include a stable non-empty
 redaction before delivery. A runtime or agent MUST NOT be made responsible for
 removing fields whose receipt would already violate the contract.
 
-`retention.mode` is `transient` or `bounded`. `transient` prohibits durable
+`retention.mode` is `transient`, `bounded`, or `user_managed`. `transient` prohibits durable
 persistence of the disclosed payload by the runtime or agent. `bounded` MUST
 include a positive integer `max_seconds`, measured from receipt, after which
 runtime-controlled plaintext copies MUST be deleted. `transient` MUST omit
-`max_seconds`. `delete_on_grant_end` is REQUIRED; when true, expiry or
+`max_seconds`. For `transient` and `bounded`, `delete_on_grant_end` is REQUIRED; when true, expiry or
 revocation shortens the retention period and requires prompt deletion of
 runtime-controlled plaintext copies. When false, the declared time bound still
 applies. Hashes and data-minimized audit metadata MAY outlive the plaintext
 only when another grant or policy requirement explicitly permits their
 retention.
+
+`user_managed` is the closed object `{"mode":"user_managed"}`. It MUST omit
+`max_seconds` and `delete_on_grant_end` and MUST NOT contain additional members.
+It makes no ASP duration or grant-end deletion commitment for runtime-controlled
+copies of the disclosed source, including prompts, model context, tool arguments,
+caches, diagnostics, and agent-visible logs. The user selects and trusts the
+agent implementation; this mode does not certify that implementation, establish
+provider/model-memory behavior, or govern application storage of agent-supplied
+input. It does not constitute training permission or weaken any separately
+selected processing-path, training, local, enterprise, or application policy.
+Application-owned event queues remain subject to Core event lifecycle rules.
+
+The publisher MUST explicitly select this mode per source. Missing, null, or
+unknown retention modes MUST fail closed, never default to `user_managed`.
+Neither caller intent nor agent preference can replace a pinned source contract.
+The issuer-derived Grant projection and runtime-derived Consent Preview MUST
+preserve the exact mode. Consent presentation MUST identify sources for which
+no protocol deletion promise is made and distinguish them from stricter sources
+in a mixed Grant. It MUST explain that revocation stops future authorized access,
+not recall of copies already disclosed under this mode. Existing consent rules
+apply; no additional consent token or receipt is introduced.
+
+Changing any source's retention mode requires a new surface version/hash and
+fresh consent and Grant issuance. An existing Grant or subdelegated child MUST
+NOT rewrite its source projection or silently adopt the replacement. A narrower
+local policy is an overlay, not a projection rewrite. A required stricter policy
+MUST be enforceable for the actual path or the runtime MUST refuse that path.
+User acceptance does not waive application or other principals' restrictions.
+
+Copies and outputs derived from known disclosed sources preserve the conjunction
+of their retention obligations, including summaries, encodings, cached values,
+previews, and error representations. Any contributing transient obligation
+prohibits durable persistence; all contributing receipt-based deadlines and
+grant-end deletion conditions continue to apply. Derivation MUST NOT restart
+a bounded source's clock. `user_managed` adds no deadline and removes none.
+There is no declassification exception here. These requirements concern known
+provenance, not inference about arbitrary user input. If copies cannot be
+separated or the obligations jointly satisfied, the combination MUST be refused.
 
 For a core control event, `transient` applies to the raw CloudEvent and its
 application-originated payload; it does not prohibit the receiver from durably
@@ -13846,6 +13921,39 @@ declared post-redaction envelope before delivery. This draft does not define a
 field-level classifier and does not require a runtime to infer semantic data
 classes from arbitrary payload bytes. A schema MAY carry implementation-specific
 classification annotations, but those annotations do not replace the contract.
+
+**Data provenance and the application authority boundary.** For classification
+and access decisions, implementations distinguish caller-supplied data received
+in the current request, application-held data obtained from application
+resources, and derived output computed from either or both. These are semantic
+distinctions, not new wire fields or classification values. A caller's claim
+about provenance is not authoritative evidence.
+
+Voluntarily supplying data to an agent does not issue an ASP Grant or authorize
+access to any application resource. An invocation using that input still
+requires the applicable Grant, scopes, constraints, and application-side
+admission checks. Possession of a value or an opaque resource reference MUST
+NOT substitute for authority to read the referenced record, history, memory,
+file, or database. Access to application-held data used while deriving a result
+MUST be authorized independently of possession of the caller's input.
+
+Echoes and derived results remain covered by the action's `data_exposure`
+contract. Their handling MUST preserve known applicable sensitivity; arithmetic,
+formatting, encoding, or caller-supplied operands do not declassify protected
+application data. Where an operation uses only the current caller-supplied
+operands and no protected application-held data, returning those operands or
+their arithmetic result is not, solely because a number could be used as a
+secret elsewhere, a `credential.release` operation. Known credential material
+remains subject to the credential-release rules, and a non-releasable ASP Grant
+Credential remains non-releasable regardless of who supplied it.
+
+For example, a calculator can declare non-public caller calculation data and
+its derived results without claiming to recognize whether an otherwise
+unannotated number denotes a salary or PIN. This does not authorize reading its
+saved calculations or other application resources, establish a `public`
+classification, or waive redaction, retention, or applicable onward-processing
+constraints. A response enriched from a protected account balance is not the
+same case: the balance's known classification and access requirements apply.
 
 The authorization server MUST derive the issued grant's effective
 `data_exposure` array from the exact pinned manifest and approved Grant Object
@@ -13903,8 +14011,11 @@ from the exact pinned manifest and granted authority. It MUST require exact
 structural equality, including source and class array ordering, and reject a
 missing, extra, unknown, stale, or inconsistent projection as
 `integrity_mismatch`. A
-runtime MAY apply additional redaction or a shorter retention period as local
-policy, but it MUST NOT widen the class set or retain plaintext longer. If it
+runtime MAY apply additional redaction or a stricter retention policy as a local
+overlay, but it MUST NOT widen the class set or exceed any declared lifetime.
+For `user_managed`, no source-level duration/deletion capability is required;
+support for the mode, exact projection, consent and every other effective
+constraint is still required. If it
 cannot enforce the effective contract for the selected runtime-agent path, it
 MUST refuse to use the grant for that path.
 
@@ -14106,6 +14217,11 @@ another downstream component, the controlling runtime MUST independently:
 - apply any stricter local classification or policy; and
 - verify that every recipient can enforce the redaction, retention, and
   processing-path restrictions.
+
+For a source explicitly declaring `user_managed`, there is no source-level
+duration or deletion obligation to demonstrate. This does not waive any stricter
+effective policy or any other recipient, path, classification, or training-use
+check. Unknown support for the mode is not evidence of compatibility.
 
 If any check is false or unknown, the runtime MUST block and discard the
 pending disclosure before downstream dispatch and fail it as
@@ -14484,7 +14600,7 @@ and MAY apply a stricter local classification. Unknown classes, missing
 contracts, and inconsistent grant projections fail closed; they MUST NOT be
 rendered as no exposure.
 
-Redaction and retention obligations apply to prompts, model context, tool
+Redaction and the retention obligations selected by each source's mode apply to prompts, model context, tool
 arguments, caches, diagnostic captures, and agent-visible logs under runtime
 control, not only to the primary response object. A runtime MUST NOT select an
 agent or remote processing path that cannot enforce the effective contract.
@@ -14570,7 +14686,7 @@ NOT enter receipts, logs, prompts, traces, or agent-visible context.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp`
-- Exact version: `0.1.0-draft.3`
+- Exact version: `0.1.0-draft.4`
 - Canonical path: `drafts/modules/bindings/asp-over-mcp.md`
 
 This module also owns the experimental ASP-over-WebMCP profile below. Its
@@ -14580,10 +14696,10 @@ the two binding profiles share authority.
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.2` (canonical `drafts/modules/safe-effects.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.2` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.3` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.3` (canonical `drafts/modules/evidence.md`)
 
 
 ### ASP-over-MCP Binding Profile
@@ -15912,17 +16028,17 @@ supports `specified` maturity only.
 > Set Catalog. `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/conformance`
-- Exact version: `0.1.0-draft.3`
+- Exact version: `0.1.0-draft.5`
 - Canonical path: `drafts/modules/conformance.md`
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.2` (canonical `drafts/modules/safe-effects.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.2` (canonical `drafts/modules/evidence.md`)
-- `https://github.com/0al-spec/agent-surface/documents/privacy` at `0.1.0-draft.2` (canonical `drafts/modules/privacy.md`)
-- `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp` at `0.1.0-draft.3` (canonical `drafts/modules/bindings/asp-over-mcp.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.3` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.3` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/privacy` at `0.1.0-draft.4` (canonical `drafts/modules/privacy.md`)
+- `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp` at `0.1.0-draft.4` (canonical `drafts/modules/bindings/asp-over-mcp.md`)
 
 
 ### Conformance
@@ -17126,7 +17242,10 @@ An application runtime conforms to the Runtime Mediator Profile when it:
   policy, approval, admission, and agent instructions
 - recomputes the grant's effective data-exposure projection, refuses missing or
   inconsistent contracts, and selects only runtime-agent paths that can enforce
-  redaction and retention obligations
+  redaction and mode-selected retention obligations; for explicit `user_managed`
+  sources, preserves exact projection and informed consent without claiming
+  duration/deletion guarantees, rejects unsupported or unknown grammar support,
+  and does not waive stricter effective policies or source obligations
 - mediates agent actions instead of exposing raw authority
 - enforces the Session Authority and Lifecycle state machine, including
   complete tuple binding, generation changes on resume, and terminal-state

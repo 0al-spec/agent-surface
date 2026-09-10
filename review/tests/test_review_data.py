@@ -57,7 +57,7 @@ class ReviewDataValidationTests(unittest.TestCase):
                 "document_id": (
                     "https://github.com/0al-spec/agent-surface/documents/core"
                 ),
-                "document_version": "0.1.0-draft.1",
+                "document_version": "0.1.0-draft.2",
                 "anchor_id": ref,
             },
         )
@@ -166,7 +166,7 @@ class ReviewDataValidationTests(unittest.TestCase):
                     "https://github.com/0al-spec/agent-surface/"
                     "documents/authorization"
                 ),
-                "document_version": "0.1.0-draft.2",
+                "document_version": "0.1.0-draft.3",
                 "anchor_id": (
                     "purpose-and-task-bound-agent-grant-profile"
                 ),

@@ -599,7 +599,9 @@ class PublicationContractTests(unittest.TestCase):
 
     def test_document_set_version_is_immutable(self) -> None:
         current = copy.deepcopy(self.catalog)
-        current["documents"][0]["version"] = "0.1.0-draft.2"
+        version = current["documents"][0]["version"]
+        prefix, suffix = version.rsplit(".", 1)
+        current["documents"][0]["version"] = f"{prefix}.{int(suffix) + 1}"
         with self.assertRaisesRegex(
             PublicationError,
             "published document-set version.*bump document_set_version",
@@ -641,7 +643,9 @@ class PublicationContractTests(unittest.TestCase):
     def test_new_document_and_set_versions_can_change(self) -> None:
         current = copy.deepcopy(self.catalog)
         current["document_set_version"] = "0.1.0-draft.2"
-        current["documents"][0]["version"] = "0.1.0-draft.2"
+        version = current["documents"][0]["version"]
+        prefix, suffix = version.rsplit(".", 1)
+        current["documents"][0]["version"] = f"{prefix}.{int(suffix) + 1}"
         current["documents"][0]["source_sha256"] = "0" * 64
         current["aggregate"]["sha256"] = "0" * 64
         validate_catalog_history(

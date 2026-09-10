@@ -6,17 +6,17 @@
 > Set Catalog. `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/conformance`
-- Exact version: `0.1.0-draft.3`
+- Exact version: `0.1.0-draft.5`
 - Canonical path: `drafts/modules/conformance.md`
 
 ## Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.1` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.2` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.2` (canonical `drafts/modules/safe-effects.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.2` (canonical `drafts/modules/evidence.md`)
-- `https://github.com/0al-spec/agent-surface/documents/privacy` at `0.1.0-draft.2` (canonical `drafts/modules/privacy.md`)
-- `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp` at `0.1.0-draft.3` (canonical `drafts/modules/bindings/asp-over-mcp.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.3` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.3` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/privacy` at `0.1.0-draft.4` (canonical `drafts/modules/privacy.md`)
+- `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp` at `0.1.0-draft.4` (canonical `drafts/modules/bindings/asp-over-mcp.md`)
 
 
 ## Conformance
@@ -1220,7 +1220,10 @@ An application runtime conforms to the Runtime Mediator Profile when it:
   policy, approval, admission, and agent instructions
 - recomputes the grant's effective data-exposure projection, refuses missing or
   inconsistent contracts, and selects only runtime-agent paths that can enforce
-  redaction and retention obligations
+  redaction and mode-selected retention obligations; for explicit `user_managed`
+  sources, preserves exact projection and informed consent without claiming
+  duration/deletion guarantees, rejects unsupported or unknown grammar support,
+  and does not waive stricter effective policies or source obligations
 - mediates agent actions instead of exposing raw authority
 - enforces the Session Authority and Lifecycle state machine, including
   complete tuple binding, generation changes on resume, and terminal-state

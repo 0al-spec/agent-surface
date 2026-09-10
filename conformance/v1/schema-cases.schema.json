@@ -22,12 +22,12 @@
       "const": "https://github.com/0al-spec/agent-surface/conformance/suite/v1"
     },
     "suite_version": {
-      "const": "1.10.3"
+      "const": "1.10.5"
     },
     "cases": {
       "type": "array",
-      "minItems": 134,
-      "maxItems": 134,
+      "minItems": 136,
+      "maxItems": 136,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/case"

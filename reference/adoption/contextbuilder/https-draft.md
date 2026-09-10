@@ -142,10 +142,12 @@ is a fixed driver, not an open-ended autonomous scheduler. App-side runaway
 pause fences new actions and preserves the RFC's exact completed replay
 exception; policy does not permit automatic resume.
 
-The [outcome retrospective](../../../review/adoption-outcome-2026-09.md) records
-the decision: reproduce this slice independently and assess its packaging before
-adding another operation. Do not expand the RFC to turn partial coverage into a
-full-profile claim.
+The [outcome retrospective](../../../review/adoption-outcome-2026-09.md) preserves
+the September 5 recommendation to reproduce this slice and assess its packaging
+before expansion. The [current SDK-first delivery plan](../../../review/adoption-delivery-backlog.md#sdk-first-delivery-decision-2026-09-11)
+supersedes that sequence for SDK/Calcu work; independent SpecSpace reproduction
+is not established by this walkthrough. Do not expand the RFC to turn partial
+coverage into a full-profile claim.
 
 The current app-side diff adds roughly 800 lines of isolated protocol/storage
 code, plus tests and documentation, while the native business function gains

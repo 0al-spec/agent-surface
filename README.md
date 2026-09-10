@@ -298,6 +298,11 @@ silently promoted to verified assurance.
 
 ## Status
 
+The [Calcu implementation feedback report](reference/adoption/calcu/implementation-feedback.md)
+separates application gaps, SDK/example opportunities, and open questions about
+the minimal one-action adopter path. It is non-normative feedback, not a new
+conformance claim or protocol profile.
+
 The specification is experimental and subject to change. The current draft is
 intended to establish terminology, threat model, protocol layers, manifest
 shape, grant lifecycle, receipt semantics, and MVP boundaries.
