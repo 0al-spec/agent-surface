@@ -109,10 +109,10 @@ task and compatible source lock. No ADP task is marked done by this plan.
 ### Endorsed application composition reference (2026-09-11)
 
 The owner selected the SDK's
-[application-first, bidirectional Hello composition](https://github.com/0al-spec/agent-surface-js/blob/fb5967d3724de42d0b1012464ebfdc12e74c796f/examples/design/hello-composition/README.md)
+[application-first, bidirectional Hello composition](https://github.com/0al-spec/agent-surface-js/blob/b0410c2338be60c465ea556ae90ca0518fd9d523/examples/design/hello-composition/README.md)
 as approximately 80% of the desired integration experience, not 80% of SDK
 implementation or a frozen public API. Its
-[architecture record](https://github.com/0al-spec/agent-surface-js/blob/fb5967d3724de42d0b1012464ebfdc12e74c796f/docs/architecture.md#optional-bidirectional-application-composition)
+[architecture record](https://github.com/0al-spec/agent-surface-js/blob/b0410c2338be60c465ea556ae90ca0518fd9d523/docs/architecture.md#optional-bidirectional-application-composition)
 owns the design: a native app with optional ASP integration, explicit incoming
 domain ports, an application-owned outgoing assistant facade, ordinary ASP
 manifest/JSON Schemas and one trusted composition root with an explicit provider
@@ -129,8 +129,11 @@ local cleanup does not prove remote exit, rollback or task success.
 
 The preserved imports/composition are fictional and deliberately unconfigured.
 Native behavior and offline fixture checks are not ASP admission/conformance
-evidence. The Hello fixture's read action and `user_managed` declarations do not
-widen Calcu's selected single-action slice or advance the SDK source lock.
+evidence. The Hello fixture's read action does not widen Calcu's selected
+single-action slice. Its `user_managed` grammar is now covered by an explicit
+[SDK source-lock review/update](https://github.com/0al-spec/agent-surface-js/blob/b0410c2338be60c465ea556ae90ca0518fd9d523/docs/compatibility/user-managed-source-update.md)
+to ASP `b2d7e3627a08ec40ed7c0fd2f76370acc1c7e691`;
+this aligns source versions, not implemented handling or provider support.
 This record adds no delivery gate, resolves none of ADP-02/03's open decisions,
 changes no RFC card/maturity and authorizes no live migration or retention probe.
 Keep exact signatures, qualified adapters and measured integration cost open
