@@ -34,43 +34,43 @@
   "sources" : [
     {
       "path" : "drafts/modules/authorization.md",
-      "sha256" : "00fdc53ccda7545234668c43cbcbc8d29284ed442063b40747ca725cabfb652c",
-      "size" : 217950,
+      "sha256" : "0d5519e7a7ca33e6a9eaf3d920af8d0936dc91bfcec9bcc8394aeb15802655a1",
+      "size" : 238683,
       "type" : "markdown"
     },
     {
       "path" : "drafts/modules/bindings/asp-over-mcp.md",
-      "sha256" : "75b4bac9ec693c6cfcfe515580d2410de437b5cdb7faafb449e53193aff21d23",
+      "sha256" : "a3d7da9d92c3ac4d7a6100a8491547cba990b018983ee2799ca0b39676fbcf40",
       "size" : 75313,
       "type" : "markdown"
     },
     {
       "path" : "drafts/modules/conformance.md",
-      "sha256" : "92b2e7f950b0e6308e24eb44ec0b4b58a78eee7b1720b8be0a65c65d52f6ce35",
+      "sha256" : "ca998423d5bbdfd0903e9dc610358d9b8b684e67fa8a930c46612435864c92aa",
       "size" : 93943,
       "type" : "markdown"
     },
     {
       "path" : "drafts/modules/core.md",
-      "sha256" : "38f8a0f6dc437a3e4b642409fe53c9853fcb62f85897c097936f7114e5ea6131",
-      "size" : 304148,
+      "sha256" : "ec35cebe1b1fb718d7dc3c4c5b03350dd808e896842c97b165a3bf91f8814659",
+      "size" : 307543,
       "type" : "markdown"
     },
     {
       "path" : "drafts/modules/evidence.md",
-      "sha256" : "3d533d71233a7f480653b61d70d67b13a87324f78aeb53d5eb27685db0056be6",
+      "sha256" : "57f32fcb4ece93c02b76d528a525fcd64d38c288d3ca3646d71e391c04b11187",
       "size" : 70578,
       "type" : "markdown"
     },
     {
       "path" : "drafts/modules/privacy.md",
-      "sha256" : "c68a7855134b2b7e054521f57c34da8d1bbd49b2cb0a019ff922117692a85566",
+      "sha256" : "fe391b321f37b2ab8d27351a28e494c1666367088eca49b432fbf3847459bb8b",
       "size" : 52654,
       "type" : "markdown"
     },
     {
       "path" : "drafts/modules/safe-effects.md",
-      "sha256" : "807dfbf3afd4539df3311ee43ffd37d561fd972045da41b68746896f2303d2e7",
+      "sha256" : "f41007400bf87702e264f004eab9fd96439c510c1d9357c7bc8c78be47b52b8f",
       "size" : 122194,
       "type" : "markdown"
     },

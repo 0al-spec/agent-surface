@@ -2,7 +2,7 @@
   "$schema": "./schema-cases.schema.json",
   "schema_version": 1,
   "suite_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-  "suite_version": "1.10.5",
+  "suite_version": "1.10.6",
   "cases": [
     {
       "case_id": "ASP-SC-IS-301",

@@ -6,7 +6,7 @@
 > Catalog. `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/core`
-- Exact version: `0.1.0-draft.2`
+- Exact version: `0.1.0-draft.3`
 - Canonical path: `drafts/modules/core.md`
 
 ## Exact Normative Dependencies
@@ -45,6 +45,7 @@
 - [Agent Training Use Policy Profile](privacy.md#agent-training-use-policy-profile)
 - [Runtime Attestation Optional Profile](authorization.md#runtime-attestation-optional-profile)
 - [Agent Grant](authorization.md#agent-grant)
+- [Host-Provisioned Bearer Binding](authorization.md#host-provisioned-bearer-binding)
 - [Purpose- and Task-Bound Agent Grant Profile](authorization.md#purpose-and-task-bound-agent-grant-profile)
 - [Capability Matching](authorization.md#capability-matching)
 - [Observability Context](evidence.md#observability-context)
@@ -2599,6 +2600,62 @@ a new `surface_version` and `surface_hash`.
 Implementations MAY collapse these endpoints when the application already has
 equivalent OAuth or API infrastructure, but the manifest MUST make the wire-level
 surface discoverable.
+
+<a id="host-provisioned-bearer-authentication-descriptor"></a>
+#### Host-Provisioned Bearer Authentication Descriptor
+
+A manifest selects the Host-Provisioned Bearer Binding only with the following
+closed `auth` object:
+
+```json
+{
+  "type": "https://github.com/0al-spec/agent-surface/profiles/host-provisioned-bearer/v1",
+  "credential_profile": "compatibility_bearer"
+}
+```
+
+For this discriminator, the object MUST contain exactly those two members and
+values. Member names and values are case-sensitive. A consumer that does not
+implement this exact discriminator MUST reject the manifest as
+`surface_incompatible`; it MUST NOT infer OAuth, treat an unqualified `native`
+or `compatibility_bearer` value as the discriminator, or omit authentication
+checks. The identifier selects a protocol profile; it does not assert that the
+identifier URI is a retrieval endpoint.
+
+This descriptor advertises validation of a privately provisioned Grant, not a
+public way to obtain one. A manifest selecting it MUST omit
+`agent_api.grant_request_url` and MUST NOT advertise an OAuth authorization,
+token, introspection, or revocation endpoint, an OAuth refresh grant, or an
+Agent Grant authorization-details type. It MUST use these existing manifest
+members as follows:
+
+| Manifest member | Required profile meaning |
+| --- | --- |
+| `agent_api.credential_audience` | Exact logical HTTPS protected-resource audience; it MUST NOT be inferred from a socket, port, or action URL. |
+| `agent_api.grant_introspection_url` | Required self-only Grant-validation endpoint defined by the Host-Provisioned Bearer Binding. |
+| `agent_api.grant_revocation_url` | Required self-only Grant-revocation endpoint defined by the Host-Provisioned Bearer Binding. |
+| `agent_api.action_url` | Existing Action Request endpoint with independent admission under the current Grant. |
+| `agent_api.session_control_url` | Required existing session-safety endpoint for the Runtime role. |
+| `revocation.grant_revocation_url` | The exact same URL as `agent_api.grant_revocation_url`. |
+| `revocation.grant_management_url` | Separate generic ordinary-user management entry point required by Active Grant Management. |
+
+Every selected endpoint URL MUST be an absolute HTTPS URL on the manifest
+issuer origin and MUST NOT contain URI userinfo, a query, or a fragment.
+Distinct endpoint roles MUST use distinct paths except that the two Grant
+revocation members intentionally identify the same exact endpoint. The logical
+`credential_audience` remains a separate exact value even when an endpoint URL
+could also identify the same origin.
+
+The Runtime MUST discover, authenticate, verify, and pin the complete manifest
+through ordinary ASP HTTPS discovery before validating or using the privately
+provisioned Grant. That manifest MUST include the identity-evidence
+advertisement and every otherwise required session, audit, receipt, exposure,
+and revocation declaration; this descriptor does not relax any base manifest
+requirement. A deployment MUST resolve the actual port and every endpoint URL
+before publishing and hashing the manifest and MUST NOT insert a random port
+into an already pinned snapshot. A loopback deployment MUST explicitly trust
+the server CA, verify the IP subject alternative name, and MUST NOT disable
+certificate verification.
 
 ### Example Manifest
 

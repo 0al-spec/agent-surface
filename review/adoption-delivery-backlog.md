@@ -1,6 +1,6 @@
 # Calcu adoption delivery backlog
 
-Status: active, 2026-09-11. Owner: ASP/Calcu/SDK maintainers.
+Status: active, 2026-09-12. Owner: ASP/Calcu/SDK maintainers.
 
 Current owner direction: [BYOA responsibility boundary and RFC compatibility audit](../reference/adoption/calcu/byoa-responsibility-decision.md).
 The user accepts responsibility for the chosen agent implementation. The live
@@ -85,6 +85,17 @@ lost guarantee.
 | ADP-09 | Stabilize modular SDK API and verify reuse / JS SDK + second consumer | blocked | SDK implementation starts inside ADP-05…07, not after this task. Stabilize demonstrated interfaces after ADP-08 evidence and check a second consumer before generality claims. Resolve BC gaps while preserving app policy/storage ownership/engine boundary. Linked to #75; no automatic maturity increase. |
 
 ### First vertical slice and later expansion
+
+The normative [Host-Provisioned Bearer Binding](../drafts/modules/authorization.md#host-provisioned-bearer-binding)
+now records the non-OAuth, same-host route agreed in
+[SDK PR #9](https://github.com/0al-spec/agent-surface-js/pull/9), including the
+issuance-commit freshness fence from its review. It supplies the RFC contract
+for the next SDK compatibility decision, not an implementation or permission to
+switch Calcu. The SDK's current source lock is unchanged by this RFC work.
+Dedicated positive/negative transport and state vectors, reviewed SDK source
+coverage, manifest/Grant validation, consent and adapter implementation remain
+ADP-05/06/07/08 work. No task status or RFC-card maturity is raised by this
+normative slice; existing six-role suite results do not certify this binding.
 
 1. Explicitly review the SDK spec-lock/source coverage update against the selected
    RFC revision, then implement manifest/Grant/exposure values and negative
