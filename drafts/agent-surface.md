@@ -6,7 +6,7 @@
 > Catalog. `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/core`
-- Exact version: `0.1.0-draft.2`
+- Exact version: `0.1.0-draft.3`
 - Canonical path: `drafts/modules/core.md`
 
 ## Exact Normative Dependencies
@@ -45,6 +45,7 @@
 - [Agent Training Use Policy Profile](#agent-training-use-policy-profile)
 - [Runtime Attestation Optional Profile](#runtime-attestation-optional-profile)
 - [Agent Grant](#agent-grant-1)
+- [Host-Provisioned Bearer Binding](#host-provisioned-bearer-binding)
 - [Purpose- and Task-Bound Agent Grant Profile](#purpose-and-task-bound-agent-grant-profile)
 - [Capability Matching](#capability-matching)
 - [Observability Context](#observability-context)
@@ -2599,6 +2600,62 @@ a new `surface_version` and `surface_hash`.
 Implementations MAY collapse these endpoints when the application already has
 equivalent OAuth or API infrastructure, but the manifest MUST make the wire-level
 surface discoverable.
+
+<a id="host-provisioned-bearer-authentication-descriptor"></a>
+#### Host-Provisioned Bearer Authentication Descriptor
+
+A manifest selects the Host-Provisioned Bearer Binding only with the following
+closed `auth` object:
+
+```json
+{
+  "type": "https://github.com/0al-spec/agent-surface/profiles/host-provisioned-bearer/v1",
+  "credential_profile": "compatibility_bearer"
+}
+```
+
+For this discriminator, the object MUST contain exactly those two members and
+values. Member names and values are case-sensitive. A consumer that does not
+implement this exact discriminator MUST reject the manifest as
+`surface_incompatible`; it MUST NOT infer OAuth, treat an unqualified `native`
+or `compatibility_bearer` value as the discriminator, or omit authentication
+checks. The identifier selects a protocol profile; it does not assert that the
+identifier URI is a retrieval endpoint.
+
+This descriptor advertises validation of a privately provisioned Grant, not a
+public way to obtain one. A manifest selecting it MUST omit
+`agent_api.grant_request_url` and MUST NOT advertise an OAuth authorization,
+token, introspection, or revocation endpoint, an OAuth refresh grant, or an
+Agent Grant authorization-details type. It MUST use these existing manifest
+members as follows:
+
+| Manifest member | Required profile meaning |
+| --- | --- |
+| `agent_api.credential_audience` | Exact logical HTTPS protected-resource audience; it MUST NOT be inferred from a socket, port, or action URL. |
+| `agent_api.grant_introspection_url` | Required self-only Grant-validation endpoint defined by the Host-Provisioned Bearer Binding. |
+| `agent_api.grant_revocation_url` | Required self-only Grant-revocation endpoint defined by the Host-Provisioned Bearer Binding. |
+| `agent_api.action_url` | Existing Action Request endpoint with independent admission under the current Grant. |
+| `agent_api.session_control_url` | Required existing session-safety endpoint for the Runtime role. |
+| `revocation.grant_revocation_url` | The exact same URL as `agent_api.grant_revocation_url`. |
+| `revocation.grant_management_url` | Separate generic ordinary-user management entry point required by Active Grant Management. |
+
+Every selected endpoint URL MUST be an absolute HTTPS URL on the manifest
+issuer origin and MUST NOT contain URI userinfo, a query, or a fragment.
+Distinct endpoint roles MUST use distinct paths except that the two Grant
+revocation members intentionally identify the same exact endpoint. The logical
+`credential_audience` remains a separate exact value even when an endpoint URL
+could also identify the same origin.
+
+The Runtime MUST discover, authenticate, verify, and pin the complete manifest
+through ordinary ASP HTTPS discovery before validating or using the privately
+provisioned Grant. That manifest MUST include the identity-evidence
+advertisement and every otherwise required session, audit, receipt, exposure,
+and revocation declaration; this descriptor does not relax any base manifest
+requirement. A deployment MUST resolve the actual port and every endpoint URL
+before publishing and hashing the manifest and MUST NOT insert a random port
+into an already pinned snapshot. A loopback deployment MUST explicitly trust
+the server CA, verify the IP subject alternative name, and MUST NOT disable
+certificate verification.
 
 ### Example Manifest
 
@@ -6141,12 +6198,12 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/authorization`
-- Exact version: `0.1.0-draft.3`
+- Exact version: `0.1.0-draft.5`
 - Canonical path: `drafts/modules/authorization.md`
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.3` (canonical `drafts/modules/core.md`)
 
 
 ### Pluggable Agent Identity Evidence Profile
@@ -7952,6 +8009,327 @@ Cons:
 - Requires a signed-grant profile, trust stores, signer-key lifecycle,
   revocation semantics, and stronger interop work beyond the receipt profile.
 - Too large for the first MVP.
+
+<a id="host-provisioned-bearer-binding"></a>
+#### Host-Provisioned Bearer Binding
+
+The Host-Provisioned Bearer Binding is selected only by the closed
+[Host-Provisioned Bearer Authentication Descriptor](#host-provisioned-bearer-authentication-descriptor).
+It is a non-OAuth issuance and control binding for one privileged application
+host that contains both the Grant Issuer and its registered Runtime mediator.
+Untrusted agents remain outside that host. The issuer MUST perform issuance
+only through a private host control path; it MUST NOT expose a public issuance
+HTTP endpoint, browser token exchange, agent-callable issuance tool, or other
+untrusted caller path to issuance.
+
+Runtime-to-application requests still cross the authenticated HTTPS boundary,
+and the application MUST independently enforce the current Agent Grant at every
+Action Request admission boundary. Co-location does not establish independent-
+vendor trust or isolate either component from malicious privileged host code.
+This binding MUST NOT be selected for a remote Runtime, pairing-code bootstrap,
+cross-process credential delivery, or another deployment that does not place
+the issuer and registered mediator in the same privileged host.
+
+This binding selects only the Compatibility Bearer Credential Profile defined
+in [Grant Credentials and Proof](#grant-credentials-and-proof).
+A deployment MUST identify it as development or compatibility only and MUST
+NOT claim that the credential is proof-bound or sender-constrained. Same-host
+placement, server-authenticated TLS, and successful bearer presentation do not
+prove that the network caller is the registered Runtime. Anyone who steals the
+bearer can impersonate its holder within that Grant, obtain the permitted
+self-view, or terminate the Grant's authority. Implementations MUST treat the
+resulting disclosure and denial-of-service exposure as a profile limitation.
+
+Every Grant issued under this binding MUST set `credential_profile` to
+`"compatibility_bearer"` and `credential_binding.method` to exactly `"bearer"`
+(case-sensitive). The issuer MUST include that exact method in the complete
+Grant before computing `grant_hash`. The mediator and Action Executor MUST
+reject a missing or different method, including `"compatibility_bearer"`,
+during provisioning, introspection validation, and admission as applicable;
+they MUST NOT normalize an alternative label to `"bearer"`. The credential
+profile name and credential-binding method are distinct protocol values.
+
+This version MAY be selected only for a `proposal_only` manifest whose granted
+Action inventory consists solely of non-persisted proposal Actions. Each such
+Action MUST use `execution.mode: "propose"`, MUST declare
+`side_effect: false`, and MUST omit `execution.persisted` or set it to `false`.
+The surface and Grant MUST NOT expose resource reads, subdelegation, refresh,
+token exchange, renewal, purpose binding, or an optional attestation profile.
+All base Grant, identity, consent, credential-custody, session, audit, exposure,
+App Receipt, and required control obligations remain in force. Excluding an
+optional receipt-signing profile does not exclude base App Receipts. A host
+that does not implement every required existing role dependency MUST NOT
+activate this binding. The binding is an optional feature of those existing
+roles; it does not define an additional ASP conformance role.
+
+<a id="host-provisioned-bearer-private-issuance-and-consent"></a>
+##### Private Issuance and Exact Consent
+
+This binding defines no serialized issuance request or response object. The
+private issuer MUST accept only a host-owned reference to one approved request
+record and MUST resolve that reference in authoritative host state. Model or
+browser strings, a copied record identifier, a caller-supplied subject or
+Runtime identifier, and a boolean such as `approved` MUST NOT create that
+reference, authenticate a participant, or establish approval.
+
+The approved record MUST retain all of the following logical inputs. These are
+issuance state and are not new Agent Grant wire members:
+
+- the User derived from a currently authenticated ordinary application
+  session and the host registration for the Runtime; application login remains
+  the application's existing authentication mechanism, and a generic process
+  cookie alone MUST NOT be accepted as evidence of an account binding;
+- the independently verified agent identity, the exact selected identity-
+  evidence profile combination, current policy, and exact immutable manifest
+  snapshot and retained schemas;
+- the requested locations, Actions, scopes, applicable constraints,
+  independently derived identity and data-exposure projections, and the
+  consent views derived from them; and
+- both required decisions: confirmation of the canonical local Consent Preview
+  and issuer consent for the exact retained material semantics.
+
+Co-location MUST NOT waive either derivation or confirmation. Task prose,
+natural-language intent verification, and an Action Approval Receipt are not
+either of these consent decisions.
+
+Immediately before issuance, the issuer MUST recheck authentication, Runtime
+registration, current identity status, policy, snapshot and schema binding, and
+both consent decisions. The successful issuance linearization point MUST
+atomically validate the authoritative revisions and validity deadlines for all
+of those inputs, consume the approved record, and commit both the complete
+Agent Grant and credential-verifier state. Every relevant authentication and
+Runtime-registration, identity, policy, snapshot and schema, and consent
+change MUST participate in that same serialization or fencing contract. The
+issuer MUST use a serializable transaction or equivalent version-and-fence
+validation at commit; checking values only before asynchronous work is
+insufficient.
+
+When identity status, policy, or another relevant input comes from an external
+authority, issuance requires a qualified contract that orders every relevant
+invalidation against the issuance linearization point and keeps the accepted
+evidence valid through that point. A cached `active` result, a recorded
+revision, a future expiry, or a transaction only in the local database does not
+fence an independent source. If the external source cannot participate in that
+ordering or current validity cannot be established at commit, the issuer MUST
+fail closed without committing a usable Grant or delivering a credential.
+
+Any material input change before the linearization point MUST invalidate the
+approved record and require a new Consent Preview and consent flow. The issuer
+MUST NOT repair the old record or retry issuance against changed inputs under
+the old consent and MUST discard any privately prepared credential. Changes
+after successful commit follow ordinary current-state admission and revocation
+rules; this issuance fence does not promise future identity or policy validity.
+
+The issuer MUST derive the complete existing [Grant Object](#grant-object)
+from exactly the fenced inputs, including both complete copies of the agent
+identity projection in `delegate.identity_evidence` and
+`credential_binding.identity_evidence`, the effective `data_exposure`, expiry,
+and the prescribed `grant_hash`. It MUST retain the exact complete
+[Grant Hash](#grant-hash) hashing view for the Grant lifetime
+and required audit-retention period and MUST NOT reconstruct a convenience
+subset during lookup. An unknown or unsupported authority-bearing member MUST
+fail closed; an implementation MUST NOT strip it before hashing. Principal and
+consent storage MUST be treated as a trusted dependency with tested lifecycle
+semantics, not as a result established by schema validation.
+
+For each Grant, the issuer MUST generate one independent uniformly random
+256-bit credential encoded as exactly 43 unpadded base64url characters. The
+credential MUST expire no later than 60 seconds after issuance and no later
+than any earlier applicable evidence or policy deadline. Authoritative
+credential state MUST store only a verifier hash; the issuer MUST store the
+complete Grant and exact `credential_audience` separately. The raw credential
+is not a Grant member.
+
+The issuer MUST commit authoritative state before handing the raw credential
+and complete Grant to the registered mediator through a private,
+non-serializable host channel. Only that mediator may retain raw credential
+custody. Before starting a session, the mediator MUST independently verify the
+complete Grant, both identity projections, audience, and manifest snapshot.
+Neither an agent adapter nor a browser may receive the provisioning result or
+direct access to the issuer.
+
+Issuance is at most one attempt for each approved record. The issuer MUST
+consume that record atomically with issuance, and a repeated invocation MUST
+NOT mint another Grant. Credential delivery is not retryable issuance. If
+delivery fails or its outcome is uncertain, the host MUST freeze use and
+complete revocation of any resulting Grant before permitting a new consent and
+issuance attempt. It MUST NOT reconstruct a credential from a verifier hash or
+blindly issue a replacement. This version defines no transparent restart
+recovery: the host MUST retain state until revocation is confirmed, or restart
+MUST invalidate every pre-restart credential at every enforcement point. If it
+cannot establish either condition, startup and issuance MUST remain blocked.
+
+<a id="host-provisioned-bearer-control-transport"></a>
+##### Common Control Transport
+
+The self-validation and self-revocation endpoints are new non-OAuth protocols;
+they are not RFC 7662 or RFC 7009 endpoints and do not change the existing
+Action Request or Session Control wire shapes. Both endpoints MUST apply all of
+these rules:
+
+- A request MUST be an exact HTTP `POST` to the declared URL. Its body MUST be
+  exactly the JSON object `{}`, allowing only insignificant JSON whitespace.
+  It MUST NOT contain a Grant, User, Runtime, token, or other selector, a
+  credential member, a duplicate member, a query selector, or an extra
+  property.
+- A request MUST contain exactly one `Authorization: Bearer <credential>`
+  header and the credential MUST satisfy this profile's exact 43-character
+  unpadded base64url syntax. Cookie authentication, a credential in a URL or
+  body, form encoding, redirects, and cross-origin credential forwarding are
+  forbidden.
+- The client and server MUST verify TLS, HTTP authority, and exact path. The
+  server MUST reject a request containing a browser `Origin` header and MUST
+  NOT expose a CORS permission for either endpoint.
+- The server MUST independently enforce a 1 KiB request-body limit, a 64 KiB
+  response-body limit, and an 8 KiB aggregate request-header limit. The client
+  and server MUST each independently enforce a 5-second deadline for the
+  complete request/response operation. The server MUST parse and emit strict
+  I-JSON. Every JSON request or response MUST use
+  `Content-Type: application/json`; every response
+  MUST use `Cache-Control: no-store` and
+  `X-Content-Type-Options: nosniff`. HTTP diagnostic logging MUST NOT record a
+  bearer, identity evidence, or a Grant payload.
+- Oversized request headers return 431. An unsupported method returns 405; a
+  wrong route returns 404; malformed framing, malformed JSON, a duplicate
+  member, or any extra member returns 400; a wrong media type returns 415; an
+  oversized request body returns 413; and a missing or malformed
+  `Authorization` header returns 401. Each such error has an empty body. A 401
+  response MUST include `WWW-Authenticate: Bearer`.
+
+A temporary backend or transport failure is not successful validation or
+revocation. The client MUST reject a malformed, oversized, truncated, or
+otherwise unexpected response and MUST NOT echo its content into diagnostics.
+A positive introspection result MUST NOT be reused as an authority cache. Local
+cancellation does not undo server work that already crossed its authoritative
+linearization point.
+
+<a id="host-provisioned-bearer-self-validation"></a>
+##### Self-Only Grant Validation
+
+The bearer selects its own authoritative credential record. There is no second
+target token or caller-supplied tuple. Before disclosure, the endpoint MUST
+verify the exact audience, credential expiry, current Grant state, and every
+required current identity and policy state. Possession authorizes only the
+owning Runtime's complete self-view; it does not authorize a Grant directory or
+another User's management view.
+
+For an unknown, inactive, expired, revoked, wrong-audience, undisclosable, or
+otherwise unprovable binding, the endpoint MUST return HTTP 200 with exactly:
+
+```json
+{"active":false}
+```
+
+For verified active state, it MUST return HTTP 200 with exactly the keys
+`active`, `credential_audience`, and `grant`. `active` MUST be `true`,
+`credential_audience` MUST equal the logical audience in the pinned manifest,
+and `grant` MUST be the complete existing Agent Grant Object rather than an
+abbreviated local record. The response MUST NOT contain the raw credential or
+a raw identity artifact. If full disclosure is not authorized or the complete
+Grant cannot fit the bounded response, the endpoint MUST return the inactive
+object; it MUST NOT redact a hash-bound Grant and report it as complete.
+
+An infrastructure failure MAY return 503. An unavailable authoritative store
+MUST return 503 and MUST NOT be inferred to mean an unknown credential.
+Temporary identity or policy evidence unavailability MAY instead return the
+inactive object to fence use, but that result does not mark the Grant terminal,
+prove that revocation or cascade completed, or authorize reuse of an earlier
+positive response. Recovery requires fresh checks of the same exact binding.
+
+The mediator MUST verify the returned complete `grant_hash`, exact expected
+User, Runtime, agent, application, issuer, surface version and hash, and
+`credential_audience`, and every selected constraint and projection. An active
+response from the wrong issuer or for a different retained tuple is unusable.
+The Action Executor MUST still verify current authority at every Action Request
+admission boundary; an earlier active result is never a guarantee of current
+authority.
+
+<a id="host-provisioned-bearer-self-revocation"></a>
+##### Self-Only Revocation and User Management
+
+A syntactically valid bearer authorizes only revocation of the Grant identified
+by its own authoritative credential record. It MUST NOT select a caller-named
+Grant. This binding permits a retained expired bearer only for this safety
+operation; expiry does not reactivate the credential or authorize validation,
+disclosure, or an Action Request.
+
+The endpoint MUST verify the stored credential and audience binding. A
+recognized credential for the wrong audience MUST return 401 without affecting
+authority under either audience. An unknown credential MUST receive an empty
+204 only after a successful authoritative lookup. An inactive credential does
+not permit the endpoint to skip transition of a located Grant or its semantic
+lineage.
+
+The issuer MUST retain each historical verifier-hash-to-Grant-and-audience
+mapping until every authority it identifies is confirmed inactive, and then
+until at least 24 hours after both credential expiry and that confirmation.
+This is this binding's retry window, not a general ASP default. Required Grant
+and audit retention remains independent. Credential bytes and mappings MUST
+NOT be reassigned or deliberately reused. Mapping cleanup MUST NOT leave any
+identified authority requiring invalidation; only after safe removal may a
+subsequent lookup treat the credential as unknown.
+
+For a located Grant, the endpoint MUST complete the existing
+[Semantic Grant Revocation Transition](#semantic-grant-revocation-transition),
+including every credential, applicable lineage member, and the concurrency
+fence in [Revocation Timing and Concurrency](#revocation-timing-and-concurrency),
+before returning an empty HTTP 204. Queuing a job is not success. For an
+already-inactive Grant, it MUST confirm that the required lineage transition
+and fence are established before returning the same idempotent 204; credential
+expiry alone does not establish either. Repetition MUST preserve the original
+effective instant and MUST NOT duplicate cleanup or control events. If the
+transition cannot be confirmed, the endpoint MUST return 503 with
+`Retry-After: 1` and MUST NOT return 204. This binding does not inherit OAuth's
+200-success semantics.
+
+The Runtime MUST freeze new Actions as soon as it requests revocation. A
+timeout, abort, 503, or any non-204 response leaves confirmation unknown. The
+Runtime MUST retain the sensitive credential only for this retry path, MUST
+NOT use it for another Action, and MUST retry the same credential after the
+declared delay without minting authority. Bounded local retries may stop only
+if the Runtime retains an explicit unconfirmed state. Receiving 204 does not
+prove rollback of an effect committed before the revocation fence.
+
+Ordinary-user management remains mandatory and separate under
+[Active Grant Management](#active-grant-management). The
+issuer-origin `revocation.grant_management_url` MUST remain a generic HTTPS
+entry point. The application MUST authenticate the owner through an ordinary
+User session, derive the subject from that session, filter inspection and
+revocation by ownership, require the existing User confirmation, and provide
+the required read-your-writes state. Bearer possession is not User
+authentication, and management MUST remain available without a functioning
+agent or Runtime. The Runtime MUST also provide its required local Grant view
+and trusted management link. The binding additionally requires the existing
+[Session Authority and Lifecycle](#session-authority-and-lifecycle)
+controls and all base audit and receipt obligations; neither private issuance
+nor self-only control transport weakens them.
+
+<a id="host-provisioned-bearer-qualification-requirements"></a>
+##### Qualification Requirements
+
+An implementation that claims support for this binding MUST qualify the
+following cases before activation. These cases are requirements on profile
+qualification, not a claim that any implementation has executed or passed
+them, and not an additional conformance role.
+
+| Case | Required result |
+| --- | --- |
+| Exact private consent record, active identity, and selected complete manifest | Exactly one Grant and mediator-only credential are issued; no Action proceeds without normal session and admission checks. |
+| Forged record reference, subject selector, stale consent, or inactive identity | No credential or Grant is published and no handler is called. |
+| Pause after the initial recheck, then change authentication or Runtime registration, identity, policy, snapshot or schema, or consent before commit | The commit fence rejects every interleaving; no usable Grant is committed or credential delivered, and stale consent is not retried. |
+| An external status check completes, but its revision is invalidated or freshness expires before commit, or the source cannot provide ordering | Issuance fails closed at commit; a local transaction or cached positive result does not permit issuance. |
+| Concurrent use of one approved record | At most one issuance occurs and delivery retry does not mint another Grant. |
+| Delivery failure, crash, or unavailable authority store | Use remains frozen; replacement is blocked until confirmed revocation or fail-closed restart invalidation. |
+| Introspection with an expired, revoked, unknown, or wrong-audience credential | The response is exactly inactive and reveals no distinguishing identity or ownership detail. |
+| Active response with an altered or partial Grant, mismatched audience or tuple, or oversized body | The client rejects it and does not use cached positive state. |
+| A Grant has a missing method, `credential_binding.method: "compatibility_bearer"`, or any method other than exactly `"bearer"`, even with a matching recomputed hash | Provisioning, introspection validation, and admission reject it without normalizing the label. |
+| Token or selector in JSON or URL, browser `Origin`, duplicate `Authorization`, or redirect | The request is rejected before the control operation and no credential is forwarded. |
+| Self-revocation with an active or expired located credential | The endpoint returns 204 only after the required invalidation and fence, and no additional Action authority remains. |
+| Repeated, unknown, or inactive self-revocation | The endpoint returns empty 204 without enumeration or duplicate side effects, after satisfying every located-lineage requirement. |
+| An expired or inactive credential still identifies live semantic authority, or the mapping store is unavailable | The endpoint invalidates all located authority before 204; an unavailable lookup returns 503 and is never treated as unknown. |
+| Revocation returns 503, times out, or aborts while an Action is concurrently admitted | Subsequent use freezes, confirmation remains unknown, the exact credential is retried, and the committed-effects boundary is preserved. |
+| Management uses a bearer as User authentication or supplies another User's selector | No cross-User inspection or revocation is permitted. |
+| A required management, session, audit, or identity dependency is absent | The complete binding is not activated even when the `auth` fragment is valid. |
 
 #### OAuth Grant Lifecycle Profile
 
@@ -10190,13 +10568,13 @@ authority for a runtime with a different tuple.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/safe-effects`
-- Exact version: `0.1.0-draft.3`
+- Exact version: `0.1.0-draft.5`
 - Canonical path: `drafts/modules/safe-effects.md`
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.3` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.5` (canonical `drafts/modules/authorization.md`)
 
 
 ### Action Execution Model
@@ -12411,14 +12789,14 @@ operation id, receipt, or input hash MUST NOT widen the proposal-only Grant.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/evidence`
-- Exact version: `0.1.0-draft.3`
+- Exact version: `0.1.0-draft.5`
 - Canonical path: `drafts/modules/evidence.md`
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.3` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.3` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.5` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.5` (canonical `drafts/modules/safe-effects.md`)
 
 
 ### Canonical Integrity and Provenance
@@ -13758,14 +14136,14 @@ and displaying it inertly; it never means re-executing the recorded system.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/privacy`
-- Exact version: `0.1.0-draft.4`
+- Exact version: `0.1.0-draft.6`
 - Canonical path: `drafts/modules/privacy.md`
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.3` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.3` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.5` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.5` (canonical `drafts/modules/evidence.md`)
 
 
 ### Data Exposure Contract
@@ -14686,7 +15064,7 @@ NOT enter receipts, logs, prompts, traces, or agent-visible context.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp`
-- Exact version: `0.1.0-draft.4`
+- Exact version: `0.1.0-draft.6`
 - Canonical path: `drafts/modules/bindings/asp-over-mcp.md`
 
 This module also owns the experimental ASP-over-WebMCP profile below. Its
@@ -14696,10 +15074,10 @@ the two binding profiles share authority.
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.3` (canonical `drafts/modules/safe-effects.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.3` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.3` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.5` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.5` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.5` (canonical `drafts/modules/evidence.md`)
 
 
 ### ASP-over-MCP Binding Profile
@@ -16028,17 +16406,17 @@ supports `specified` maturity only.
 > Set Catalog. `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/conformance`
-- Exact version: `0.1.0-draft.5`
+- Exact version: `0.1.0-draft.7`
 - Canonical path: `drafts/modules/conformance.md`
 
 ### Exact Normative Dependencies
 
-- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.2` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.3` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.3` (canonical `drafts/modules/safe-effects.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.3` (canonical `drafts/modules/evidence.md`)
-- `https://github.com/0al-spec/agent-surface/documents/privacy` at `0.1.0-draft.4` (canonical `drafts/modules/privacy.md`)
-- `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp` at `0.1.0-draft.4` (canonical `drafts/modules/bindings/asp-over-mcp.md`)
+- `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.3` (canonical `drafts/modules/core.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.5` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.5` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.5` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/privacy` at `0.1.0-draft.6` (canonical `drafts/modules/privacy.md`)
+- `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp` at `0.1.0-draft.6` (canonical `drafts/modules/bindings/asp-over-mcp.md`)
 
 
 ### Conformance

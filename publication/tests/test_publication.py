@@ -1444,6 +1444,48 @@ class PublicationContractTests(unittest.TestCase):
         ):
             modular.check(root, root / "unused-compiler")
 
+    def test_modular_build_uses_candidate_anchors_for_self_links(self) -> None:
+        root, _ = self.catalog_copy()
+        root = root.resolve(strict=True)
+        layout = modular._build_layout(
+            root,
+            self.catalog,
+            require_artifacts=True,
+        )
+        output_path = root / layout.output
+        candidate = (
+            b'<a id="candidate-only"></a>\n'
+            b"[Candidate](#candidate-only)\n"
+        )
+
+        for disk_state in ("stale", "missing"):
+            with self.subTest(disk_state=disk_state):
+                if disk_state == "stale":
+                    output_path.write_bytes(b'<a id="old-only"></a>\n')
+                else:
+                    output_path.unlink(missing_ok=True)
+                modular._validate_local_link_targets(root, layout, candidate)
+
+    def test_modular_build_rejects_anchor_only_in_stale_aggregate(self) -> None:
+        root, _ = self.catalog_copy()
+        root = root.resolve(strict=True)
+        layout = modular._build_layout(
+            root,
+            self.catalog,
+            require_artifacts=True,
+        )
+        (root / layout.output).write_bytes(b'<a id="old-only"></a>\n')
+        candidate = (
+            b'<a id="candidate-only"></a>\n'
+            b"[Old](#old-only)\n"
+        )
+
+        with self.assertRaisesRegex(
+            modular.ModularBuildError,
+            "link fragment does not exist",
+        ):
+            modular._validate_local_link_targets(root, layout, candidate)
+
     def test_modular_build_rejects_missing_aggregate_link_target(self) -> None:
         root, _ = self.catalog_copy()
         root = root.resolve(strict=True)

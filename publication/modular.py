@@ -577,14 +577,18 @@ def _validate_local_link_targets(
     layout: _BuildLayout,
     output: bytes,
 ) -> None:
-    output_parent = (root / layout.output).parent
+    output_path = (root / layout.output).resolve(strict=False)
+    output_parent = output_path.parent
     try:
         destinations = markdown_link_destinations(output)
+        output_anchors = markdown_anchor_ids(output)
     except (AggregateLinkError, UnicodeDecodeError) as error:
         raise ModularBuildError(
             f"aggregate link validation failed: {error}"
         ) from error
-    anchor_cache: dict[Path, set[str]] = {}
+    anchor_cache: dict[Path, set[str]] = {
+        output_path: output_anchors,
+    }
     for destination in destinations:
         try:
             parsed = urlsplit(destination)
@@ -598,7 +602,7 @@ def _validate_local_link_targets(
         target = (
             (output_parent / link_path).resolve(strict=False)
             if link_path
-            else root / layout.output
+            else output_path
         )
         try:
             target.relative_to(root)
@@ -606,7 +610,7 @@ def _validate_local_link_targets(
             raise ModularBuildError(
                 f"aggregate Markdown link escapes the repository: {link_path!r}"
             ) from error
-        if not target.is_file():
+        if target != output_path and not target.is_file():
             raise ModularBuildError(
                 f"aggregate Markdown link target does not exist: {link_path!r}"
             )
