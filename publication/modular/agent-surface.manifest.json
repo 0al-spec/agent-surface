@@ -34,19 +34,19 @@
   "sources" : [
     {
       "path" : "drafts/modules/authorization.md",
-      "sha256" : "0d5519e7a7ca33e6a9eaf3d920af8d0936dc91bfcec9bcc8394aeb15802655a1",
-      "size" : 238683,
+      "sha256" : "463cfad1fb88ae97f2d496a9f61a27589885a7a07b85db1c0612a7a4feb5269d",
+      "size" : 239549,
       "type" : "markdown"
     },
     {
       "path" : "drafts/modules/bindings/asp-over-mcp.md",
-      "sha256" : "a3d7da9d92c3ac4d7a6100a8491547cba990b018983ee2799ca0b39676fbcf40",
+      "sha256" : "1446a68956b8685e191e894a799d48a9d5de7761c399d4de125c58d3f4322268",
       "size" : 75313,
       "type" : "markdown"
     },
     {
       "path" : "drafts/modules/conformance.md",
-      "sha256" : "ca998423d5bbdfd0903e9dc610358d9b8b684e67fa8a930c46612435864c92aa",
+      "sha256" : "64ef15fd21e0f0e8f77c3b484d69b0c99b2058b99081e61fdec0e0859582502a",
       "size" : 93943,
       "type" : "markdown"
     },
@@ -58,19 +58,19 @@
     },
     {
       "path" : "drafts/modules/evidence.md",
-      "sha256" : "57f32fcb4ece93c02b76d528a525fcd64d38c288d3ca3646d71e391c04b11187",
+      "sha256" : "f1beadacad07818cc97e6101d167fa67697bc5b96a7a660e43a9e87a828ca2a3",
       "size" : 70578,
       "type" : "markdown"
     },
     {
       "path" : "drafts/modules/privacy.md",
-      "sha256" : "fe391b321f37b2ab8d27351a28e494c1666367088eca49b432fbf3847459bb8b",
+      "sha256" : "0b7b2021377405de19fd630c93dde64d47564d8b22435b93c42445b62528f011",
       "size" : 52654,
       "type" : "markdown"
     },
     {
       "path" : "drafts/modules/safe-effects.md",
-      "sha256" : "f41007400bf87702e264f004eab9fd96439c510c1d9357c7bc8c78be47b52b8f",
+      "sha256" : "8d6566cd5864d64db5cff802b501a14b27965d74887eeab8461adf877183209e",
       "size" : 122194,
       "type" : "markdown"
     },

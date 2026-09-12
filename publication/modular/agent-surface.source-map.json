@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "lineBase": 1,
-  "outputSha256": "2ac5e11e78b53666d0940682f8e2d4e764979478ff6278cce14ebeb6405bfda0",
+  "outputSha256": "ecab0f4015abd6e6a8f7103c980843d79af858b0ee65d1e242339ae32965779c",
   "mappings": [
     {
       "generatedStartLine": 1,
@@ -15,23 +15,23 @@
     },
     {
       "generatedStartLine": 6193,
-      "generatedEndLine": 10551,
+      "generatedEndLine": 10561,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/authorization.md",
         "startLine": 1,
-        "endLine": 4359
+        "endLine": 4369
       }
     },
     {
-      "generatedStartLine": 10552,
-      "generatedEndLine": 10552,
+      "generatedStartLine": 10562,
+      "generatedEndLine": 10562,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 10553,
-      "generatedEndLine": 12772,
+      "generatedStartLine": 10563,
+      "generatedEndLine": 12782,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/safe-effects.md",
@@ -40,14 +40,14 @@
       }
     },
     {
-      "generatedStartLine": 12773,
-      "generatedEndLine": 12773,
+      "generatedStartLine": 12783,
+      "generatedEndLine": 12783,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 12774,
-      "generatedEndLine": 14119,
+      "generatedStartLine": 12784,
+      "generatedEndLine": 14129,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/evidence.md",
@@ -56,14 +56,14 @@
       }
     },
     {
-      "generatedStartLine": 14120,
-      "generatedEndLine": 14120,
+      "generatedStartLine": 14130,
+      "generatedEndLine": 14130,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 14121,
-      "generatedEndLine": 15047,
+      "generatedStartLine": 14131,
+      "generatedEndLine": 15057,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/privacy.md",
@@ -72,14 +72,14 @@
       }
     },
     {
-      "generatedStartLine": 15048,
-      "generatedEndLine": 15048,
+      "generatedStartLine": 15058,
+      "generatedEndLine": 15058,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 15049,
-      "generatedEndLine": 16389,
+      "generatedStartLine": 15059,
+      "generatedEndLine": 16399,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/bindings/asp-over-mcp.md",
@@ -88,14 +88,14 @@
       }
     },
     {
-      "generatedStartLine": 16390,
-      "generatedEndLine": 16390,
+      "generatedStartLine": 16400,
+      "generatedEndLine": 16400,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 16391,
-      "generatedEndLine": 17877,
+      "generatedStartLine": 16401,
+      "generatedEndLine": 17887,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/conformance.md",

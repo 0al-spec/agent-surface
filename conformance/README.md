@@ -8,8 +8,9 @@ object.
 
 ## Version 1 artifacts
 
-Suite 1.10.6 republishes the existing catalog against the document-set revision
-that specifies Host-Provisioned Bearer Binding. Bundle registry 1.0.6 preserves
+Suite 1.10.7 republishes the existing catalog against the document-set revision
+that specifies Host-Provisioned Bearer Binding, including its exact `bearer`
+credential-binding method. Bundle registry 1.0.7 preserves
 the same bundle plans. This is an exact-version/provenance update, not new
 executable binding coverage: the role/vector counts below are unchanged. The
 new binding's issuance-fence, custody, self-introspection and revocation
@@ -26,7 +27,7 @@ Event storage, derived-copy deadline enforcement and actual consent UI still
 require implementation-specific lifecycle tests before claiming those normative
 obligations. The 183 role vectors remain a high-risk subset, not full coverage.
 
-`conformance/v1/suite.json` is the authoritative Suite 1.10.6 role, feature,
+`conformance/v1/suite.json` is the authoritative Suite 1.10.7 role, feature,
 requirement, and vector matrix: six profiles, 55 requirements, and 183 closed
 declarative scenarios. `conformance/v1/fixtures.json` resolves them through 48
 exact semantic baselines and 128 closed mutation patches.

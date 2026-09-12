@@ -6198,7 +6198,7 @@ Agent Surface + Agent Grant bind those pieces into safe app-specific delegation.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/authorization`
-- Exact version: `0.1.0-draft.4`
+- Exact version: `0.1.0-draft.5`
 - Canonical path: `drafts/modules/authorization.md`
 
 ### Exact Normative Dependencies
@@ -8040,6 +8040,15 @@ bearer can impersonate its holder within that Grant, obtain the permitted
 self-view, or terminate the Grant's authority. Implementations MUST treat the
 resulting disclosure and denial-of-service exposure as a profile limitation.
 
+Every Grant issued under this binding MUST set `credential_profile` to
+`"compatibility_bearer"` and `credential_binding.method` to exactly `"bearer"`
+(case-sensitive). The issuer MUST include that exact method in the complete
+Grant before computing `grant_hash`. The mediator and Action Executor MUST
+reject a missing or different method, including `"compatibility_bearer"`,
+during provisioning, introspection validation, and admission as applicable;
+they MUST NOT normalize an alternative label to `"bearer"`. The credential
+profile name and credential-binding method are distinct protocol values.
+
 This version MAY be selected only for a `proposal_only` manifest whose granted
 Action inventory consists solely of non-persisted proposal Actions. Each such
 Action MUST use `execution.mode: "propose"`, MUST declare
@@ -8313,6 +8322,7 @@ them, and not an additional conformance role.
 | Delivery failure, crash, or unavailable authority store | Use remains frozen; replacement is blocked until confirmed revocation or fail-closed restart invalidation. |
 | Introspection with an expired, revoked, unknown, or wrong-audience credential | The response is exactly inactive and reveals no distinguishing identity or ownership detail. |
 | Active response with an altered or partial Grant, mismatched audience or tuple, or oversized body | The client rejects it and does not use cached positive state. |
+| A Grant has a missing method, `credential_binding.method: "compatibility_bearer"`, or any method other than exactly `"bearer"`, even with a matching recomputed hash | Provisioning, introspection validation, and admission reject it without normalizing the label. |
 | Token or selector in JSON or URL, browser `Origin`, duplicate `Authorization`, or redirect | The request is rejected before the control operation and no credential is forwarded. |
 | Self-revocation with an active or expired located credential | The endpoint returns 204 only after the required invalidation and fence, and no additional Action authority remains. |
 | Repeated, unknown, or inactive self-revocation | The endpoint returns empty 204 without enumeration or duplicate side effects, after satisfying every located-lineage requirement. |
@@ -10558,13 +10568,13 @@ authority for a runtime with a different tuple.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/safe-effects`
-- Exact version: `0.1.0-draft.4`
+- Exact version: `0.1.0-draft.5`
 - Canonical path: `drafts/modules/safe-effects.md`
 
 ### Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.3` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.4` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.5` (canonical `drafts/modules/authorization.md`)
 
 
 ### Action Execution Model
@@ -12779,14 +12789,14 @@ operation id, receipt, or input hash MUST NOT widen the proposal-only Grant.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/evidence`
-- Exact version: `0.1.0-draft.4`
+- Exact version: `0.1.0-draft.5`
 - Canonical path: `drafts/modules/evidence.md`
 
 ### Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.3` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.4` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.4` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.5` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.5` (canonical `drafts/modules/safe-effects.md`)
 
 
 ### Canonical Integrity and Provenance
@@ -14126,14 +14136,14 @@ and displaying it inertly; it never means re-executing the recorded system.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/privacy`
-- Exact version: `0.1.0-draft.5`
+- Exact version: `0.1.0-draft.6`
 - Canonical path: `drafts/modules/privacy.md`
 
 ### Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.3` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.4` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.4` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.5` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.5` (canonical `drafts/modules/evidence.md`)
 
 
 ### Data Exposure Contract
@@ -15054,7 +15064,7 @@ NOT enter receipts, logs, prompts, traces, or agent-visible context.
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp`
-- Exact version: `0.1.0-draft.5`
+- Exact version: `0.1.0-draft.6`
 - Canonical path: `drafts/modules/bindings/asp-over-mcp.md`
 
 This module also owns the experimental ASP-over-WebMCP profile below. Its
@@ -15065,9 +15075,9 @@ the two binding profiles share authority.
 ### Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.3` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.4` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.4` (canonical `drafts/modules/safe-effects.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.4` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.5` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.5` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.5` (canonical `drafts/modules/evidence.md`)
 
 
 ### ASP-over-MCP Binding Profile
@@ -16396,17 +16406,17 @@ supports `specified` maturity only.
 > Set Catalog. `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/conformance`
-- Exact version: `0.1.0-draft.6`
+- Exact version: `0.1.0-draft.7`
 - Canonical path: `drafts/modules/conformance.md`
 
 ### Exact Normative Dependencies
 
 - `https://github.com/0al-spec/agent-surface/documents/core` at `0.1.0-draft.3` (canonical `drafts/modules/core.md`)
-- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.4` (canonical `drafts/modules/authorization.md`)
-- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.4` (canonical `drafts/modules/safe-effects.md`)
-- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.4` (canonical `drafts/modules/evidence.md`)
-- `https://github.com/0al-spec/agent-surface/documents/privacy` at `0.1.0-draft.5` (canonical `drafts/modules/privacy.md`)
-- `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp` at `0.1.0-draft.5` (canonical `drafts/modules/bindings/asp-over-mcp.md`)
+- `https://github.com/0al-spec/agent-surface/documents/authorization` at `0.1.0-draft.5` (canonical `drafts/modules/authorization.md`)
+- `https://github.com/0al-spec/agent-surface/documents/safe-effects` at `0.1.0-draft.5` (canonical `drafts/modules/safe-effects.md`)
+- `https://github.com/0al-spec/agent-surface/documents/evidence` at `0.1.0-draft.5` (canonical `drafts/modules/evidence.md`)
+- `https://github.com/0al-spec/agent-surface/documents/privacy` at `0.1.0-draft.6` (canonical `drafts/modules/privacy.md`)
+- `https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp` at `0.1.0-draft.6` (canonical `drafts/modules/bindings/asp-over-mcp.md`)
 
 
 ### Conformance

@@ -155,7 +155,7 @@
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -206,21 +206,21 @@
           "kind": "rfc_anchor",
           "ref": "grant-object",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-object"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-credentials-and-proof",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-credentials-and-proof"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         }
       ]
@@ -275,7 +275,7 @@
           "kind": "rfc_anchor",
           "ref": "grant-credentials-and-proof",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-credentials-and-proof"
         },
         {
@@ -296,7 +296,7 @@
           "kind": "rfc_anchor",
           "ref": "proof-bound-action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "proof-bound-action-executor-profile"
         }
       ]
@@ -348,7 +348,7 @@
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
@@ -362,7 +362,7 @@
           "kind": "rfc_anchor",
           "ref": "agent-adapter-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "agent-adapter-profile"
         }
       ]
@@ -418,7 +418,7 @@
           "kind": "rfc_anchor",
           "ref": "subdelegation",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "subdelegation"
         },
         {
@@ -489,14 +489,14 @@
           "kind": "rfc_anchor",
           "ref": "model-a-app-issued-grant",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "model-a-app-issued-grant"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
@@ -562,14 +562,14 @@
           "kind": "rfc_anchor",
           "ref": "oauth-grant-lifecycle-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "oauth-grant-lifecycle-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "rich-authorization-request-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "rich-authorization-request-profile"
         },
         {
@@ -583,14 +583,14 @@
           "kind": "rfc_anchor",
           "ref": "grant-object",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-object"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-issuance-models",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-issuance-models"
         }
       ]
@@ -645,28 +645,28 @@
           "kind": "rfc_anchor",
           "ref": "oauth-token-exchange-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "oauth-token-exchange-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-issuance-models",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-issuance-models"
         },
         {
           "kind": "rfc_anchor",
           "ref": "model-a-app-issued-grant",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "model-a-app-issued-grant"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-credentials-and-proof",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-credentials-and-proof"
         }
       ]
@@ -723,7 +723,7 @@
           "kind": "rfc_anchor",
           "ref": "grant-credentials-and-proof",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-credentials-and-proof"
         },
         {
@@ -771,14 +771,14 @@
           "kind": "rfc_anchor",
           "ref": "grant-hash",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-hash"
         },
         {
           "kind": "rfc_anchor",
           "ref": "canonical-object-hash-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "canonical-object-hash-profile"
         },
         {
@@ -792,7 +792,7 @@
           "kind": "rfc_anchor",
           "ref": "receipt-hash-chain",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "receipt-hash-chain"
         }
       ]
@@ -848,7 +848,7 @@
           "kind": "rfc_anchor",
           "ref": "grant-introspection-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-introspection-profile"
         },
         {
@@ -862,14 +862,14 @@
           "kind": "rfc_anchor",
           "ref": "grant-credentials-and-proof",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-credentials-and-proof"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         }
       ]
@@ -935,28 +935,28 @@
           "kind": "rfc_anchor",
           "ref": "revocation-semantics",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "revocation-semantics"
         },
         {
           "kind": "rfc_anchor",
           "ref": "semantic-grant-revocation-transition",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "semantic-grant-revocation-transition"
         },
         {
           "kind": "rfc_anchor",
           "ref": "oauth-grant-revocation-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "oauth-grant-revocation-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-revoked",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-revoked"
         }
       ]
@@ -1068,14 +1068,14 @@
           "kind": "rfc_anchor",
           "ref": "canonical-object-hash-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "canonical-object-hash-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-object",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-object"
         },
         {
@@ -1117,7 +1117,7 @@
           "kind": "rfc_anchor",
           "ref": "surface-version-changed",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "surface-version-changed"
         },
         {
@@ -1209,7 +1209,7 @@
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
@@ -1223,14 +1223,14 @@
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "application-mvp-mapping",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "application-mvp-mapping"
         }
       ]
@@ -1320,7 +1320,7 @@
           "kind": "rfc_anchor",
           "ref": "canonical-object-hash-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "canonical-object-hash-profile"
         },
         {
@@ -1369,21 +1369,21 @@
           "kind": "rfc_anchor",
           "ref": "reference-api-importer",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-api-importer"
         },
         {
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "application-mvp-mapping",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "application-mvp-mapping"
         },
         {
@@ -1513,28 +1513,28 @@
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
           "kind": "rfc_anchor",
           "ref": "proposal-flow",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "proposal-flow"
         },
         {
           "kind": "rfc_anchor",
           "ref": "active-grant-management",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "active-grant-management"
         },
         {
@@ -1555,21 +1555,21 @@
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-issuer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "grant-issuer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "action-executor-profile"
         }
       ]
@@ -1620,21 +1620,21 @@
           "kind": "rfc_anchor",
           "ref": "static-execution-modes",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "static-execution-modes"
         },
         {
           "kind": "rfc_anchor",
           "ref": "companion-actions-and-transitions",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "companion-actions-and-transitions"
         },
         {
           "kind": "rfc_anchor",
           "ref": "execution-context-and-binding",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "execution-context-and-binding"
         }
       ]
@@ -1677,21 +1677,21 @@
           "kind": "rfc_anchor",
           "ref": "risk-taxonomy",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "risk-taxonomy"
         },
         {
           "kind": "rfc_anchor",
           "ref": "effect-model",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "effect-model"
         },
         {
           "kind": "rfc_anchor",
           "ref": "approval-semantics",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "approval-semantics"
         },
         {
@@ -1748,14 +1748,14 @@
           "kind": "rfc_anchor",
           "ref": "idempotency",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "idempotency"
         },
         {
           "kind": "rfc_anchor",
           "ref": "idempotency-input-normalization",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "idempotency-input-normalization"
         },
         {
@@ -1813,7 +1813,7 @@
           "kind": "rfc_anchor",
           "ref": "preconditions-and-effect-preview",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "preconditions-and-effect-preview"
         },
         {
@@ -1877,21 +1877,21 @@
           "kind": "rfc_anchor",
           "ref": "resource-reservations",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "resource-reservations"
         },
         {
           "kind": "rfc_anchor",
           "ref": "idempotency",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "idempotency"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-revoked",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-revoked"
         }
       ]
@@ -1943,21 +1943,21 @@
           "kind": "rfc_anchor",
           "ref": "compensation-and-revert",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "compensation-and-revert"
         },
         {
           "kind": "rfc_anchor",
           "ref": "effect-model",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "effect-model"
         },
         {
           "kind": "rfc_anchor",
           "ref": "receipt-hash-chain",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "receipt-hash-chain"
         }
       ]
@@ -2186,7 +2186,7 @@
           "kind": "rfc_anchor",
           "ref": "runtime-disconnected",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "runtime-disconnected"
         }
       ]
@@ -2246,35 +2246,35 @@
           "kind": "rfc_anchor",
           "ref": "session-authority-and-lifecycle",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "session-authority-and-lifecycle"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-adapter-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "agent-adapter-profile"
         },
         {
@@ -2360,7 +2360,7 @@
           "kind": "rfc_anchor",
           "ref": "session-authority-and-lifecycle",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "session-authority-and-lifecycle"
         },
         {
@@ -2374,14 +2374,14 @@
           "kind": "rfc_anchor",
           "ref": "runtime-disconnected",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "runtime-disconnected"
         },
         {
           "kind": "rfc_anchor",
           "ref": "user-session-expired",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "user-session-expired"
         }
       ]
@@ -2467,7 +2467,7 @@
           "kind": "rfc_anchor",
           "ref": "canonical-object-hash-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "canonical-object-hash-profile"
         },
         {
@@ -2481,7 +2481,7 @@
           "kind": "rfc_anchor",
           "ref": "approval-receipt-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "approval-receipt-profile"
         },
         {
@@ -2495,35 +2495,35 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-adapter-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "agent-adapter-profile"
         },
         {
@@ -2619,21 +2619,21 @@
           "kind": "rfc_anchor",
           "ref": "runtime-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "runtime-receipt"
         },
         {
           "kind": "rfc_anchor",
           "ref": "app-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "app-receipt"
         },
         {
           "kind": "rfc_anchor",
           "ref": "receipt-requirements",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "receipt-requirements"
         }
       ]
@@ -2693,14 +2693,14 @@
           "kind": "rfc_anchor",
           "ref": "approval-semantics",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "approval-semantics"
         },
         {
           "kind": "rfc_anchor",
           "ref": "approval-receipt-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "approval-receipt-profile"
         },
         {
@@ -2714,35 +2714,35 @@
           "kind": "rfc_anchor",
           "ref": "receipt-requirements",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "receipt-requirements"
         },
         {
           "kind": "rfc_anchor",
           "ref": "receipt-hash-chain",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "receipt-hash-chain"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "runtime-receipt"
         },
         {
           "kind": "rfc_anchor",
           "ref": "app-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "app-receipt"
         },
         {
           "kind": "rfc_anchor",
           "ref": "receipt-producer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "receipt-producer-profile"
         }
       ]
@@ -2788,21 +2788,21 @@
           "kind": "rfc_anchor",
           "ref": "receipt-hash-chain",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "receipt-hash-chain"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "runtime-receipt"
         },
         {
           "kind": "rfc_anchor",
           "ref": "app-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "app-receipt"
         },
         {
@@ -2852,21 +2852,21 @@
           "kind": "rfc_anchor",
           "ref": "receipt-signing-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "receipt-signing-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "canonical-object-hash-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "canonical-object-hash-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "app-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "app-receipt"
         },
         {
@@ -2924,21 +2924,21 @@
           "kind": "rfc_anchor",
           "ref": "receipt-requirements",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "receipt-requirements"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "runtime-receipt"
         },
         {
           "kind": "rfc_anchor",
           "ref": "app-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "app-receipt"
         }
       ]
@@ -2981,21 +2981,21 @@
           "kind": "rfc_anchor",
           "ref": "policy-decision-object",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "policy-decision-object"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "runtime-receipt"
         },
         {
           "kind": "rfc_anchor",
           "ref": "app-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "app-receipt"
         },
         {
@@ -3065,21 +3065,21 @@
           "kind": "rfc_anchor",
           "ref": "data-exposure-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "data-exposure-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-object",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-object"
         },
         {
           "kind": "rfc_anchor",
           "ref": "privacy-considerations",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "privacy-considerations"
         }
       ]
@@ -3135,49 +3135,49 @@
           "kind": "rfc_anchor",
           "ref": "data-exposure-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "data-exposure-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-training-use-policy-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "agent-training-use-policy-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "subdelegation",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "subdelegation"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
           "kind": "rfc_anchor",
           "ref": "privacy-considerations",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "privacy-considerations"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -3241,63 +3241,63 @@
           "kind": "rfc_anchor",
           "ref": "data-exposure-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "data-exposure-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "remote-processing-privacy-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "remote-processing-privacy-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "subdelegation",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "subdelegation"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
           "kind": "rfc_anchor",
           "ref": "privacy-considerations",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "privacy-considerations"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-issuer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "grant-issuer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -3332,14 +3332,14 @@
           "kind": "rfc_anchor",
           "ref": "receipt-requirements",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "receipt-requirements"
         },
         {
           "kind": "rfc_anchor",
           "ref": "privacy-considerations",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "privacy-considerations"
         }
       ]
@@ -3390,7 +3390,7 @@
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
@@ -3404,7 +3404,7 @@
           "kind": "rfc_anchor",
           "ref": "privacy-considerations",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "privacy-considerations"
         }
       ]
@@ -3470,28 +3470,28 @@
           "kind": "rfc_anchor",
           "ref": "runtime-identity-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "runtime-identity-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-object",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-object"
         },
         {
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
@@ -3505,14 +3505,14 @@
           "kind": "rfc_anchor",
           "ref": "privacy-considerations",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "privacy-considerations"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -3582,42 +3582,42 @@
           "kind": "rfc_anchor",
           "ref": "minimal-agent-passport-grant-issuance-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "minimal-agent-passport-grant-issuance-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-object",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-object"
         },
         {
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "rich-authorization-request-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "rich-authorization-request-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-identity-evidence-invalid-or-unavailable",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "agent-identity-evidence-invalid-or-unavailable"
         },
         {
@@ -3631,7 +3631,7 @@
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -3671,21 +3671,21 @@
           "kind": "rfc_anchor",
           "ref": "agent-identity-evidence-invalid-or-unavailable",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "agent-identity-evidence-invalid-or-unavailable"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-revoked",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-revoked"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         }
       ]
@@ -3729,28 +3729,28 @@
           "kind": "rfc_anchor",
           "ref": "canonical-object-hash-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "canonical-object-hash-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "capability-matching",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "capability-matching"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         }
       ]
@@ -3805,21 +3805,21 @@
           "kind": "rfc_anchor",
           "ref": "runtime-attestation-optional-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "runtime-attestation-optional-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
@@ -3840,14 +3840,14 @@
           "kind": "rfc_anchor",
           "ref": "privacy-considerations",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "privacy-considerations"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-attestation-role-requirements",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-attestation-role-requirements"
         }
       ]
@@ -3908,35 +3908,35 @@
           "kind": "rfc_anchor",
           "ref": "data-exposure-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "data-exposure-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-lifecycle",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-lifecycle"
         },
         {
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "rich-authorization-request-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "rich-authorization-request-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "capability-matching",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "capability-matching"
         },
         {
@@ -3950,14 +3950,14 @@
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "example-end-to-end-flow",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "example-end-to-end-flow"
         }
       ]
@@ -4042,7 +4042,7 @@
           "kind": "rfc_anchor",
           "ref": "impact-simulation",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "impact-simulation"
         },
         {
@@ -4056,42 +4056,42 @@
           "kind": "rfc_anchor",
           "ref": "preconditions-and-effect-preview",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "preconditions-and-effect-preview"
         },
         {
           "kind": "rfc_anchor",
           "ref": "effect-model",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "effect-model"
         },
         {
           "kind": "rfc_anchor",
           "ref": "approval-semantics",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "approval-semantics"
         },
         {
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "risk-explanation-ui-hints",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "risk-explanation-ui-hints"
         },
         {
           "kind": "rfc_anchor",
           "ref": "capability-matching",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "capability-matching"
         },
         {
@@ -4105,35 +4105,35 @@
           "kind": "rfc_anchor",
           "ref": "privacy-considerations",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "privacy-considerations"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "example-end-to-end-flow",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "example-end-to-end-flow"
         },
         {
@@ -4253,7 +4253,7 @@
           "kind": "rfc_anchor",
           "ref": "risk-explanation-ui-hints",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "risk-explanation-ui-hints"
         },
         {
@@ -4267,35 +4267,35 @@
           "kind": "rfc_anchor",
           "ref": "risk-taxonomy",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "risk-taxonomy"
         },
         {
           "kind": "rfc_anchor",
           "ref": "effect-model",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "effect-model"
         },
         {
           "kind": "rfc_anchor",
           "ref": "approval-semantics",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "approval-semantics"
         },
         {
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "capability-matching",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "capability-matching"
         },
         {
@@ -4316,28 +4316,28 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         },
         {
@@ -4434,7 +4434,7 @@
           "kind": "rfc_anchor",
           "ref": "proposal-flow",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "proposal-flow"
         }
       ]
@@ -4513,56 +4513,56 @@
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
           "kind": "rfc_anchor",
           "ref": "revocation-semantics",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "revocation-semantics"
         },
         {
           "kind": "rfc_anchor",
           "ref": "active-grant-management",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "active-grant-management"
         },
         {
           "kind": "rfc_anchor",
           "ref": "user-revocation-intent-and-confirmation",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "user-revocation-intent-and-confirmation"
         },
         {
           "kind": "rfc_anchor",
           "ref": "revocation-timing-and-concurrency",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "revocation-timing-and-concurrency"
         },
         {
           "kind": "rfc_anchor",
           "ref": "semantic-grant-revocation-transition",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "semantic-grant-revocation-transition"
         },
         {
           "kind": "rfc_anchor",
           "ref": "oauth-grant-revocation-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "oauth-grant-revocation-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-revoked",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-revoked"
         },
         {
@@ -4576,7 +4576,7 @@
           "kind": "rfc_anchor",
           "ref": "privacy-considerations",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "privacy-considerations"
         }
       ]
@@ -4632,21 +4632,21 @@
           "kind": "rfc_anchor",
           "ref": "grant-object",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-object"
         },
         {
           "kind": "rfc_anchor",
           "ref": "budget-caveats-and-accounting",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "budget-caveats-and-accounting"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
@@ -4850,21 +4850,21 @@
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         },
         {
@@ -4973,14 +4973,14 @@
           "kind": "rfc_anchor",
           "ref": "runtime-runaway-protection",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "runtime-runaway-protection"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
@@ -5038,7 +5038,7 @@
           "kind": "rfc_anchor",
           "ref": "observability-context",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "observability-context"
         },
         {
@@ -5059,7 +5059,7 @@
           "kind": "rfc_anchor",
           "ref": "receipt-requirements",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "receipt-requirements"
         }
       ]
@@ -5120,56 +5120,56 @@
           "kind": "rfc_anchor",
           "ref": "conformance",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "conformance"
         },
         {
           "kind": "rfc_anchor",
           "ref": "conformance-claim-and-composition-rules",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "conformance-claim-and-composition-rules"
         },
         {
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-issuer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "grant-issuer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "receipt-producer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "receipt-producer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-adapter-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "agent-adapter-profile"
         }
       ]
@@ -5203,7 +5203,7 @@
           "kind": "rfc_anchor",
           "ref": "reference-manifest-linter",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-manifest-linter"
         },
         {
@@ -5259,7 +5259,7 @@
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-mock-participants"
         },
         {
@@ -5355,49 +5355,49 @@
           "kind": "rfc_anchor",
           "ref": "portable-replay-bundle-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "portable-replay-bundle-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "bundle-scope-and-historical-context",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "bundle-scope-and-historical-context"
         },
         {
           "kind": "rfc_anchor",
           "ref": "replay-record-object",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "replay-record-object"
         },
         {
           "kind": "rfc_anchor",
           "ref": "deterministic-replay-and-ordering",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "deterministic-replay-and-ordering"
         },
         {
           "kind": "rfc_anchor",
           "ref": "integrity-completeness-and-validation-report",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "integrity-completeness-and-validation-report"
         },
         {
           "kind": "rfc_anchor",
           "ref": "failure-privacy-and-non-authority-rules",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "failure-privacy-and-non-authority-rules"
         },
         {
           "kind": "rfc_anchor",
           "ref": "canonical-object-hash-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "canonical-object-hash-profile"
         },
         {
@@ -5411,28 +5411,28 @@
           "kind": "rfc_anchor",
           "ref": "session-authority-and-lifecycle",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "session-authority-and-lifecycle"
         },
         {
           "kind": "rfc_anchor",
           "ref": "receipt-hash-chain",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "receipt-hash-chain"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-replay-tool",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-replay-tool"
         },
         {
           "kind": "rfc_anchor",
           "ref": "application-mvp-mapping",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "application-mvp-mapping"
         },
         {
@@ -5517,35 +5517,35 @@
           "kind": "rfc_anchor",
           "ref": "idempotency",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "idempotency"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
           "kind": "rfc_anchor",
           "ref": "revocation-semantics",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "revocation-semantics"
         },
         {
           "kind": "rfc_anchor",
           "ref": "conformance",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "conformance"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
@@ -5677,21 +5677,21 @@
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-mock-participants"
         },
         {
@@ -5780,28 +5780,28 @@
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-mock-participants"
         },
         {
@@ -5919,7 +5919,7 @@
           "kind": "rfc_anchor",
           "ref": "data-exposure-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "data-exposure-contract"
         }
       ]
@@ -6008,21 +6008,21 @@
           "kind": "rfc_anchor",
           "ref": "purpose-and-task-bound-agent-grant-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "purpose-and-task-bound-agent-grant-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-object",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-object"
         },
         {
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         },
         {
@@ -6036,21 +6036,21 @@
           "kind": "rfc_anchor",
           "ref": "subdelegation",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "subdelegation"
         },
         {
           "kind": "rfc_anchor",
           "ref": "policy-decision-object",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "policy-decision-object"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
@@ -6064,42 +6064,42 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-issuer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "grant-issuer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         },
         {
@@ -6187,28 +6187,28 @@
           "kind": "rfc_anchor",
           "ref": "conformance",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "conformance"
         },
         {
           "kind": "rfc_anchor",
           "ref": "conformance-claim-and-composition-rules",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "conformance-claim-and-composition-rules"
         },
         {
           "kind": "rfc_anchor",
           "ref": "adoption-oriented-conformance-bundles",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "adoption-oriented-conformance-bundles"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
@@ -6366,7 +6366,7 @@
           "kind": "rfc_anchor",
           "ref": "canonical-integrity-and-provenance",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "canonical-integrity-and-provenance"
         },
         {
@@ -6380,7 +6380,7 @@
           "kind": "rfc_anchor",
           "ref": "conformance",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "conformance"
         },
         {
@@ -6604,14 +6604,14 @@
           "kind": "rfc_anchor",
           "ref": "asp-over-mcp-binding-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "asp-over-mcp-binding-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "canonical-object-hash-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "canonical-object-hash-profile"
         },
         {
@@ -6653,35 +6653,35 @@
           "kind": "rfc_anchor",
           "ref": "idempotency",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "idempotency"
         },
         {
           "kind": "rfc_anchor",
           "ref": "session-authority-and-lifecycle",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "session-authority-and-lifecycle"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-disconnected",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "runtime-disconnected"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-verification",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-verification"
         },
         {
           "kind": "rfc_anchor",
           "ref": "app-receipt",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "app-receipt"
         },
         {
@@ -6702,49 +6702,49 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "surface-publisher-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "surface-publisher-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-issuer-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "grant-issuer-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "action-executor-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "action-executor-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-adapter-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "agent-adapter-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "runtime-mediator-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "runtime-mediator-profile"
         },
         {
@@ -6844,7 +6844,7 @@
           "kind": "rfc_anchor",
           "ref": "asp-over-webmcp-binding-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
-          "document_version": "0.1.0-draft.5",
+          "document_version": "0.1.0-draft.6",
           "anchor_id": "asp-over-webmcp-binding-profile"
         },
         {
@@ -6872,7 +6872,7 @@
           "kind": "rfc_anchor",
           "ref": "consent-preview-contract",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/safe-effects",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "consent-preview-contract"
         }
       ]
@@ -7035,28 +7035,28 @@
           "kind": "rfc_anchor",
           "ref": "application-mvp-mapping",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "application-mvp-mapping"
         },
         {
           "kind": "rfc_anchor",
           "ref": "reference-mock-participants",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "reference-mock-participants"
         },
         {
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "conformance-claim-and-composition-rules",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "conformance-claim-and-composition-rules"
         },
         {
@@ -7230,14 +7230,14 @@
           "kind": "rfc_anchor",
           "ref": "interoperability-test-suite",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "interoperability-test-suite"
         },
         {
           "kind": "rfc_anchor",
           "ref": "application-mvp-mapping",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-          "document_version": "0.1.0-draft.6",
+          "document_version": "0.1.0-draft.7",
           "anchor_id": "application-mvp-mapping"
         }
       ]
@@ -7288,35 +7288,35 @@
           "kind": "rfc_anchor",
           "ref": "pluggable-agent-identity-evidence-profile",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "pluggable-agent-identity-evidence-profile"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-identity-evidence-envelope",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "agent-identity-evidence-envelope"
         },
         {
           "kind": "rfc_anchor",
           "ref": "grant-credential-consent-and-projection-binding",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "grant-credential-consent-and-projection-binding"
         },
         {
           "kind": "rfc_anchor",
           "ref": "migration-and-legacy-passport-wire-shape",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "migration-and-legacy-passport-wire-shape"
         },
         {
           "kind": "rfc_anchor",
           "ref": "agent-identity-evidence-invalid-or-unavailable",
           "document_id": "https://github.com/0al-spec/agent-surface/documents/authorization",
-          "document_version": "0.1.0-draft.4",
+          "document_version": "0.1.0-draft.5",
           "anchor_id": "agent-identity-evidence-invalid-or-unavailable"
         }
       ]

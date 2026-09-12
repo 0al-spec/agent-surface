@@ -166,7 +166,7 @@ class ReviewDataValidationTests(unittest.TestCase):
                     "https://github.com/0al-spec/agent-surface/"
                     "documents/authorization"
                 ),
-                "document_version": "0.1.0-draft.4",
+                "document_version": "0.1.0-draft.5",
                 "anchor_id": (
                     "purpose-and-task-bound-agent-grant-profile"
                 ),
