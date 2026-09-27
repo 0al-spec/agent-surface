@@ -1,9 +1,70 @@
 use serde_json::Value;
+use specification_core::DecisionSpecification;
 
 use crate::value::{has_only, string, uint};
 
 use super::state::Validator;
 use super::support::require_members;
+
+#[derive(Clone, Copy)]
+struct SessionTransitionInput<'a> {
+    generation: u64,
+    prior: &'a str,
+    next: &'a str,
+    replay_state: &'a str,
+    first: bool,
+    gap_pending: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SessionTransitionDecision {
+    StateMismatch,
+    Illegal,
+    Accepted,
+}
+
+struct SessionTransitionPolicy;
+
+impl DecisionSpecification<SessionTransitionInput<'_>> for SessionTransitionPolicy {
+    type Decision = SessionTransitionDecision;
+
+    fn decide(&self, candidate: &SessionTransitionInput<'_>) -> Option<&Self::Decision> {
+        const STATE_MISMATCH: SessionTransitionDecision = SessionTransitionDecision::StateMismatch;
+        const ILLEGAL: SessionTransitionDecision = SessionTransitionDecision::Illegal;
+        const ACCEPTED: SessionTransitionDecision = SessionTransitionDecision::Accepted;
+
+        let decision = if candidate.replay_state != candidate.prior {
+            &STATE_MISMATCH
+        } else {
+            let legal = if candidate.first {
+                (candidate.generation == 1
+                    && candidate.prior == "absent"
+                    && candidate.next == "active")
+                    || (candidate.generation > 1
+                        && candidate.prior == "interrupted"
+                        && candidate.next == "active")
+                    || (candidate.gap_pending
+                        && matches!(
+                            (candidate.prior, candidate.next),
+                            (
+                                "active",
+                                "interrupted" | "cancelled" | "completed" | "failed"
+                            ) | ("interrupted", "cancelled")
+                        ))
+            } else {
+                matches!(
+                    (candidate.prior, candidate.next),
+                    (
+                        "active",
+                        "interrupted" | "cancelled" | "completed" | "failed"
+                    ) | ("interrupted", "cancelled")
+                )
+            };
+            if legal { &ACCEPTED } else { &ILLEGAL }
+        };
+        Some(decision)
+    }
+}
 
 pub(super) fn transition(body: &Value, ordinal: usize, validator: &mut Validator) {
     let path = format!("/records/{ordinal}/body");
@@ -63,43 +124,36 @@ pub(super) fn transition(body: &Value, ordinal: usize, validator: &mut Validator
     if validator.session_gap_pending && !terminal_observed {
         validator.session_state = prior.to_owned();
     }
-    if validator.session_state != prior {
-        validator.error(
-            "ASP-REPLAY-SESSION-001",
-            ordinal,
-            &path,
-            "session transition does not continue the replayed state",
-        );
-        return;
-    }
-    let legal = if first {
-        (generation == 1 && prior == "absent" && next == "active")
-            || (generation > 1 && prior == "interrupted" && next == "active")
-            || (validator.session_gap_pending
-                && matches!(
-                    (prior, next),
-                    (
-                        "active",
-                        "interrupted" | "cancelled" | "completed" | "failed"
-                    ) | ("interrupted", "cancelled")
-                ))
-    } else {
-        matches!(
-            (prior, next),
-            (
-                "active",
-                "interrupted" | "cancelled" | "completed" | "failed"
-            ) | ("interrupted", "cancelled")
-        )
-    };
-    if !legal {
-        validator.error(
-            "ASP-REPLAY-SESSION-001",
-            ordinal,
-            &path,
-            "session transition is not legal for the recorded generation",
-        );
-        return;
+    let decision = SessionTransitionPolicy
+        .decide(&SessionTransitionInput {
+            generation,
+            prior,
+            next,
+            replay_state: &validator.session_state,
+            first,
+            gap_pending: validator.session_gap_pending,
+        })
+        .expect("session transition policy always returns a decision");
+    match decision {
+        SessionTransitionDecision::StateMismatch => {
+            validator.error(
+                "ASP-REPLAY-SESSION-001",
+                ordinal,
+                &path,
+                "session transition does not continue the replayed state",
+            );
+            return;
+        }
+        SessionTransitionDecision::Illegal => {
+            validator.error(
+                "ASP-REPLAY-SESSION-001",
+                ordinal,
+                &path,
+                "session transition is not legal for the recorded generation",
+            );
+            return;
+        }
+        SessionTransitionDecision::Accepted => {}
     }
     validator.session_state = next.to_owned();
     validator.session_transitions += 1;

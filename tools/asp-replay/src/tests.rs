@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashSet};
 
+use crate::validation::session::transition;
 use serde_json::Value;
 
 use crate::hash::{EVENT_DOMAIN, RECORD_DOMAIN, object_hash};
@@ -140,6 +141,153 @@ fn event_scope() -> (Value, Value, Value) {
         }),
         serde_json::json!({"scopes":["task.read"]}),
     )
+}
+
+fn session_transition_body(generation: u64, prior: &str, next: &str) -> Value {
+    serde_json::json!({
+        "session_generation": generation,
+        "prior_state": prior,
+        "next_state": next,
+        "reason": "recorded"
+    })
+}
+
+fn session_validator(generation: u64, state: &str) -> Validator {
+    let mut validator = Validator::new(false);
+    validator.session_generation = generation;
+    validator.session_state = state.to_owned();
+    validator
+}
+
+#[test]
+fn session_transition_accepts_initial_and_legal_state_changes() {
+    let mut initial = session_validator(1, "absent");
+    transition(
+        &session_transition_body(1, "absent", "active"),
+        0,
+        &mut initial,
+    );
+    assert!(!initial.has_errors);
+    assert_eq!(initial.session_state, "active");
+    assert_eq!(initial.session_transitions, 1);
+
+    transition(
+        &session_transition_body(1, "active", "completed"),
+        1,
+        &mut initial,
+    );
+    assert!(!initial.has_errors);
+    assert_eq!(initial.session_state, "completed");
+    assert_eq!(initial.session_transitions, 2);
+}
+
+#[test]
+fn session_transition_requires_matching_generation() {
+    let mut validator = session_validator(2, "interrupted");
+    transition(
+        &session_transition_body(1, "interrupted", "active"),
+        0,
+        &mut validator,
+    );
+    assert!(validator.has_errors);
+    assert_eq!(validator.session_state, "interrupted");
+    assert_eq!(validator.session_transitions, 0);
+    assert!(validator.diagnostics.iter().any(|diagnostic| {
+        diagnostic.check_id == "ASP-REPLAY-SESSION-001"
+            && diagnostic.message == "session transition generation conflicts with the replay scope"
+    }));
+}
+
+#[test]
+fn session_transition_allows_later_generation_restart() {
+    let mut validator = session_validator(2, "interrupted");
+    transition(
+        &session_transition_body(2, "interrupted", "active"),
+        0,
+        &mut validator,
+    );
+    assert!(!validator.has_errors);
+    assert_eq!(validator.session_state, "active");
+    assert_eq!(validator.session_transitions, 1);
+}
+
+#[test]
+fn session_transition_recovers_state_after_capture_gap() {
+    let mut validator = session_validator(1, "interrupted");
+    validator.session_gap_pending = true;
+    transition(
+        &session_transition_body(1, "active", "failed"),
+        3,
+        &mut validator,
+    );
+    assert!(!validator.has_errors);
+    assert_eq!(validator.session_state, "failed");
+    assert_eq!(validator.session_transitions, 1);
+    assert!(!validator.session_gap_pending);
+}
+
+#[test]
+fn session_transition_preserves_gap_reset_before_a_later_rejection() {
+    let mut validator = session_validator(1, "interrupted");
+    validator.session_gap_pending = true;
+    transition(
+        &session_transition_body(1, "active", "absent"),
+        5,
+        &mut validator,
+    );
+    assert!(validator.has_errors);
+    assert_eq!(validator.session_state, "active");
+    assert_eq!(validator.session_transitions, 0);
+    assert!(validator.session_gap_pending);
+    assert!(validator.diagnostics.iter().any(|diagnostic| {
+        diagnostic.message == "session transition is not legal for the recorded generation"
+    }));
+}
+
+#[test]
+fn session_transition_unknown_member_reports_error_but_keeps_accepted_mutation() {
+    let mut validator = session_validator(1, "absent");
+    let mut body = session_transition_body(1, "absent", "active");
+    body["extension"] = Value::Bool(true);
+    transition(&body, 6, &mut validator);
+    assert!(validator.has_errors);
+    assert_eq!(validator.session_state, "active");
+    assert_eq!(validator.session_transitions, 1);
+    assert!(validator.diagnostics.iter().any(|diagnostic| {
+        diagnostic.message == "session transition contains an unknown member"
+    }));
+}
+
+#[test]
+fn generation_mismatch_returns_before_capture_gap_reset() {
+    let mut validator = session_validator(2, "interrupted");
+    validator.session_gap_pending = true;
+    transition(
+        &session_transition_body(1, "active", "completed"),
+        7,
+        &mut validator,
+    );
+    assert!(validator.has_errors);
+    assert_eq!(validator.session_state, "interrupted");
+    assert_eq!(validator.session_transitions, 0);
+    assert!(validator.session_gap_pending);
+}
+
+#[test]
+fn continuity_rejection_without_gap_preserves_validator_state() {
+    let mut validator = session_validator(1, "active");
+    transition(
+        &session_transition_body(1, "interrupted", "cancelled"),
+        8,
+        &mut validator,
+    );
+    assert!(validator.has_errors);
+    assert_eq!(validator.session_state, "active");
+    assert_eq!(validator.session_transitions, 0);
+    assert!(!validator.session_gap_pending);
+    assert!(validator.diagnostics.iter().any(|diagnostic| {
+        diagnostic.message == "session transition does not continue the replayed state"
+    }));
 }
 
 fn terminal_ack(delivery_id: &str, cursor: &str, ordinal: usize, validator: &mut Validator) {
