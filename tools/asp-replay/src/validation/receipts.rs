@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use serde_json::Value;
+use specification_core::Specification;
 
 use crate::ReplayError;
 use crate::hash::{
@@ -16,6 +17,35 @@ use super::state::{
     ApprovalRequirement, PendingReference, PendingReferenceKind, ReceiptProjection, Validator,
 };
 use super::support::require_members;
+
+#[derive(Clone, Copy)]
+struct ApprovalDecisionInput<'a> {
+    role: &'a str,
+    result: &'a str,
+    decided_by: &'a str,
+    outcome: &'a str,
+    reason: &'a str,
+}
+
+#[derive(Clone, Copy)]
+struct ApprovalDecisionPolicy;
+
+impl Specification<ApprovalDecisionInput<'_>> for ApprovalDecisionPolicy {
+    fn is_satisfied_by(&self, candidate: &ApprovalDecisionInput<'_>) -> bool {
+        let expected = match (candidate.role, candidate.result, candidate.decided_by) {
+            ("runtime", "approved", "user") => Some(("allow", "approval_satisfied")),
+            ("runtime", "denied", "user") => Some(("deny", "approval_denied")),
+            ("runtime", "denied", "policy") => Some(("deny", "local_policy_denied")),
+            ("application", "approved", "user" | "policy") => Some(("allow", "approval_satisfied")),
+            ("application", "denied", "user") => Some(("deny", "approval_denied")),
+            ("application", "denied", "policy") => Some(("deny", "app_policy_denied")),
+            _ => None,
+        };
+        expected.is_some_and(|(outcome, reason)| {
+            (outcome, reason) == (candidate.outcome, candidate.reason)
+        })
+    }
+}
 
 pub(super) fn action_available(surface: &Value, grant: &Value, action_id: &str) -> bool {
     let declared = member(surface, "actions")
@@ -367,16 +397,14 @@ pub(super) fn validate_approval_decision(
     let reason = policy
         .and_then(|value| string(value, "reason_code"))
         .unwrap_or_default();
-    let expected = match (role, result, decided_by) {
-        ("runtime", "approved", "user") => Some(("allow", "approval_satisfied")),
-        ("runtime", "denied", "user") => Some(("deny", "approval_denied")),
-        ("runtime", "denied", "policy") => Some(("deny", "local_policy_denied")),
-        ("application", "approved", "user" | "policy") => Some(("allow", "approval_satisfied")),
-        ("application", "denied", "user") => Some(("deny", "approval_denied")),
-        ("application", "denied", "policy") => Some(("deny", "app_policy_denied")),
-        _ => None,
+    let decision_input = ApprovalDecisionInput {
+        role,
+        result,
+        decided_by,
+        outcome,
+        reason,
     };
-    if expected != Some((outcome, reason)) {
+    if !ApprovalDecisionPolicy.is_satisfied_by(&decision_input) {
         validator.error(
             "ASP-REPLAY-RECEIPT-LINK-001",
             ordinal,
