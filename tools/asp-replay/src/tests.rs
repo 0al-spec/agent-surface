@@ -18,7 +18,9 @@ use super::receipts::{
 };
 use super::records::reconcile_pending_references;
 use super::secrets::scan_secrets;
-use super::state::{PendingReference, PendingReferenceKind, ReceiptProjection, Validator};
+use super::state::{
+    Delivery, PendingReference, PendingReferenceKind, ReceiptProjection, StreamProgress, Validator,
+};
 
 #[test]
 fn jcs_uses_utf16_member_order_and_finite_binary64() {
@@ -155,6 +157,125 @@ fn terminal_ack(delivery_id: &str, cursor: &str, ordinal: usize, validator: &mut
         ordinal,
         validator,
     );
+}
+
+fn acknowledgement_validator() -> Validator {
+    let mut validator = Validator::new(false);
+    validator.deliveries.insert(
+        "delivery_1".to_owned(),
+        Delivery {
+            source: "https://code.example.com".to_owned(),
+            event_id: "event_1".to_owned(),
+            event_hash: "sha-256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_owned(),
+            subscription_id: "sub_1".to_owned(),
+            stream: "stream_1".to_owned(),
+            sequence: 1,
+            cursor: "cursor_1".to_owned(),
+            last_attempt: 1,
+            terminal_ack: None,
+        },
+    );
+    validator.streams.insert(
+        ("sub_1".to_owned(), "stream_1".to_owned()),
+        StreamProgress {
+            sequence: 1,
+            delivery_id: "delivery_1".to_owned(),
+            terminal: false,
+            capture_gap_epoch: 0,
+            protocol_gap_epoch: 0,
+        },
+    );
+    validator
+}
+
+fn acknowledgement(outcome: &str, reason: Option<&str>, cursor: &str) -> Value {
+    let mut payload = serde_json::json!({
+        "subscription_id":"sub_1",
+        "delivery_id":"delivery_1",
+        "cursor":cursor,
+        "outcome":outcome
+    });
+    if let Some(reason) = reason {
+        payload["reason"] = Value::String(reason.to_owned());
+    }
+    serde_json::json!({"type":"event.ack","payload":payload})
+}
+
+#[test]
+fn acknowledgement_transition_preserves_retry_terminal_and_replay_state() {
+    let mut validator = acknowledgement_validator();
+
+    check_ack(
+        &acknowledgement("retry", None, "cursor_1"),
+        0,
+        &mut validator,
+    );
+    assert!(!validator.has_errors);
+    assert!(validator.deliveries["delivery_1"].terminal_ack.is_none());
+    assert!(!validator.streams[&(String::from("sub_1"), String::from("stream_1"))].terminal);
+
+    check_ack(
+        &acknowledgement("processed", None, "cursor_1"),
+        1,
+        &mut validator,
+    );
+    assert_eq!(
+        validator.deliveries["delivery_1"].terminal_ack,
+        Some(("processed".to_owned(), None))
+    );
+    assert!(validator.streams[&(String::from("sub_1"), String::from("stream_1"))].terminal);
+
+    check_ack(
+        &acknowledgement("processed", None, "cursor_1"),
+        2,
+        &mut validator,
+    );
+    assert_eq!(validator.diagnostics.len(), 0);
+
+    check_ack(
+        &acknowledgement("retry", None, "cursor_1"),
+        3,
+        &mut validator,
+    );
+    check_ack(
+        &acknowledgement("discarded", Some("rejected"), "cursor_1"),
+        4,
+        &mut validator,
+    );
+    assert_eq!(
+        validator
+            .diagnostics
+            .iter()
+            .map(|item| item.message.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "retry acknowledgement cannot follow a terminal acknowledgement",
+            "terminal acknowledgement was replayed with a conflicting outcome",
+        ]
+    );
+    assert_eq!(
+        validator.deliveries["delivery_1"].terminal_ack,
+        Some(("processed".to_owned(), None))
+    );
+}
+
+#[test]
+fn invalid_or_mismatched_acknowledgement_still_takes_terminal_transition() {
+    let mut validator = acknowledgement_validator();
+
+    check_ack(
+        &acknowledgement("future-outcome", None, "wrong-cursor"),
+        0,
+        &mut validator,
+    );
+
+    assert!(validator.has_errors);
+    assert_eq!(
+        validator.deliveries["delivery_1"].terminal_ack,
+        Some(("future-outcome".to_owned(), None))
+    );
+    assert!(validator.streams[&(String::from("sub_1"), String::from("stream_1"))].terminal);
+    assert_eq!(validator.diagnostics.len(), 2);
 }
 
 #[test]

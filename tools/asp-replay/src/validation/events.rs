@@ -1,5 +1,5 @@
 use serde_json::Value;
-use specification_core::Specification;
+use specification_core::{DecisionSpecification, Specification};
 
 use crate::ReplayError;
 use crate::hash::{EVENT_DOMAIN, object_hash};
@@ -9,6 +9,56 @@ use crate::value::{member, string, timestamp_shape, uint};
 use super::state::{Delivery, PendingReference, PendingReferenceKind, StreamProgress, Validator};
 use super::support::require_members;
 use crate::value::has_only;
+
+struct AcknowledgementTransitionInput<'a> {
+    outcome: &'a str,
+    reason: Option<&'a str>,
+    previous_terminal: Option<&'a (String, Option<String>)>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AcknowledgementTransition {
+    Retry,
+    RetryAfterTerminal,
+    FirstTerminal,
+    SameTerminalReplay,
+    ConflictingTerminalReplay,
+}
+
+struct AcknowledgementTransitionPolicy;
+
+const ACK_RETRY: AcknowledgementTransition = AcknowledgementTransition::Retry;
+const ACK_RETRY_AFTER_TERMINAL: AcknowledgementTransition =
+    AcknowledgementTransition::RetryAfterTerminal;
+const ACK_FIRST_TERMINAL: AcknowledgementTransition = AcknowledgementTransition::FirstTerminal;
+const ACK_SAME_TERMINAL_REPLAY: AcknowledgementTransition =
+    AcknowledgementTransition::SameTerminalReplay;
+const ACK_CONFLICTING_TERMINAL_REPLAY: AcknowledgementTransition =
+    AcknowledgementTransition::ConflictingTerminalReplay;
+
+impl DecisionSpecification<AcknowledgementTransitionInput<'_>> for AcknowledgementTransitionPolicy {
+    type Decision = AcknowledgementTransition;
+
+    fn decide(&self, candidate: &AcknowledgementTransitionInput<'_>) -> Option<&Self::Decision> {
+        let decision = if candidate.outcome == "retry" {
+            if candidate.previous_terminal.is_some() {
+                &ACK_RETRY_AFTER_TERMINAL
+            } else {
+                &ACK_RETRY
+            }
+        } else {
+            let current = (candidate.outcome, candidate.reason);
+            match candidate.previous_terminal {
+                None => &ACK_FIRST_TERMINAL,
+                Some(previous) if previous.0 == current.0 && previous.1.as_deref() == current.1 => {
+                    &ACK_SAME_TERMINAL_REPLAY
+                }
+                Some(_) => &ACK_CONFLICTING_TERMINAL_REPLAY,
+            }
+        };
+        Some(decision)
+    }
+}
 
 pub(super) fn event_declaration<'a>(surface: &'a Value, event_type: &str) -> Option<&'a Value> {
     member(surface, "events")?
@@ -527,28 +577,29 @@ pub(super) fn check_ack(body: &Value, ordinal: usize, validator: &mut Validator)
             "acknowledgement subscription or cursor conflicts with its delivery",
         );
     }
-    if outcome == "retry" && delivery_snapshot.terminal_ack.is_some() {
-        validator.error(
+    let reason = string(payload, "reason");
+    let transition = AcknowledgementTransitionPolicy
+        .decide(&AcknowledgementTransitionInput {
+            outcome,
+            reason,
+            previous_terminal: delivery_snapshot.terminal_ack.as_ref(),
+        })
+        .expect("acknowledgement transition policy always returns a decision");
+    match transition {
+        AcknowledgementTransition::RetryAfterTerminal => validator.error(
             "ASP-REPLAY-ACK-001",
             ordinal,
             &path,
             "retry acknowledgement cannot follow a terminal acknowledgement",
-        );
-    } else if outcome != "retry" {
-        let current = (
-            outcome.to_owned(),
-            string(payload, "reason").map(str::to_owned),
-        );
-        if let Some(previous) = &delivery_snapshot.terminal_ack {
-            if previous != &current {
-                validator.error(
-                    "ASP-REPLAY-ACK-001",
-                    ordinal,
-                    &path,
-                    "terminal acknowledgement was replayed with a conflicting outcome",
-                );
-            }
-        } else {
+        ),
+        AcknowledgementTransition::ConflictingTerminalReplay => validator.error(
+            "ASP-REPLAY-ACK-001",
+            ordinal,
+            &path,
+            "terminal acknowledgement was replayed with a conflicting outcome",
+        ),
+        AcknowledgementTransition::FirstTerminal => {
+            let current = (outcome.to_owned(), reason.map(str::to_owned));
             if let Some(delivery) = validator.deliveries.get_mut(delivery_id) {
                 delivery.terminal_ack = Some(current);
             }
@@ -562,6 +613,7 @@ pub(super) fn check_ack(body: &Value, ordinal: usize, validator: &mut Validator)
                 progress.terminal = true;
             }
         }
+        AcknowledgementTransition::Retry | AcknowledgementTransition::SameTerminalReplay => {}
     }
 }
 
@@ -608,5 +660,70 @@ pub(super) fn check_gap(body: &Value, ordinal: usize, validator: &mut Validator)
             .protocol_gap_epochs
             .entry(subscription_id.to_owned())
             .or_default() += 1;
+    }
+}
+
+#[cfg(test)]
+mod acknowledgement_transition_tests {
+    use super::*;
+
+    #[test]
+    fn transition_policy_covers_retry_and_terminal_replay_matrix() {
+        let previous = ("processed".to_owned(), None);
+        let cases = [
+            (
+                "retry without terminal acknowledgement",
+                AcknowledgementTransitionInput {
+                    outcome: "retry",
+                    reason: None,
+                    previous_terminal: None,
+                },
+                AcknowledgementTransition::Retry,
+            ),
+            (
+                "retry after terminal acknowledgement",
+                AcknowledgementTransitionInput {
+                    outcome: "retry",
+                    reason: None,
+                    previous_terminal: Some(&previous),
+                },
+                AcknowledgementTransition::RetryAfterTerminal,
+            ),
+            (
+                "first terminal acknowledgement, including an unknown outcome",
+                AcknowledgementTransitionInput {
+                    outcome: "future-outcome",
+                    reason: Some("extension"),
+                    previous_terminal: None,
+                },
+                AcknowledgementTransition::FirstTerminal,
+            ),
+            (
+                "identical terminal replay",
+                AcknowledgementTransitionInput {
+                    outcome: "processed",
+                    reason: None,
+                    previous_terminal: Some(&previous),
+                },
+                AcknowledgementTransition::SameTerminalReplay,
+            ),
+            (
+                "conflicting terminal replay",
+                AcknowledgementTransitionInput {
+                    outcome: "discarded",
+                    reason: Some("rejected"),
+                    previous_terminal: Some(&previous),
+                },
+                AcknowledgementTransition::ConflictingTerminalReplay,
+            ),
+        ];
+
+        for (label, input, expected) in cases {
+            assert_eq!(
+                AcknowledgementTransitionPolicy.decide(&input),
+                Some(&expected),
+                "{label}"
+            );
+        }
     }
 }
