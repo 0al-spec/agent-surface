@@ -137,38 +137,53 @@ same validators again.
 
 **Goal:** qualify an offline composition using one retained manifest: prepare a
 candidate semantic request and independently validate a selected Grant against
-that same manifest, including the derived exposure projection. Compare only
-overlapping contract fields that the selected RFC binding requires to agree.
-This does **not** establish that the Grant was issued from that request, that
-the request was approved, or that any authority exists.
+that same manifest, including the derived exposure projection. Check exact
+bindings where required and the RFC-defined attenuation order where narrowing
+is allowed. This does **not** establish that the Grant was issued from that
+request, that the request was approved, or that any authority exists.
 
 **Bounded work:**
 
 1. Inventory the existing implementation and tests against the pinned
    Host-Provisioned Bearer clauses and BC-01…04/08. Reuse existing component
    vectors; identify only missing cross-value checks.
-2. Add one positive composed fixture proving that the prepared manifest, the
-   independently prepared request and Grant, their applicable tuple fields,
-   credential method, identity-evidence copies and ordered exposure projection
-   are consistent with the same selected app/surface/action. Do not treat the
-   request hash as Grant lineage, consent or issuance evidence.
-3. Add only missing negative composition vectors for cross-stage substitution
-   or drift (for example, a Grant bound to another surface, a changed action,
+2. Add composed fixtures proving that the independently prepared request and
+   Grant agree with the same selected app/surface/action and identity binding,
+   and that the Grant exposure projection is exactly derived from that
+   manifest. Do not treat the request hash as Grant lineage, consent or issuance
+   evidence.
+3. Exercise the selected contract's attenuation order, not just exact equality:
+   an equal or earlier Grant expiration may pass, while an expiration later
+   than the request rejects; `credential_release: deny` cannot be relaxed.
+   This selected one-action shape has no non-empty strict action subset: if
+   consent omits its only action, issuance produces no Grant, not an empty
+   selected Grant. Any replacement or addition of an action/location/scope
+   rejects. Resource filters are unsupported in this slice and must fail
+   closed; if a later slice supports them, it must add positive non-empty subset
+   vectors and reject omission, widening and replacement as required by the
+   [Grant Object rules](../drafts/modules/authorization.md#grant-object).
+4. Add only missing negative composition vectors for cross-stage substitution
+   or drift (for example, a Grant bound to another surface, an added or
+   substituted action, a dropped requested resource constraint where supported,
    or an omitted/reordered/widened exposure source). Where a digest can be
    recomputed, include a case that still fails semantic validation, so the
-   vector does not merely test stale-hash detection.
-4. Publish the reusable vectors with the SDK test fixtures and record their
+   vector does not merely test stale-hash detection. Apply the
+   [private issuance semantics](../drafts/modules/authorization.md#host-provisioned-bearer-private-issuance-and-consent),
+   not raw JSON equality.
+5. Publish the reusable vectors with the SDK test fixtures and record their
    applicability in the ASP adoption evidence. Do not add them to an ASP
    conformance registry or present them as conformance evidence.
-5. If the inventory finds no material composition gap, stop with a short
+6. If the inventory finds no material composition gap, stop with a short
    evidence report and no redundant code or fixtures.
 
 **Acceptance:** one passing composed offline path; focused negative vectors for
-any uncovered cross-value invariant; existing component tests remain the
-regression baseline; SDK source lock remains unchanged unless a specific
+any uncovered cross-value invariant; explicit equal/attenuated/over-authorized
+outcomes for the currently supported fields; existing component tests remain
+the regression baseline; SDK source lock remains unchanged unless a specific
 normative dependency is shown to be missing and separately reviewed. The report
 must distinguish reused tests from new tests and state exactly which contract
-claims remain unproven.
+claims remain unproven. Exact tuple agreement alone is not sufficient if a
+request-to-Grant attenuation rule applies.
 
 **Proposed effort cap:** at most one developer-day for inventory, missing
 composition tests and documentation. This is a planning estimate, not approval
