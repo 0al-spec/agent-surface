@@ -97,12 +97,16 @@ coverage, manifest/Grant validation, consent and adapter implementation remain
 ADP-05/06/07/08 work. No task status or RFC-card maturity is raised by this
 normative slice; existing six-role suite results do not certify this binding.
 
-1. Explicitly review the SDK spec-lock/source coverage update against the selected
-   RFC revision, then implement manifest/Grant/exposure values and negative
-   vectors. Existing content hashing does not become complete manifest support.
-2. Add issuer-derived `Grant.data_exposure` and independent runtime validation in
-   SDK behavior. App policy and identity verification stay explicit trusted
-   dependencies; never infer authority from a schema-valid value.
+1. The exact SDK source checkpoint (`da550fde6f8be4ff0c1ded15524afb66c2912287`)
+   and offline proposal-manifest, semantic-request, selected-Grant and exposure
+   value validators now exist with component-level positive/negative tests. The
+   next proposed offline slice is to qualify their composition, not reimplement
+   those validators. Existing content hashing alone still does not imply
+   complete manifest support.
+2. After that offline qualification, add issuer-derived `Grant.data_exposure`
+   and independent runtime validation in SDK behavior as part of the gated
+   issuance/admission work. App policy and identity verification stay explicit
+   trusted dependencies; never infer authority from a schema-valid value.
 3. Integrate Calcu's action declaration and policy with those implementations;
    add exact principal/consent-preview binding and stale/changed-input rejection
    in the coordinated ADP-05/06 slice. Preserve the HTTPS admission path.
@@ -116,6 +120,67 @@ normative slice; existing six-role suite results do not certify this binding.
 Pure value/fixture development is not live migration and need not wait for a
 complete Calcu implementation; it still needs an explicitly scoped implementation
 task and compatible source lock. No ADP task is marked done by this plan.
+
+### Proposed next slice: offline ADP-05 composition qualification
+
+Status: proposed plan only; no implementation authorization or ADP status change.
+
+The individual SDK value slices already exist under the reviewed ASP source lock:
+[offline proposal manifest](https://github.com/0al-spec/agent-surface-js/blob/6ca3cce11422b837232b39828e6f46c5568f1f53/docs/offline-proposal-manifest.md),
+[semantic Grant request](https://github.com/0al-spec/agent-surface-js/blob/6ca3cce11422b837232b39828e6f46c5568f1f53/docs/offline-semantic-grant-request.md),
+[selected Grant](https://github.com/0al-spec/agent-surface-js/blob/6ca3cce11422b837232b39828e6f46c5568f1f53/docs/offline-selected-grant.md),
+and [exposure values](https://github.com/0al-spec/agent-surface-js/blob/6ca3cce11422b837232b39828e6f46c5568f1f53/docs/data-exposure-values.md).
+Their component tests already cover substantial positive and negative cases.
+The useful remaining offline question is whether these independently prepared
+values compose into one consistent selected contract—not whether to build the
+same validators again.
+
+**Goal:** qualify an offline composition using one retained manifest: prepare a
+candidate semantic request and independently validate a selected Grant against
+that same manifest, including the derived exposure projection. Compare only
+overlapping contract fields that the selected RFC binding requires to agree.
+This does **not** establish that the Grant was issued from that request, that
+the request was approved, or that any authority exists.
+
+**Bounded work:**
+
+1. Inventory the existing implementation and tests against the pinned
+   Host-Provisioned Bearer clauses and BC-01…04/08. Reuse existing component
+   vectors; identify only missing cross-value checks.
+2. Add one positive composed fixture proving that the prepared manifest, the
+   independently prepared request and Grant, their applicable tuple fields,
+   credential method, identity-evidence copies and ordered exposure projection
+   are consistent with the same selected app/surface/action. Do not treat the
+   request hash as Grant lineage, consent or issuance evidence.
+3. Add only missing negative composition vectors for cross-stage substitution
+   or drift (for example, a Grant bound to another surface, a changed action,
+   or an omitted/reordered/widened exposure source). Where a digest can be
+   recomputed, include a case that still fails semantic validation, so the
+   vector does not merely test stale-hash detection.
+4. Publish the reusable vectors with the SDK test fixtures and record their
+   applicability in the ASP adoption evidence. Do not add them to an ASP
+   conformance registry or present them as conformance evidence.
+5. If the inventory finds no material composition gap, stop with a short
+   evidence report and no redundant code or fixtures.
+
+**Acceptance:** one passing composed offline path; focused negative vectors for
+any uncovered cross-value invariant; existing component tests remain the
+regression baseline; SDK source lock remains unchanged unless a specific
+normative dependency is shown to be missing and separately reviewed. The report
+must distinguish reused tests from new tests and state exactly which contract
+claims remain unproven.
+
+**Proposed effort cap:** at most one developer-day for inventory, missing
+composition tests and documentation. This is a planning estimate, not approval
+of the separate ADP-02 live-investment gate. Stop and seek owner direction if the
+work requires a new public SDK API, a normative RFC change, broader source-lock
+updates, or exceeds the cap.
+
+**Explicitly out of scope:** Calcu or Memos live integration; any more Memos
+robustness testing; issuer/consent implementation; authenticated identity or
+freshness decisions; network discovery; credential creation/delivery; current
+authority, session state or Action admission; conformance/maturity claims; and
+changes to ADP task status. Live Calcu work remains gated by ADP-02 and ADP-03.
 
 ### Endorsed application composition reference (2026-09-11)
 
@@ -248,8 +313,9 @@ until the bounded implementation slices produce evidence.
   eventual SDK/Calcu implementation. The file journal's fail-closed `unknown`
   behavior is a local crash fence; it is not atomic with the Memos database,
   distributed exactly-once execution, or a portable SDK storage design.
-- Recommended next candidate: an offline ADP-05 contract/value slice for
-  selected Manifest/Grant/exposure validation and shared positive/negative
-  vectors. Scope it before implementation; live Calcu integration remains
-  gated by ADP-02 and ADP-03. This recommendation creates no new task ID and
-  changes no task status, RFC card, source lock, or conformance claim.
+- Recommended next candidate: the bounded offline ADP-05 composition
+  qualification plan above. Component-level Manifest/Grant/exposure values and
+  tests already exist, so only uncovered cross-value behavior should be added.
+  Live Calcu integration remains gated by ADP-02 and ADP-03. This plan creates
+  no new task ID and changes no task status, RFC card, source lock, or
+  conformance claim.
