@@ -123,7 +123,8 @@ task and compatible source lock. No ADP task is marked done by this plan.
 
 ### Proposed next slice: offline ADP-05 composition qualification
 
-Status: proposed plan only; no implementation authorization or ADP status change.
+Status: audit complete; qualification incomplete. Awaiting owner direction on
+the required public SDK composition behavior; no ADP status change.
 
 The individual SDK value slices already exist under the reviewed ASP source lock:
 [offline proposal manifest](https://github.com/0al-spec/agent-surface-js/blob/6ca3cce11422b837232b39828e6f46c5568f1f53/docs/offline-proposal-manifest.md),
@@ -196,6 +197,42 @@ robustness testing; issuer/consent implementation; authenticated identity or
 freshness decisions; network discovery; credential creation/delivery; current
 authority, session state or Action admission; conformance/maturity claims; and
 changes to ADP task status. Live Calcu work remains gated by ADP-02 and ADP-03.
+
+#### Qualification audit result (2026-09-29)
+
+The bounded audit was run against `agent-surface-js` commit
+`6ca3cce11422b837232b39828e6f46c5568f1f53`. The SDK source-lock checker
+verified all five pinned modules at ASP revision
+`da550fde6f8be4ff0c1ded15524afb66c2912287`. The focused offline suite passed:
+4 test files, 227 tests. This included component tests for manifest, semantic
+request, selected Grant and exposure values; it did not exercise a request-to-
+Grant composition operation. The full SDK check/build/pack suite was not run,
+because no SDK code changed in this audit.
+
+The [request validator](https://github.com/0al-spec/agent-surface-js/blob/6ca3cce11422b837232b39828e6f46c5568f1f53/src/offline-semantic-grant-request.ts#L222-L255)
+and [selected-Grant validator](https://github.com/0al-spec/agent-surface-js/blob/6ca3cce11422b837232b39828e6f46c5568f1f53/src/offline-selected-grant.ts#L216-L279)
+are independent. Each checks its own selected manifest bindings; each also
+requires a single exact action/location/scope. Each checks that `expires_at`
+has valid RFC 3339 syntax, but neither compares request expiry with Grant
+expiry or checks whether it is current. Both use closed constraint shapes, so
+resource filters are unsupported and rejected.
+
+Therefore the audit found no passing component-level vector that demonstrates
+request-to-Grant attenuation. The current one-action subset cannot represent a
+successful non-empty strict action subset; dropping that action means no Grant
+should be issued. A valid shorter expiry, a later-than-request expiry, and
+request/Grant resource-filter narrowing are not currently composed behaviors.
+This is an **unimplemented offline qualification**, not evidence of a runtime
+authorization bypass or a conformance failure in a deployed issuer.
+
+Closing this offline qualification requires an explicit SDK behavior that
+compares a retained request and selected Grant under the selected profile's
+attenuation rules. Adding that public API is outside the audit's scope and
+awaits owner direction. Until then, component test success must not be
+described as request-to-Grant composition, issuance, consent, or authority
+evidence. This audit changes no ADP status, RFC card, source lock, or
+conformance claim. It performed no live Calcu/Memos test and no additional
+Memos robustness testing.
 
 ### Endorsed application composition reference (2026-09-11)
 
@@ -329,8 +366,9 @@ until the bounded implementation slices produce evidence.
   behavior is a local crash fence; it is not atomic with the Memos database,
   distributed exactly-once execution, or a portable SDK storage design.
 - Recommended next candidate: the bounded offline ADP-05 composition
-  qualification plan above. Component-level Manifest/Grant/exposure values and
-  tests already exist, so only uncovered cross-value behavior should be added.
-  Live Calcu integration remains gated by ADP-02 and ADP-03. This plan creates
-  no new task ID and changes no task status, RFC card, source lock, or
-  conformance claim.
+  qualification plan above, after the owner decides whether to add a narrow
+  request-to-Grant attenuation behavior to the SDK. Component-level
+  Manifest/Grant/exposure values and tests already exist, so only uncovered
+  cross-value behavior should be added. Live Calcu integration remains gated by
+  ADP-02 and ADP-03. This plan creates no new task ID and changes no task status,
+  RFC card, source lock, or conformance claim.
