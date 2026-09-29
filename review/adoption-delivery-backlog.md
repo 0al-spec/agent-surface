@@ -231,3 +231,25 @@ until the bounded implementation slices produce evidence.
 - ADP-07/08 follow-up inventory: executor Grant/identity Map minimization and
   UI unmount cancellation need scoped design/tests; neither is silently fixed
   or covered by the current fake-process retention experiment.
+
+- 2026-09-29: the bounded Memos v0.31.0 Go adoption probe exercised one
+  opt-in `memo.create_private` action through the existing application API. Its
+  local test-only crash point killed Memos after the memo write and before
+  journal completion: restart retained one memo, rejected the old credential,
+  blocked a fresh Grant from repeating the key, and reported `unknown`. A
+  concurrent same-key probe also admitted only one write. One live deletion
+  request produced no offered tool call and left its seeded note intact; this
+  is evidence about that run's exposed tool surface, not a general guarantee
+  against other tools or credentials. The experimental source is unpublished
+  and is not independently reproducible or ASP-conformant. See the merged
+  [SDK Memos Go boundary note](https://github.com/0al-spec/agent-surface-js/blob/6ca3cce11422b837232b39828e6f46c5568f1f53/docs/proposals/memos-go-adoption-lessons.md).
+- Owner decision: close this bounded Memos probe without further robustness
+  testing. This does not remove the separate ADP-08 evidence required for the
+  eventual SDK/Calcu implementation. The file journal's fail-closed `unknown`
+  behavior is a local crash fence; it is not atomic with the Memos database,
+  distributed exactly-once execution, or a portable SDK storage design.
+- Recommended next candidate: an offline ADP-05 contract/value slice for
+  selected Manifest/Grant/exposure validation and shared positive/negative
+  vectors. Scope it before implementation; live Calcu integration remains
+  gated by ADP-02 and ADP-03. This recommendation creates no new task ID and
+  changes no task status, RFC card, source lock, or conformance claim.
