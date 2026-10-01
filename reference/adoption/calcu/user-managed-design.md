@@ -31,12 +31,15 @@ The publisher selects this exact source fragment:
 }
 ```
 
-The existing candidate class maximum is retained for design review:
+The owner selected refinement of this application-local class maximum on
+2026-09-30; field coverage and implementation feasibility still require review.
+The [Calcu/Memos comparison](../application-exposure-comparison.md) records the
+current code, selected design and generic ownership boundary:
 
 | Class | Classification | Covered fields / boundary |
 | --- | --- | --- |
 | `calculation.content` | `sensitive` | Operator, echoed operands, derived numeric result, including repeated result/trace presentations |
-| `calculation.runtime_context` | `sensitive` | Runtime-visible binding/correlation metadata before LocalBackend strips it: session/generation, Grant ID/hash, surface hash, subject/delegate/audience, identity-evidence hash, trace/span |
+| `calculation.runtime_context` | `sensitive` | Complete runtime-visible binding/correlation and receipt envelope before LocalBackend strips it: session/generation, Grant ID/hash, surface hash, subject/delegate/audience, identity-evidence hash, trace/span, execution and receipt metadata |
 | `calculation.status` | `private` | Closed success/error discriminants, action/mode identifiers and allowlisted error codes; never raw diagnostics or task text |
 
 These are proposed application-local IDs, not new ASP classes. `none` requires
@@ -58,10 +61,12 @@ training, remove stricter policy or alter application-owned storage policy.
 The issuer derives `Grant.data_exposure` from the exact manifest and approved
 actions/scopes. It is a top-level projection, **not** an invented retention
 member in `Grant.constraints`, and not client-submitted authority. In this
-no-resource/no-event example it contains exactly one action source with the
-complete fragment above. Runtime independently recomputes the same projection;
-introspection must agree. General control-event closure must not be omitted if
-the future manifest advertises such events.
+action-only illustration it contains exactly one action source with the
+complete fragment above. The current Calcu/SDK manifest also advertises
+`grant.revoked`: its control-event entry must be included even when its class
+array is empty, preserving its own handling declaration. Runtime independently
+recomputes the same projection; introspection must agree. The complete source
+closure follows the actual retained manifest rather than the illustration.
 
 The complete manifest and Grant views use the existing ASP JCS hash domains.
 Changed handling requires a new surface version/hash and fresh consent/Grant;
@@ -99,8 +104,10 @@ Approval Receipt. Multi-user/tenant operation remains out of scope.
 | App UI/task lifecycle | On cancel/error/unmount invalidate generation, abort work, release abandoned projections; editable task may remain for retry; no durable history feature |
 | SDK state engine/transactional adapter + app authority store | Reuse verified transition/fencing mechanics while the host owns durable state and policy. Keep revocation/recovery state; minimization is separate from agent-output deletion; generic get/set is insufficient |
 
-The current demo lacks complete projection, principal/consent and support
-knowledge. A future adapter must declare current revision-bound grammar support;
+The older inspected demo lacked complete projection, principal/consent and
+support knowledge. The 2026-09-30 comparison records newer value/projection
+integration, while live policy and host qualification remain open. A future
+adapter must declare current revision-bound grammar support;
 known unsupported yields `schema_unsupported`, unknown/stale support yields
 `input_unknown`. No agent-deletion evidence is needed for this mode alone.
 Stricter unenforceable retention still yields `retention_unsupported`; applicable
