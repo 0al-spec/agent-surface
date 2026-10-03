@@ -303,6 +303,16 @@ separates application gaps, SDK/example opportunities, and open questions about
 the minimal one-action adopter path. It is non-normative feedback, not a new
 conformance claim or protocol profile.
 
+The [universal local agent connector sketch](reference/adoption/local-agent-connector/)
+explores an application involving a user-selected agent through a local
+runtime. It is an informative architecture proposal, not a new ASP profile or
+a claim that browser-to-loopback transport is viable.
+
+The [universal local agent connector sketch](reference/adoption/local-agent-connector/)
+explores a user-controlled connector that can serve an embedded iPhone browser
+or a desktop browser. It is an informative architecture proposal, not an ASP
+profile or a claim that browser-to-loopback transport is currently viable.
+
 The specification is experimental and subject to change. The current draft is
 intended to establish terminology, threat model, protocol layers, manifest
 shape, grant lifecycle, receipt semantics, and MVP boundaries.
