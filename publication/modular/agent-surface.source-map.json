@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "lineBase": 1,
-  "outputSha256": "ecab0f4015abd6e6a8f7103c980843d79af858b0ee65d1e242339ae32965779c",
+  "outputSha256": "19bbe3e5e59ccdad4d8560517981f9e9b7fe6d321a9d659f88ebc4db85733188",
   "mappings": [
     {
       "generatedStartLine": 1,
@@ -47,23 +47,23 @@
     },
     {
       "generatedStartLine": 12784,
-      "generatedEndLine": 14129,
+      "generatedEndLine": 14297,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/evidence.md",
         "startLine": 1,
-        "endLine": 1346
+        "endLine": 1514
       }
     },
     {
-      "generatedStartLine": 14130,
-      "generatedEndLine": 14130,
+      "generatedStartLine": 14298,
+      "generatedEndLine": 14298,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 14131,
-      "generatedEndLine": 15057,
+      "generatedStartLine": 14299,
+      "generatedEndLine": 15225,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/privacy.md",
@@ -72,14 +72,14 @@
       }
     },
     {
-      "generatedStartLine": 15058,
-      "generatedEndLine": 15058,
+      "generatedStartLine": 15226,
+      "generatedEndLine": 15226,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 15059,
-      "generatedEndLine": 16399,
+      "generatedStartLine": 15227,
+      "generatedEndLine": 16567,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/bindings/asp-over-mcp.md",
@@ -88,14 +88,14 @@
       }
     },
     {
-      "generatedStartLine": 16400,
-      "generatedEndLine": 16400,
+      "generatedStartLine": 16568,
+      "generatedEndLine": 16568,
       "kind": "generated_separator",
       "source": null
     },
     {
-      "generatedStartLine": 16401,
-      "generatedEndLine": 17887,
+      "generatedStartLine": 16569,
+      "generatedEndLine": 18055,
       "kind": "markdown",
       "source": {
         "path": "drafts/modules/conformance.md",

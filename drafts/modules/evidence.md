@@ -6,7 +6,7 @@
 > `drafts/agent-surface.md` is a generated aggregate reading view.
 
 - Document ID: `https://github.com/0al-spec/agent-surface/documents/evidence`
-- Exact version: `0.1.0-draft.5`
+- Exact version: `0.1.0-draft.6`
 - Canonical path: `drafts/modules/evidence.md`
 
 ## Exact Normative Dependencies
@@ -624,6 +624,174 @@ compensation, or proof that a person saw or understood a presentation. The
 separate Human Elicitation Events Profile can carry typed clarification,
 selection, edit, redline, and step-up results, but none is Approval Receipt
 evidence or proof that a person understood an approval presentation.
+
+<a id="http-inline-receipt-delivery"></a>
+### HTTP Inline Receipt Delivery
+
+The optional profile
+`https://github.com/0al-spec/agent-surface/profiles/http-inline-receipts/v1`
+defines complete receipt delivery in the JSON bodies of synchronous HTTPS
+Action Requests and Action Responses at the manifest's `agent_api.action_url`.
+It is a delivery binding, not a new receipt type, hash domain, authorization
+profile, or claim of portable producer authentication. It does not change
+ASP-over-MCP v1, which delivers complete receipts through MCP resources, or
+define a receipt HTTP header or the retrieval grammar of `agent_api.receipt_url`.
+
+#### Declaration and Selection
+
+An application selects this profile for an explicit nonempty set of action IDs
+with the following closed manifest member:
+
+```json
+{
+  "agent_api": {
+    "action_url": "https://example.com/agent-actions",
+    "receipt_delivery": {
+      "profile": "https://github.com/0al-spec/agent-surface/profiles/http-inline-receipts/v1",
+      "action_ids": ["calculation.propose"]
+    }
+  }
+}
+```
+
+`receipt_delivery` contains exactly `profile` and `action_ids`; IDs MUST be
+unique, MUST exist in the same pinned manifest, and MUST identify synchronous
+actions. The declaration participates in `surface_hash`. It applies only to
+the direct HTTPS JSON binding at that snapshot's `action_url`, not to other
+advertised bindings. For a listed action, both participants MUST support this
+exact profile and the effective Grant MUST contain both
+`audit.local_receipt: "required"` and `audit.app_receipt: "required"`.
+These receipt requirements do not require signatures; signing remains governed
+independently by `audit.receipt_signing.required_signers` when present.
+Otherwise they MUST fail before dispatch or admission as
+`surface_incompatible`; they MUST NOT silently select another delivery mode.
+An unlisted action retains its ordinary receipt contract and MUST NOT carry
+this extension. A Grant still determines permitted actions and receipt signing
+requirements; advertising delivery never issues authority.
+
+#### Closed Inline Carriers
+
+The extension member name, in `payload` alongside ordinary Action Request or
+Action Response members, is the absolute URI
+`https://github.com/0al-spec/agent-surface/extensions/http-inline-receipts/v1`.
+The request carrier contains exactly `profile`, `runtime_receipt`, and, when
+referenced, `approval_receipts`. The response carrier contains exactly `profile`
+and the applicable `app_receipt` and/or `approval_receipts` members. `profile`
+always equals the manifest profile identifier above. A carrier is not an input
+or output member, and is not part of the action's input or output hashing view.
+
+| Carrier | Member | Required content |
+| --- | --- | --- |
+| Action Request | `runtime_receipt` | One complete finalized Runtime Receipt, with `receipt_type: runtime`. |
+| Action Request | `approval_receipts.runtime` | One complete runtime Approval Receipt if and only if the request references that role in `approval_receipt_hashes`. No application member is allowed. |
+| Action Response | `app_receipt` | One complete App Receipt, with `receipt_type: app`, if and only if the response has the paired `receipt_id` and `receipt_hash`. Required for a successful selected action. |
+| Action Response | `approval_receipts.runtime` and/or `.application` | Exactly the complete Approval Receipts referenced by the final response's role-indexed `approval_receipt_hashes`, or the single denial receipt referenced by `approval_receipt_id` and `approval_receipt_hash`. |
+
+`approval_receipts` is a closed role-indexed object; it MUST be absent rather
+than empty or `null` when no Approval Receipt is referenced. Its receipts MUST
+have `receipt_type: approval` and their `approval.role` MUST equal the map key.
+No carrier member is a URL, resource reference, summary, hash-only object,
+array of alternative receipts, or redacted receipt. Every carried receipt
+retains its complete ordinary hashing view and any signatures. The nested
+receipt and Policy Decision structure remains governed by its existing
+profile, not by a permissive carrier object schema.
+
+A response with `approval_denied` MUST carry exactly
+`approval_receipts.application`, whose receipt has `receipt_type: approval`,
+`approval.role: application`, `result: denied`, and the exact
+`approval_receipt_id` and `approval_receipt_hash` referenced by the response.
+It MUST NOT contain a satisfied `approval_receipt_hashes` map or an approved
+receipt in that denial slot. A failure App Receipt, when ordinary policy
+produces one, is carried separately in `app_receipt` and records no effect.
+
+A pre-admission `action.error` with no receipt references MUST omit the
+extension. If an error references an application/failure or denial Approval
+Receipt, it MUST carry the complete referenced objects under the same response
+carrier rules. An admitted error with an attempted or unknown effect MUST
+deliver the complete App Receipt required by ordinary receipt policy; it cannot
+use the pre-admission omission exception. This does not require producing an
+action receipt for a request that was never admitted. An approval denial cannot be presented as successful
+action evidence. Unknown, duplicate, forbidden, missing, or `null` carrier
+members are `schema_invalid`. A profile or selection mismatch is
+`surface_incompatible`. A receipt, role, hash, producer, or binding mismatch
+is `integrity_mismatch`. A malformed response is a local verification failure,
+not proof that the application did no work.
+
+#### Admission and Result Acceptance
+
+Before sending, the Runtime Mediator MUST pin the manifest, complete Grant and
+session tuple, normalized wire input, sanitized execution context, and its
+finalized Runtime Receipt. `payload.parent_receipt_hash` MUST equal that
+receipt's recomputed hash. The application MUST verify that complete receipt
+and the required runtime approval evidence before first action admission. It
+MUST independently enforce current authority and application policy; neither
+the presence of inline evidence nor a matching hash substitutes for admission.
+
+Before accepting a result, the Runtime Mediator MUST verify the complete App
+Receipt and required approval set against the saved invocation, not against
+values chosen by the response. It MUST recompute the ordinary receipt,
+Policy Decision, input, execution, output, and effect hashes where applicable;
+check producer roles; check the subject, runtime, agent and identity evidence,
+application, Grant, surface, session generation, action, idempotency and
+execution bindings; and check the ordinary trace and approval invariants.
+The response's receipt ID and hash MUST name the exact carried App Receipt.
+For a successful action, its `parent_receipt_hash` MUST name the saved verified
+Runtime Receipt, and its result, schema-valid output and effect outcome MUST
+agree with the response. Complete Approval Receipts MUST match their references
+and satisfy the existing role, decision, freshness and Grant rules. Replacing
+or omitting any object cannot be repaired by accepting only its hash.
+
+Each consumer MUST authenticate each producer independently. The application's
+HTTPS identity and endpoint MUST be mapped to the pinned manifest application;
+the request credential/proof MUST be mapped to the Grant-bound runtime, not
+merely to an arbitrary bearer. A runtime's signature can authenticate its own
+Approval Receipt echoed by the application; otherwise the runtime checks it
+against its saved, locally trusted immutable object. Application HTTPS alone
+does not authenticate an unrelated runtime producer. Required and present
+signatures are verified under the existing Receipt Signing Profile without
+downgrading invalid signatures to channel-only evidence. An authenticated
+channel establishes provenance for that delivery, not a portable signature,
+trusted timestamp, correct natural-language interpretation, or continuing
+authority after delivery.
+
+#### HTTP and Lifecycle Boundaries
+
+The client MUST use HTTPS POST to the exact manifest `action_url`, authenticate
+the application with normal certificate validation and applicable local pins,
+and apply the selected Grant credential/proof to that exact target. It MUST
+NOT follow redirects or derive an endpoint from a receipt. Both JSON bodies
+use `Content-Type: application/json` and strict I-JSON parsing, including
+duplicate-member rejection. Responses MUST include `Cache-Control: no-store`.
+Participants MUST apply finite request/response byte limits, deadlines and
+cancellation handling before accepting a body. These limits are deployment
+policy, not a universal calculator-sized protocol limit. Credentials MUST NOT
+be placed in the JSON carrier, logs, model context or receipt content.
+
+Inline delivery does not by itself prove persistence or recovery. Before
+emitting any terminal outcome that ordinary idempotency policy makes replayable,
+the application MUST persist the immutable response and every referenced
+complete receipt, including denials and failures with attempted or unknown
+effects, according to ordinary retention policy. Approval decisions retain
+their independent durable lifecycle requirements. This does not invent an
+idempotency or durable-storage requirement for actions without that contract.
+An authenticated exact retry under that contract returns the original response
+and receipt objects, not newly produced receipts or another effect. Revocation and session
+rules still apply to retrieval; this profile does not authorize a retry after
+authority loss. A response lost, truncated, oversized or rejected after
+dispatch MUST NOT be interpreted as evidence of no effect. The runtime uses
+ordinary recovery under remaining authority and MUST NOT invent a fresh
+idempotency key to evade uncertainty. A declared `receipt_url` can coexist for
+authorized retrieval or audit, but MUST NOT repair a missing mandatory inline
+object or silently downgrade result acceptance.
+
+Complete receipts terminate at trusted application/runtime components. Delivery
+does not grant permission to disclose them to a model, agent, browser UI or
+exporter; ordinary Data Exposure and retention constraints still apply.
+
+The companion schema at
+`conformance/receipt-delivery/v1/carrier.schema.json` and its cases check only
+declaration/carrier structure. They are not a complete Receipt schema, producer
+authentication test, live HTTPS qualification, or interoperability claim.
 
 ### Receipt Hash Chain
 
