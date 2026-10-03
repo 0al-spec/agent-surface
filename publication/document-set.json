@@ -2,7 +2,7 @@
   "$schema": "./document-set.schema.json",
   "schema_version": 2,
   "document_set_id": "https://github.com/0al-spec/agent-surface/publication/document-set/v1",
-  "document_set_version": "0.2.0-draft.9",
+  "document_set_version": "0.2.0-draft.10",
   "protocol_version": "agent-surface/0.1",
   "publication_mode": "modular",
   "authority": {
@@ -49,7 +49,7 @@
   },
   "aggregate": {
     "path": "drafts/agent-surface.md",
-    "sha256": "ecab0f4015abd6e6a8f7103c980843d79af858b0ee65d1e242339ae32965779c",
+    "sha256": "19bbe3e5e59ccdad4d8560517981f9e9b7fe6d321a9d659f88ebc4db85733188",
     "generated": true,
     "role": "exact_document_set_representation",
     "assembly": {
@@ -277,14 +277,14 @@
     },
     {
       "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-      "version": "0.1.0-draft.5",
+      "version": "0.1.0-draft.6",
       "title": "ASP Evidence",
       "kind": "extension",
       "role": "evidence",
       "status": "canonical",
       "publication_order": 3,
       "source_path": "drafts/modules/evidence.md",
-      "source_sha256": "f1beadacad07818cc97e6101d167fa67697bc5b96a7a660e43a9e87a828ca2a3",
+      "source_sha256": "255de1bb9b0587e7ded8a39bf2e2b5d0385c3c695b2a4a2d0d4581db592cd881",
       "normative_dependencies": [
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
@@ -333,6 +333,11 @@
           "anchor_id": "asp-evidence",
           "heading": "ASP Evidence",
           "aliases": []
+        },
+        {
+          "anchor_id": "http-inline-receipt-delivery",
+          "heading": "HTTP Inline Receipt Delivery",
+          "aliases": []
         }
       ],
       "exports": [
@@ -344,14 +349,14 @@
     },
     {
       "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-      "version": "0.1.0-draft.6",
+      "version": "0.1.0-draft.7",
       "title": "ASP Privacy",
       "kind": "extension",
       "role": "privacy",
       "status": "canonical",
       "publication_order": 4,
       "source_path": "drafts/modules/privacy.md",
-      "source_sha256": "0b7b2021377405de19fd630c93dde64d47564d8b22435b93c42445b62528f011",
+      "source_sha256": "1d64270947f20ca62426f5ffe947024450b7a476ecdecc7653a4813315f98284",
       "normative_dependencies": [
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
@@ -363,7 +368,7 @@
         },
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "version": "0.1.0-draft.5"
+          "version": "0.1.0-draft.6"
         }
       ],
       "normative_references": [
@@ -389,7 +394,7 @@
           "source_anchor_id": "asp-privacy",
           "target_document": {
             "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-            "version": "0.1.0-draft.5"
+            "version": "0.1.0-draft.6"
           },
           "target_kind": "artifact",
           "target_id": "drafts/modules/evidence.md"
@@ -411,14 +416,14 @@
     },
     {
       "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
-      "version": "0.1.0-draft.6",
+      "version": "0.1.0-draft.7",
       "title": "ASP-over-MCP Binding",
       "kind": "binding",
       "role": "binding",
       "status": "canonical",
       "publication_order": 5,
       "source_path": "drafts/modules/bindings/asp-over-mcp.md",
-      "source_sha256": "1446a68956b8685e191e894a799d48a9d5de7761c399d4de125c58d3f4322268",
+      "source_sha256": "c8bae8471f58a92933dbf31cf1a946357f606bde0cfc374b7386f717632e4521",
       "normative_dependencies": [
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
@@ -434,7 +439,7 @@
         },
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "version": "0.1.0-draft.5"
+          "version": "0.1.0-draft.6"
         }
       ],
       "normative_references": [
@@ -469,7 +474,7 @@
           "source_anchor_id": "asp-over-mcp-binding",
           "target_document": {
             "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-            "version": "0.1.0-draft.5"
+            "version": "0.1.0-draft.6"
           },
           "target_kind": "artifact",
           "target_id": "drafts/modules/evidence.md"
@@ -496,14 +501,14 @@
     },
     {
       "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-      "version": "0.1.0-draft.7",
+      "version": "0.1.0-draft.8",
       "title": "ASP Conformance",
       "kind": "conformance",
       "role": "conformance",
       "status": "canonical",
       "publication_order": 6,
       "source_path": "drafts/modules/conformance.md",
-      "source_sha256": "64ef15fd21e0f0e8f77c3b484d69b0c99b2058b99081e61fdec0e0859582502a",
+      "source_sha256": "e956d634e630defbcd531708e31220130c1ad853c7cce546c8d822164a17c9ff",
       "normative_dependencies": [
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/core",
@@ -519,15 +524,15 @@
         },
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-          "version": "0.1.0-draft.5"
+          "version": "0.1.0-draft.6"
         },
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-          "version": "0.1.0-draft.6"
+          "version": "0.1.0-draft.7"
         },
         {
           "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
-          "version": "0.1.0-draft.6"
+          "version": "0.1.0-draft.7"
         }
       ],
       "normative_references": [
@@ -562,7 +567,7 @@
           "source_anchor_id": "asp-conformance",
           "target_document": {
             "document_id": "https://github.com/0al-spec/agent-surface/documents/evidence",
-            "version": "0.1.0-draft.5"
+            "version": "0.1.0-draft.6"
           },
           "target_kind": "artifact",
           "target_id": "drafts/modules/evidence.md"
@@ -571,7 +576,7 @@
           "source_anchor_id": "asp-conformance",
           "target_document": {
             "document_id": "https://github.com/0al-spec/agent-surface/documents/privacy",
-            "version": "0.1.0-draft.6"
+            "version": "0.1.0-draft.7"
           },
           "target_kind": "artifact",
           "target_id": "drafts/modules/privacy.md"
@@ -580,7 +585,7 @@
           "source_anchor_id": "asp-conformance",
           "target_document": {
             "document_id": "https://github.com/0al-spec/agent-surface/documents/bindings/asp-over-mcp",
-            "version": "0.1.0-draft.6"
+            "version": "0.1.0-draft.7"
           },
           "target_kind": "artifact",
           "target_id": "drafts/modules/bindings/asp-over-mcp.md"
@@ -613,26 +618,26 @@
   "registries": [
     {
       "registry_id": "https://github.com/0al-spec/agent-surface/conformance/suite/v1",
-      "version": "1.10.7",
+      "version": "1.10.8",
       "source_path": "conformance/v1/suite.json",
-      "source_sha256": "3b1a960360027c440beed7a7f9f1162b7259171a3ac36650cfa634a5b4fbf0e1",
+      "source_sha256": "f5d6c88fab2f8d223beaaa3acfc680883c5614ed743dae2731da71f5743b5112",
       "id_member": "suite_id",
       "version_member": "suite_version",
       "owner": {
         "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-        "version": "0.1.0-draft.7"
+        "version": "0.1.0-draft.8"
       }
     },
     {
       "registry_id": "https://github.com/0al-spec/agent-surface/conformance/bundles/v1",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "source_path": "conformance/v1/bundles.json",
-      "source_sha256": "91c5f936c4dcab35fddfdb78e894dd29accfb881676545e9498d87031c214da2",
+      "source_sha256": "bca50180788c8a32df6ccf1b374b2ad4f6ec0a4696a205111e57b59ca708b850",
       "id_member": "registry_id",
       "version_member": "registry_version",
       "owner": {
         "document_id": "https://github.com/0al-spec/agent-surface/documents/conformance",
-        "version": "0.1.0-draft.7"
+        "version": "0.1.0-draft.8"
       }
     }
   ],

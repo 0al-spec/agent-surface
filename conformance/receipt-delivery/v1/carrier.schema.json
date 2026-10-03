@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0al-spec/agent-surface/conformance/schemas/http-inline-receipt-carrier/v1",
+  "title": "HTTP Inline Receipt Delivery v1 carrier structures",
+  "$comment": "Validate a selected $defs shape. Nested receipt objects are only type guards: apply the complete existing Receipt profile separately. This schema cannot establish hashes, tuple agreement, signatures, authority, or HTTPS provenance.",
+  "oneOf": [
+    { "$ref": "#/$defs/declaration" },
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/response" }
+  ],
+  "$defs": {
+    "profile": {
+      "const": "https://github.com/0al-spec/agent-surface/profiles/http-inline-receipts/v1"
+    },
+    "declaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "action_ids"],
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "action_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "receiptIdentity": {
+      "type": "object",
+      "required": ["receipt_type", "receipt_id", "receipt_hash"],
+      "properties": {
+        "receipt_id": { "type": "string", "minLength": 1 },
+        "receipt_hash": { "type": "string", "pattern": "^sha-256:[A-Za-z0-9_-]{43}$" }
+      }
+    },
+    "runtimeReceipt": {
+      "allOf": [{ "$ref": "#/$defs/receiptIdentity" }],
+      "properties": { "receipt_type": { "const": "runtime" } }
+    },
+    "appReceipt": {
+      "allOf": [{ "$ref": "#/$defs/receiptIdentity" }],
+      "properties": { "receipt_type": { "const": "app" } }
+    },
+    "runtimeApproval": {
+      "allOf": [{ "$ref": "#/$defs/receiptIdentity" }],
+      "required": ["approval"],
+      "properties": {
+        "receipt_type": { "const": "approval" },
+        "approval": {
+          "type": "object",
+          "required": ["role"],
+          "properties": { "role": { "const": "runtime" } }
+        }
+      }
+    },
+    "applicationApproval": {
+      "allOf": [{ "$ref": "#/$defs/receiptIdentity" }],
+      "required": ["approval"],
+      "properties": {
+        "receipt_type": { "const": "approval" },
+        "approval": {
+          "type": "object",
+          "required": ["role"],
+          "properties": { "role": { "const": "application" } }
+        }
+      }
+    },
+    "requestApprovals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime"],
+      "properties": { "runtime": { "$ref": "#/$defs/runtimeApproval" } }
+    },
+    "responseApprovals": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "runtime": { "$ref": "#/$defs/runtimeApproval" },
+        "application": { "$ref": "#/$defs/applicationApproval" }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "runtime_receipt"],
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "runtime_receipt": { "$ref": "#/$defs/runtimeReceipt" },
+        "approval_receipts": { "$ref": "#/$defs/requestApprovals" }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile"],
+      "anyOf": [
+        { "required": ["app_receipt"] },
+        { "required": ["approval_receipts"] }
+      ],
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "app_receipt": { "$ref": "#/$defs/appReceipt" },
+        "approval_receipts": { "$ref": "#/$defs/responseApprovals" }
+      }
+    }
+  }
+}
