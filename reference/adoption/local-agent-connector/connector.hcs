@@ -3,7 +3,8 @@
 
 AgentConnector:
   lifecycle: "local application session"
-  authority_owner: "connector and user"
+  authority_owner: "ASP application owns Grant/session; user controls agent choice and consent"
+  local_policy_owner: "connector owns runtime mediation policy"
   active_platform_binding: "unselected"
 
 @platform[ios]:
@@ -66,7 +67,8 @@ AgentConnector:
   owns_web_content: true
 
 '#ios-bridge':
-  callable_by_page_without_consent: false
+  accepts_non_authoritative_proposal_without_consent: true
+  permits_action_dispatch_without_consent: false
   request_origin_checked_by_native_host: true
   page_receives_grant: false
 
@@ -91,7 +93,11 @@ AgentConnector:
 '#mac-origin-gate':
   reject_opaque_origin: true
   require_short_lived_request_proof: true
-  proof_bound_to: "origin, action, session, expiry"
+  proof_inaccessible_to_page: true
+  proof_single_use: true
+  proof_nonce_consumed_atomically: true
+  request_id_required: true
+  proof_bound_to: "origin, request_id, action, session, expiry"
 
 '#remote-app':
   enforces_grant_independently: true
@@ -163,8 +169,8 @@ AgentConnector:
 '#mac-03':
   sequence: 3
   participant: "local origin gate"
-  operation: "checks origin and short-lived request proof"
-  gate: "origin, action, session, expiry"
+  operation: "checks origin and browser-controlled proof, binds request id, atomically consumes nonce before accepting proposal"
+  gate: "origin, request id, action, session, expiry; page cannot access proof; replay rejected"
   next_step: "mac-04"
 
 '#mac-04':
@@ -185,6 +191,7 @@ AgentConnector:
   AgentConnector:
     lifecycle: string
     authority_owner: string
+    local_policy_owner: string
     active_platform_binding: string
   SurfaceClient:
     selects_actions: bool
@@ -226,6 +233,10 @@ AgentConnector:
   LocalOriginGate:
     reject_opaque_origin: bool
     require_short_lived_request_proof: bool
+    proof_inaccessible_to_page: bool
+    proof_single_use: bool
+    proof_nonce_consumed_atomically: bool
+    request_id_required: bool
     proof_bound_to: string
   FlowStep:
     sequence: int >= 1 <= 5

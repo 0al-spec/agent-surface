@@ -104,8 +104,8 @@ ASP implementations. For an ASP-over-WebMCP deployment, the normative binding
 already requires a separate privileged Runtime Bridge and a browser-only,
 single-use invocation proof. WebMCP registration, a page-held bearer, or a
 page-supplied hidden tool argument does not establish authority. See the
-[Runtime Bridge and invocation-proof requirements](../../drafts/modules/bindings/asp-over-mcp.md#browser-topology-and-authority-boundary)
-and the [Runtime Bridge Protocol](../../drafts/modules/core.md#3-runtime-bridge-protocol).
+[Runtime Bridge and invocation-proof requirements](../../../drafts/modules/bindings/asp-over-mcp.md#browser-topology-and-authority-boundary)
+and the [Runtime Bridge Protocol](../../../drafts/modules/core.md#3-runtime-bridge-protocol).
 
 The accompanying Hypercode files are an architecture model and explicit
 scenario traces. Hypercode validation establishes that those declarations and
