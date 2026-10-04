@@ -1,0 +1,246 @@
+# Proposed architecture, not a deployed connector. Mac loopback is an
+# unverified candidate and is not required by ASP.
+
+AgentConnector:
+  lifecycle: "local application session"
+  authority_owner: "ASP application owns Grant/session; user controls agent choice and consent"
+  local_policy_owner: "connector owns runtime mediation policy"
+  active_platform_binding: "unselected"
+
+@platform[ios]:
+  AgentConnector:
+    active_platform_binding: "ios-native-bridge"
+
+@platform[macos]:
+  AgentConnector:
+    active_platform_binding: "mac-loopback-http-candidate"
+
+'#surface-client':
+  discovery_source: "remote ASP application"
+  selects_actions: true
+
+'#origin-gate':
+  origin_required: true
+  origin_scope: "exact requesting site origin"
+  reject_opaque_origin: true
+
+'#consent-broker':
+  consent_required: true
+  consent_scope: "site origin, selected actions, disclosed data"
+  consent_lifetime: "bounded and revocable"
+
+'#grant-coordinator':
+  grant_issuer: "ASP application after its consent flow; app-issued Grant is recommended for MVP"
+  authority_custody: "authenticated runtime stores the app-issued Grant; page has no access"
+  page_receives_grant: false
+  page_supplies_authority: false
+
+'#runtime-bridge':
+  browser_request_is_authority: false
+  application_verifies_grant_and_session: true
+
+'#session-coordinator':
+  app_initiated_start_requires_user_action_or_authorized_policy: true
+  task_delivery: "authorized event path; must preserve Data Exposure Contract"
+
+'#agent-runtime':
+  credential_source: "connector-controlled runtime"
+  receives_only_granted_actions: true
+  page_controls_runtime_configuration: false
+
+'#dispatcher':
+  checks_origin_and_grant_before_call: true
+  allows_undeclared_actions: false
+
+'#result-presenter':
+  returns_only_selected_result: true
+  discloses_receipt_or_credential: false
+
+'#revocation':
+  blocks_future_calls: true
+  recalls_previously_disclosed_data: false
+
+'#ios-connector':
+  transport: "in-app browser native bridge"
+
+'#ios-browser':
+  owns_web_content: true
+
+'#ios-bridge':
+  accepts_non_authoritative_proposal_without_consent: true
+  permits_action_dispatch_without_consent: false
+  request_origin_checked_by_native_host: true
+  page_receives_grant: false
+
+'#ios-navigation-gate':
+  bridge_enabled_for_unapproved_origin: false
+  redirects_recheck_origin: true
+
+'#mac-connector':
+  transport: "candidate loopback HTTP; browser compatibility unverified"
+
+'#mac-browser':
+  owns_web_content: false
+
+'#mac-listener':
+  bind_address: "127.0.0.1"
+  remote_network_access: false
+  browser_transport_compatibility_verified: false
+  check_origin_before_action: true
+  wildcard_origin_access: false
+  page_receives_bearer_credential: false
+
+'#mac-origin-gate':
+  reject_opaque_origin: true
+  require_short_lived_request_proof: true
+  proof_inaccessible_to_page: true
+  proof_single_use: true
+  proof_nonce_consumed_atomically: true
+  request_id_required: true
+  proof_bound_to: "origin, request_id, action, session, expiry"
+
+'#remote-app':
+  enforces_grant_independently: true
+  verifies_current_session: true
+  publishes_curated_surface: true
+
+'#remote-manifest':
+  authority_source: "application-published ASP surface"
+
+'#remote-executor':
+  checks_current_grant_before_execution: true
+
+.step:
+  sequence: 1
+  participant: ""
+  operation: ""
+  gate: ""
+  next_step: "end"
+
+'#ios-01':
+  sequence: 1
+  participant: "website"
+  operation: "requests one declared action through the embedded browser"
+  gate: "none; request is only a proposal"
+  next_step: "ios-02"
+
+'#ios-02':
+  sequence: 2
+  participant: "native bridge"
+  operation: "binds the request to the visible page origin"
+  gate: "exact origin and navigation state"
+  next_step: "ios-03"
+
+'#ios-03':
+  sequence: 3
+  participant: "user and connector"
+  operation: "review the requested action and data disclosure"
+  gate: "explicit bounded consent"
+  next_step: "ios-04"
+
+'#ios-04':
+  sequence: 4
+  participant: "application and local agent runtime"
+  operation: "application accepts the authenticated session and delivers the task; runtime mediates granted work"
+  gate: "current app-issued Grant, accepted session, and Data Exposure Contract"
+  next_step: "ios-05"
+
+'#ios-05':
+  sequence: 5
+  participant: "connector"
+  operation: "returns the permitted result to the requesting page"
+  gate: "result disclosure policy; no Grant or credential"
+  next_step: "end"
+
+'#mac-01':
+  sequence: 1
+  participant: "website"
+  operation: "requests one declared action from the local connector"
+  gate: "none; request is only a proposal"
+  next_step: "mac-02"
+
+'#mac-02':
+  sequence: 2
+  participant: "loopback listener"
+  operation: "accepts a request only on the loopback interface"
+  gate: "127.0.0.1 binding and bounded request"
+  next_step: "mac-03"
+
+'#mac-03':
+  sequence: 3
+  participant: "local origin gate"
+  operation: "checks origin and browser-controlled proof, binds request id, atomically consumes nonce before accepting proposal"
+  gate: "origin, request id, action, session, expiry; page cannot access proof; replay rejected"
+  next_step: "mac-04"
+
+'#mac-04':
+  sequence: 4
+  participant: "user, application, and local agent runtime"
+  operation: "user approves; application accepts the authenticated session and delivers the task; runtime mediates granted work"
+  gate: "explicit user consent, current app-issued Grant, accepted session, and Data Exposure Contract"
+  next_step: "mac-05"
+
+'#mac-05':
+  sequence: 5
+  participant: "connector"
+  operation: "returns only the permitted result to the requesting page"
+  gate: "result disclosure policy; no Grant or credential"
+  next_step: "end"
+
+@contract:
+  AgentConnector:
+    lifecycle: string
+    authority_owner: string
+    local_policy_owner: string
+    active_platform_binding: string
+  SurfaceClient:
+    selects_actions: bool
+  OriginGate:
+    origin_required: bool
+    origin_scope: string
+    reject_opaque_origin: bool
+  ConsentBroker:
+    consent_required: bool
+    consent_scope: string
+    consent_lifetime: string
+  GrantCoordinator:
+    grant_issuer: string
+    authority_custody: string
+    page_receives_grant: bool
+    page_supplies_authority: bool
+  RuntimeBridge:
+    browser_request_is_authority: bool
+    application_verifies_grant_and_session: bool
+  SessionCoordinator:
+    app_initiated_start_requires_user_action_or_authorized_policy: bool
+    task_delivery: string
+  CapabilityDispatcher:
+    checks_origin_and_grant_before_call: bool
+    allows_undeclared_actions: bool
+  ResultPresenter:
+    returns_only_selected_result: bool
+    discloses_receipt_or_credential: bool
+  RevocationController:
+    blocks_future_calls: bool
+    recalls_previously_disclosed_data: bool
+  LoopbackHTTPListener:
+    bind_address: string
+    remote_network_access: bool
+    browser_transport_compatibility_verified: bool
+    check_origin_before_action: bool
+    wildcard_origin_access: bool
+    page_receives_bearer_credential: bool
+  LocalOriginGate:
+    reject_opaque_origin: bool
+    require_short_lived_request_proof: bool
+    proof_inaccessible_to_page: bool
+    proof_single_use: bool
+    proof_nonce_consumed_atomically: bool
+    request_id_required: bool
+    proof_bound_to: string
+  FlowStep:
+    sequence: int >= 1 <= 5
+    participant: string
+    operation: string
+    gate: string
+    next_step: string
